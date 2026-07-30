@@ -37,6 +37,8 @@ sysinfo.txt
 # Builds and native artifacts are produced by documented scripts
 Assets/Plugins/Windows/x86_64/*.dll
 Assets/Plugins/Windows/x86_64/*.pdb
+!Assets/Plugins/Windows/x86_64/ocgcore.dll
+!Assets/Plugins/Android/arm64-v8a/libocgcore.so
 
 # Copyrighted card art is staged locally and tracked through a hash manifest
 ContentStaging/**/Art/

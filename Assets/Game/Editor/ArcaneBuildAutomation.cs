@@ -39,6 +39,18 @@ namespace ArcaneDuel.Editor
             BuildWindowsRelease();
         }
 
+        [MenuItem("Arcane Duel/Build Android/Release APK")]
+        public static void BuildAndroidRelease()
+        {
+            BuildAndroid("Android", BuildOptions.None);
+        }
+
+        // Public entry point for Unity -batchmode -executeMethod.
+        public static void BuildAndroidFromCommandLine()
+        {
+            BuildAndroidRelease();
+        }
+
         private static void Build(string folderName, BuildOptions options)
         {
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
@@ -74,9 +86,89 @@ namespace ArcaneDuel.Editor
                 $"bytes={report.summary.totalSize} options={options}");
         }
 
+        private static void BuildAndroid(
+            string folderName,
+            BuildOptions options)
+        {
+            const string plugin =
+                "Assets/Plugins/Android/arm64-v8a/libocgcore.so";
+            if (!File.Exists(plugin))
+            {
+                throw new FileNotFoundException(
+                    "Build the Android ocgcore plugin first with " +
+                    "Tools/Build/Build-OcgCoreAndroid.ps1.",
+                    plugin);
+            }
+
+            NativePluginConfigurator.Configure();
+            if (!Application.isBatchMode &&
+                EditorUserBuildSettings.activeBuildTarget !=
+                    BuildTarget.Android &&
+                !EditorUserBuildSettings.SwitchActiveBuildTarget(
+                    BuildTargetGroup.Android,
+                    BuildTarget.Android))
+            {
+                throw new InvalidOperationException(
+                    "Unity could not switch to the Android build target. " +
+                    "In batch mode, launch Unity with " +
+                    "\"-buildTarget Android\".");
+            }
+            if (Application.isBatchMode &&
+                EditorUserBuildSettings.activeBuildTarget !=
+                    BuildTarget.Android)
+            {
+                Debug.LogWarning(
+                    "Batch mode reports a different active target; " +
+                    "BuildPlayer will use the explicit Android target.");
+            }
+
+            PlayerSettings.Android.targetArchitectures =
+                AndroidArchitecture.ARM64;
+            PlayerSettings.Android.minSdkVersion =
+                AndroidSdkVersions.AndroidApiLevel26;
+            EditorUserBuildSettings.buildAppBundle = false;
+
+            string projectRoot =
+                Directory.GetParent(Application.dataPath).FullName;
+            WriteBuildDiagnostics(
+                projectRoot,
+                options,
+                "Android arm64-v8a");
+            string outputDirectory = Path.Combine(
+                projectRoot,
+                "Builds",
+                folderName);
+            Directory.CreateDirectory(outputDirectory);
+            string output = Path.Combine(
+                outputDirectory,
+                "ArcaneDuel.apk");
+            string[] scenes = EditorBuildSettings.scenes
+                .Where(scene => scene.enabled)
+                .Select(scene => scene.path)
+                .ToArray();
+            var buildOptions = new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = output,
+                target = BuildTarget.Android,
+                options = options
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(buildOptions);
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Android build failed: {report.summary.result}, " +
+                    $"errors={report.summary.totalErrors}.");
+            }
+            Debug.Log(
+                $"ARCANE_DUEL_ANDROID_BUILD_OK path={output} " +
+                $"bytes={report.summary.totalSize} options={options}");
+        }
+
         private static void WriteBuildDiagnostics(
             string projectRoot,
-            BuildOptions options)
+            BuildOptions options,
+            string platform = "Windows x64")
         {
             string directory = Path.Combine(
                 projectRoot,
@@ -96,7 +188,7 @@ namespace ArcaneDuel.Editor
                 $"  \"cardScriptsCommit\": \"{ProjectIdentity.CardScriptsCommit}\",\n" +
                 $"  \"babelCdbCommit\": \"{ProjectIdentity.BabelCdbCommit}\",\n" +
                 $"  \"buildKind\": \"{(options == BuildOptions.None ? "Release" : "Development")}\",\n" +
-                "  \"platform\": \"Windows x64\",\n" +
+                $"  \"platform\": \"{platform}\",\n" +
                 "  \"catalogCards\": 200,\n" +
                 "  \"coreCatalogCards\": 261,\n" +
                 "  \"legacyPresentationCards\": 193\n" +

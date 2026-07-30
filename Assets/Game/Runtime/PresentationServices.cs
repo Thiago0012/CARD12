@@ -31,11 +31,7 @@ namespace ArcaneDuel.Game
                 return false;
             }
 
-            string path = Path.Combine(
-                Application.streamingAssetsPath,
-                "Ygo",
-                "Art",
-                visual.artFile);
+            string path = catalog.ArtPath(code);
             if (!File.Exists(path))
             {
                 texture = null;

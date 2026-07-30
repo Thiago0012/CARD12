@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using ArcaneDuel.DuelEngine.Content;
 using UnityEngine;
 
 namespace ArcaneDuel.Game
@@ -62,18 +63,12 @@ namespace ArcaneDuel.Game
         public string ArtPath(uint code)
         {
             CardVisualData visual = Get(code);
-            return Path.Combine(
-                Application.streamingAssetsPath,
-                "Ygo",
-                "Art",
-                visual.artFile);
+            return YgoContentLocator.Resolve("Art", visual.artFile);
         }
 
         public static CardVisualCatalog LoadDefault()
         {
-            return Load(Path.Combine(
-                Application.streamingAssetsPath,
-                "Ygo",
+            return Load(YgoContentLocator.Resolve(
                 "Visual",
                 "card-visuals.json"));
         }

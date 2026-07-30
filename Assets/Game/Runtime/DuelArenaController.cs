@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ArcaneDuel.DuelEngine.Content;
 using ArcaneDuel.DuelEngine.Core;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Protocol;
@@ -2248,9 +2249,7 @@ namespace ArcaneDuel.Game
 
         private void LoadArenaBackground()
         {
-            string path = Path.Combine(
-                Application.streamingAssetsPath,
-                "Ygo",
+            string path = YgoContentLocator.Resolve(
                 "UI",
                 "duel_arena_v2.png");
             if (!File.Exists(path)) return;

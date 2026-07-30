@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ArcaneDuel.DuelEngine.Content;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Diagnostics;
 using UnityEngine;
@@ -72,9 +73,7 @@ namespace ArcaneDuel.Game
                 Debug.LogException(exception);
             }
 
-            string path = Path.Combine(
-                Application.streamingAssetsPath,
-                "Ygo",
+            string path = YgoContentLocator.Resolve(
                 "UI",
                 "title_arena.png");
             if (File.Exists(path))

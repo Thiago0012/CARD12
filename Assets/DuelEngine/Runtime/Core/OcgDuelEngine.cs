@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using ArcaneDuel.DuelEngine.Abstractions;
 using ArcaneDuel.DuelEngine.Data;
+using ArcaneDuel.DuelEngine.Content;
 using ArcaneDuel.DuelEngine.Interop;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.Scripts;
@@ -180,7 +181,7 @@ namespace ArcaneDuel.DuelEngine.Core
 
         public static OcgDuelEngine CreateDefault(DuelConfiguration configuration = null)
         {
-            string ygoRoot = Path.Combine(Application.streamingAssetsPath, "Ygo");
+            string ygoRoot = YgoContentLocator.Root;
             return new OcgDuelEngine(
                 CardDatabase.LoadDefault(),
                 ygoRoot,

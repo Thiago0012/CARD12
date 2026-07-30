@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using ArcaneDuel.DuelEngine.Content;
 using ArcaneDuel.DuelEngine.Interop;
 using UnityEngine;
 
@@ -89,7 +90,7 @@ namespace ArcaneDuel.DuelEngine.Data
 
         public static CardDatabase LoadDefault()
         {
-            string root = Path.Combine(Application.streamingAssetsPath, "Ygo", "Data");
+            string root = YgoContentLocator.Resolve("Data");
             return Load(Path.Combine(root, "cards.bin"), Path.Combine(root, "card-texts.json"));
         }
 
