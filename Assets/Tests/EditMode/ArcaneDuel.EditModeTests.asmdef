@@ -1,0 +1,25 @@
+{
+  "name": "ArcaneDuel.EditModeTests",
+  "rootNamespace": "ArcaneDuel.Tests.EditMode",
+  "references": [
+    "ArcaneDuel.Game",
+    "ArcaneDuel.DuelEngine"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
+

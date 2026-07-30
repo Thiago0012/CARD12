@@ -1,0 +1,16 @@
+{
+  "name": "ArcaneDuel.Game",
+  "rootNamespace": "ArcaneDuel.Game",
+  "references": [
+    "ArcaneDuel.DuelEngine"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

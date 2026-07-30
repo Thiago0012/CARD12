@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="8" result="Failed(Child)" total="8" passed="7" failed="1" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0,1835582">
+  <test-suite type="TestSuite" id="1000" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="60" result="Failed" site="Child" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.183558" total="8" passed="7" failed="1" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1075" name="ArcaneDuel.EditModeTests.dll" fullname="D:/JOGO Y/DO ZERO/Library/ScriptAssemblies/ArcaneDuel.EditModeTests.dll" runstate="Runnable" testcasecount="60" result="Failed" site="Child" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.171688" total="8" passed="7" failed="1" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="19348" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1076" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="60" result="Failed" site="Child" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.169721" total="8" passed="7" failed="1" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1077" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="60" result="Failed" site="Child" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.168508" total="8" passed="7" failed="1" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1078" name="EditMode" fullname="ArcaneDuel.Tests.EditMode" runstate="Runnable" testcasecount="60" result="Failed" site="Child" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.167559" total="8" passed="7" failed="1" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1066" name="StabilizationRegressionEditModeTests" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" testcasecount="8" result="Failed" site="Child" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.163595" total="8" passed="7" failed="1" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1072" name="ChoiceFromAnExpiredRequestIsRejected" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.ChoiceFromAnExpiredRequestIsRejected" methodname="ChoiceFromAnExpiredRequestIsRejected" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="559876843" result="Passed" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.017198" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1071" name="CoreActionsBindToTheSelectedDuplicateSequence" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.CoreActionsBindToTheSelectedDuplicateSequence" methodname="CoreActionsBindToTheSelectedDuplicateSequence" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="818766369" result="Failed" label="Error" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.014386" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[System.ArgumentException : Property Count was not found
+Parameter name: name]]></message>
+                  <stack-trace><![CDATA[  at NUnit.Framework.Constraints.PropertyConstraint.ApplyTo (System.Object actual) [0x00050] in <8b63e8ac0a4746599ed207982825ae6c>:0 
+  at NUnit.Framework.Assert.That[TActual] (TActual actual, NUnit.Framework.Constraints.IResolveConstraint expression, System.String message, System.Object[] args) [0x0000e] in <8b63e8ac0a4746599ed207982825ae6c>:0 
+  at NUnit.Framework.Assert.That[TActual] (TActual actual, NUnit.Framework.Constraints.IResolveConstraint expression) [0x00001] in <8b63e8ac0a4746599ed207982825ae6c>:0 
+  at ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.CoreActionsBindToTheSelectedDuplicateSequence () [0x00066] in D:\JOGO Y\DO ZERO\Assets\Tests\EditMode\StabilizationRegressionEditModeTests.cs:196 
+  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)
+  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x0006a] in <816f70bc2a9c4332b0bd119906a8d40e>:0 ]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1074" name="CoreAssignsMonotonicRequestIdsToLivePrompts" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.CoreAssignsMonotonicRequestIdsToLivePrompts" methodname="CoreAssignsMonotonicRequestIdsToLivePrompts" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="1602185563" result="Passed" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.049620" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1069" name="DiscardAndReturnKeepTheSamePhysicalCopy" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.DiscardAndReturnKeepTheSamePhysicalCopy" methodname="DiscardAndReturnKeepTheSamePhysicalCopy" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="863349922" result="Passed" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.011748" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1067" name="IdenticalDefinitionsCreateDistinctPhysicalInstances" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.IdenticalDefinitionsCreateDistinctPhysicalInstances" methodname="IdenticalDefinitionsCreateDistinctPhysicalInstances" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="1754530419" result="Passed" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.009713" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1068" name="MovingSecondDuplicateNeverConsumesFirstCopy" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.MovingSecondDuplicateNeverConsumesFirstCopy" methodname="MovingSecondDuplicateNeverConsumesFirstCopy" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="1093127398" result="Passed" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.004058" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1073" name="RepeatedNoProgressStateStopsOverPrioritizingXyz" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.RepeatedNoProgressStateStopsOverPrioritizingXyz" methodname="RepeatedNoProgressStateStopsOverPrioritizingXyz" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="1969182849" result="Passed" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.033979" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1070" name="XyzMaterialsRemainBoundToTheirAuthoritativeHost" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.XyzMaterialsRemainBoundToTheirAuthoritativeHost" methodname="XyzMaterialsRemainBoundToTheirAuthoritativeHost" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="726589903" result="Passed" start-time="2026-07-30 00:51:43Z" end-time="2026-07-30 00:51:43Z" duration="0.006242" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

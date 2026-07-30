@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-07-28T21:45:30Z",
+  "inputs": [
+    {
+      "name": "Plano_Projeto_Zero_Unity_YGOPro_200_Cartas.pdf",
+      "sha256": "70315F2BE38BC92E22C9412AA98C421447151A2D562E5C4AC55B406FC7972A49",
+      "projectCopy": "Documentation/Plan/Plano_Projeto_Zero_Unity_YGOPro_200_Cartas.pdf"
+    },
+    {
+      "name": "Rulebook_v9_en.pdf",
+      "sha256": "6253F46BA6A40C88A99344231B22A09B24702434E33127CD156EA95FC5756951",
+      "projectCopy": "Documentation/Rules/Rulebook_v9_en.pdf"
+    },
+    {
+      "name": "Cards.rar",
+      "sha256": "7CEB400867B3CAD5F30B5EB689EAA6CF8D6A23195624CDEEA9A1567868544279",
+      "catalogEntries": 100,
+      "uniqueOfficialCodes": 99,
+      "duplicateOfficialCodes": [
+        "70681994"
+      ],
+      "importedIntoAssets": false
+    }
+  ]
+}
+

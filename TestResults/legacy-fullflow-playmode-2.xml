@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="5" result="Failed(Child)" total="5" passed="3" failed="2" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:13Z" duration="1,6684656">
+  <test-suite type="TestSuite" id="1015" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="5" result="Failed" site="Child" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:13Z" duration="1.668466" total="5" passed="3" failed="2" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1008" name="ArcaneDuel.PlayModeTests.dll" fullname="D:/JOGO Y/DO ZERO/Library/ScriptAssemblies/ArcaneDuel.PlayModeTests.dll" runstate="Runnable" testcasecount="5" result="Failed" site="Child" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:13Z" duration="1.660105" total="5" passed="3" failed="2" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="21616" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1009" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="5" result="Failed" site="Child" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:13Z" duration="1.659532" total="5" passed="3" failed="2" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1010" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="5" result="Failed" site="Child" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:13Z" duration="1.659309" total="5" passed="3" failed="2" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1011" name="PlayMode" fullname="ArcaneDuel.Tests.PlayMode" runstate="Runnable" testcasecount="5" result="Failed" site="Child" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:13Z" duration="1.659059" total="5" passed="3" failed="2" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1001" name="PlayableArenaPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" testcasecount="4" result="Failed" site="Child" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:13Z" duration="1.651698" total="4" passed="2" failed="2" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1003" name="BootstrapSceneShowsTitlePortalBeforeDuel" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.BootstrapSceneShowsTitlePortalBeforeDuel" methodname="BootstrapSceneShowsTitlePortalBeforeDuel" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="845423665" result="Passed" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:12Z" duration="0.239713" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1004" name="CardLabSceneBootsCompleteDeckBuilder" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.CardLabSceneBootsCompleteDeckBuilder" methodname="CardLabSceneBootsCompleteDeckBuilder" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1809814511" result="Passed" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:12Z" duration="0.182419" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1005" name="DuelArenaHasIndependentAudioPresentation" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelArenaHasIndependentAudioPresentation" methodname="DuelArenaHasIndependentAudioPresentation" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1288979726" result="Failed" start-time="2026-07-29 04:11:12Z" end-time="2026-07-29 04:11:13Z" duration="0.975255" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests+<DuelArenaHasIndependentAudioPresentation>d__3.MoveNext () [0x00038] in D:\JOGO Y\DO ZERO\Assets\Tests\PlayMode\PlayableArenaPlayModeTests.cs:44
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1002" name="DuelSceneBootsPlayableArena" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelSceneBootsPlayableArena" methodname="DuelSceneBootsPlayableArena" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1353062974" result="Failed" start-time="2026-07-29 04:11:13Z" end-time="2026-07-29 04:11:13Z" duration="0.243762" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests+<DuelSceneBootsPlayableArena>d__0.MoveNext () [0x00038] in D:\JOGO Y\DO ZERO\Assets\Tests\PlayMode\PlayableArenaPlayModeTests.cs:17
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1006" name="ProjectBootstrapPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-07-29 04:11:13Z" end-time="2026-07-29 04:11:13Z" duration="0.006146" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1007" name="SceneMarkerCanBeCreatedAtRuntime" fullname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests.SceneMarkerCanBeCreatedAtRuntime" methodname="SceneMarkerCanBeCreatedAtRuntime" classname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" runstate="Runnable" seed="1965298440" result="Passed" start-time="2026-07-29 04:11:13Z" end-time="2026-07-29 04:11:13Z" duration="0.003307" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

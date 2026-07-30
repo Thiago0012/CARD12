@@ -1,0 +1,3007 @@
+{
+  "schemaVersion": 1,
+  "count": 200,
+  "catalogSha256": "74AE5A23B0495B216D47DD36DF90F04BB43FA5B2F83DFCBAC7B1AB2B76CDF026",
+  "cards": [
+    {
+      "officialCode": 295517,
+      "artFile": "295517.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c295517.lua",
+      "presentationTags": [
+        "Magia de Campo",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 1184620,
+      "artFile": "1184620.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 1784619,
+      "artFile": "1784619.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 1784686,
+      "artFile": "1784686.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c1784686.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 1861629,
+      "artFile": "1861629.jpg",
+      "frameStyle": "link",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c1861629.lua",
+      "presentationTags": [
+        "Monstro Link",
+        "extra_deck",
+        "ygoprodeck_summon_showcase"
+      ]
+    },
+    {
+      "officialCode": 2129638,
+      "artFile": "2129638.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c2129638.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 2504891,
+      "artFile": "2504891.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c2504891.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 2863439,
+      "artFile": "2863439.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 3027001,
+      "artFile": "3027001.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c3027001.lua",
+      "presentationTags": [
+        "Armadilha Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 3078380,
+      "artFile": "3078380.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c3078380.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 4031928,
+      "artFile": "4031928.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c4031928.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 4206964,
+      "artFile": "4206964.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c4206964.lua",
+      "presentationTags": [
+        "Armadilha Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 4614116,
+      "artFile": "4614116.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c4614116.lua",
+      "presentationTags": [
+        "Magia de Equipamento",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 5318639,
+      "artFile": "5318639.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c5318639.lua",
+      "presentationTags": [
+        "Magia Rápida",
+        "quick_play_spell",
+        "vertical_alpha"
+      ]
+    },
+    {
+      "officialCode": 5405694,
+      "artFile": "5405694.jpg",
+      "frameStyle": "ritual",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c5405694.lua",
+      "presentationTags": [
+        "Monstro de Ritual",
+        "simple",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 6172122,
+      "artFile": "6172122.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c6172122.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "trigger",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 6368038,
+      "artFile": "6368038.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 7084129,
+      "artFile": "7084129.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c7084129.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 7089711,
+      "artFile": "7089711.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c7089711.lua",
+      "presentationTags": [
+        "Monstro de Efeito de Virar",
+        "trigger_effect",
+        "vertical_alpha"
+      ]
+    },
+    {
+      "officialCode": 7572887,
+      "artFile": "7572887.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c7572887.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 8240199,
+      "artFile": "8240199.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c8240199.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "trigger",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 8267140,
+      "artFile": "8267140.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c8267140.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "quick",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 9076207,
+      "artFile": "9076207.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c9076207.lua",
+      "presentationTags": [
+        "Monstro de Efeito de Virar",
+        "trigger",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 9293977,
+      "artFile": "9293977.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c9293977.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 9596126,
+      "artFile": "9596126.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c9596126.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 9653271,
+      "artFile": "9653271.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c9653271.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 10045474,
+      "artFile": "10045474.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c10045474.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "negation",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 10202894,
+      "artFile": "10202894.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 11384280,
+      "artFile": "11384280.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c11384280.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 11901678,
+      "artFile": "11901678.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c11901678.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "vertical_alpha"
+      ]
+    },
+    {
+      "officialCode": 12266229,
+      "artFile": "12266229.jpg",
+      "frameStyle": "ritual",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c12266229.lua",
+      "presentationTags": [
+        "Monstro de Ritual com Efeito",
+        "exceptional",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 12538374,
+      "artFile": "12538374.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c12538374.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 12580477,
+      "artFile": "12580477.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c12580477.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 13039848,
+      "artFile": "13039848.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 14087893,
+      "artFile": "14087893.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c14087893.lua",
+      "presentationTags": [
+        "Magia Rápida",
+        "quick",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 14532163,
+      "artFile": "14532163.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c14532163.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "trigger",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 14558127,
+      "artFile": "14558127.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c14558127.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "negation",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 15025844,
+      "artFile": "15025844.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 15150365,
+      "artFile": "15150365.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c15150365.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 15237615,
+      "artFile": "15237615.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c15237615.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 16178681,
+      "artFile": "16178681.jpg",
+      "frameStyle": "pendulum",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c16178681.lua",
+      "presentationTags": [
+        "Monstro Pêndulo de Efeito",
+        "extra_deck",
+        "ygoprodeck_summon_showcase"
+      ]
+    },
+    {
+      "officialCode": 17881964,
+      "artFile": "17881964.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c17881964.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 18144506,
+      "artFile": "18144506.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c18144506.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 19066538,
+      "artFile": "19066538.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c19066538.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 19613556,
+      "artFile": "19613556.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c19613556.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 19665973,
+      "artFile": "19665973.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c19665973.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 21140872,
+      "artFile": "21140872.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c21140872.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 21417692,
+      "artFile": "21417692.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c21417692.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 21663205,
+      "artFile": "21663205.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c21663205.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 22134079,
+      "artFile": "22134079.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c22134079.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 22910685,
+      "artFile": "22910685.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 23020408,
+      "artFile": "23020408.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c23020408.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "quick",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 23205979,
+      "artFile": "23205979.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c23205979.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 23424603,
+      "artFile": "23424603.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c23424603.lua",
+      "presentationTags": [
+        "Magia de Campo",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 23434538,
+      "artFile": "23434538.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c23434538.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 23771716,
+      "artFile": "23771716.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 24094653,
+      "artFile": "24094653.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c24094653.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 24224830,
+      "artFile": "24224830.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c24224830.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "negation",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 24508238,
+      "artFile": "24508238.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c24508238.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 24611934,
+      "artFile": "24611934.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 25789292,
+      "artFile": "25789292.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c25789292.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "negation",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 25880422,
+      "artFile": "25880422.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c25880422.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 26202165,
+      "artFile": "26202165.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c26202165.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 27204311,
+      "artFile": "27204311.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c27204311.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 28279543,
+      "artFile": "28279543.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 28546905,
+      "artFile": "28546905.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 28593363,
+      "artFile": "28593363.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c28593363.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 29401950,
+      "artFile": "29401950.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c29401950.lua",
+      "presentationTags": [
+        "Armadilha Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 30241314,
+      "artFile": "30241314.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c30241314.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "continuous",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 30576089,
+      "artFile": "30576089.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c30576089.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 30603688,
+      "artFile": "30603688.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c30603688.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 31305911,
+      "artFile": "31305911.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c31305911.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 32452818,
+      "artFile": "32452818.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 32566831,
+      "artFile": "32566831.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c32566831.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 33508719,
+      "artFile": "33508719.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c33508719.lua",
+      "presentationTags": [
+        "Monstro de Efeito de Virar",
+        "intermediate",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 36304921,
+      "artFile": "36304921.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 37313348,
+      "artFile": "37313348.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 37421579,
+      "artFile": "37421579.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c37421579.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 37742478,
+      "artFile": "37742478.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c37742478.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 38033121,
+      "artFile": "38033121.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c38033121.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 38517737,
+      "artFile": "38517737.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c38517737.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 39111158,
+      "artFile": "39111158.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 39387565,
+      "artFile": "39387565.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c39387565.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "continuous",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 40605147,
+      "artFile": "40605147.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c40605147.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "negation",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 40640057,
+      "artFile": "40640057.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c40640057.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 40737112,
+      "artFile": "40737112.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c40737112.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "replacement",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 40908371,
+      "artFile": "40908371.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c40908371.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 41396436,
+      "artFile": "41396436.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 41420027,
+      "artFile": "41420027.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c41420027.lua",
+      "presentationTags": [
+        "Armadilha de Resposta",
+        "negation",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 41721210,
+      "artFile": "41721210.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c41721210.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 44095762,
+      "artFile": "44095762.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c44095762.lua",
+      "presentationTags": [
+        "Armadilha Normal",
+        "trap",
+        "vertical_beta"
+      ]
+    },
+    {
+      "officialCode": 44330098,
+      "artFile": "44330098.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c44330098.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 44397496,
+      "artFile": "44397496.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c44397496.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "intermediate",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 44405066,
+      "artFile": "44405066.jpg",
+      "frameStyle": "xyz",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c44405066.lua",
+      "presentationTags": [
+        "Monstro Xyz",
+        "extra_deck",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 44508094,
+      "artFile": "44508094.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c44508094.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_summon_showcase"
+      ]
+    },
+    {
+      "officialCode": 45042329,
+      "artFile": "45042329.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 45349196,
+      "artFile": "45349196.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c45349196.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 45467446,
+      "artFile": "45467446.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c45467446.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 45644898,
+      "artFile": "45644898.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c45644898.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "trigger",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 45986603,
+      "artFile": "45986603.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c45986603.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 46052429,
+      "artFile": "46052429.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c46052429.lua",
+      "presentationTags": [
+        "Magia de Ritual",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 46130346,
+      "artFile": "46130346.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c46130346.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 46657337,
+      "artFile": "46657337.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c46657337.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 46986414,
+      "artFile": "46986414.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "normal_monster",
+        "vertical_beta"
+      ]
+    },
+    {
+      "officialCode": 47222536,
+      "artFile": "47222536.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c47222536.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "continuous",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 48680970,
+      "artFile": "48680970.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c48680970.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "continuous",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 48800175,
+      "artFile": "48800175.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c48800175.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 49010598,
+      "artFile": "49010598.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c49010598.lua",
+      "presentationTags": [
+        "Armadilha de Resposta",
+        "negation",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 50045299,
+      "artFile": "50045299.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c50045299.lua",
+      "presentationTags": [
+        "Armadilha Contínua",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 50152549,
+      "artFile": "50152549.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c50152549.lua",
+      "presentationTags": [
+        "Magia de Equipamento",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 50237654,
+      "artFile": "50237654.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c50237654.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 50913601,
+      "artFile": "50913601.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c50913601.lua",
+      "presentationTags": [
+        "Magia de Campo",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 51452091,
+      "artFile": "51452091.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c51452091.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "negation",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 51482758,
+      "artFile": "51482758.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c51482758.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 51828629,
+      "artFile": "51828629.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c51828629.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 52097679,
+      "artFile": "52097679.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c52097679.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 53129443,
+      "artFile": "53129443.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c53129443.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "normal_spell",
+        "vertical_beta"
+      ]
+    },
+    {
+      "officialCode": 53582587,
+      "artFile": "53582587.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c53582587.lua",
+      "presentationTags": [
+        "Armadilha Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 54541900,
+      "artFile": "54541900.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c54541900.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 54652250,
+      "artFile": "54652250.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c54652250.lua",
+      "presentationTags": [
+        "Monstro de Efeito de Virar",
+        "trigger",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 55144522,
+      "artFile": "55144522.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c55144522.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 55410871,
+      "artFile": "55410871.jpg",
+      "frameStyle": "ritual",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c55410871.lua",
+      "presentationTags": [
+        "Monstro de Ritual com Efeito",
+        "exceptional",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 56120475,
+      "artFile": "56120475.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c56120475.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "trigger",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 56747793,
+      "artFile": "56747793.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c56747793.lua",
+      "presentationTags": [
+        "Magia de Equipamento",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 56907389,
+      "artFile": "56907389.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c56907389.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 56920308,
+      "artFile": "56920308.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c56920308.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "trigger",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 58257569,
+      "artFile": "58257569.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c58257569.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 59438930,
+      "artFile": "59438930.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c59438930.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "quick",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 59514116,
+      "artFile": "59514116.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c59514116.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "quick",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 59822133,
+      "artFile": "59822133.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c59822133.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 62089826,
+      "artFile": "62089826.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c62089826.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "continuous",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 62279055,
+      "artFile": "62279055.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c62279055.lua",
+      "presentationTags": [
+        "Armadilha Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 62473983,
+      "artFile": "62473983.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c62473983.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 63102017,
+      "artFile": "63102017.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c63102017.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 64335804,
+      "artFile": "64335804.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c64335804.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 66574418,
+      "artFile": "66574418.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c66574418.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 66788016,
+      "artFile": "66788016.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c66788016.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 66889139,
+      "artFile": "66889139.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c66889139.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 66961194,
+      "artFile": "66961194.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c66961194.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 67300516,
+      "artFile": "67300516.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c67300516.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 69015963,
+      "artFile": "69015963.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c69015963.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 70095154,
+      "artFile": "70095154.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c70095154.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 70342110,
+      "artFile": "70342110.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c70342110.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "trigger",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 70681994,
+      "artFile": "70681994.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c70681994.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 70781052,
+      "artFile": "70781052.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 70828912,
+      "artFile": "70828912.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c70828912.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "trigger",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 71039903,
+      "artFile": "71039903.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c71039903.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "trigger",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 71107816,
+      "artFile": "71107816.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c71107816.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 71143015,
+      "artFile": "71143015.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c71143015.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "quick",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 71407486,
+      "artFile": "71407486.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 71413901,
+      "artFile": "71413901.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c71413901.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "ignition_effect",
+        "vertical_beta"
+      ]
+    },
+    {
+      "officialCode": 71703785,
+      "artFile": "71703785.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c71703785.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 72302403,
+      "artFile": "72302403.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c72302403.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "trigger",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 72855441,
+      "artFile": "72855441.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c72855441.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "trigger",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 72989439,
+      "artFile": "72989439.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c72989439.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 73134082,
+      "artFile": "73134082.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "via_alias",
+      "scriptFile": "c73134081.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 73580471,
+      "artFile": "73580471.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c73580471.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_summon_showcase"
+      ]
+    },
+    {
+      "officialCode": 73628505,
+      "artFile": "73628505.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c73628505.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 74131780,
+      "artFile": "74131780.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c74131780.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "ignition_effect",
+        "vertical_alpha"
+      ]
+    },
+    {
+      "officialCode": 74677422,
+      "artFile": "74677422.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 74701381,
+      "artFile": "74701381.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c74701381.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "continuous",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 77585513,
+      "artFile": "77585513.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c77585513.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "continuous_effect",
+        "vertical_beta"
+      ]
+    },
+    {
+      "officialCode": 77827521,
+      "artFile": "77827521.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 78010363,
+      "artFile": "78010363.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c78010363.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 78193831,
+      "artFile": "78193831.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c78193831.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 78658564,
+      "artFile": "78658564.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c78658564.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 78706415,
+      "artFile": "78706415.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c78706415.lua",
+      "presentationTags": [
+        "Monstro de Efeito de Virar",
+        "intermediate",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 79571449,
+      "artFile": "79571449.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c79571449.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 79814787,
+      "artFile": "79814787.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c79814787.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "trigger",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 80770678,
+      "artFile": "80770678.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 82732705,
+      "artFile": "82732705.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c82732705.lua",
+      "presentationTags": [
+        "Armadilha Contínua",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 83225447,
+      "artFile": "83225447.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c83225447.lua",
+      "presentationTags": [
+        "Magia de Equipamento",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 83746708,
+      "artFile": "83746708.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c83746708.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 83764719,
+      "artFile": "83764719.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "via_alias",
+      "scriptFile": "c83764718.lua",
+      "presentationTags": [
+        "Magia Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 84013237,
+      "artFile": "84013237.jpg",
+      "frameStyle": "xyz",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c84013237.lua",
+      "presentationTags": [
+        "Monstro Xyz",
+        "extra_deck",
+        "ygoprodeck_summon_showcase"
+      ]
+    },
+    {
+      "officialCode": 84290642,
+      "artFile": "84290642.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c84290642.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 84749824,
+      "artFile": "84749824.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c84749824.lua",
+      "presentationTags": [
+        "Carta de Armadilha",
+        "negation",
+        "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 85059922,
+      "artFile": "85059922.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c85059922.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 85087012,
+      "artFile": "85087012.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c85087012.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 85551711,
+      "artFile": "85551711.jpg",
+      "frameStyle": "xyz",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c85551711.lua",
+      "presentationTags": [
+        "Monstro Xyz",
+        "extra_deck",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 85651167,
+      "artFile": "85651167.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c85651167.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 88241506,
+      "artFile": "88241506.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c88241506.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "negation",
+        "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 89112729,
+      "artFile": "89112729.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c89112729.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 89631139,
+      "artFile": "89631139.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "normal_monster",
+        "vertical_alpha"
+      ]
+    },
+    {
+      "officialCode": 91152256,
+      "artFile": "91152256.jpg",
+      "frameStyle": "normal",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "A",
+      "scriptStatus": "not_required_no_effect",
+      "scriptFile": "",
+      "presentationTags": [
+        "Monstro Normal",
+        "simple",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 92353449,
+      "artFile": "92353449.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c92353449.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "intermediate",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 93889755,
+      "artFile": "93889755.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c93889755.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 93920745,
+      "artFile": "93920745.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c93920745.lua",
+      "presentationTags": [
+        "Monstro de Efeito de Virar",
+        "trigger_effect",
+        "vertical_beta"
+      ]
+    },
+    {
+      "officialCode": 93969023,
+      "artFile": "93969023.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c93969023.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_red_eyes"
+      ]
+    },
+    {
+      "officialCode": 94145021,
+      "artFile": "94145021.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c94145021.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick",
+        "ygoprodeck_classic"
+      ]
+    },
+    {
+      "officialCode": 94192409,
+      "artFile": "94192409.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "A",
+      "scriptStatus": "true",
+      "scriptFile": "c94192409.lua",
+      "presentationTags": [
+        "Armadilha Normal",
+        "simple",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 94773007,
+      "artFile": "94773007.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c94773007.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "intermediate",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 94905343,
+      "artFile": "94905343.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c94905343.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 95952802,
+      "artFile": "95952802.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c95952802.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 96471335,
+      "artFile": "96471335.jpg",
+      "frameStyle": "xyz",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c96471335.lua",
+      "presentationTags": [
+        "Monstro Xyz",
+        "extra_deck",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 97077563,
+      "artFile": "97077563.jpg",
+      "frameStyle": "trap",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c97077563.lua",
+      "presentationTags": [
+        "Armadilha Contínua",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 97268402,
+      "artFile": "97268402.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c97268402.lua",
+      "presentationTags": [
+        "Monstro Regulador de Efeito",
+        "quick_effect",
+        "vertical_alpha"
+      ]
+    },
+    {
+      "officialCode": 97631303,
+      "artFile": "97631303.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c97631303.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 98252586,
+      "artFile": "98252586.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c98252586.lua",
+      "presentationTags": [
+        "Magia de Equipamento",
+        "continuous",
+        "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 98495314,
+      "artFile": "98495314.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c98495314.lua",
+      "presentationTags": [
+        "Magia de Equipamento",
+        "continuous",
+        "provided_pool"
+      ]
+    }
+  ]
+}

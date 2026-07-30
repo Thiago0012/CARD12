@@ -1,0 +1,1375 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+
+namespace ArcaneDuel.DuelEngine.Protocol
+{
+    public enum CoreMessage : byte
+    {
+        Retry = 1,
+        Hint = 2,
+        Waiting = 3,
+        Start = 4,
+        Win = 5,
+        SelectBattleCommand = 10,
+        SelectIdleCommand = 11,
+        SelectEffectYesNo = 12,
+        SelectYesNo = 13,
+        SelectOption = 14,
+        SelectCard = 15,
+        SelectChain = 16,
+        SelectPlace = 18,
+        SelectPosition = 19,
+        SelectTribute = 20,
+        SortChain = 21,
+        SelectCounter = 22,
+        SelectSum = 23,
+        SelectDisableField = 24,
+        SortCard = 25,
+        SelectUnselectCard = 26,
+        ConfirmDeckTop = 30,
+        ConfirmCards = 31,
+        ShuffleDeck = 32,
+        ShuffleHand = 33,
+        RefreshDeck = 34,
+        SwapGraveDeck = 35,
+        ShuffleSetCard = 36,
+        ReverseDeck = 37,
+        DeckTop = 38,
+        ShuffleExtra = 39,
+        NewTurn = 40,
+        NewPhase = 41,
+        ConfirmExtraTop = 42,
+        Move = 50,
+        PositionChange = 53,
+        Set = 54,
+        Swap = 55,
+        FieldDisabled = 56,
+        Summoning = 60,
+        Summoned = 61,
+        SpecialSummoning = 62,
+        SpecialSummoned = 63,
+        FlipSummoning = 64,
+        FlipSummoned = 65,
+        Chaining = 70,
+        Chained = 71,
+        ChainSolving = 72,
+        ChainSolved = 73,
+        ChainEnd = 74,
+        ChainNegated = 75,
+        ChainDisabled = 76,
+        CardSelected = 80,
+        RandomSelected = 81,
+        BecomeTarget = 83,
+        Draw = 90,
+        Damage = 91,
+        Recover = 92,
+        Equip = 93,
+        LifePointsUpdate = 94,
+        Unequip = 95,
+        CardTarget = 96,
+        CancelTarget = 97,
+        PayLifePointCost = 100,
+        AddCounter = 101,
+        RemoveCounter = 102,
+        Attack = 110,
+        Battle = 111,
+        AttackDisabled = 112,
+        DamageStepStart = 113,
+        DamageStepEnd = 114,
+        MissedEffect = 120,
+        BeChainTarget = 121,
+        CreateRelation = 122,
+        ReleaseRelation = 123,
+        TossCoin = 130,
+        TossDice = 131,
+        RockPaperScissors = 132,
+        HandResult = 133,
+        AnnounceRace = 140,
+        AnnounceAttribute = 141,
+        AnnounceCard = 142,
+        AnnounceNumber = 143,
+        CardHint = 160,
+        PlayerHint = 165,
+        RemoveCards = 190
+    }
+
+    public static class DuelLocation
+    {
+        public const uint Deck = 0x01;
+        public const uint Hand = 0x02;
+        public const uint MonsterZone = 0x04;
+        public const uint SpellTrapZone = 0x08;
+        public const uint Graveyard = 0x10;
+        public const uint Banished = 0x20;
+        public const uint Extra = 0x40;
+        public const uint Overlay = 0x80;
+    }
+
+    public sealed class CardLocation
+    {
+        public byte Controller { get; internal set; }
+        public byte Location { get; internal set; }
+        public uint Sequence { get; internal set; }
+        public uint Position { get; internal set; }
+    }
+
+    public sealed class DuelChoice
+    {
+        public ulong RequestId { get; internal set; }
+        public string Label { get; internal set; }
+        public uint CardCode { get; internal set; }
+        public byte[] Response { get; internal set; }
+        public bool HasLocation { get; internal set; }
+        public byte Controller { get; internal set; }
+        public byte Location { get; internal set; }
+        public uint Sequence { get; internal set; }
+        public int ChoiceIndex { get; internal set; } = -1;
+        public ulong DescriptionId { get; internal set; }
+        public uint SumValue { get; internal set; }
+    }
+
+    public sealed class DuelPrompt
+    {
+        public ulong RequestId { get; internal set; }
+        public CoreMessage Message { get; internal set; }
+        public byte Player { get; internal set; }
+        public string Title { get; internal set; }
+        public bool Forced { get; internal set; }
+        public bool Cancelable { get; internal set; }
+        public uint MinimumSelections { get; internal set; }
+        public uint MaximumSelections { get; internal set; }
+        public uint RequiredSum { get; internal set; }
+        public bool SumAtLeast { get; internal set; }
+        public List<uint> MandatorySums { get; } = new List<uint>();
+        public List<DuelChoice> Choices { get; } = new List<DuelChoice>();
+    }
+
+    public sealed class DuelEvent
+    {
+        public CoreMessage Message { get; internal set; }
+        public byte RawMessage { get; internal set; }
+        public byte Player { get; internal set; }
+        public uint Value { get; internal set; }
+        public uint Code { get; internal set; }
+        public uint[] Codes { get; internal set; }
+        public CardLocation Previous { get; internal set; }
+        public CardLocation Current { get; internal set; }
+        public int AttackerAttack { get; internal set; }
+        public int AttackerDefense { get; internal set; }
+        public int TargetAttack { get; internal set; }
+        public int TargetDefense { get; internal set; }
+        public bool AttackerDestroyed { get; internal set; }
+        public bool TargetDestroyed { get; internal set; }
+        public bool DirectAttack =>
+            Current == null || Current.Location == 0;
+        public DuelPrompt Prompt { get; internal set; }
+        public string Detail { get; internal set; }
+        public bool IsUnknown { get; internal set; }
+    }
+
+    public sealed class CoreProtocolException : Exception
+    {
+        public CoreProtocolException(string message) : base(message)
+        {
+        }
+    }
+
+    internal sealed class PacketReader
+    {
+        private readonly byte[] data;
+        private readonly int end;
+        private int cursor;
+
+        internal PacketReader(byte[] data, int offset, int length)
+        {
+            this.data = data;
+            cursor = offset;
+            end = checked(offset + length);
+            if (offset < 0 || length < 0 || end > data.Length)
+            {
+                throw new CoreProtocolException("Packet range is outside the native message copy.");
+            }
+        }
+
+        internal int Remaining => end - cursor;
+
+        internal byte Byte()
+        {
+            Require(1);
+            return data[cursor++];
+        }
+
+        internal ushort UInt16()
+        {
+            Require(2);
+            ushort value = (ushort)(data[cursor] | (data[cursor + 1] << 8));
+            cursor += 2;
+            return value;
+        }
+
+        internal uint UInt32()
+        {
+            Require(4);
+            uint value = (uint)(data[cursor] |
+                                (data[cursor + 1] << 8) |
+                                (data[cursor + 2] << 16) |
+                                (data[cursor + 3] << 24));
+            cursor += 4;
+            return value;
+        }
+
+        internal ulong UInt64()
+        {
+            ulong low = UInt32();
+            ulong high = UInt32();
+            return low | (high << 32);
+        }
+
+        internal CardLocation Location()
+        {
+            return new CardLocation
+            {
+                Controller = Byte(),
+                Location = Byte(),
+                Sequence = UInt32(),
+                Position = UInt32()
+            };
+        }
+
+        internal void Skip(int count)
+        {
+            Require(count);
+            cursor += count;
+        }
+
+        private void Require(int count)
+        {
+            if (count < 0 || cursor + count > end)
+            {
+                throw new CoreProtocolException(
+                    $"Message ended unexpectedly at byte {cursor}; needed {count}, remaining {Remaining}.");
+            }
+        }
+    }
+
+    public static class CoreMessageDecoder
+    {
+        public static List<DuelEvent> Decode(byte[] nativeCopy)
+        {
+            var events = new List<DuelEvent>();
+            int offset = 0;
+            while (offset < nativeCopy.Length)
+            {
+                if (nativeCopy.Length - offset < 4)
+                {
+                    throw new CoreProtocolException("Native message stream ended inside a packet length.");
+                }
+                uint size = ReadUInt32(nativeCopy, offset);
+                offset += 4;
+                if (size < 1 || size > int.MaxValue || offset + size > nativeCopy.Length)
+                {
+                    throw new CoreProtocolException($"Invalid ocgcore packet size {size}.");
+                }
+                byte message = nativeCopy[offset];
+                var reader = new PacketReader(nativeCopy, offset + 1, (int)size - 1);
+                events.Add(DecodePacket(message, reader));
+                offset += (int)size;
+            }
+            return events;
+        }
+
+        private static DuelEvent DecodePacket(byte raw, PacketReader reader)
+        {
+            CoreMessage message = (CoreMessage)raw;
+            var result = new DuelEvent { Message = message, RawMessage = raw };
+            switch (message)
+            {
+                case CoreMessage.Retry:
+                    result.Detail = "O core recusou a resposta anterior.";
+                    break;
+                case CoreMessage.Hint:
+                    result.Value = reader.Byte();
+                    result.Player = reader.Byte();
+                    if (reader.Remaining >= 8) reader.UInt64();
+                    result.Detail = "Indicação de regra recebida.";
+                    break;
+                case CoreMessage.Waiting:
+                    result.Detail = "Aguardando o outro duelista.";
+                    break;
+                case CoreMessage.Start:
+                    result.Detail = "Estado inicial do duelo recebido.";
+                    reader.Skip(reader.Remaining);
+                    break;
+                case CoreMessage.NewTurn:
+                    result.Player = reader.Byte();
+                    result.Detail = $"Turno do duelista {result.Player + 1}";
+                    break;
+                case CoreMessage.NewPhase:
+                    result.Value = reader.UInt16();
+                    result.Detail = PhaseName(result.Value);
+                    break;
+                case CoreMessage.Win:
+                    result.Player = reader.Byte();
+                    result.Value = reader.Byte();
+                    result.Detail = $"Duelista {result.Player + 1} venceu";
+                    break;
+                case CoreMessage.Draw:
+                    DecodeDraw(reader, result);
+                    break;
+                case CoreMessage.Move:
+                    result.Code = reader.UInt32();
+                    result.Previous = reader.Location();
+                    result.Current = reader.Location();
+                    result.Value = reader.UInt32();
+                    break;
+                case CoreMessage.Damage:
+                case CoreMessage.Recover:
+                case CoreMessage.LifePointsUpdate:
+                    result.Player = reader.Byte();
+                    result.Value = reader.UInt32();
+                    break;
+                case CoreMessage.Summoning:
+                case CoreMessage.SpecialSummoning:
+                case CoreMessage.FlipSummoning:
+                    result.Code = reader.UInt32();
+                    result.Current = reader.Location();
+                    break;
+                case CoreMessage.Summoned:
+                case CoreMessage.SpecialSummoned:
+                case CoreMessage.FlipSummoned:
+                case CoreMessage.ChainEnd:
+                case CoreMessage.AttackDisabled:
+                    break;
+                case CoreMessage.Chaining:
+                    result.Code = reader.UInt32();
+                    result.Current = reader.Location();
+                    reader.Skip(2 + 4 + 8);
+                    result.Value = reader.UInt32();
+                    break;
+                case CoreMessage.Chained:
+                case CoreMessage.ChainSolving:
+                case CoreMessage.ChainSolved:
+                case CoreMessage.ChainNegated:
+                case CoreMessage.ChainDisabled:
+                    result.Value = reader.Byte();
+                    break;
+                case CoreMessage.SelectIdleCommand:
+                    result.Prompt = DecodeIdle(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectBattleCommand:
+                    result.Prompt = DecodeBattle(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectEffectYesNo:
+                    result.Prompt = DecodeEffectYesNo(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectYesNo:
+                    result.Prompt = DecodeYesNo(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectOption:
+                    result.Prompt = DecodeOptions(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectCard:
+                    result.Prompt = DecodeCardSelection(reader, false);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectTribute:
+                    result.Prompt = DecodeCardSelection(reader, true);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectUnselectCard:
+                    result.Prompt = DecodeUnselectCard(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectSum:
+                    result.Prompt = DecodeSum(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SortCard:
+                case CoreMessage.SortChain:
+                    result.Prompt = DecodeSort(reader, message);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.AnnounceRace:
+                case CoreMessage.AnnounceAttribute:
+                    result.Prompt = DecodeAnnounceMask(reader, message);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.AnnounceNumber:
+                    result.Prompt = DecodeAnnounceNumber(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectChain:
+                    result.Prompt = DecodeChain(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectPlace:
+                case CoreMessage.SelectDisableField:
+                    result.Prompt = DecodePlace(reader, message);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.SelectPosition:
+                    result.Prompt = DecodePosition(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.PositionChange:
+                    DecodePositionChange(reader, result);
+                    break;
+                case CoreMessage.Attack:
+                    DecodeAttack(reader, result);
+                    break;
+                case CoreMessage.Battle:
+                    DecodeBattleEvent(reader, result);
+                    break;
+                case CoreMessage.ConfirmDeckTop:
+                case CoreMessage.ConfirmCards:
+                case CoreMessage.ShuffleDeck:
+                case CoreMessage.RefreshDeck:
+                case CoreMessage.SwapGraveDeck:
+                case CoreMessage.ShuffleSetCard:
+                case CoreMessage.ReverseDeck:
+                case CoreMessage.DeckTop:
+                case CoreMessage.ShuffleExtra:
+                case CoreMessage.ConfirmExtraTop:
+                case CoreMessage.Set:
+                case CoreMessage.Swap:
+                case CoreMessage.FieldDisabled:
+                case CoreMessage.CardSelected:
+                case CoreMessage.RandomSelected:
+                case CoreMessage.BecomeTarget:
+                case CoreMessage.Equip:
+                case CoreMessage.Unequip:
+                case CoreMessage.CardTarget:
+                case CoreMessage.CancelTarget:
+                case CoreMessage.PayLifePointCost:
+                case CoreMessage.AddCounter:
+                case CoreMessage.RemoveCounter:
+                case CoreMessage.DamageStepStart:
+                case CoreMessage.DamageStepEnd:
+                case CoreMessage.MissedEffect:
+                case CoreMessage.BeChainTarget:
+                case CoreMessage.CreateRelation:
+                case CoreMessage.ReleaseRelation:
+                case CoreMessage.TossCoin:
+                case CoreMessage.TossDice:
+                case CoreMessage.HandResult:
+                case CoreMessage.CardHint:
+                case CoreMessage.PlayerHint:
+                case CoreMessage.RemoveCards:
+                    result.Detail = $"Evento de duelo {message}.";
+                    reader.Skip(reader.Remaining);
+                    break;
+                case CoreMessage.ShuffleHand:
+                    DecodeShuffleHand(reader, result);
+                    break;
+                default:
+                    result.IsUnknown = true;
+                    result.Detail = $"Mensagem ocgcore {raw} ainda não projetada ({reader.Remaining} bytes).";
+                    break;
+            }
+            return result;
+        }
+
+        private static void DecodeAttack(
+            PacketReader reader,
+            DuelEvent result)
+        {
+            result.Previous = reader.Location();
+            result.Current = reader.Location();
+            result.Player = result.Previous.Controller;
+            result.Detail = result.DirectAttack
+                ? $"Duelista {result.Player + 1} declarou um ataque direto."
+                : $"Duelista {result.Player + 1} declarou um ataque " +
+                  $"contra a zona {result.Current.Sequence + 1}.";
+        }
+
+        private static void DecodeBattleEvent(
+            PacketReader reader,
+            DuelEvent result)
+        {
+            result.Previous = reader.Location();
+            result.AttackerAttack = unchecked((int)reader.UInt32());
+            result.AttackerDefense = unchecked((int)reader.UInt32());
+            result.AttackerDestroyed = reader.Byte() != 0;
+            result.Current = reader.Location();
+            result.TargetAttack = unchecked((int)reader.UInt32());
+            result.TargetDefense = unchecked((int)reader.UInt32());
+            result.TargetDestroyed = reader.Byte() != 0;
+            result.Player = result.Previous.Controller;
+            result.Detail = result.DirectAttack
+                ? $"Ataque direto com {result.AttackerAttack} ATK."
+                : $"Batalha: {result.AttackerAttack} ATK contra " +
+                  $"{Math.Max(result.TargetAttack, result.TargetDefense)}.";
+        }
+
+        private static void DecodePositionChange(
+            PacketReader reader,
+            DuelEvent result)
+        {
+            const int fullPayloadSize = 9;
+            if (reader.Remaining < fullPayloadSize)
+            {
+                result.Detail =
+                    $"Mudança de posição recebida com payload parcial " +
+                    $"({reader.Remaining}/{fullPayloadSize} bytes).";
+                reader.Skip(reader.Remaining);
+                return;
+            }
+
+            result.Code = reader.UInt32();
+            byte controller = reader.Byte();
+            byte location = reader.Byte();
+            byte sequence = reader.Byte();
+            byte previousPosition = reader.Byte();
+            byte currentPosition = reader.Byte();
+            result.Player = controller;
+            result.Previous = new CardLocation
+            {
+                Controller = controller,
+                Location = location,
+                Sequence = sequence,
+                Position = previousPosition
+            };
+            result.Current = new CardLocation
+            {
+                Controller = controller,
+                Location = location,
+                Sequence = sequence,
+                Position = currentPosition
+            };
+            result.Detail =
+                $"Posição de {result.Code:00000000}: " +
+                $"{previousPosition:X2} → {currentPosition:X2}.";
+        }
+
+        private static void DecodeDraw(PacketReader reader, DuelEvent result)
+        {
+            result.Player = reader.Byte();
+            uint count = reader.UInt32();
+            if (count > 80)
+            {
+                throw new CoreProtocolException($"Impossible draw count {count}.");
+            }
+            result.Codes = new uint[count];
+            for (int i = 0; i < count; i++)
+            {
+                result.Codes[i] = reader.UInt32();
+                reader.UInt32();
+            }
+        }
+
+        private static void DecodeShuffleHand(
+            PacketReader reader,
+            DuelEvent result)
+        {
+            result.Player = reader.Byte();
+            uint count = GuardCount(
+                reader.UInt32(),
+                80,
+                "shuffled hand cards");
+            result.Codes = new uint[count];
+            for (int index = 0; index < count; index++)
+                result.Codes[index] = reader.UInt32();
+            result.Detail =
+                $"A mão do Duelista {result.Player + 1} foi reordenada.";
+        }
+
+        private static DuelPrompt DecodeIdle(PacketReader reader)
+        {
+            var prompt = NewPrompt(CoreMessage.SelectIdleCommand, reader.Byte(), "Escolha uma ação");
+            ReadCommandCards(reader, prompt, "Invocar", 0, false);
+            ReadCommandCards(reader, prompt, "Invocação especial", 1, false);
+            ReadCommandCards(reader, prompt, "Mudar posição", 2, true);
+            ReadCommandCards(reader, prompt, "Baixar monstro", 3, false);
+            ReadCommandCards(reader, prompt, "Baixar magia/armadilha", 4, false);
+            ReadActivations(reader, prompt, "Ativar", 5);
+            bool battle = reader.Byte() != 0;
+            bool end = reader.Byte() != 0;
+            bool shuffle = reader.Byte() != 0;
+            if (battle) prompt.Choices.Add(Choice("Entrar na Fase de Batalha", 0, IntResponse(6)));
+            if (end) prompt.Choices.Add(Choice("Encerrar turno", 0, IntResponse(7)));
+            if (shuffle) prompt.Choices.Add(Choice("Embaralhar a mão", 0, IntResponse(8)));
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeBattle(PacketReader reader)
+        {
+            var prompt = NewPrompt(CoreMessage.SelectBattleCommand, reader.Byte(), "Fase de Batalha");
+            ReadActivations(reader, prompt, "Ativar", 0);
+            uint count = GuardCount(reader.UInt32(), 80, "attack choices");
+            for (int i = 0; i < count; i++)
+            {
+                uint code = reader.UInt32();
+                byte controller = reader.Byte();
+                byte location = reader.Byte();
+                uint sequence = reader.Byte();
+                reader.Byte();
+                prompt.Choices.Add(Choice(
+                    "Atacar",
+                    code,
+                    IntResponse((i << 16) + 1),
+                    controller,
+                    location,
+                    sequence,
+                    i));
+            }
+            bool main2 = reader.Byte() != 0;
+            bool end = reader.Byte() != 0;
+            if (main2) prompt.Choices.Add(Choice("Ir para a Fase Principal 2", 0, IntResponse(2)));
+            if (end) prompt.Choices.Add(Choice("Encerrar turno", 0, IntResponse(3)));
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeEffectYesNo(PacketReader reader)
+        {
+            byte player = reader.Byte();
+            uint code = reader.UInt32();
+            CardLocation location = reader.Location();
+            ulong description = reader.UInt64();
+            var prompt = NewPrompt(CoreMessage.SelectEffectYesNo, player, "Ativar efeito?");
+            DuelChoice activate = Choice(
+                "Ativar efeito",
+                code,
+                IntResponse(1),
+                location.Controller,
+                location.Location,
+                location.Sequence);
+            activate.DescriptionId = description;
+            prompt.Choices.Add(activate);
+            DuelChoice decline = Choice(
+                "Não ativar",
+                code,
+                IntResponse(0),
+                location.Controller,
+                location.Location,
+                location.Sequence);
+            decline.DescriptionId = description;
+            prompt.Choices.Add(decline);
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeYesNo(PacketReader reader)
+        {
+            byte player = reader.Byte();
+            reader.UInt64();
+            var prompt = NewPrompt(CoreMessage.SelectYesNo, player, "Confirmar ação?");
+            prompt.Choices.Add(Choice("Sim", 0, IntResponse(1)));
+            prompt.Choices.Add(Choice("Não", 0, IntResponse(0)));
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeOptions(PacketReader reader)
+        {
+            byte player = reader.Byte();
+            var prompt = NewPrompt(CoreMessage.SelectOption, player, "Escolha uma opção");
+            uint count = GuardCount(reader.Byte(), 64, "options");
+            for (int i = 0; i < count; i++)
+            {
+                ulong description = reader.UInt64();
+                DuelChoice choice = Choice(
+                    $"Opção {i + 1} · {description}",
+                    0,
+                    IntResponse(i));
+                choice.DescriptionId = description;
+                prompt.Choices.Add(choice);
+            }
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeCardSelection(PacketReader reader, bool tribute)
+        {
+            byte player = reader.Byte();
+            bool cancelable = reader.Byte() != 0;
+            uint minimum = GuardCount(reader.UInt32(), 80, "selection minimum");
+            uint maximum = GuardCount(reader.UInt32(), 80, "selection maximum");
+            uint count = GuardCount(reader.UInt32(), 200, "selectable cards");
+            var prompt = NewPrompt(
+                tribute ? CoreMessage.SelectTribute : CoreMessage.SelectCard,
+                player,
+                tribute ? "Escolha os tributos" : "Escolha uma carta");
+            prompt.Forced = !cancelable;
+            prompt.Cancelable = cancelable;
+            prompt.MinimumSelections = minimum;
+            prompt.MaximumSelections = maximum;
+            for (int i = 0; i < count; i++)
+            {
+                uint code = reader.UInt32();
+                byte controller = reader.Byte();
+                byte location = reader.Byte();
+                uint sequence = reader.UInt32();
+                if (tribute) reader.Byte();
+                else reader.UInt32();
+                prompt.Choices.Add(Choice(
+                    $"Selecionar carta {i + 1}",
+                    code,
+                    CardSelectionResponse(new[] { (uint)i }),
+                    controller,
+                    location,
+                    sequence,
+                    i));
+            }
+            if (minimum == 0 || cancelable)
+            {
+                prompt.Choices.Add(Choice("Cancelar", 0, IntResponse(-1)));
+            }
+            if (minimum > 1 && count >= minimum)
+            {
+                var indexes = new uint[minimum];
+                for (uint i = 0; i < minimum; i++) indexes[i] = i;
+                prompt.Choices.Insert(0, Choice($"Selecionar as primeiras {minimum}", 0, CardSelectionResponse(indexes)));
+            }
+            if (maximum == 0) prompt.Choices.Clear();
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeUnselectCard(PacketReader reader)
+        {
+            byte player = reader.Byte();
+            bool finishable = reader.Byte() != 0;
+            bool cancelable = reader.Byte() != 0;
+            uint minimum = GuardCount(reader.UInt32(), 80, "iterative selection minimum");
+            uint maximum = GuardCount(reader.UInt32(), 80, "iterative selection maximum");
+            var prompt = NewPrompt(
+                CoreMessage.SelectUnselectCard,
+                player,
+                "Escolha ou remova uma carta");
+            prompt.Forced = !cancelable;
+            prompt.Cancelable = cancelable;
+            prompt.MinimumSelections = minimum;
+            prompt.MaximumSelections = maximum;
+
+            uint selectable = GuardCount(
+                reader.UInt32(),
+                200,
+                "iterative selectable cards");
+            for (int index = 0; index < selectable; index++)
+            {
+                uint code = reader.UInt32();
+                CardLocation location = reader.Location();
+                prompt.Choices.Add(Choice(
+                    "Selecionar",
+                    code,
+                    PairResponse(1, index),
+                    location.Controller,
+                    location.Location,
+                    location.Sequence,
+                    index));
+            }
+
+            uint selected = GuardCount(
+                reader.UInt32(),
+                200,
+                "iterative selected cards");
+            for (int index = 0; index < selected; index++)
+            {
+                uint code = reader.UInt32();
+                CardLocation location = reader.Location();
+                prompt.Choices.Add(Choice(
+                    "Remover da seleção",
+                    code,
+                    PairResponse(1, checked((int)selectable + index)),
+                    location.Controller,
+                    location.Location,
+                    location.Sequence,
+                    checked((int)selectable + index)));
+            }
+
+            if (finishable)
+            {
+                prompt.Choices.Add(Choice(
+                    "Concluir seleção",
+                    0,
+                    IntResponse(-1)));
+            }
+            else if (cancelable)
+            {
+                prompt.Choices.Add(Choice(
+                    "Cancelar",
+                    0,
+                    IntResponse(-1)));
+            }
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeSum(PacketReader reader)
+        {
+            byte player = reader.Byte();
+            bool atLeast = reader.Byte() != 0;
+            uint required = reader.UInt32();
+            uint minimum = GuardCount(reader.UInt32(), 80, "sum selection minimum");
+            uint maximum = GuardCount(reader.UInt32(), 80, "sum selection maximum");
+            var prompt = NewPrompt(
+                CoreMessage.SelectSum,
+                player,
+                atLeast
+                    ? $"Escolha materiais com soma mínima {required}"
+                    : $"Escolha materiais com soma {required}");
+            prompt.MinimumSelections = minimum;
+            prompt.MaximumSelections = maximum;
+            prompt.RequiredSum = required;
+            prompt.SumAtLeast = atLeast;
+            prompt.Forced = true;
+
+            uint mandatory = GuardCount(
+                reader.UInt32(),
+                80,
+                "mandatory sum cards");
+            for (int index = 0; index < mandatory; index++)
+            {
+                reader.UInt32();
+                reader.Location();
+                prompt.MandatorySums.Add(reader.UInt32());
+            }
+
+            uint selectable = GuardCount(
+                reader.UInt32(),
+                200,
+                "sum selectable cards");
+            for (int index = 0; index < selectable; index++)
+            {
+                uint code = reader.UInt32();
+                CardLocation location = reader.Location();
+                uint sumValue = reader.UInt32();
+                DuelChoice choice = Choice(
+                    "Selecionar material",
+                    code,
+                    CardSelectionResponse(new[] { (uint)index }),
+                    location.Controller,
+                    location.Location,
+                    location.Sequence,
+                    index);
+                choice.SumValue = sumValue;
+                prompt.Choices.Add(choice);
+            }
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeSort(
+            PacketReader reader,
+            CoreMessage message)
+        {
+            byte player = reader.Byte();
+            uint count = GuardCount(reader.UInt32(), 8, "sort cards");
+            var names = new List<string>();
+            for (int index = 0; index < count; index++)
+            {
+                uint code = reader.UInt32();
+                reader.Byte();
+                reader.UInt32();
+                reader.UInt32();
+                names.Add(code.ToString("00000000"));
+            }
+
+            var prompt = NewPrompt(
+                message,
+                player,
+                message == CoreMessage.SortChain
+                    ? "Ordene os efeitos da Corrente"
+                    : "Ordene as cartas do topo do Deck");
+            if (count == 0)
+            {
+                prompt.Choices.Add(Choice(
+                    "Manter ordem",
+                    0,
+                    new byte[] { 0xFF }));
+                return prompt;
+            }
+
+            int maximumPermutations = count <= 6 ? 720 : 2;
+            var permutations = new List<byte[]>();
+            BuildPermutations(
+                new List<byte>(),
+                new bool[checked((int)count)],
+                checked((int)count),
+                permutations,
+                maximumPermutations);
+            foreach (byte[] order in permutations)
+            {
+                string label = "ORDEM " +
+                               string.Join(
+                                   " - ",
+                                   order.Select(value => (value + 1).ToString()));
+                prompt.Choices.Add(Choice(label, 0, order));
+            }
+            prompt.Choices.Add(Choice(
+                "Manter ordem atual",
+                0,
+                new byte[] { 0xFF }));
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeAnnounceMask(
+            PacketReader reader,
+            CoreMessage message)
+        {
+            byte player = reader.Byte();
+            uint count = GuardCount(reader.Byte(), 8, "announced mask count");
+            ulong available = reader.UInt64();
+            var prompt = NewPrompt(
+                message,
+                player,
+                message == CoreMessage.AnnounceRace
+                    ? "Declare um Tipo de monstro"
+                    : "Declare um Atributo");
+            prompt.MinimumSelections = count;
+            prompt.MaximumSelections = count;
+
+            string[] labels = message == CoreMessage.AnnounceRace
+                ? new[]
+                {
+                    "Guerreiro", "Mago", "Fada", "Demônio", "Zumbi",
+                    "Máquina", "Aqua", "Piro", "Rocha", "Besta Alada",
+                    "Planta", "Inseto", "Trovão", "Dragão", "Besta",
+                    "Besta-Guerreira", "Dinossauro", "Peixe",
+                    "Serpente Marinha", "Réptil", "Psíquico",
+                    "Besta Divina", "Deus Criador", "Wyrm",
+                    "Ciberso", "Ilusão"
+                }
+                : new[]
+                {
+                    "TERRA", "ÁGUA", "FOGO", "VENTO",
+                    "LUZ", "TREVAS", "DIVINO"
+                };
+            var bits = new List<int>();
+            for (int bit = 0; bit < 64; bit++)
+            {
+                if ((available & (1UL << bit)) != 0) bits.Add(bit);
+            }
+            var combinations = new List<ulong>();
+            BuildMaskCombinations(
+                bits,
+                0,
+                checked((int)count),
+                0,
+                combinations,
+                256);
+            foreach (ulong mask in combinations)
+            {
+                var selectedLabels = new List<string>();
+                for (int bit = 0; bit < 64; bit++)
+                {
+                    if ((mask & (1UL << bit)) == 0) continue;
+                    selectedLabels.Add(
+                        bit < labels.Length
+                            ? labels[bit]
+                            : $"TIPO {bit + 1}");
+                }
+                prompt.Choices.Add(Choice(
+                    string.Join(" + ", selectedLabels),
+                    0,
+                    UInt64Response(mask)));
+            }
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeAnnounceNumber(PacketReader reader)
+        {
+            byte player = reader.Byte();
+            uint count = GuardCount(reader.Byte(), 64, "announced numbers");
+            var prompt = NewPrompt(
+                CoreMessage.AnnounceNumber,
+                player,
+                "Declare um número");
+            for (int index = 0; index < count; index++)
+            {
+                ulong number = reader.UInt64();
+                prompt.Choices.Add(Choice(
+                    number.ToString(),
+                    0,
+                    IntResponse(index)));
+            }
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeChain(PacketReader reader)
+        {
+            byte player = reader.Byte();
+            reader.Byte();
+            bool forced = reader.Byte() != 0;
+            reader.UInt32();
+            reader.UInt32();
+            uint count = GuardCount(reader.UInt32(), 100, "chain choices");
+            var prompt = NewPrompt(CoreMessage.SelectChain, player, "Responder à corrente");
+            prompt.Forced = forced;
+            for (int i = 0; i < count; i++)
+            {
+                uint code = reader.UInt32();
+                CardLocation location = reader.Location();
+                reader.UInt64();
+                reader.Byte();
+                prompt.Choices.Add(Choice(
+                    "Encadear efeito",
+                    code,
+                    IntResponse(i),
+                    location.Controller,
+                    location.Location,
+                    location.Sequence,
+                    i));
+            }
+            if (!forced) prompt.Choices.Add(Choice("Não responder", 0, IntResponse(-1)));
+            return prompt;
+        }
+
+        private static DuelPrompt DecodePlace(
+            PacketReader reader,
+            CoreMessage message)
+        {
+            byte player = reader.Byte();
+            uint count = GuardCount(reader.Byte(), 16, "place selection count");
+            uint unavailable = reader.UInt32();
+            var prompt = NewPrompt(
+                message,
+                player,
+                message == CoreMessage.SelectDisableField
+                    ? "Escolha uma zona para desabilitar"
+                    : "Escolha uma zona");
+            for (byte relativeController = 0;
+                 relativeController < 2;
+                 relativeController++)
+            {
+                // ocgcore encodes the requesting player's field in the low
+                // 16 bits even when that player is team 1.  Presentation and
+                // the response use absolute controller ids, so remap here.
+                byte controller = relativeController == 0
+                    ? player
+                    : (byte)(1 - player);
+                for (byte locationIndex = 0; locationIndex < 2; locationIndex++)
+                {
+                    byte location = locationIndex == 0 ? (byte)DuelLocation.MonsterZone : (byte)DuelLocation.SpellTrapZone;
+                    int width = locationIndex == 0 ? 7 : 8;
+                    for (byte sequence = 0; sequence < width; sequence++)
+                    {
+                        int bit =
+                            sequence +
+                            (locationIndex * 8) +
+                            (relativeController * 16);
+                        if ((unavailable & (1u << bit)) == 0)
+                        {
+                            prompt.Choices.Add(Choice(
+                                $"Zona {(locationIndex == 0 ? "de Monstro" : "de Magia/Armadilha")} {sequence + 1}",
+                                0,
+                                new[] { controller, location, sequence },
+                                controller,
+                                location,
+                                sequence));
+                        }
+                    }
+                }
+            }
+            if (count > 1)
+            {
+                prompt.DetailTitle($"Escolha {count} zonas (primeira escolha disponível nesta fatia)");
+            }
+            return prompt;
+        }
+
+        private static DuelPrompt DecodePosition(PacketReader reader)
+        {
+            byte player = reader.Byte();
+            uint code = reader.UInt32();
+            byte positions = reader.Byte();
+            var prompt = NewPrompt(CoreMessage.SelectPosition, player, "Escolha a posição");
+            AddPosition(prompt, positions, 0x1, "Ataque com a face para cima", code);
+            AddPosition(prompt, positions, 0x2, "Ataque com a face para baixo", code);
+            AddPosition(prompt, positions, 0x4, "Defesa com a face para cima", code);
+            AddPosition(prompt, positions, 0x8, "Defesa com a face para baixo", code);
+            return prompt;
+        }
+
+        private static void ReadCommandCards(PacketReader reader, DuelPrompt prompt, string label, int command, bool shortLocation)
+        {
+            uint count = GuardCount(reader.UInt32(), 200, "command cards");
+            for (int i = 0; i < count; i++)
+            {
+                uint code = reader.UInt32();
+                byte controller = reader.Byte();
+                byte location = reader.Byte();
+                uint sequence = shortLocation ? reader.Byte() : reader.UInt32();
+                prompt.Choices.Add(Choice(
+                    label,
+                    code,
+                    IntResponse((i << 16) + command),
+                    controller,
+                    location,
+                    sequence,
+                    i));
+            }
+        }
+
+        private static void ReadActivations(PacketReader reader, DuelPrompt prompt, string label, int command)
+        {
+            uint count = GuardCount(reader.UInt32(), 200, "activations");
+            for (int i = 0; i < count; i++)
+            {
+                uint code = reader.UInt32();
+                byte controller = reader.Byte();
+                byte location = reader.Byte();
+                uint sequence = reader.UInt32();
+                ulong description = reader.UInt64();
+                reader.Byte();
+                DuelChoice choice = Choice(
+                    label,
+                    code,
+                    IntResponse((i << 16) + command),
+                    controller,
+                    location,
+                    sequence,
+                    i);
+                choice.DescriptionId = description;
+                prompt.Choices.Add(choice);
+            }
+        }
+
+        private static void AddPosition(DuelPrompt prompt, byte allowed, byte position, string label, uint code)
+        {
+            if ((allowed & position) != 0) prompt.Choices.Add(Choice(label, code, IntResponse(position)));
+        }
+
+        private static DuelPrompt NewPrompt(CoreMessage message, byte player, string title)
+        {
+            return new DuelPrompt { Message = message, Player = player, Title = title };
+        }
+
+        private static void DetailTitle(this DuelPrompt prompt, string title)
+        {
+            prompt.Title = title;
+        }
+
+        private static DuelChoice Choice(
+            string label,
+            uint code,
+            byte[] response,
+            byte controller = 0,
+            byte location = 0,
+            uint sequence = 0,
+            int choiceIndex = -1)
+        {
+            return new DuelChoice
+            {
+                Label = label,
+                CardCode = code,
+                Response = response,
+                HasLocation = location != 0,
+                Controller = controller,
+                Location = location,
+                Sequence = sequence,
+                ChoiceIndex = choiceIndex
+            };
+        }
+
+        public static byte[] IntResponse(int value)
+        {
+            return new[]
+            {
+                (byte)value,
+                (byte)(value >> 8),
+                (byte)(value >> 16),
+                (byte)(value >> 24)
+            };
+        }
+
+        public static byte[] PairResponse(int first, int second)
+        {
+            byte[] response = new byte[8];
+            WriteUInt32(response, 0, unchecked((uint)first));
+            WriteUInt32(response, 4, unchecked((uint)second));
+            return response;
+        }
+
+        public static byte[] UInt64Response(ulong value)
+        {
+            byte[] response = new byte[8];
+            WriteUInt32(response, 0, (uint)value);
+            WriteUInt32(response, 4, (uint)(value >> 32));
+            return response;
+        }
+
+        public static byte[] CardSelectionResponse(uint[] indexes)
+        {
+            byte[] response = new byte[8 + (indexes.Length * 4)];
+            WriteUInt32(response, 0, 0);
+            WriteUInt32(response, 4, (uint)indexes.Length);
+            for (int i = 0; i < indexes.Length; i++)
+            {
+                WriteUInt32(response, 8 + (i * 4), indexes[i]);
+            }
+            return response;
+        }
+
+        public static bool IsValidSelection(
+            DuelPrompt prompt,
+            IEnumerable<int> selectedIndexes)
+        {
+            if (prompt == null) return false;
+            int[] indexes = selectedIndexes?
+                .Distinct()
+                .OrderBy(value => value)
+                .ToArray() ?? Array.Empty<int>();
+            if (indexes.Length < prompt.MinimumSelections ||
+                indexes.Length > prompt.MaximumSelections)
+            {
+                return false;
+            }
+            if (prompt.Message != CoreMessage.SelectSum)
+            {
+                return true;
+            }
+
+            var values = new List<uint>(prompt.MandatorySums);
+            foreach (int index in indexes)
+            {
+                DuelChoice choice = prompt.Choices.FirstOrDefault(
+                    candidate => candidate.ChoiceIndex == index);
+                if (choice == null) return false;
+                values.Add(choice.SumValue);
+            }
+            if (values.Count == 0) return prompt.RequiredSum == 0;
+
+            if (prompt.SumAtLeast)
+            {
+                uint minimumTotal = 0;
+                uint maximumTotal = 0;
+                uint smallest = uint.MaxValue;
+                foreach (uint encoded in values)
+                {
+                    uint first = encoded & 0xFFFF;
+                    uint second = encoded >> 16;
+                    if (second == 0) second = first;
+                    uint minimum = Math.Min(first, second);
+                    uint maximum = Math.Max(first, second);
+                    minimumTotal += minimum;
+                    maximumTotal += maximum;
+                    smallest = Math.Min(smallest, minimum);
+                }
+                return maximumTotal >= prompt.RequiredSum &&
+                       minimumTotal - smallest < prompt.RequiredSum;
+            }
+
+            var totals = new HashSet<uint> { 0 };
+            foreach (uint encoded in values)
+            {
+                uint first = encoded & 0xFFFF;
+                uint second = encoded >> 16;
+                if (second == 0) second = first;
+                var next = new HashSet<uint>();
+                foreach (uint total in totals)
+                {
+                    next.Add(total + first);
+                    next.Add(total + second);
+                }
+                totals = next;
+            }
+            return totals.Contains(prompt.RequiredSum);
+        }
+
+        private static void BuildPermutations(
+            List<byte> current,
+            bool[] used,
+            int count,
+            List<byte[]> output,
+            int maximum)
+        {
+            if (output.Count >= maximum) return;
+            if (current.Count == count)
+            {
+                output.Add(current.ToArray());
+                return;
+            }
+            for (byte index = 0;
+                 index < count && output.Count < maximum;
+                 index++)
+            {
+                if (used[index]) continue;
+                used[index] = true;
+                current.Add(index);
+                BuildPermutations(
+                    current,
+                    used,
+                    count,
+                    output,
+                    maximum);
+                current.RemoveAt(current.Count - 1);
+                used[index] = false;
+            }
+        }
+
+        private static void BuildMaskCombinations(
+            List<int> bits,
+            int start,
+            int remaining,
+            ulong current,
+            List<ulong> output,
+            int maximum)
+        {
+            if (output.Count >= maximum) return;
+            if (remaining == 0)
+            {
+                output.Add(current);
+                return;
+            }
+            for (int index = start;
+                 index <= bits.Count - remaining &&
+                 output.Count < maximum;
+                 index++)
+            {
+                BuildMaskCombinations(
+                    bits,
+                    index + 1,
+                    remaining - 1,
+                    current | (1UL << bits[index]),
+                    output,
+                    maximum);
+            }
+        }
+
+        private static uint GuardCount(uint count, uint maximum, string context)
+        {
+            if (count > maximum)
+            {
+                throw new CoreProtocolException($"Invalid {context} count {count} (maximum {maximum}).");
+            }
+            return count;
+        }
+
+        private static uint ReadUInt32(byte[] data, int offset)
+        {
+            return (uint)(data[offset] |
+                          (data[offset + 1] << 8) |
+                          (data[offset + 2] << 16) |
+                          (data[offset + 3] << 24));
+        }
+
+        private static void WriteUInt32(byte[] data, int offset, uint value)
+        {
+            data[offset] = (byte)value;
+            data[offset + 1] = (byte)(value >> 8);
+            data[offset + 2] = (byte)(value >> 16);
+            data[offset + 3] = (byte)(value >> 24);
+        }
+
+        public static string PhaseName(uint phase)
+        {
+            switch (phase)
+            {
+                case 0x01: return "Fase de Compra";
+                case 0x02: return "Fase de Apoio";
+                case 0x04: return "Fase Principal 1";
+                case 0x08: return "Início da Fase de Batalha";
+                case 0x10: return "Etapa de Batalha";
+                case 0x20: return "Etapa de Dano";
+                case 0x40: return "Cálculo de Dano";
+                case 0x80: return "Fase de Batalha";
+                case 0x100: return "Fase Principal 2";
+                case 0x200: return "Fase Final";
+                default: return $"Fase 0x{phase:X}";
+            }
+        }
+    }
+}

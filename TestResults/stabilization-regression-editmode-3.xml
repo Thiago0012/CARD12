@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="10" result="Passed" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:57Z" duration="0,1769198">
+  <test-suite type="TestSuite" id="1000" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="62" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:57Z" duration="0.176920" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1077" name="ArcaneDuel.EditModeTests.dll" fullname="D:/JOGO Y/DO ZERO/Library/ScriptAssemblies/ArcaneDuel.EditModeTests.dll" runstate="Runnable" testcasecount="62" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:57Z" duration="0.169404" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="33352" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1078" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="62" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:57Z" duration="0.168450" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1079" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="62" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:57Z" duration="0.167670" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1080" name="EditMode" fullname="ArcaneDuel.Tests.EditMode" runstate="Runnable" testcasecount="62" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:57Z" duration="0.166816" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1066" name="StabilizationRegressionEditModeTests" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:57Z" duration="0.164502" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1072" name="ChoiceFromAnExpiredRequestIsRejected" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.ChoiceFromAnExpiredRequestIsRejected" methodname="ChoiceFromAnExpiredRequestIsRejected" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="1167866824" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:56Z" duration="0.015433" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1071" name="CoreActionsBindToTheSelectedDuplicateSequence" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.CoreActionsBindToTheSelectedDuplicateSequence" methodname="CoreActionsBindToTheSelectedDuplicateSequence" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="30637777" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:56Z" duration="0.015432" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1074" name="CoreAssignsMonotonicRequestIdsToLivePrompts" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.CoreAssignsMonotonicRequestIdsToLivePrompts" methodname="CoreAssignsMonotonicRequestIdsToLivePrompts" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="586449630" result="Passed" start-time="2026-07-30 01:09:56Z" end-time="2026-07-30 01:09:57Z" duration="0.038222" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1069" name="DiscardAndReturnKeepTheSamePhysicalCopy" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.DiscardAndReturnKeepTheSamePhysicalCopy" methodname="DiscardAndReturnKeepTheSamePhysicalCopy" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="1982429378" result="Passed" start-time="2026-07-30 01:09:57Z" end-time="2026-07-30 01:09:57Z" duration="0.005423" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1067" name="IdenticalDefinitionsCreateDistinctPhysicalInstances" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.IdenticalDefinitionsCreateDistinctPhysicalInstances" methodname="IdenticalDefinitionsCreateDistinctPhysicalInstances" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="660676687" result="Passed" start-time="2026-07-30 01:09:57Z" end-time="2026-07-30 01:09:57Z" duration="0.006310" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1068" name="MovingSecondDuplicateNeverConsumesFirstCopy" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.MovingSecondDuplicateNeverConsumesFirstCopy" methodname="MovingSecondDuplicateNeverConsumesFirstCopy" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="1907003447" result="Passed" start-time="2026-07-30 01:09:57Z" end-time="2026-07-30 01:09:57Z" duration="0.002616" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1075" name="NormalSummonLegalityAndResolutionComeFromCore" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.NormalSummonLegalityAndResolutionComeFromCore" methodname="NormalSummonLegalityAndResolutionComeFromCore" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="550611883" result="Passed" start-time="2026-07-30 01:09:57Z" end-time="2026-07-30 01:09:57Z" duration="0.019534" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1073" name="RepeatedNoProgressStateStopsOverPrioritizingXyz" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.RepeatedNoProgressStateStopsOverPrioritizingXyz" methodname="RepeatedNoProgressStateStopsOverPrioritizingXyz" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="1488603567" result="Passed" start-time="2026-07-30 01:09:57Z" end-time="2026-07-30 01:09:57Z" duration="0.024128" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1076" name="TributeSummonLegalityAndMaterialsComeFromCore" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.TributeSummonLegalityAndMaterialsComeFromCore" methodname="TributeSummonLegalityAndMaterialsComeFromCore" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="72539781" result="Passed" start-time="2026-07-30 01:09:57Z" end-time="2026-07-30 01:09:57Z" duration="0.017969" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1070" name="XyzMaterialsRemainBoundToTheirAuthoritativeHost" fullname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests.XyzMaterialsRemainBoundToTheirAuthoritativeHost" methodname="XyzMaterialsRemainBoundToTheirAuthoritativeHost" classname="ArcaneDuel.Tests.EditMode.StabilizationRegressionEditModeTests" runstate="Runnable" seed="251365299" result="Passed" start-time="2026-07-30 01:09:57Z" end-time="2026-07-30 01:09:57Z" duration="0.003765" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

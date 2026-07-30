@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="37" result="Failed(Child)" total="37" passed="36" failed="1" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:55Z" duration="2,0543433">
+  <test-suite type="TestSuite" id="1000" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="37" result="Failed" site="Child" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:55Z" duration="2.054343" total="37" passed="36" failed="1" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1049" name="ArcaneDuel.EditModeTests.dll" fullname="D:/JOGO Y/DO ZERO/Library/ScriptAssemblies/ArcaneDuel.EditModeTests.dll" runstate="Runnable" testcasecount="37" result="Failed" site="Child" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:55Z" duration="2.047463" total="37" passed="36" failed="1" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="20496" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1050" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="37" result="Failed" site="Child" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:55Z" duration="2.047123" total="37" passed="36" failed="1" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1051" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="37" result="Failed" site="Child" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:55Z" duration="2.047033" total="37" passed="36" failed="1" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1052" name="EditMode" fullname="ArcaneDuel.Tests.EditMode" runstate="Runnable" testcasecount="37" result="Failed" site="Child" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:55Z" duration="2.046844" total="37" passed="36" failed="1" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1001" name="CardCatalogBatchEditModeTests" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" testcasecount="18" result="Passed" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:55Z" duration="1.888424" total="18" passed="18" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="ParameterizedMethod" id="1021" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:54Z" duration="1.638103" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1013" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore(0)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore(0)" methodname="CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="1751141188" result="Passed" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:53Z" duration="0.421276" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1014" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore(1)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore(1)" methodname="CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="175196590" result="Passed" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:53Z" duration="0.139393" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1015" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore(2)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore(2)" methodname="CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="2026003121" result="Passed" start-time="2026-07-29 04:06:53Z" end-time="2026-07-29 04:06:54Z" duration="0.163464" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1016" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore(3)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore(3)" methodname="CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="509390741" result="Passed" start-time="2026-07-29 04:06:54Z" end-time="2026-07-29 04:06:54Z" duration="0.181046" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1017" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore(4)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore(4)" methodname="CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="964229183" result="Passed" start-time="2026-07-29 04:06:54Z" end-time="2026-07-29 04:06:54Z" duration="0.158005" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1018" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore(5)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore(5)" methodname="CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="1076837055" result="Passed" start-time="2026-07-29 04:06:54Z" end-time="2026-07-29 04:06:54Z" duration="0.205033" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1019" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore(6)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore(6)" methodname="CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="1135289280" result="Passed" start-time="2026-07-29 04:06:54Z" end-time="2026-07-29 04:06:54Z" duration="0.181816" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1020" name="CatalogBatchSurvivesThreeTurnsThroughNativeCore(7)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.CatalogBatchSurvivesThreeTurnsThroughNativeCore(7)" methodname="CatalogBatchSurvivesThreeTurnsThroughNativeCore" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="589302023" result="Passed" start-time="2026-07-29 04:06:54Z" end-time="2026-07-29 04:06:54Z" duration="0.181678" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1012" name="EveryCatalogCardRegistersWithNativeCoreLifecycle" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.EveryCatalogCardRegistersWithNativeCoreLifecycle" methodname="EveryCatalogCardRegistersWithNativeCoreLifecycle" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="1048141216" result="Passed" start-time="2026-07-29 04:06:54Z" end-time="2026-07-29 04:06:55Z" duration="0.203502" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1010" name="ImportedBatchHasDataArtAndResolvedScripts" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.036112" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1002" name="ImportedBatchHasDataArtAndResolvedScripts(0)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts(0)" methodname="ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="191061995" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.008948" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1003" name="ImportedBatchHasDataArtAndResolvedScripts(1)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts(1)" methodname="ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="678367339" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003797" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1004" name="ImportedBatchHasDataArtAndResolvedScripts(2)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts(2)" methodname="ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="1339014687" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003390" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1005" name="ImportedBatchHasDataArtAndResolvedScripts(3)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts(3)" methodname="ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="1219316020" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.004566" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1006" name="ImportedBatchHasDataArtAndResolvedScripts(4)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts(4)" methodname="ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="440280115" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003293" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1007" name="ImportedBatchHasDataArtAndResolvedScripts(5)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts(5)" methodname="ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="2126113670" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003737" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1008" name="ImportedBatchHasDataArtAndResolvedScripts(6)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts(6)" methodname="ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="48672879" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003270" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1009" name="ImportedBatchHasDataArtAndResolvedScripts(7)" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.ImportedBatchHasDataArtAndResolvedScripts(7)" methodname="ImportedBatchHasDataArtAndResolvedScripts" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="280587828" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003558" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1011" name="PresentationCatalogHasExactly200UniqueEntriesAndNoRuleMethods" fullname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests.PresentationCatalogHasExactly200UniqueEntriesAndNoRuleMethods" methodname="PresentationCatalogHasExactly200UniqueEntriesAndNoRuleMethods" classname="ArcaneDuel.Tests.EditMode.CardCatalogBatchEditModeTests" runstate="Runnable" seed="2128504519" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003816" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1022" name="CardDatabaseEditModeTests" fullname="ArcaneDuel.Tests.EditMode.CardDatabaseEditModeTests" classname="ArcaneDuel.Tests.EditMode.CardDatabaseEditModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003171" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1023" name="CompiledCatalogContainsExactly200CardsAndVerticalSlice" fullname="ArcaneDuel.Tests.EditMode.CardDatabaseEditModeTests.CompiledCatalogContainsExactly200CardsAndVerticalSlice" methodname="CompiledCatalogContainsExactly200CardsAndVerticalSlice" classname="ArcaneDuel.Tests.EditMode.CardDatabaseEditModeTests" runstate="Runnable" seed="1022111315" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.002594" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1024" name="CoreProtocolEditModeTests" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" testcasecount="8" result="Failed" site="Child" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.022938" total="8" passed="7" failed="1" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1031" name="AnnounceAndSortPromptsProduceNativeWidthResponses" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.AnnounceAndSortPromptsProduceNativeWidthResponses" methodname="AnnounceAndSortPromptsProduceNativeWidthResponses" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" seed="759784139" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.006313" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1025" name="DecoderReadsFramedTurnPhaseAndDrawMessages" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.DecoderReadsFramedTurnPhaseAndDrawMessages" methodname="DecoderReadsFramedTurnPhaseAndDrawMessages" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" seed="1541761495" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.001799" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1026" name="DecoderRejectsTruncatedPackets" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.DecoderRejectsTruncatedPackets" methodname="DecoderRejectsTruncatedPackets" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" seed="1238824083" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.000860" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1027" name="IdleChoicesKeepExactCardLocationForDirectInteraction" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.IdleChoicesKeepExactCardLocationForDirectInteraction" methodname="IdleChoicesKeepExactCardLocationForDirectInteraction" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" seed="928371246" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.000787" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1032" name="KnownPresentationEventsAreNotReportedAsUnknown" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.KnownPresentationEventsAreNotReportedAsUnknown" methodname="KnownPresentationEventsAreNotReportedAsUnknown" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" seed="42125896" result="Failed" label="Error" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003318" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[ArcaneDuel.DuelEngine.Protocol.CoreProtocolException : Message ended unexpectedly at byte 9; needed 1, remaining 0.]]></message>
+                  <stack-trace><![CDATA[  at ArcaneDuel.DuelEngine.Protocol.PacketReader.Require (System.Int32 count) [0x00040] in D:\JOGO Y\DO ZERO\Assets\DuelEngine\Runtime\Protocol\CoreProtocol.cs:244 
+  at ArcaneDuel.DuelEngine.Protocol.PacketReader.Byte () [0x00000] in D:\JOGO Y\DO ZERO\Assets\DuelEngine\Runtime\Protocol\CoreProtocol.cs:190 
+  at ArcaneDuel.DuelEngine.Protocol.CoreMessageDecoder.DecodePositionChange (ArcaneDuel.DuelEngine.Protocol.PacketReader reader, ArcaneDuel.DuelEngine.Protocol.DuelEvent result) [0x0000c] in D:\JOGO Y\DO ZERO\Assets\DuelEngine\Runtime\Protocol\CoreProtocol.cs:468 
+  at ArcaneDuel.DuelEngine.Protocol.CoreMessageDecoder.DecodePacket (System.Byte raw, ArcaneDuel.DuelEngine.Protocol.PacketReader reader) [0x00670] in D:\JOGO Y\DO ZERO\Assets\DuelEngine\Runtime\Protocol\CoreProtocol.cs:412 
+  at ArcaneDuel.DuelEngine.Protocol.CoreMessageDecoder.Decode (System.Byte[] nativeCopy) [0x00068] in D:\JOGO Y\DO ZERO\Assets\DuelEngine\Runtime\Protocol\CoreProtocol.cs:267 
+  at ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.KnownPresentationEventsAreNotReportedAsUnknown () [0x0001f] in D:\JOGO Y\DO ZERO\Assets\Tests\EditMode\CoreProtocolEditModeTests.cs:259 
+  at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke(System.Reflection.RuntimeMethodInfo,object,object[],System.Exception&)
+  at System.Reflection.RuntimeMethodInfo.Invoke (System.Object obj, System.Reflection.BindingFlags invokeAttr, System.Reflection.Binder binder, System.Object[] parameters, System.Globalization.CultureInfo culture) [0x0006a] in <816f70bc2a9c4332b0bd119906a8d40e>:0 ]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1028" name="PlaceChoicesExposeTheExactClickableZone" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.PlaceChoicesExposeTheExactClickableZone" methodname="PlaceChoicesExposeTheExactClickableZone" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" seed="1798419387" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.000768" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1030" name="SumPromptValidatesAlternativeMaterialTotals" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.SumPromptValidatesAlternativeMaterialTotals" methodname="SumPromptValidatesAlternativeMaterialTotals" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" seed="773417313" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.006523" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1029" name="UnselectPromptReturnsTheIterativePairExpectedByCore" fullname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests.UnselectPromptReturnsTheIterativePairExpectedByCore" methodname="UnselectPromptReturnsTheIterativePairExpectedByCore" classname="ArcaneDuel.Tests.EditMode.CoreProtocolEditModeTests" runstate="Runnable" seed="1688257348" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.000859" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1033" name="DeckSystemEditModeTests" fullname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests" classname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.058424" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1036" name="ExtraDeckMonsterInMainDeckIsRejected" fullname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests.ExtraDeckMonsterInMainDeckIsRejected" methodname="ExtraDeckMonsterInMainDeckIsRejected" classname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests" runstate="Runnable" seed="1457126943" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.009235" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1035" name="FourthCopyIsRejectedAcrossMainAndExtraSections" fullname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests.FourthCopyIsRejectedAcrossMainAndExtraSections" methodname="FourthCopyIsRejectedAcrossMainAndExtraSections" classname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests" runstate="Runnable" seed="1330141415" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003344" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1034" name="StarterDeckIsValidAndUsesOfficialCodes" fullname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests.StarterDeckIsValidAndUsesOfficialCodes" methodname="StarterDeckIsValidAndUsesOfficialCodes" classname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests" runstate="Runnable" seed="849852353" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003564" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1037" name="VersionedDeckRoundTripsAsReadableJson" fullname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests.VersionedDeckRoundTripsAsReadableJson" methodname="VersionedDeckRoundTripsAsReadableJson" classname="ArcaneDuel.Tests.EditMode.DeckSystemEditModeTests" runstate="Runnable" seed="534442903" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.040742" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1038" name="OcgCoreVersionEditModeTests" fullname="ArcaneDuel.Tests.EditMode.OcgCoreVersionEditModeTests" classname="ArcaneDuel.Tests.EditMode.OcgCoreVersionEditModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.001043" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1039" name="PinnedNativeCoreReportsExpectedApiVersion" fullname="ArcaneDuel.Tests.EditMode.OcgCoreVersionEditModeTests.PinnedNativeCoreReportsExpectedApiVersion" methodname="PinnedNativeCoreReportsExpectedApiVersion" classname="ArcaneDuel.Tests.EditMode.OcgCoreVersionEditModeTests" runstate="Runnable" seed="825802911" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.000457" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1040" name="OcgHeadlessDuelEditModeTests" fullname="ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests" classname="ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.065473" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1041" name="SameSeedAdvancesAFullTurnDeterministicallyAndDisposes" fullname="ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests.SameSeedAdvancesAFullTurnDeterministicallyAndDisposes" methodname="SameSeedAdvancesAFullTurnDeterministicallyAndDisposes" classname="ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests" runstate="Runnable" seed="1349717271" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.035728" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1042" name="TwelveCardVerticalSliceCanReachAWinner" fullname="ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests.TwelveCardVerticalSliceCanReachAWinner" methodname="TwelveCardVerticalSliceCanReachAWinner" classname="ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests" runstate="Runnable" seed="1225837790" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.029142" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1043" name="OcgInteropLayoutEditModeTests" fullname="ArcaneDuel.Tests.EditMode.OcgInteropLayoutEditModeTests" classname="ArcaneDuel.Tests.EditMode.OcgInteropLayoutEditModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.001279" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1044" name="NativeLayoutsMatchPinnedOcgcoreApi11" fullname="ArcaneDuel.Tests.EditMode.OcgInteropLayoutEditModeTests.NativeLayoutsMatchPinnedOcgcoreApi11" methodname="NativeLayoutsMatchPinnedOcgcoreApi11" classname="ArcaneDuel.Tests.EditMode.OcgInteropLayoutEditModeTests" runstate="Runnable" seed="803711362" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.000664" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1045" name="PresentationRebuildEditModeTests" fullname="ArcaneDuel.Tests.EditMode.PresentationRebuildEditModeTests" classname="ArcaneDuel.Tests.EditMode.PresentationRebuildEditModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.004283" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1046" name="PresentationCanBeRebuiltFromSnapshotWithoutGameObjects" fullname="ArcaneDuel.Tests.EditMode.PresentationRebuildEditModeTests.PresentationCanBeRebuiltFromSnapshotWithoutGameObjects" methodname="PresentationCanBeRebuiltFromSnapshotWithoutGameObjects" classname="ArcaneDuel.Tests.EditMode.PresentationRebuildEditModeTests" runstate="Runnable" seed="104885816" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.003840" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1047" name="ProjectBootstrapEditModeTests" fullname="ArcaneDuel.Tests.EditMode.ProjectBootstrapEditModeTests" classname="ArcaneDuel.Tests.EditMode.ProjectBootstrapEditModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.000672" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1048" name="ProjectUsesRequiredUnityAndRulesAuthority" fullname="ArcaneDuel.Tests.EditMode.ProjectBootstrapEditModeTests.ProjectUsesRequiredUnityAndRulesAuthority" methodname="ProjectUsesRequiredUnityAndRulesAuthority" classname="ArcaneDuel.Tests.EditMode.ProjectBootstrapEditModeTests" runstate="Runnable" seed="2131901061" result="Passed" start-time="2026-07-29 04:06:55Z" end-time="2026-07-29 04:06:55Z" duration="0.000192" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

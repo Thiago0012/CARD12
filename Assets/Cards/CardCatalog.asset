@@ -1,0 +1,4238 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0f52cf2d7e7bdb41ac94c5491abb8eb, type: 3}
+  m_Name: CardCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.Cards.CardCatalog
+  entries:
+  - stableId: 0396d1a622d45934fbb6de78a83ec600
+    artwork: {fileID: -7235006544168497604, guid: 0396d1a622d45934fbb6de78a83ec600, type: 3}
+    displayName: Uraby
+    category: 1
+    monsterFrame: 2
+    officialCardId: 01784619
+    typeName: Monstro Normal
+    raceName: Dinossauro
+    attribute: 2
+    level: 4
+    attack: 1500
+    defense: 800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "R\xE1pido como o vento, este dinossauro dilacera os inimigos com
+      suas garras afiadas."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 533d928dda5b89548ad848f87ffda6fb
+    artwork: {fileID: -2632805696728952702, guid: 533d928dda5b89548ad848f87ffda6fb, type: 3}
+    displayName: "Reflexo Demon\xEDaco n\xBA 2"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 02863439
+    typeName: Monstro Normal
+    raceName: Besta Alada
+    attribute: 4
+    level: 4
+    attack: 1100
+    defense: 1400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma p\xE1ssaro-besta que invoca refor\xE7os usando um espelho de
+      m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 681e82c86b39c484abb38d552f1b09fa
+    artwork: {fileID: 3277293086584706261, guid: 681e82c86b39c484abb38d552f1b09fa, type: 3}
+    displayName: Hane-Hane
+    category: 1
+    monsterFrame: 3
+    officialCardId: 07089711
+    typeName: Monstro de Efeito de Virar
+    raceName: Besta
+    attribute: 2
+    level: 2
+    attack: 450
+    defense: 500
+    effectId: 1
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "VIRE: Devolva para a m\xE3o do seu dono 1 Card de Monstro no campo
+      \xE0 sua escolha."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 2bf54b686a44f864fb075d7e3c079f6c
+    artwork: {fileID: -3736779477158932915, guid: 2bf54b686a44f864fb075d7e3c079f6c, type: 3}
+    displayName: "P\xE1ssaro da Crista Vermelha"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 10202894
+    typeName: Monstro Normal
+    raceName: Besta Alada
+    attribute: 6
+    level: 4
+    attack: 1550
+    defense: 1200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Este monstro mergulha dos c\xE9us e ataca com uma chuva de facas
+      guardadas em suas asas."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3ec69e3d132ecbd4c8c10c3f88c0e4f4
+    artwork: {fileID: 1571552589688651464, guid: 3ec69e3d132ecbd4c8c10c3f88c0e4f4, type: 3}
+    displayName: Soldado de Pedra Gigante
+    category: 1
+    monsterFrame: 2
+    officialCardId: 13039848
+    typeName: Monstro Normal
+    raceName: Rocha
+    attribute: 2
+    level: 3
+    attack: 1300
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um guerreiro gigante feito de pedra. Um soco desta criatura faz
+      com que a terra estreme\xE7a."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: f3cc563f41269be4996c619ac813aa7f
+    artwork: {fileID: 7407434885061985862, guid: f3cc563f41269be4996c619ac813aa7f, type: 3}
+    displayName: "Elfa M\xEDstica"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 15025844
+    typeName: Monstro Normal
+    raceName: Mago
+    attribute: 4
+    level: 4
+    attack: 800
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma elfa delicada com pouco poder de ataque, mas com uma incr\xEDvel
+      defesa proveniente de poderes m\xEDsticos."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 06d64e78f6dd2bc41aa66d21f0a3d36a
+    artwork: {fileID: 4576294158321337834, guid: 06d64e78f6dd2bc41aa66d21f0a3d36a, type: 3}
+    displayName: "Drag\xE3o do Fogo Negro"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 17881964
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 4
+    attack: 1500
+    defense: 1250
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Relva-Fogo\" + \"Pequeno Drag\xE3o\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ce7742bbe9d6f0f40a2fb3df5f1ac72a
+    artwork: {fileID: 8921747170168772133, guid: ce7742bbe9d6f0f40a2fb3df5f1ac72a, type: 3}
+    displayName: Rei Fantasma Verde
+    category: 1
+    monsterFrame: 2
+    officialCardId: 22910685
+    typeName: Monstro Normal
+    raceName: Planta
+    attribute: 2
+    level: 3
+    attack: 500
+    defense: 1600
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Este jovem rei das florestas vive num mundo verde cheio de \xE1rvores
+      e vida selvagem."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: d0b9dbdf08272c3479ee2c983c79781c
+    artwork: {fileID: -7137068507695205906, guid: d0b9dbdf08272c3479ee2c983c79781c, type: 3}
+    displayName: "Terra \xC1rida"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 23424603
+    typeName: Magia de Campo
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 6
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Todos os monstros Dinossauro, Zumbi e Rocha no campo ganham 200 de
+      ATK/DEF.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 6c2040076daba964f8bdc929193ffe9a
+    artwork: {fileID: 3995830868836135819, guid: 6c2040076daba964f8bdc929193ffe9a, type: 3}
+    displayName: "Maldi\xE7\xE3o do Drag\xE3o"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 28279543
+    typeName: Monstro Normal
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 5
+    attack: 2000
+    defense: 1500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um drag\xE3o perverso que se apoia nas for\xE7as das trevas para
+      executar um poderoso ataque."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c9b38a7607fcb2e4693ecb443b92d271
+    artwork: {fileID: -7885713047636483913, guid: c9b38a7607fcb2e4693ecb443b92d271, type: 3}
+    displayName: Castor Guerreiro
+    category: 1
+    monsterFrame: 2
+    officialCardId: 32452818
+    typeName: Monstro Normal
+    raceName: Besta-Guerreira
+    attribute: 2
+    level: 4
+    attack: 1200
+    defense: 1500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: O que falta a esta criatura em tamanho, ela compensa em defesa quando
+      combate na pradaria.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 776d9c22eaa52d34092546c146cd95ba
+    artwork: {fileID: -4315974928628054253, guid: 776d9c22eaa52d34092546c146cd95ba, type: 3}
+    displayName: "Fantasma Sarc\xE1stico"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 36304921
+    typeName: Monstro Normal
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 4
+    attack: 1400
+    defense: 1300
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Vestido com um smoking preto como a noite, esta criatura preside
+      \xE0 morte."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: daabab1c4800e214eaa92cd8ec10db9f
+    artwork: {fileID: -4771919174202191242, guid: daabab1c4800e214eaa92cd8ec10db9f, type: 3}
+    displayName: Tigre Tartaruga
+    category: 1
+    monsterFrame: 2
+    officialCardId: 37313348
+    typeName: Monstro Normal
+    raceName: Aqua
+    attribute: 5
+    level: 4
+    attack: 1000
+    defense: 1500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um tigre protegido por uma carapa\xE7a, que usa suas presas afiadas
+      como l\xE2minas para atacar."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 8c8fa61df4541ab48b5c1e016491441d
+    artwork: {fileID: 7709426869840194413, guid: 8c8fa61df4541ab48b5c1e016491441d, type: 3}
+    displayName: Charubin, o Cavaleiro do Fogo
+    category: 1
+    monsterFrame: 5
+    officialCardId: 37421579
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Pyro
+    attribute: 3
+    level: 3
+    attack: 1100
+    defense: 800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: '"Monstro Ovo" + "Alma Hinotama"'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ac94388150a4ec64f984cd537eda45fa
+    artwork: {fileID: -3309445599395828017, guid: ac94388150a4ec64f984cd537eda45fa, type: 3}
+    displayName: "Drag\xE3o de Tr\xEAs Chifres"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 39111158
+    typeName: Monstro Normal
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 8
+    attack: 2850
+    defense: 2350
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um drag\xE3o indigno com tr\xEAs chifres afiados brotando da sua
+      cabe\xE7a."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 36349aa3c71a20343b5969d49e797024
+    artwork: {fileID: 273664632944276278, guid: 36349aa3c71a20343b5969d49e797024, type: 3}
+    displayName: Besta Eletro-Transmissora
+    category: 1
+    monsterFrame: 2
+    officialCardId: 45042329
+    typeName: Monstro Normal
+    raceName: "Trov\xE3o"
+    attribute: 2
+    level: 4
+    attack: 1200
+    defense: 1300
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Esta criatura ataca com ondas eletromagn\xE9ticas."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 8d542525be4462848ac1944e9005cbd6
+    artwork: {fileID: -8346230358147159135, guid: 8d542525be4462848ac1944e9005cbd6, type: 3}
+    displayName: Hinotama
+    category: 2
+    monsterFrame: 0
+    officialCardId: 46130346
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 3
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Cause 500 de dano ao seu oponente.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 5088cfcd84211f34a84af51f2495769e
+    artwork: {fileID: 7131366446695098016, guid: 5088cfcd84211f34a84af51f2495769e, type: 3}
+    displayName: Montanha
+    category: 2
+    monsterFrame: 0
+    officialCardId: 50913601
+    typeName: Magia de Campo
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 5
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Todos os monstros Drag\xE3o, Besta Alada e Trov\xE3o no campo ganham
+      200 de ATK/DEF."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7d8761041d5f64e42b9c8c2de550c1a5
+    artwork: {fileID: -7829770192820574235, guid: 7d8761041d5f64e42b9c8c2de550c1a5, type: 3}
+    displayName: Guerreiro Karbonala
+    category: 1
+    monsterFrame: 5
+    officialCardId: 54541900
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Guerreiro
+    attribute: 2
+    level: 4
+    attack: 1500
+    defense: 1200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Guerreiro M n\xBA 1\" + \"Guerreiro M n\xBA 2\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 258c3a484d1e2564fb43d9cbddda0529
+    artwork: {fileID: -2310575772991545061, guid: 258c3a484d1e2564fb43d9cbddda0529, type: 3}
+    displayName: Fissura
+    category: 2
+    monsterFrame: 0
+    officialCardId: 66788016
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 4
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Destrua o 1 monstro com a face para cima que seu oponente controla
+      com o menor ATK (em caso de empate, voc\xEA escolhe)."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: d7c61a0c916b71447aeccbbf71ef61be
+    artwork: {fileID: -855758865109158158, guid: d7c61a0c916b71447aeccbbf71ef61be, type: 3}
+    displayName: Dragoness, o Cavaleiro Perverso
+    category: 1
+    monsterFrame: 5
+    officialCardId: 70681994
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Guerreiro
+    attribute: 6
+    level: 3
+    attack: 1200
+    defense: 900
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Armaill\" + \"Drag\xE3o Escudo de Um S\xF3 Olho\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1c72ac97768019b4faba10c4a44637b0
+    artwork: {fileID: -2193134804945275756, guid: 1c72ac97768019b4faba10c4a44637b0, type: 3}
+    displayName: Fireyarou
+    category: 1
+    monsterFrame: 2
+    officialCardId: 71407486
+    typeName: Monstro Normal
+    raceName: Pyro
+    attribute: 3
+    level: 4
+    attack: 1300
+    defense: 1000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma criatura mal\xE9fica envolvida em chamas que ataca os inimigos
+      com fogo intenso."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e459797ff5deb0041b973e0812193c74
+    artwork: {fileID: -2863473657197055442, guid: e459797ff5deb0041b973e0812193c74, type: 3}
+    displayName: Chama Final
+    category: 2
+    monsterFrame: 0
+    officialCardId: 73134082
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 2
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Cause 600 de dano aos Pontos de Vida do seu oponente.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 8106b32a8eb321d4191f8766e54c467c
+    artwork: {fileID: 3078391019471346598, guid: 8106b32a8eb321d4191f8766e54c467c, type: 3}
+    displayName: Julgamento Infernal
+    category: 1
+    monsterFrame: 2
+    officialCardId: 77827521
+    typeName: Monstro Normal
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 4
+    attack: 1300
+    defense: 900
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Este dem\xF4nio julga inimigos que est\xE3o trancados em caix\xF5es."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: dbb0b1281e62e544e85eb7a90b21dc2d
+    artwork: {fileID: -1032524057678983122, guid: dbb0b1281e62e544e85eb7a90b21dc2d, type: 3}
+    displayName: "Esp\xEDrito da Harpa"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 80770678
+    typeName: Monstro Normal
+    raceName: Fada
+    attribute: 4
+    level: 4
+    attack: 800
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um esp\xEDrito que acalma a alma com a m\xFAsica da sua harpa celestial."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3e5b935a7fb3e7243a1ba6c7833dc28a
+    artwork: {fileID: -3626168294176033327, guid: 3e5b935a7fb3e7243a1ba6c7833dc28a, type: 3}
+    displayName: "Drag\xE3o Branco de Olhos Azuis"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 89631139
+    typeName: Monstro Normal
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 3000
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Este drag\xE3o lend\xE1rio \xE9 uma poderosa m\xE1quina de destrui\xE7\xE3o.
+      Praticamente invenc\xEDvel, muito poucos enfrentaram esta magn\xEDfica criatura
+      e viveram para contar a hist\xF3ria."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a2342b868e8b0594c9c6a8b9c863c5dc
+    artwork: {fileID: 8646078121884721905, guid: a2342b868e8b0594c9c6a8b9c863c5dc, type: 3}
+    displayName: Lobo Flor
+    category: 1
+    monsterFrame: 5
+    officialCardId: 95952802
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Besta
+    attribute: 2
+    level: 5
+    attack: 1800
+    defense: 1400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: '"O Presa de Prata" + "Espinhos do Mundo das Trevas"'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c9b8a72ab39eaf84ea41ee6ff12c3440
+    artwork: {fileID: -9025900490719199303, guid: c9b8a72ab39eaf84ea41ee6ff12c3440, type: 3}
+    displayName: Emboscador do Coveiro
+    category: 1
+    monsterFrame: 3
+    officialCardId: 22134079
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 4
+    attack: 1700
+    defense: 0
+    effectId: 7
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for virado com a face para cima: voc\xEA pode escolher
+      1 card no Cemit\xE9rio do seu oponente; coloque o alvo no fundo do Deck dele.
+      Se este card for enviado do campo para o Cemit\xE9rio depois de ser virado
+      com a face para cima: voc\xEA pode escolher 1 card \"Necro-Vale\" no seu Cemit\xE9rio;
+      adicione o alvo \xE0 sua m\xE3o. Estes efeitos n\xE3o s\xE3o afetados por \"Necro-Vale\"."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ee07558f7ecd9bf4c90ddb79636e48b0
+    artwork: {fileID: 6056809076932268701, guid: ee07558f7ecd9bf4c90ddb79636e48b0, type: 3}
+    displayName: Chefe do Coveiro
+    category: 1
+    monsterFrame: 3
+    officialCardId: 62473983
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 5
+    attack: 1900
+    defense: 1200
+    effectId: 8
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA s\xF3 pode controlar 1 \"Chefe do Coveiro\" com a face para
+      cima. Seu Cemit\xE9rio n\xE3o \xE9 afetado por \"Necro-Vale\". Quando este
+      card for Invocado por Invoca\xE7\xE3o-Tributo: voc\xEA pode escolher 1 monstro
+      \"do Coveiro\" no seu Cemit\xE9rio; Invoque o alvo por Invoca\xE7\xE3o-Especial."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 29a52e39cb1f8ff4b84c022636f92597
+    artwork: {fileID: -8051733927836806136, guid: 29a52e39cb1f8ff4b84c022636f92597, type: 3}
+    displayName: Mandante do Coveiro
+    category: 1
+    monsterFrame: 3
+    officialCardId: 21663205
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 3
+    attack: 500
+    defense: 1500
+    effectId: 9
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card for Invocado: voc\xEA pode escolher 1 monstro \"do
+      Coveiro\" de N\xEDvel 4 no seu Cemit\xE9rio; Invoque-o por Invoca\xE7\xE3o-Especial
+      em Posi\xE7\xE3o de Ataque ou com a face para baixo em Posi\xE7\xE3o de Defesa.
+      Voc\xEA s\xF3 pode usar este efeito de \"Mandante do Coveiro\" uma vez por
+      turno. Este efeito n\xE3o \xE9 afetado por \"Necro-Vale\"."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b906582ddf13ca94c8082e4a095e35ed
+    artwork: {fileID: -5918246821031074297, guid: b906582ddf13ca94c8082e4a095e35ed, type: 3}
+    displayName: Kojikocy
+    category: 1
+    monsterFrame: 2
+    officialCardId: 01184620
+    typeName: Monstro Normal
+    raceName: Guerreiro
+    attribute: 2
+    level: 4
+    attack: 1500
+    defense: 1200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um ca\xE7ador de homens com bra\xE7os poderosos, capazes de esmagar
+      grandes rochas."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a7e59230a240e7d46bf793f299d9ee6d
+    artwork: {fileID: 2268133956960387547, guid: a7e59230a240e7d46bf793f299d9ee6d, type: 3}
+    displayName: Cavaleiro Caveira
+    category: 1
+    monsterFrame: 5
+    officialCardId: 02504891
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Mago
+    attribute: 1
+    level: 7
+    attack: 2650
+    defense: 2250
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Sabedoria Corrompida\" + \"C\xE9rebro Anci\xE3o\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3ea973e7305a96c43ba1840787185b7b
+    artwork: {fileID: -5035659367392537749, guid: 3ea973e7305a96c43ba1840787185b7b, type: 3}
+    displayName: Armadilha Falsa
+    category: 3
+    monsterFrame: 0
+    officialCardId: 03027001
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 10
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando um card ou efeito for ativado que destruiria um ou mais Cards
+      de Armadilha que voc\xEA controla: em vez disso, destrua este card."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 291a2805902c353438dedac62f0217a2
+    artwork: {fileID: 1698376192299749456, guid: 291a2805902c353438dedac62f0217a2, type: 3}
+    displayName: Energia das Trevas
+    category: 2
+    monsterFrame: 0
+    officialCardId: 04614116
+    typeName: Magia de Equipamento
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 11
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um monstro do Tipo Dem\xF4nio equipado com este card ganha 300 de
+      ATK/DEF."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 44ca54517acd7ab4ba603ebc3af4ebc0
+    artwork: {fileID: 7223948951382300722, guid: 44ca54517acd7ab4ba603ebc3af4ebc0, type: 3}
+    displayName: Ninja Armado
+    category: 1
+    monsterFrame: 3
+    officialCardId: 09076207
+    typeName: Monstro de Efeito de Virar
+    raceName: Guerreiro
+    attribute: 2
+    level: 1
+    attack: 300
+    defense: 300
+    effectId: 12
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "VIRE: Escolha 1 Card de Magia no campo; destrua-o. Se o alvo estiver
+      com a face para baixo, revele-o e destrua-o apenas se ele for um Card de Magia;
+      caso contr\xE1rio, coloque-o novamente com a face para baixo. O card revelado
+      n\xE3o \xE9 ativado."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 603f235a49ce6414c9a13cafa7f528c6
+    artwork: {fileID: 1878003414711568818, guid: 603f235a49ce6414c9a13cafa7f528c6, type: 3}
+    displayName: "Drag\xE3o de Metal"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 09293977
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "M\xE1quina"
+    attribute: 6
+    level: 6
+    attack: 1850
+    defense: 1700
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Ogre de A\xE7o da Gruta n\xBA 1\" + \"Drag\xE3o Inferior\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 8749a74b36e5f794bafb6cffd475bb75
+    artwork: {fileID: -2645534366563010322, guid: 8749a74b36e5f794bafb6cffd475bb75, type: 3}
+    displayName: Ataque Kaminari
+    category: 1
+    monsterFrame: 5
+    officialCardId: 09653271
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Trov\xE3o"
+    attribute: 6
+    level: 5
+    attack: 1900
+    defense: 1400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Ocubeam\" + \"Mega Esfera de Trov\xE3o\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e61bf3f01e25cc1408bc8a0e89edcfbf
+    artwork: {fileID: -5351715044897810126, guid: e61bf3f01e25cc1408bc8a0e89edcfbf, type: 3}
+    displayName: "Soldado Canh\xE3o"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 11384280
+    typeName: Monstro de Efeito
+    raceName: "M\xE1quina"
+    attribute: 1
+    level: 4
+    attack: 1400
+    defense: 1300
+    effectId: 13
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Ofere\xE7a 1 monstro que voc\xEA controla como Tributo; cause 500
+      de dano ao seu oponente."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7e3bc65b5c7ccb3478ab7c3b7319214f
+    artwork: {fileID: 4534762056085642486, guid: 7e3bc65b5c7ccb3478ab7c3b7319214f, type: 3}
+    displayName: "Drag\xE3o Caveira Negro"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 11901678
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 9
+    attack: 3200
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Caveira Invocada\" + \"Drag\xE3o Negro de Olhos Vermelhos\"\n\n(Este
+      card deve ser sempre considerado como um card \"Arquidem\xF4nio\".)"
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 16be96d4c45a0344ea6b8d16eb4f7efc
+    artwork: {fileID: 3995700600223196531, guid: 16be96d4c45a0344ea6b8d16eb4f7efc, type: 3}
+    displayName: "Chap\xE9u M\xE1gico Branco"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 15150365
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 4
+    level: 3
+    attack: 1000
+    defense: 700
+    effectId: 14
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card causar dano de batalha ao seu oponente: ele descarta
+      1 card aleat\xF3rio."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 307b2fa314c5a554791c549daa05b607
+    artwork: {fileID: -6310855257340477369, guid: 307b2fa314c5a554791c549daa05b607, type: 3}
+    displayName: "Ju\xEDza Imperatriz"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 15237615
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Guerreiro
+    attribute: 2
+    level: 6
+    attack: 2100
+    defense: 1700
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"S\xF3sia da Rainha\" + \"Hibikime\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e697033903ef8af4eae98d74a0e447dc
+    artwork: {fileID: 7024861463578168514, guid: e697033903ef8af4eae98d74a0e447dc, type: 3}
+    displayName: Cobra do Mar Rugidora
+    category: 1
+    monsterFrame: 5
+    officialCardId: 19066538
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Aqua
+    attribute: 5
+    level: 6
+    attack: 2100
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"L\xE2mpada M\xEDstica\" + \"Hyosube\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0cf929bcae1c9ac41a0208de520ab547
+    artwork: {fileID: 283958001557047538, guid: 0cf929bcae1c9ac41a0208de520ab547, type: 3}
+    displayName: Elfa Negra
+    category: 1
+    monsterFrame: 3
+    officialCardId: 21417692
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 4
+    attack: 2000
+    defense: 800
+    effectId: 15
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA deve pagar 1000 PV para este card declarar um ataque."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0eb9d488729aaa14dbbc061213247884
+    artwork: {fileID: 5321471895587384310, guid: 0eb9d488729aaa14dbbc061213247884, type: 3}
+    displayName: Peixe de 7 Cores
+    category: 1
+    monsterFrame: 2
+    officialCardId: 23771716
+    typeName: Monstro Normal
+    raceName: Peixe
+    attribute: 5
+    level: 4
+    attack: 1800
+    defense: 800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um raro peixe arco-\xEDris que nunca foi apanhado por homens mortais."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 029058f0e31dc8041b380308aa1f63f3
+    artwork: {fileID: -4174365573155191111, guid: 029058f0e31dc8041b380308aa1f63f3, type: 3}
+    displayName: Ryu-Kishin Potencializado
+    category: 1
+    monsterFrame: 2
+    officialCardId: 24611934
+    typeName: Monstro Normal
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 4
+    attack: 1600
+    defense: 1200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma g\xE1rgula melhorada pelos poderes das trevas. Garras bem afiadas
+      a tornam uma forte advers\xE1ria."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ef59bc8607bedb54988c38dd76f644aa
+    artwork: {fileID: 7850358623768648271, guid: ef59bc8607bedb54988c38dd76f644aa, type: 3}
+    displayName: Bloquear Ataque
+    category: 2
+    monsterFrame: 0
+    officialCardId: 25880422
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 16
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 monstro com a face para cima em Posi\xE7\xE3o de Ataque
+      que seu oponente controla; coloque-o com a face para cima em Posi\xE7\xE3o
+      de Defesa."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0c923d9d1f07c8a42b5b5bf2df0d2448
+    artwork: {fileID: -1313292634255357008, guid: 0c923d9d1f07c8a42b5b5bf2df0d2448, type: 3}
+    displayName: Sangan
+    category: 1
+    monsterFrame: 3
+    officialCardId: 26202165
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 3
+    attack: 1000
+    defense: 600
+    effectId: 17
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card for enviado do campo para o Cemit\xE9rio: adicione
+      1 monstro com 1500 ou menos de ATK do seu Deck \xE0 sua m\xE3o, mas voc\xEA
+      n\xE3o pode ativar cards ou efeitos de cards com esse nome pelo resto deste
+      turno. Voc\xEA s\xF3 pode usar este efeito de \"Sangan\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0c105ce9a7987b54bac5d1188dabe264
+    artwork: {fileID: 7367729863648195884, guid: 0c105ce9a7987b54bac5d1188dabe264, type: 3}
+    displayName: Ilusionista Sem Rosto
+    category: 1
+    monsterFrame: 2
+    officialCardId: 28546905
+    typeName: Monstro Normal
+    raceName: Mago
+    attribute: 1
+    level: 5
+    attack: 1200
+    defense: 2200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Manipula os ataques inimigos com o poder da ilus\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: dd4304ea154ad3840831cbb021753bb9
+    artwork: {fileID: 6872527200762432536, guid: dd4304ea154ad3840831cbb021753bb9, type: 3}
+    displayName: "Tubar\xE3o das Profundezas do Mar"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 28593363
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Peixe
+    attribute: 5
+    level: 5
+    attack: 1900
+    defense: 1600
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: '"Habitante das Profundezas" + "Tongyo"'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b49fb999d7eebeb42932906f8304cee9
+    artwork: {fileID: -1378274209094683063, guid: b49fb999d7eebeb42932906f8304cee9, type: 3}
+    displayName: Coroa de Asas Azuis
+    category: 1
+    monsterFrame: 2
+    officialCardId: 41396436
+    typeName: Monstro Normal
+    raceName: Besta Alada
+    attribute: 6
+    level: 4
+    attack: 1600
+    defense: 1200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Com cabelo em forma de coroa e corpo envolto por chamas branco-azuladas,
+      este p\xE1ssaro \xE9 uma vis\xE3o formid\xE1vel."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ab1e2eff48893c44eaca5237816bda2c
+    artwork: {fileID: -1438159412658877635, guid: ab1e2eff48893c44eaca5237816bda2c, type: 3}
+    displayName: Muka Muka
+    category: 1
+    monsterFrame: 3
+    officialCardId: 46657337
+    typeName: Monstro de Efeito
+    raceName: Rocha
+    attribute: 2
+    level: 2
+    attack: 600
+    defense: 300
+    effectId: 18
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Ganha 300 de ATK/DEF para cada card na sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 619bcfc079c614f4ba22a7bde5bce98d
+    artwork: {fileID: -1669507736014490595, guid: 619bcfc079c614f4ba22a7bde5bce98d, type: 3}
+    displayName: "Jarro de Captura de Drag\xF5es"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 50045299
+    typeName: "Armadilha Cont\xEDnua"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 19
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Enquanto este card estiver com a face para cima no campo, coloque
+      todos os monstros Drag\xE3o no campo em Posi\xE7\xE3o de Defesa."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0687760f359a55d48b31a1c438138c60
+    artwork: {fileID: 8063414001475333650, guid: 0687760f359a55d48b31a1c438138c60, type: 3}
+    displayName: "Po\xE7\xE3o Paralisante"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 50152549
+    typeName: Magia de Equipamento
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 20
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Equipe apenas a um monstro que n\xE3o seja M\xE1quina. Ele n\xE3o
+      pode atacar."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 907a7a3f1cfa8454f92a9b038c4cbf72
+    artwork: {fileID: 7949768271480601638, guid: 907a7a3f1cfa8454f92a9b038c4cbf72, type: 3}
+    displayName: Remover Armadilha
+    category: 2
+    monsterFrame: 0
+    officialCardId: 51482758
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 21
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Escolha 1 Card de Armadilha com a face para cima no campo; destrua-o.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 92f240f36aa95c64997bf4eb6186fb00
+    artwork: {fileID: 5616612617874644536, guid: 92f240f36aa95c64997bf4eb6186fb00, type: 3}
+    displayName: Giltia, o Cavaleiro D.
+    category: 1
+    monsterFrame: 5
+    officialCardId: 51828629
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Guerreiro
+    attribute: 4
+    level: 5
+    attack: 1850
+    defense: 1500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Guardi\xE3o do Labirinto\" + \"Protetora do Trono\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: fd22ab527b138a64298bebf4f6be52ae
+    artwork: {fileID: 5320458793233495626, guid: fd22ab527b138a64298bebf4f6be52ae, type: 3}
+    displayName: Escudo & Espada
+    category: 2
+    monsterFrame: 0
+    officialCardId: 52097679
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 22
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "At\xE9 o final deste turno, troque o ATK original pela DEF original
+      de todos os monstros com a face para cima atualmente no campo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e0c837ef6f83d674c97a41d7ece738bf
+    artwork: {fileID: -7509072883963718795, guid: e0c837ef6f83d674c97a41d7ece738bf, type: 3}
+    displayName: Inseto Devorador de Homens
+    category: 1
+    monsterFrame: 3
+    officialCardId: 54652250
+    typeName: Monstro de Efeito de Virar
+    raceName: Inseto
+    attribute: 2
+    level: 2
+    attack: 450
+    defense: 600
+    effectId: 23
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'VIRE: Escolha 1 monstro no campo; destrua-o.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7ef46bad7aaf653409dd25acd15c610f
+    artwork: {fileID: 2242699394277404048, guid: 7ef46bad7aaf653409dd25acd15c610f, type: 3}
+    displayName: "Rei M\xFAsico"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 56907389
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Mago
+    attribute: 4
+    level: 5
+    attack: 1750
+    defense: 1500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Bruxa da Floresta Negra\" + \"Lady da F\xE9\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 45df485c854e44c408c7ce9f4c824ed0
+    artwork: {fileID: 8746574581262855007, guid: 45df485c854e44c408c7ce9f4c824ed0, type: 3}
+    displayName: Impedir a Defesa
+    category: 2
+    monsterFrame: 0
+    officialCardId: 63102017
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 24
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 monstro no campo do seu oponente; coloque-o em Posi\xE7\xE3o
+      de Ataque. Se ele estiver com a face para baixo, vire-o com a face para cima
+      e ative imediatamente seus efeitos."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0d8d26c26c6bb5e4eb6959390b3c76fe
+    artwork: {fileID: -6130753610785651969, guid: 0d8d26c26c6bb5e4eb6959390b3c76fe, type: 3}
+    displayName: "Gaia, o Matador de Drag\xF5es"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 66889139
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 6
+    level: 7
+    attack: 2600
+    defense: 2100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Gaia, o Cavaleiro Impetuoso\" + \"Maldi\xE7\xE3o do Drag\xE3o\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0b9c60f0232fac545bb700f683e0e26a
+    artwork: {fileID: 5482766954841588405, guid: 0b9c60f0232fac545bb700f683e0e26a, type: 3}
+    displayName: O Carniceiro do Bar
+    category: 1
+    monsterFrame: 3
+    officialCardId: 71107816
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 4
+    attack: 1800
+    defense: 1000
+    effectId: 26
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Quando este card causar dano de batalha ao seu oponente: ele compra
+      2 cards.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 9f55be7c69cba8b40b989c550de017db
+    artwork: {fileID: 3604697335888995836, guid: 9f55be7c69cba8b40b989c550de017db, type: 3}
+    displayName: "Po\xE7\xE3o de Estimula\xE7\xE3o"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 83225447
+    typeName: Magia de Equipamento
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 25
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: O monstro equipado ganha 700 de ATK. Durante cada uma de suas Fases
+      de Apoio, ele perde 200 de ATK.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 75cbd053fd8597f4ab211df9f79f4560
+    artwork: {fileID: 5696329121311778370, guid: 75cbd053fd8597f4ab211df9f79f4560, type: 3}
+    displayName: Ciber Saurus
+    category: 1
+    monsterFrame: 5
+    officialCardId: 89112729
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "M\xE1quina"
+    attribute: 2
+    level: 5
+    attack: 1800
+    defense: 1400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Malabarista Explosivo\" + \"Rei Rex de Duas Cabe\xE7as\"\n\n(Este
+      card n\xE3o \xE9 considerado como um card \"Ciber\".)"
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1e0e527400c9ff041950cc86fe5f9d67
+    artwork: {fileID: 2391331247455778157, guid: 1e0e527400c9ff041950cc86fe5f9d67, type: 3}
+    displayName: "Palha\xE7o Grosseiro"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 93889755
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 4
+    attack: 1350
+    defense: 1400
+    effectId: 27
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card mudar da Posi\xE7\xE3o de Defesa para a Posi\xE7\xE3o
+      de Ataque: devolva 1 monstro no campo do seu oponente para a m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a82fd58bb2d1f4449a4460b959b97c12
+    artwork: {fileID: 6389125189160669377, guid: a82fd58bb2d1f4449a4460b959b97c12, type: 3}
+    displayName: Jirai Gumo
+    category: 1
+    monsterFrame: 3
+    officialCardId: 94773007
+    typeName: Monstro de Efeito
+    raceName: Inseto
+    attribute: 2
+    level: 4
+    attack: 2200
+    defense: 100
+    effectId: 28
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card declarar um ataque: lance uma moeda e escolha cara
+      ou coroa. Se voc\xEA errar, perca metade dos seus PV."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e0f58657b8c28844a8005031301066b8
+    artwork: {fileID: -2645091145396007999, guid: e0f58657b8c28844a8005031301066b8, type: 3}
+    displayName: Centauro Furioso
+    category: 1
+    monsterFrame: 5
+    officialCardId: 94905343
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Besta-Guerreira
+    attribute: 2
+    level: 6
+    attack: 2000
+    defense: 1700
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Touro Guerreiro\" + \"Centauro M\xEDstico\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a65c4b96d1890044c89b38265f083b45
+    artwork: {fileID: 3367907588621031790, guid: a65c4b96d1890044c89b38265f083b45, type: 3}
+    displayName: Vento Seguidor
+    category: 2
+    monsterFrame: 0
+    officialCardId: 98252586
+    typeName: Magia de Equipamento
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 29
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Um monstro Besta Alada equipado com este card ganha 300 de ATK/DEF.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1c9011e7b39b7dd45a42f06d104641aa
+    artwork: {fileID: 8856126605567526631, guid: 1c9011e7b39b7dd45a42f06d104641aa, type: 3}
+    displayName: Espada dos Enraizados
+    category: 2
+    monsterFrame: 0
+    officialCardId: 98495314
+    typeName: Magia de Equipamento
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 30
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "O monstro equipado ganha 500 de ATK/DEF. Se este card for enviado
+      para o Cemit\xE9rio: coloque-o no topo do seu Deck."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: d974aad2c9b59cb4480b6de482c42b91
+    artwork: {fileID: 8525566522182246474, guid: d974aad2c9b59cb4480b6de482c42b91, type: 3}
+    displayName: Drenar Habilidades
+    category: 3
+    monsterFrame: 0
+    officialCardId: 82732705
+    typeName: "Armadilha Cont\xEDnua"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Ative este card ao pagar 1000 PV. Negue os efeitos de todos os monstros
+      com a face para cima enquanto eles estiverem com a face para cima no campo
+      (mas seus efeitos ainda podem ser ativados).
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 72082ef42eacc154080ffa4f9642239a
+    artwork: {fileID: 5207845125405673762, guid: 72082ef42eacc154080ffa4f9642239a, type: 3}
+    displayName: Chamado dos Assombrados
+    category: 3
+    monsterFrame: 0
+    officialCardId: 97077563
+    typeName: "Armadilha Cont\xEDnua"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Ative este card ao escolher 1 monstro no seu Cemit\xE9rio; Invoque
+      o alvo por Invoca\xE7\xE3o-Especial em Posi\xE7\xE3o de Ataque. Quando este
+      card deixar o campo, destrua esse monstro. Quando esse monstro for destru\xEDdo,
+      destrua este card."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 03f8ab13e23678b46ac1f1d1508a943d
+    artwork: {fileID: 1760229570425615930, guid: 03f8ab13e23678b46ac1f1d1508a943d, type: 3}
+    displayName: Buraco Armadilha
+    category: 3
+    monsterFrame: 0
+    officialCardId: 04206964
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando seu oponente Invocar por Invoca\xE7\xE3o-Normal ou Virar
+      1 monstro com 1000 ou mais de ATK: escolha o monstro; destrua o alvo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0327440729517564b9880e5e134c650e
+    artwork: {fileID: -9004768051791554756, guid: 0327440729517564b9880e5e134c650e, type: 3}
+    displayName: Buraco Armadilha Sem Fundo
+    category: 3
+    monsterFrame: 0
+    officialCardId: 29401950
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Quando seu oponente Invocar um ou mais monstros com 1500 ou mais
+      de ATK: destrua esse(s) monstro(s) com 1500 ou mais de ATK e, se isso acontecer,
+      bana-o(s).'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7429af947e6a63049bbe3564d42c950a
+    artwork: {fileID: -724083002283531498, guid: 7429af947e6a63049bbe3564d42c950a, type: 3}
+    displayName: "For\xE7a do Espelho"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 44095762
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando um monstro do oponente declarar um ataque: destrua todos
+      os monstros em Posi\xE7\xE3o de Ataque do seu oponente."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e6b7561d92339cd449be5ac6138d5772
+    artwork: {fileID: -3717752387810843727, guid: e6b7561d92339cd449be5ac6138d5772, type: 3}
+    displayName: Tributo Torrencial
+    category: 3
+    monsterFrame: 0
+    officialCardId: 53582587
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Quando um ou mais monstros forem Invocados: destrua todos os monstros
+      no campo.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 457855d293006f747a9b147b2cb76b58
+    artwork: {fileID: -5023436474493775438, guid: 457855d293006f747a9b147b2cb76b58, type: 3}
+    displayName: "Cilindro M\xE1gico"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 62279055
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Quando um monstro do oponente declarar um ataque: escolha o monstro
+      atacante; negue o ataque e, se isso acontecer, cause dano ao seu oponente igual
+      ao ATK do monstro.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: efa2d5a8b7b32c942a74cf69d5d7094f
+    artwork: {fileID: -1859005330122349291, guid: efa2d5a8b7b32c942a74cf69d5d7094f, type: 3}
+    displayName: "Aparelho de Evacua\xE7\xE3o Obrigat\xF3ria"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 94192409
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 monstro no campo; devolva o alvo para a m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: f7fa8fafdeef3f74680493316894ffca
+    artwork: {fileID: -6285303130469850639, guid: f7fa8fafdeef3f74680493316894ffca, type: 3}
+    displayName: Julgamento Solene
+    category: 3
+    monsterFrame: 0
+    officialCardId: 41420027
+    typeName: Armadilha de Resposta
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando um ou mais monstros seriam Invocados OU um Card de Magia/Armadilha
+      for ativado: pague metade dos seus PV; negue a Invoca\xE7\xE3o ou ativa\xE7\xE3o
+      e, se isso acontecer, destrua esse card."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c2ff232ee48beee4c9a12cdc3df07ea9
+    artwork: {fileID: -399511905342838171, guid: c2ff232ee48beee4c9a12cdc3df07ea9, type: 3}
+    displayName: "C\xF3lera Divina"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 49010598
+    typeName: Armadilha de Resposta
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando um efeito de monstro for ativado: descarte 1 card; negue
+      a ativa\xE7\xE3o e, se isso acontecer, destrua esse monstro."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 29f7525f27fb03d4aa94e504bef76403
+    artwork: {fileID: -541954954348148653, guid: 29f7525f27fb03d4aa94e504bef76403, type: 3}
+    displayName: "Um Oceano Lend\xE1rio"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 00295517
+    typeName: Magia de Campo
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "(O nome deste card deve ser sempre considerado como \"Umi\".)\nTodos
+      os monstros de \xC1GUA no campo ganham 200 de ATK/DEF. Reduza em 1 o N\xEDvel
+      de todos os monstros de \xC1GUA na m\xE3o e no campo dos dois duelistas."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4f7c53ca905019b4faa64dcccd0361b1
+    artwork: {fileID: 3187322405325047808, guid: 4f7c53ca905019b4faa64dcccd0361b1, type: 3}
+    displayName: Juntos Resistiremos
+    category: 2
+    monsterFrame: 0
+    officialCardId: 56747793
+    typeName: Magia de Equipamento
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "O monstro equipado ganha 800 de ATK/DEF para cada monstro com a
+      face para cima que voc\xEA controla."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: f85b5c3cf4769c74fa12a7a85fde8d5c
+    artwork: {fileID: -6473602608451929577, guid: f85b5c3cf4769c74fa12a7a85fde8d5c, type: 3}
+    displayName: "Polimeriza\xE7\xE3o"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 24094653
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Invoque por Invoca\xE7\xE3o-Fus\xE3o 1 Monstro de Fus\xE3o do seu
+      Deck Adicional, usando monstros da sua m\xE3o ou do campo como Mat\xE9ria de
+      Fus\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: dffe8aa8ceca2394c97e045e07ed2af7
+    artwork: {fileID: -5036245655456160543, guid: dffe8aa8ceca2394c97e045e07ed2af7, type: 3}
+    displayName: Buraco Negro
+    category: 2
+    monsterFrame: 0
+    officialCardId: 53129443
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Destrua todos os monstros no campo.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4354e5ae15a492547b8f0d9e8a6dbba1
+    artwork: {fileID: -9190355117054904091, guid: 4354e5ae15a492547b8f0d9e8a6dbba1, type: 3}
+    displayName: "Pote da Gan\xE2ncia"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 55144522
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Compre 2 cards.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 9df494afb1a7cb945bc39b9fbdb8d299
+    artwork: {fileID: -3819270432679546597, guid: 9df494afb1a7cb945bc39b9fbdb8d299, type: 3}
+    displayName: "Transforma\xE7\xE3o Campal"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 73628505
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Adicione 1 Magia de Campo do seu Deck \xE0 sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ebf62730e73f73342b6e03feefd2e8a5
+    artwork: {fileID: 547044143177689154, guid: ebf62730e73f73342b6e03feefd2e8a5, type: 3}
+    displayName: Reviver Monstro
+    category: 2
+    monsterFrame: 0
+    officialCardId: 83764719
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 monstro em qualquer Cemit\xE9rio; Invoque-o por Invoca\xE7\xE3o-Especial."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 93e11026db033744a8ec20462dc2db86
+    artwork: {fileID: -5659943507252399435, guid: 93e11026db033744a8ec20462dc2db86, type: 3}
+    displayName: "Tuf\xE3o Espacial M\xEDstico"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 05318639
+    typeName: "Magia R\xE1pida"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Escolha 1 Magia/Armadilha no campo; destrua o alvo.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3a68e9f56761db247be0b4da2f71ad8e
+    artwork: {fileID: -4917497570262476402, guid: 3a68e9f56761db247be0b4da2f71ad8e, type: 3}
+    displayName: Livro da Lua
+    category: 2
+    monsterFrame: 0
+    officialCardId: 14087893
+    typeName: "Magia R\xE1pida"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 monstro com a face para cima no campo; coloque o alvo
+      com a face para baixo em Posi\xE7\xE3o de Defesa."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3329dfbcfe1874445a3d41b3aab2dfd6
+    artwork: {fileID: -6265132785135108796, guid: 3329dfbcfe1874445a3d41b3aab2dfd6, type: 3}
+    displayName: "Arte Ritual Avan\xE7ada"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 46052429
+    typeName: Magia de Ritual
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Este card \xE9 usado para a Invoca\xE7\xE3o-Ritual de qualquer 1
+      Monstro de Ritual. Voc\xEA tamb\xE9m deve enviar Monstros Normais do seu Deck
+      para o Cemit\xE9rio cuja soma dos N\xEDveis seja igual ao N\xEDvel desse Monstro
+      de Ritual."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7708b114830b57d49aa9e4eed7386568
+    artwork: {fileID: 5167110483923673524, guid: 7708b114830b57d49aa9e4eed7386568, type: 3}
+    displayName: D.D. Lady Guerreira
+    category: 1
+    monsterFrame: 3
+    officialCardId: 07572887
+    typeName: Monstro de Efeito
+    raceName: Guerreiro
+    attribute: 4
+    level: 4
+    attack: 1500
+    defense: 1600
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Depois do c\xE1lculo de dano, quando este card batalhar um monstro
+      do oponente: voc\xEA pode banir esse monstro e, al\xE9m disso, bana este card."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 999b0947ab1edbb4e823fb6a00877354
+    artwork: {fileID: 2925566560899508807, guid: 999b0947ab1edbb4e823fb6a00877354, type: 3}
+    displayName: Marshmallon
+    category: 1
+    monsterFrame: 3
+    officialCardId: 31305911
+    typeName: Monstro de Efeito
+    raceName: Fada
+    attribute: 4
+    level: 3
+    attack: 300
+    defense: 500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "N\xE3o pode ser destru\xEDdo em batalha. Depois do c\xE1lculo de
+      dano, se este card foi atacado e estava com a face para baixo no come\xE7o
+      da Etapa de Dano: o duelista atacante sofre 1000 de dano."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: bb1f456812e4d714d92c4d11545e0551
+    artwork: {fileID: -4052011019192615957, guid: bb1f456812e4d714d92c4d11545e0551, type: 3}
+    displayName: Kuriboh
+    category: 1
+    monsterFrame: 3
+    officialCardId: 40640057
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 1
+    attack: 300
+    defense: 200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Durante o c\xE1lculo de dano, se um monstro do seu oponente atacar
+      (Efeito R\xE1pido): voc\xEA pode descartar este card; voc\xEA n\xE3o sofre
+      dano de batalha dessa batalha."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b012f74592950404683b99efd9bf2998
+    artwork: {fileID: 3620195934998449400, guid: b012f74592950404683b99efd9bf2998, type: 3}
+    displayName: "Drag\xE3o Cibern\xE9tico"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 70095154
+    typeName: Monstro de Efeito
+    raceName: "M\xE1quina"
+    attribute: 4
+    level: 5
+    attack: 2100
+    defense: 1600
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se somente seu oponente controlar um monstro, voc\xEA pode Invocar
+      este card por Invoca\xE7\xE3o-Especial (da sua m\xE3o)."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4d5d1c8cda1364442bcc49f442116e8f
+    artwork: {fileID: 7406563596845736857, guid: 4d5d1c8cda1364442bcc49f442116e8f, type: 3}
+    displayName: "Breaker, o Guerreiro M\xE1gico"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 71413901
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 4
+    attack: 1600
+    defense: 1000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card for Invocado por Invoca\xE7\xE3o-Normal: coloque 1
+      Marcador de Magia nele (m\xE1x. 1). Ganha 300 de ATK para cada Marcador de
+      Magia nele. Voc\xEA pode remover 1 Marcador de Magia deste card e, depois,
+      escolha 1 Magia/Armadilha no campo; destrua o alvo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 747643490e579cf47ae4df02ff0a63f4
+    artwork: {fileID: -1055301344301097228, guid: 747643490e579cf47ae4df02ff0a63f4, type: 3}
+    displayName: "For\xE7a Exilada"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 74131780
+    typeName: Monstro de Efeito
+    raceName: Guerreiro
+    attribute: 2
+    level: 4
+    attack: 1000
+    defense: 1000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode oferecer este card como Tributo para escolher 1 monstro
+      no campo; destrua o alvo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: f69fa3068b93fbd45a584f1e7ed83650
+    artwork: {fileID: 587704201599525766, guid: f69fa3068b93fbd45a584f1e7ed83650, type: 3}
+    displayName: Jinzo
+    category: 1
+    monsterFrame: 3
+    officialCardId: 77585513
+    typeName: Monstro de Efeito
+    raceName: "M\xE1quina"
+    attribute: 1
+    level: 6
+    attack: 2400
+    defense: 1500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Os Cards de Armadilha, bem como seus efeitos no campo, n\xE3o podem
+      ser ativados. Negue todos os efeitos de Armadilha no campo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 6c295a1ac11c34d419c5432b18f2b4e3
+    artwork: {fileID: 2419882559801387243, guid: 6c295a1ac11c34d419c5432b18f2b4e3, type: 3}
+    displayName: "For\xE7a de Ataque dos Goblins"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 78658564
+    typeName: Monstro de Efeito
+    raceName: Guerreiro
+    attribute: 2
+    level: 4
+    attack: 2300
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card atacar, ele \xE9 colocado em Posi\xE7\xE3o de Defesa
+      no final da Fase de Batalha e sua posi\xE7\xE3o de batalha n\xE3o pode ser
+      mudada at\xE9 a Fase Final do seu pr\xF3ximo turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 20f5fffe663cbb9478c5dddad9d887e2
+    artwork: {fileID: -3663896737129629490, guid: 20f5fffe663cbb9478c5dddad9d887e2, type: 3}
+    displayName: Soldado Pinguim
+    category: 1
+    monsterFrame: 3
+    officialCardId: 93920745
+    typeName: Monstro de Efeito de Virar
+    raceName: Aqua
+    attribute: 5
+    level: 2
+    attack: 750
+    defense: 500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "VIRE: Voc\xEA pode escolher at\xE9 2 monstros no campo; devolva
+      os alvos para a m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 6d0f1759d7b134d468fcbed1b4a610bf
+    artwork: {fileID: 7816355655387415741, guid: 6d0f1759d7b134d468fcbed1b4a610bf, type: 3}
+    displayName: Ocultador de Efeitos
+    category: 1
+    monsterFrame: 3
+    officialCardId: 97268402
+    typeName: Monstro Regulador de Efeito
+    raceName: Mago
+    attribute: 4
+    level: 1
+    attack: 0
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Durante a Fase Principal do seu oponente (Efeito R\xE1pido): voc\xEA
+      pode enviar este card da sua m\xE3o para o Cemit\xE9rio e, depois, escolha
+      1 Monstro de Efeito que seu oponente controla; at\xE9 o final deste turno,
+      negue os efeitos desse monstro com a face para cima que seu oponente controla."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b575f83b52eee2247a773411f2fff5e6
+    artwork: {fileID: -9175257851803975415, guid: b575f83b52eee2247a773411f2fff5e6, type: 3}
+    displayName: Mago Negro
+    category: 1
+    monsterFrame: 2
+    officialCardId: 46986414
+    typeName: Monstro Normal
+    raceName: Mago
+    attribute: 1
+    level: 7
+    attack: 2500
+    defense: 2100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: O mago definitivo em termos de ataque e defesa.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 8322580b2954fc84a92ac0113980af14
+    artwork: {fileID: -4267182559000535223, guid: 8322580b2954fc84a92ac0113980af14, type: 3}
+    displayName: Alma Eterna
+    category: 3
+    monsterFrame: 0
+    officialCardId: 48680970
+    typeName: "Armadilha Cont\xEDnua"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Cada \"Mago Negro\" na sua Zona de Monstros n\xE3o \xE9 afetado
+      pelos efeitos de card do seu oponente. Se este card com a face para cima deixar
+      o campo: destrua todos os monstros que voc\xEA controla. Voc\xEA s\xF3 pode
+      usar o seguinte efeito de \"Alma Eterna\" uma vez por turno. Voc\xEA pode ativar
+      1 destes efeitos;\n\u25CFInvoque por Invoca\xE7\xE3o-Especial 1 \"Mago Negro\"
+      da sua m\xE3o ou do Cemit\xE9rio.\n\u25CFAdicione 1 \"Ataque da Magia Negra\"
+      ou \"Mil Facas\" do seu Deck \xE0 sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 45fc55cce44125a4baa89846443e287d
+    artwork: {fileID: -8464179357901368107, guid: 45fc55cce44125a4baa89846443e287d, type: 3}
+    displayName: Luz Verdadeira
+    category: 3
+    monsterFrame: 0
+    officialCardId: 62089826
+    typeName: "Armadilha Cont\xEDnua"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Seu oponente n\xE3o pode escolher \"Drag\xE3o Branco de Olhos Azuis\"
+      na sua Zona de Monstros como alvo de efeitos de card. Se este card com a face
+      para cima for enviado da Zona de Magias & Armadilhas para o Cemit\xE9rio: destrua
+      todos os monstros que voc\xEA controla. Voc\xEA s\xF3 pode usar o seguinte
+      efeito de \"Luz Verdadeira\" uma vez por turno. Voc\xEA pode ativar 1 desses
+      efeitos;\n\u25CFInvoque por Invoca\xE7\xE3o-Especial 1 \"Drag\xE3o Branco de
+      Olhos Azuis\" da sua m\xE3o ou do Cemit\xE9rio.\n\u25CFBaixe 1 Magia/Armadilha
+      diretamente do seu Deck, que liste especificamente \"Drag\xE3o Branco de Olhos
+      Azuis\" em seu texto, com um nome diferente que o dos cards que voc\xEA controla
+      e no seu Cemit\xE9rio."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4339ebd810441134c82df6d2c49c4516
+    artwork: {fileID: 4697681540942867267, guid: 4339ebd810441134c82df6d2c49c4516, type: 3}
+    displayName: "Navega\xE7\xE3o do Mago"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 07922915
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Invoque por Invoca\xE7\xE3o-Especial 1 \"Mago Negro\" da sua m\xE3o
+      e, depois, Invoque por Invoca\xE7\xE3o-Especial 1 monstro Mago de TREVAS de
+      N\xEDvel 7 ou menos do seu Deck. Se voc\xEA controlar \"Mago Negro\", exceto
+      no turno em que este card foi enviado para o Cemit\xE9rio: voc\xEA pode banir
+      este card do seu Cemit\xE9rio e, depois, escolha 1 Magia/Armadilha com a face
+      para cima que seu oponente controla; negue seus efeitos at\xE9 o final deste
+      turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ba9d543fe873ffe4189287604cfe4e5d
+    artwork: {fileID: -8117643128388886622, guid: ba9d543fe873ffe4189287604cfe4e5d, type: 3}
+    displayName: "Renova\xE7\xE3o Negra"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 09287078
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando seu oponente Invocar um ou mais monstros por Invoca\xE7\xE3o-Normal
+      ou Especial: escolha 1 desses monstros e 1 monstro Mago que voc\xEA controla;
+      envie os dois monstros para o Cemit\xE9rio e, depois, voc\xEA pode Invocar
+      por Invoca\xE7\xE3o-Especial 1 monstro Mago de TREVAS do seu Deck ou Cemit\xE9rio."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: f29ec87e2cd7f414fb2ba8d3d793d2d0
+    artwork: {fileID: -9213952344689366533, guid: f29ec87e2cd7f414fb2ba8d3d793d2d0, type: 3}
+    displayName: "Imperman\xEAncia Infinita"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 10045474
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 monstro com a face para cima que seu oponente controla;
+      negue seus efeitos (at\xE9 o final deste turno) e, depois, se este card estava
+      Baixado antes da ativa\xE7\xE3o e estiver no campo na resolu\xE7\xE3o, pelo
+      resto deste turno, todos os outros efeitos de Magia/Armadilha nesta coluna
+      s\xE3o negados. Se voc\xEA n\xE3o controlar nenhum card, voc\xEA pode ativar
+      este card da sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: d52190b103cb1b940ac5d0ff166ce1ca
+    artwork: {fileID: 5288361622091171177, guid: d52190b103cb1b940ac5d0ff166ce1ca, type: 3}
+    displayName: Majesty of the White Dragons
+    category: 3
+    monsterFrame: 0
+    officialCardId: 43219114
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Show up to 3 of the "Blue-Eyes White Dragon" in your hand, face-up
+      Monster Zone, and/or GY, then destroy an equal number of cards your opponent
+      controls. You can banish this card from your GY; Ritual Summon 1 Ritual Monster
+      from your hand, by Tributing "Blue-Eyes White Dragon(s)" from your hand or
+      field whose total Levels equal its Level. You can only use each effect of "Majesty
+      of the White Dragons" once per turn.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 75cfa52460188a84d8443dfbe0c85f50
+    artwork: {fileID: 6871682487152785816, guid: 75cfa52460188a84d8443dfbe0c85f50, type: 3}
+    displayName: Armadura Sakuretsu
+    category: 3
+    monsterFrame: 0
+    officialCardId: 56120475
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Quando um monstro do oponente declarar um ataque: escolha o monstro
+      atacante; destrua o alvo.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 233f8e2cbf2edb847833d90301feaac8
+    artwork: {fileID: -8240689633562027714, guid: 233f8e2cbf2edb847833d90301feaac8, type: 3}
+    displayName: "A Criatura Definitiva da Destrui\xE7\xE3o"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 56920308
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 monstro \"Olhos Azuis\" que voc\xEA controla; neste turno,
+      esse monstro com a face para cima n\xE3o \xE9 afetado por efeitos de card,
+      exceto seus pr\xF3prios, ele n\xE3o pode ser destru\xEDdo em batalha e, al\xE9m
+      disso, qualquer monstro do oponente que ele batalhar \xE9 destru\xEDdo no final
+      da Etapa de Dano. Enquanto este card estiver no seu Cemit\xE9rio, se voc\xEA
+      Invocar um \"Drag\xE3o Branco de Olhos Azuis\" por Invoca\xE7\xE3o-Normal ou
+      Especial: voc\xEA pode Baixar este card, mas bana-o quando ele deixar o campo.
+      Voc\xEA s\xF3 pode usar este efeito de \"A Criatura Definitiva da Destrui\xE7\xE3o\"
+      uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4feff71d4be501b469cc281958da6dcc
+    artwork: {fileID: -4246521357728842962, guid: 4feff71d4be501b469cc281958da6dcc, type: 3}
+    displayName: "Ru\xEDna Generalizada"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 77754944
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando um monstro do oponente declarar um ataque: destrua o monstro
+      em Posi\xE7\xE3o de Ataque que seu oponente controla com o maior ATK (em caso
+      de empate, voc\xEA escolhe)."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7ed750d76c0b27744a20703c10e65f0d
+    artwork: {fileID: -4720752561281944597, guid: 7ed750d76c0b27744a20703c10e65f0d, type: 3}
+    displayName: "Anel da Destrui\xE7\xE3o"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 83555666
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Durante o turno do seu oponente: escolha 1 monstro com a face para
+      cima que seu oponente controla cujo ATK seja menor ou igual que os PV dele;
+      destrua esse monstro com a face para cima e, se isso acontecer, sofra dano
+      igual ao ATK original dele e, depois, cause dano ao seu oponente igual ao dano
+      que voc\xEA sofreu. Voc\xEA s\xF3 pode ativar 1 \"Anel da Destrui\xE7\xE3o\"
+      por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e307dc0fb8bc0534eb723a2828590b7a
+    artwork: {fileID: -5147409823939985363, guid: e307dc0fb8bc0534eb723a2828590b7a, type: 3}
+    displayName: Dragon's Mind
+    category: 3
+    monsterFrame: 0
+    officialCardId: 85442146
+    typeName: Armadilha Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'When a Spell/Trap Card, or monster effect, is activated while you
+      control a monster with 2500 original ATK or DEF: Negate the activation, and
+      if you do, destroy that card. If this card is in your GY: You can pay 2500
+      LP; Set this card, but banish it when it leaves the field. You can only use
+      each effect of "Dragon''s Mind" once per turn.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 59cb50ac0d446e441ae9ed136c1948a0
+    artwork: {fileID: -6392531666137102853, guid: 59cb50ac0d446e441ae9ed136c1948a0, type: 3}
+    displayName: "Negativa\xE7\xE3o de Ataque"
+    category: 3
+    monsterFrame: 0
+    officialCardId: 14315573
+    typeName: Armadilha de Resposta
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Quando um monstro do oponente declarar um ataque: escolha o monstro
+      atacante; negue o ataque e, depois, encerre a Fase de Batalha.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1e94680131a570e42bdba934b393b372
+    artwork: {fileID: -2193161729686564409, guid: 1e94680131a570e42bdba934b393b372, type: 3}
+    displayName: "Mausol\xE9u de Branco"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 24382602
+    typeName: Magia de Campo
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Durante sua Fase Principal, voc\xEA pode Invocar por Invoca\xE7\xE3o-Normal
+      1 Regulador de LUZ de N\xEDvel 1 em adi\xE7\xE3o \xE0 sua Invoca\xE7\xE3o-Normal/Baixar
+      (padr\xE3o). (Voc\xEA s\xF3 pode se aproveitar deste efeito uma vez por turno.)
+      Uma vez por turno: voc\xEA pode escolher 1 monstro com a face para cima que
+      voc\xEA controla; envie 1 Monstro Normal da sua m\xE3o ou do Deck para o Cemit\xE9rio
+      e, se isso acontecer, at\xE9 o final deste turno, o monstro alvo ganha ATK/DEF
+      igual ao N\xEDvel do monstro enviado para o Cemit\xE9rio x 100 (mesmo que este
+      card deixe o campo). Voc\xEA pode banir este card do seu Cemit\xE9rio; adicione
+      1 \"Raio Explosivo de Destrui\xE7\xE3o\" do seu Deck \xE0 sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7fe367767b8cd0e49a826fcf25d1f6bf
+    artwork: {fileID: -113296647739464754, guid: 7fe367767b8cd0e49a826fcf25d1f6bf, type: 3}
+    displayName: Vila Secreta dos Magos
+    category: 2
+    monsterFrame: 0
+    officialCardId: 68462976
+    typeName: Magia de Campo
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se somente voc\xEA controlar um monstro Mago, seu oponente n\xE3o
+      pode ativar Cards de Magia. Se voc\xEA n\xE3o controlar nenhum monstro Mago,
+      voc\xEA n\xE3o pode ativar Cards de Magia."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4d4f2866544f0e74480734a8cea1faff
+    artwork: {fileID: 3645629466036890139, guid: 4d4f2866544f0e74480734a8cea1faff, type: 3}
+    displayName: "Salva\xE7\xE3o do Mago"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 95477924
+    typeName: Magia de Campo
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for ativado: voc\xEA pode Baixar 1 \"Alma Eterna\"
+      diretamente do seu Deck. Se voc\xEA Invocar por Invoca\xE7\xE3o-Normal ou Especial
+      \"Mago Negro\" ou \"Pequena Maga Negra\" (exceto durante a Etapa de Dano):
+      voc\xEA pode escolher 1 desses monstros; Invoque por Invoca\xE7\xE3o-Especial
+      1 \"Mago Negro\" ou \"Pequena Maga Negra\" do seu Cemit\xE9rio, com um nome
+      diferente que o desse monstro. Voc\xEA s\xF3 pode usar este efeito de \"Salva\xE7\xE3o
+      do Mago\" uma vez por turno. Voc\xEA s\xF3 pode ativar 1 \"Salva\xE7\xE3o do
+      Mago\" por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a687d59a3e9cacc4588c6a899bcebc42
+    artwork: {fileID: -7813316840423925885, guid: a687d59a3e9cacc4588c6a899bcebc42, type: 3}
+    displayName: "C\xEDrculo M\xE1gico Negro"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 47222536
+    typeName: "Magia Cont\xEDnua"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for ativado: olhe os 3 cards do topo do seu Deck
+      e, depois, voc\xEA pode revelar 1 deles que seja \"Mago Negro\" ou uma Magia/Armadilha
+      que mencione \"Mago Negro\" e adicion\xE1-lo \xE0 sua m\xE3o e, al\xE9m disso,
+      coloque os cards restantes no topo do seu Deck em qualquer ordem. Se \"Mago
+      Negro\" for Invocado por Invoca\xE7\xE3o-Normal ou Especial no seu campo (exceto
+      durante a Etapa de Dano): voc\xEA pode escolher 1 card que seu oponente controla;
+      bana-o. Voc\xEA s\xF3 pode usar cada efeito de \"C\xEDrculo M\xE1gico Negro\"
+      uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1d02e86fd58f4144a9a31f485ec48cff
+    artwork: {fileID: -5269784594376608701, guid: 1d02e86fd58f4144a9a31f485ec48cff, type: 3}
+    displayName: Roubo Precipitado
+    category: 2
+    monsterFrame: 0
+    officialCardId: 45986603
+    typeName: Magia de Equipamento
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Controle um monstro do seu advers\xE1rio que esteja equipado com
+      este card. Aumente os Life Points do seu advers\xE1rio em 1000 pontos durante
+      cada uma das Standby Phases do seu advers\xE1rio."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 71ea69ac49d11a648b444f61cbe91a57
+    artwork: {fileID: 3498477021018235908, guid: 71ea69ac49d11a648b444f61cbe91a57, type: 3}
+    displayName: Enterro Precoce
+    category: 2
+    monsterFrame: 0
+    officialCardId: 70828912
+    typeName: Magia de Equipamento
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Ative este card ao pagar 800 PV e, depois, escolha 1 monstro no
+      seu Cemit\xE9rio; Invoque o alvo por Invoca\xE7\xE3o-Especial em Posi\xE7\xE3o
+      de Ataque e equipe-o com este card. Quando este card for destru\xEDdo, destrua
+      o monstro equipado."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: db65f236c821a5743a807d0d6cfc153a
+    artwork: {fileID: -4291747260413808112, guid: db65f236c821a5743a807d0d6cfc153a, type: 3}
+    displayName: Ataque da Magia Negra
+    category: 2
+    monsterFrame: 0
+    officialCardId: 02314238
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se voc\xEA controlar \"Mago Negro\": destrua todas as Magias e Armadilhas
+      que seu oponente controla."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7a241d37f7daf734cb66b91fea59c689
+    artwork: {fileID: -2552214214859475897, guid: 7a241d37f7daf734cb66b91fea59c689, type: 3}
+    displayName: Roar of the Blue-Eyed Dragons
+    category: 2
+    monsterFrame: 0
+    officialCardId: 17725109
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Special Summon in Defense Position, 1 "Blue-Eyes" monster from your
+      Deck, GY, or banishment (but if you control no "Blue-Eyes White Dragon", you
+      can only Special Summon "Blue-Eyes White Dragon" with this effect), also you
+      cannot Special Summon from the Extra Deck for the rest of this turn, except
+      Dragon monsters. You can banish this card from your GY; Fusion Summon 1 Fusion
+      Monster from your Extra Deck, using monsters from your hand or field, including
+      a "Blue-Eyes" monster. You can only use 1 "Roar of the Blue-Eyed Dragons" effect
+      per turn, and only once that turn.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: fae7771b9a9e1704394f0b52d4646a4c
+    artwork: {fileID: -4206169928144906495, guid: fae7771b9a9e1704394f0b52d4646a4c, type: 3}
+    displayName: Tempestade Pesada
+    category: 2
+    monsterFrame: 0
+    officialCardId: 19613556
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Destrua todos os Cards de Magia e Armadilha no campo.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c3223550f17584243b0284b5423ddc60
+    artwork: {fileID: 145303344015219601, guid: c3223550f17584243b0284b5423ddc60, type: 3}
+    displayName: Trocar
+    category: 2
+    monsterFrame: 0
+    officialCardId: 38120068
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Descarte 1 monstro de N\xEDvel 8; compre 2 cards."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 9fe78fc3cd81f5b4f9e57e1f1046f798
+    artwork: {fileID: -678659041944000730, guid: 9fe78fc3cd81f5b4f9e57e1f1046f798, type: 3}
+    displayName: Metamorfose
+    category: 2
+    monsterFrame: 0
+    officialCardId: 46411259
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Ofere\xE7a 1 monstro no seu Campo como Tributo para Invocar, por
+      Invoca\xE7\xE3o-Especial, 1 Monstro-Fus\xE3o com o mesmo N\xEDvel do seu Deck
+      de Fus\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b1c61fb36ac5c7242922644f6fa5b7b9
+    artwork: {fileID: -1699699910133592926, guid: b1c61fb36ac5c7242922644f6fa5b7b9, type: 3}
+    displayName: "Explos\xE3o de Fogo Infernal"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 52684508
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 \"Drag\xE3o Negro de Olhos Vermelhos\" na sua Zona de
+      Monstros; cause dano ao seu oponente igual ao ATK original desse \"Drag\xE3o
+      Negro de Olhos Vermelhos\". \"Drag\xE3o Negro de Olhos Vermelhos\" n\xE3o pode
+      atacar no turno em que voc\xEA ativar este card."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: edacd1944517b4c4bba4d8c33fcbfe82
+    artwork: {fileID: 11571125856143947, guid: edacd1944517b4c4bba4d8c33fcbfe82, type: 3}
+    displayName: "Governante Sombrio, N\xE3o Mais!"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 54693926
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "At\xE9 o final deste turno, negue os efeitos de todos os monstros
+      com a face para cima que seu oponente controla atualmente e, al\xE9m disso,
+      pelo resto deste turno depois que este card resolver, seu oponente n\xE3o sofre
+      dano. Nenhum duelista pode ativar efeitos de monstro em resposta \xE0 ativa\xE7\xE3o
+      deste card."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3c6361ca46de9074ab02fc441a3f55ef
+    artwork: {fileID: 9102342177650285378, guid: 3c6361ca46de9074ab02fc441a3f55ef, type: 3}
+    displayName: Mil Facas
+    category: 2
+    monsterFrame: 0
+    officialCardId: 63391643
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se voc\xEA controlar \"Mago Negro\": escolha 1 monstro que seu oponente
+      controla; destrua o alvo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c4ecb62bea9707a48991d29d07db0262
+    artwork: {fileID: 9198663250462102336, guid: c4ecb62bea9707a48991d29d07db0262, type: 3}
+    displayName: O Nobre de Crossout
+    category: 2
+    monsterFrame: 0
+    officialCardId: 71044499
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Escolha 1 monstro com a face para baixo no campo; destrua o alvo
+      e, se isso acontecer, bana-o e, depois, se ele era um monstro de Virar, cada
+      duelista revela o seu Deck Principal e, depois, bane dele todos os cards com
+      aquele nome de monstro.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 09c980221ec4ec5428ab64d77c8c6083
+    artwork: {fileID: -8490297417651939606, guid: 09c980221ec4ec5428ab64d77c8c6083, type: 3}
+    displayName: Caridade Graciosa
+    category: 2
+    monsterFrame: 0
+    officialCardId: 79571449
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Compre 3 cards e, depois, descarte 2 cards.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c1d0b753ade58984fa99334ac730c1a3
+    artwork: {fileID: 2531767776178599468, guid: c1d0b753ade58984fa99334ac730c1a3, type: 3}
+    displayName: Wishes for Eyes of Blue
+    category: 2
+    monsterFrame: 0
+    officialCardId: 80326401
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: Discard 1 card; add 1 Level 1 LIGHT Tuner, and 1 Spell/Trap that
+      mentions "Blue-Eyes White Dragon", from your Deck to your hand, except "Wishes
+      for Eyes of Blue". You can banish this card from your GY, then target 1 "Blue-Eyes
+      White Dragon" you control; equip 1 "Blue-Eyes" monster from your Extra Deck
+      to it as an Equip Spell that gives it 400 ATK. You can only use each effect
+      of "Wishes for Eyes of Blue" once per turn.
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1123476b2e05c764aa44fd317397f294
+    artwork: {fileID: -2917383691647816499, guid: 1123476b2e05c764aa44fd317397f294, type: 3}
+    displayName: "M\xE1quina de Bingo, Vai!!!"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 93437091
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Revele 3 cards do seu Deck, sendo que cada um deve cumprir pelo
+      menos 1 dos crit\xE9rios listados abaixo, seu oponente elege 1 aleatoriamente
+      para voc\xEA adicionar \xE0 sua m\xE3o e voc\xEA embaralha o resto no seu Deck.
+      Voc\xEA s\xF3 pode ativar 1 \"M\xE1quina de Bingo, Vai!!!\" por turno.\n\u25CFMonstro
+      \"Olhos Azuis\"\n\u25CFMagia/Armadilha que liste especificamente o card \"Drag\xE3o
+      Branco de Olhos Azuis\" ou \"Drag\xE3o Definitivo de Olhos Azuis\", exceto
+      \"M\xE1quina de Bingo, Vai!!!\""
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b08b6b4feb426f9498c80c8f3767c10d
+    artwork: {fileID: 1326272461811047065, guid: b08b6b4feb426f9498c80c8f3767c10d, type: 3}
+    displayName: "Prepara\xE7\xE3o de Ritos"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 96729612
+    typeName: Magia Normal
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Adicione 1 Monstro de Ritual de N\xEDvel 7 ou menos do seu Deck
+      \xE0 sua m\xE3o e, depois, voc\xEA pode adicionar 1 Magia de Ritual do seu
+      Cemit\xE9rio \xE0 sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a7c6688279fc277418ccb287cabf3f75
+    artwork: {fileID: -7034761382191516727, guid: a7c6688279fc277418ccb287cabf3f75, type: 3}
+    displayName: Servo da Alma
+    category: 2
+    monsterFrame: 0
+    officialCardId: 23020408
+    typeName: "Magia R\xE1pida"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Coloque 1 card da sua m\xE3o, do Deck ou do Cemit\xE9rio no topo
+      do Deck, que seja \"Mago Negro\" ou que mencione \"Mago Negro\" ou \"Pequena
+      Maga Negra\", exceto \"Servo da Alma\". Durante sua Fase Principal: voc\xEA
+      pode banir este card do seu Cemit\xE9rio; compre cards igual ao n\xFAmero de
+      monstros \"Pal\xE1dio\", \"Mago Negro\" e/ou \"Pequena Maga Negra\" com nomes
+      diferentes no campo e nos Cemit\xE9rios. Voc\xEA s\xF3 pode usar este efeito
+      de \"Servo da Alma\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a4a6dbf61e787b945abf568321b965e4
+    artwork: {fileID: -6075439236474380983, guid: a4a6dbf61e787b945abf568321b965e4, type: 3}
+    displayName: Segredos da Magia Negra
+    category: 2
+    monsterFrame: 0
+    officialCardId: 59514116
+    typeName: "Magia R\xE1pida"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Ative 1 dos seguintes efeitos;\n\u25CFInvoque por Invoca\xE7\xE3o-Fus\xE3o
+      1 Monstro de Fus\xE3o do seu Deck Adicional, usando monstros da sua m\xE3o
+      ou do campo, incluindo \"Mago Negro\" ou \"Pequena Maga Negra\".\n\u25CFInvoque
+      por Invoca\xE7\xE3o-Ritual 1 Monstro de Ritual
+      da sua m\xE3o, ao oferecer como Tributo monstros da sua m\xE3o ou do campo,
+      incluindo \"Mago Negro\" ou \"Pequena Maga Negra\", cuja soma dos N\xEDveis
+      seja igual ou exceda o N\xEDvel do Monstro de Ritual."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4d1d02c58cb8805489bd5fee99698bb2
+    artwork: {fileID: 5986597781225535295, guid: 4d1d02c58cb8805489bd5fee99698bb2, type: 3}
+    displayName: "Fus\xE3o Definitiva"
+    category: 2
+    monsterFrame: 0
+    officialCardId: 71143015
+    typeName: "Magia R\xE1pida"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Durante a Fase Principal: Invoque por Invoca\xE7\xE3o-Fus\xE3o 1
+      Monstro de Fus\xE3o do seu Deck Adicional que mencione \"Drag\xE3o Branco de
+      Olhos Azuis\" ou \"Drag\xE3o Definitivo de Olhos Azuis\" como mat\xE9ria, ao
+      embaralhar no Deck as Mat\xE9rias de Fus\xE3o listadas nele da sua m\xE3o,
+      do campo e/ou do Cemit\xE9rio e, depois, voc\xEA pode destruir cards com a
+      face para cima que seu oponente controla, at\xE9 o n\xFAmero de \"Drag\xE3o
+      Branco de Olhos Azuis\" e \"Drag\xE3o Definitivo de Olhos Azuis\" usados do
+      campo como mat\xE9ria. Voc\xEA s\xF3 pode ativar 1 \"Fus\xE3o Definitiva\"
+      por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c398dac6eebae4449acab251645dd677
+    artwork: {fileID: -6495153983496473177, guid: c398dac6eebae4449acab251645dd677, type: 3}
+    displayName: Magia Ardente das Trevas
+    category: 2
+    monsterFrame: 0
+    officialCardId: 75190122
+    typeName: "Magia R\xE1pida"
+    raceName: 
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se voc\xEA controlar monstros cujos nomes originais sejam \"Mago
+      Negro\" e \"Pequena Maga Negra\": destrua todos os cards que seu oponente controla."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ff3d7c184704e554b90df9770d3146e1
+    artwork: {fileID: -6154028628781457878, guid: ff3d7c184704e554b90df9770d3146e1, type: 3}
+    displayName: "Timaeus, o Drag\xE3o Unido"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 03078380
+    typeName: Monstro de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 2800
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode enviar para o Cemit\xE9rio 1 monstro Mago ou 1 Magia/Armadilha
+      que mencione \"Mago Negro\", da sua m\xE3o ou do campo com a face para cima;
+      Invoque este card por Invoca\xE7\xE3o-Especial da sua m\xE3o. Durante sua Fase
+      Principal: voc\xEA pode Invocar por Invoca\xE7\xE3o-Fus\xE3o 1 Monstro de Fus\xE3o
+      do seu Deck Adicional, usando monstros da sua m\xE3o ou do campo como mat\xE9ria,
+      incluindo um monstro Mago. Voc\xEA s\xF3 pode usar cada efeito de \"Timaeus,
+      o Drag\xE3o Unido\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 468852d46e74e874fb31354420141c13
+    artwork: {fileID: -7607655243121872830, guid: 468852d46e74e874fb31354420141c13, type: 3}
+    displayName: Newdoria
+    category: 1
+    monsterFrame: 3
+    officialCardId: 04335645
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 4
+    attack: 1200
+    defense: 800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card for destru\xEDdo em batalha e enviado para o Cemit\xE9rio:
+      escolha 1 monstro no campo; destrua o alvo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1a4a92ebd0cbeb9428a1d49d2a77d2c3
+    artwork: {fileID: -3547897090202896646, guid: 1a4a92ebd0cbeb9428a1d49d2a77d2c3, type: 3}
+    displayName: "Bast\xE3o do Mago"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 07084129
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 3
+    attack: 1600
+    defense: 100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for Invocado por Invoca\xE7\xE3o-Normal: voc\xEA
+      pode adicionar 1 Magia/Armadilha do seu Deck \xE0 sua m\xE3o, que mencione
+      \"Mago Negro\". Durante o turno do seu oponente, se voc\xEA ativar um Card
+      de Magia/Armadilha ou seus efeitos enquanto este card estiver no seu Cemit\xE9rio
+      (exceto durante a Etapa de Dano): voc\xEA pode oferecer como Tributo 1 monstro
+      Mago; adicione este card \xE0 sua m\xE3o. Voc\xEA s\xF3 pode usar cada efeito
+      de \"Bast\xE3o do Mago\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b1ea45ab9ebc68841a72e02fb050a496
+    artwork: {fileID: 3627345759652020744, guid: b1ea45ab9ebc68841a72e02fb050a496, type: 3}
+    displayName: Pequena Maga Chocolate
+    category: 1
+    monsterFrame: 3
+    officialCardId: 07198399
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 5
+    level: 4
+    attack: 1600
+    defense: 1000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma vez por turno: voc\xEA pode descartar 1 monstro Mago; compre
+      1 card. Uma vez por turno, se este card for escolhido como alvo de um ataque:
+      voc\xEA pode escolher 1 monstro Mago no seu Cemit\xE9rio, exceto \"Pequena
+      Maga Chocolate\"; Invoque-o por Invoca\xE7\xE3o-Especial e, depois, mude o
+      alvo do ataque para ele e, se isso acontecer, o ATK do monstro atacante se
+      torna metade do seu ATK atual."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 11d2961cbc9280a4bae3e2df26049859
+    artwork: {fileID: 7466338730843027226, guid: 11d2961cbc9280a4bae3e2df26049859, type: 3}
+    displayName: "S\xE1bio com Azul nos Olhos"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 08240199
+    typeName: Monstro Regulador de Efeito
+    raceName: Mago
+    attribute: 4
+    level: 1
+    attack: 0
+    defense: 1500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for Invocado por Invoca\xE7\xE3o-Normal: voc\xEA
+      pode adicionar 1 Regulador de LUZ de N\xEDvel 1 do seu Deck \xE0 sua m\xE3o,
+      exceto \"S\xE1bio com Azul nos Olhos\". Voc\xEA pode descartar este card e,
+      depois, escolha 1 Monstro de Efeito que voc\xEA controla; envie-o para o Cemit\xE9rio
+      e, se isso acontecer, Invoque por Invoca\xE7\xE3o-Especial 1 monstro \"Olhos
+      Azuis\" do seu Deck. Voc\xEA s\xF3 pode usar este efeito de \"S\xE1bio com
+      Azul nos Olhos\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: f06f6ebe9e957ad4ea732ec49ad63a38
+    artwork: {fileID: -1653311164959428893, guid: f06f6ebe9e957ad4ea732ec49ad63a38, type: 3}
+    displayName: Florescer de Cinzas & Primavera Feliz
+    category: 1
+    monsterFrame: 3
+    officialCardId: 14558127
+    typeName: Monstro Regulador de Efeito
+    raceName: Zumbi
+    attribute: 3
+    level: 3
+    attack: 0
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando um card ou efeito for ativado que inclua qualquer um desses
+      efeitos (Efeito R\xE1pido): voc\xEA pode descartar este card; negue o efeito.\n\u25CFAdicionar
+      um card do Deck \xE0 m\xE3o.\n\u25CFInvocar por Invoca\xE7\xE3o-Especial do
+      Deck.\n\u25CFEnviar um card do Deck para o Cemit\xE9rio.\nVoc\xEA s\xF3 pode
+      usar este efeito de \"Florescer de Cinzas & Primavera Feliz\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 807d00f836fe19f45bb216655e19bdab
+    artwork: {fileID: 4106720081581900328, guid: 807d00f836fe19f45bb216655e19bdab, type: 3}
+    displayName: "Drag\xE3o Miragem"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 15960641
+    typeName: Monstro de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 4
+    attack: 1600
+    defense: 600
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Seu oponente n\xE3o pode ativar Cards de Armadilha durante a Fase
+      de Batalha."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 15ee06ea6623a654487a45708ce105da
+    artwork: {fileID: -7465814552880982180, guid: 15ee06ea6623a654487a45708ce105da, type: 3}
+    displayName: Maiden of White
+    category: 1
+    monsterFrame: 3
+    officialCardId: 17947697
+    typeName: Monstro Regulador de Efeito
+    raceName: Mago
+    attribute: 4
+    level: 1
+    attack: 0
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'You can send this card from your hand or field to the GY; place
+      1 "True Light" from your hand, Deck, or GY, face-up in your Spell & Trap Zone.
+      If you Special Summon "Blue-Eyes White Dragon" while this card is in your GY
+      (except during the Damage Step): You can Special Summon this card. When a card
+      or effect is activated that targets this card on the field, or when this card
+      is targeted for an attack (Quick Effect): You can Special Summon 1 "Blue-Eyes
+      White Dragon" or 1 Level 1 LIGHT Tuner from your GY. You can only use each
+      effect of "Maiden of White" once per turn.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 042c6051d7317e744b9a0ce6e5694f3d
+    artwork: {fileID: -7647205842848891414, guid: 042c6051d7317e744b9a0ce6e5694f3d, type: 3}
+    displayName: Pequena Maga Baga
+    category: 1
+    monsterFrame: 3
+    officialCardId: 20747792
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 2
+    level: 1
+    attack: 400
+    defense: 400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card for Invocado por Invoca\xE7\xE3o-Normal: voc\xEA pode
+      adicionar 1 monstro \"Pequena Maga\" do seu Deck \xE0 sua m\xE3o. Uma vez por
+      turno, durante o turno de qualquer duelista, quando seu oponente ativar um
+      card ou efeito que escolha este card como alvo, ou escolha este card como alvo
+      de um ataque: voc\xEA pode mudar a posi\xE7\xE3o de batalha deste card e, se
+      isso acontecer, Invoque por Invoca\xE7\xE3o-Especial 1 monstro \"Pequena Maga\"
+      do seu Deck, exceto \"Pequena Maga Baga\"."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4d07323c3fd296a42b62d026639dabca
+    artwork: {fileID: 9207800251386567443, guid: 4d07323c3fd296a42b62d026639dabca, type: 3}
+    displayName: D.D. Corvo
+    category: 1
+    monsterFrame: 3
+    officialCardId: 24508238
+    typeName: Monstro de Efeito
+    raceName: Besta Alada
+    attribute: 1
+    level: 1
+    attack: 100
+    defense: 100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "(Efeito R\xE1pido): voc\xEA pode descartar este card para o Cemit\xE9rio
+      e, depois, escolha 1 card no Cemit\xE9rio do seu oponente; bana o alvo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b15e3ed599fefc04aa6798eee5de437f
+    artwork: {fileID: -3798266218337105985, guid: b15e3ed599fefc04aa6798eee5de437f, type: 3}
+    displayName: "Drag\xE3o Jato de Olhos Azuis"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 30576089
+    typeName: Monstro de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 3000
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Outros cards que voc\xEA controla n\xE3o podem ser destru\xEDdos
+      pelos efeitos de card do seu oponente. Voc\xEA s\xF3 pode usar cada um dos
+      seguintes efeitos de \"Drag\xE3o Jato de Olhos Azuis\" uma vez por turno e
+      s\xF3 pode ativ\xE1-los enquanto \"Drag\xE3o Branco de Olhos Azuis\" estiver
+      no seu campo ou no seu Cemit\xE9rio. Se um ou mais cards no campo forem destru\xEDdos
+      em batalha ou por um efeito de card: voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Especial
+      do Cemit\xE9rio (se ele estava l\xE1 quando o card foi destru\xEDdo) ou da
+      m\xE3o (mesmo se ele n\xE3o estava). No come\xE7o da Etapa de Dano, se este
+      card batalhar: voc\xEA pode escolher 1 card que seu oponente controla; devolva-o
+      para a m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 37c868b021cf96f4aad561f5b9c120a4
+    artwork: {fileID: 2262537044490884667, guid: 37c868b021cf96f4aad561f5b9c120a4, type: 3}
+    displayName: "Maga da Ilus\xE3o Aprendiz"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 30603688
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 6
+    attack: 2000
+    defense: 1700
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Especial (da
+      sua m\xE3o) ao descartar 1 card. Se este card for Invocado por Invoca\xE7\xE3o-Normal
+      ou Especial: voc\xEA pode adicionar 1 \"Mago Negro\" do seu Deck \xE0 sua m\xE3o.
+      Durante o c\xE1lculo de dano, se outro monstro Mago de TREVAS seu batalhar
+      um monstro do oponente (Efeito R\xE1pido): voc\xEA pode enviar este card da
+      sua m\xE3o ou do campo com a face para cima para o Cemit\xE9rio; esse monstro
+      que voc\xEA controla ganha 2000 de ATK/DEF apenas durante esse c\xE1lculo de
+      dano."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: dab74af6a539cd244a96cd6a0e2b6fc8
+    artwork: {fileID: -7383440270299933632, guid: dab74af6a539cd244a96cd6a0e2b6fc8, type: 3}
+    displayName: "Pequena Maga Lim\xE3o"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 34318086
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 4
+    level: 2
+    attack: 800
+    defense: 600
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma vez por turno: voc\xEA pode oferecer como Tributo 1 monstro
+      \"Pequena Maga\", exceto \"Pequena Maga Lim\xE3o\"; adicione 1 monstro do Tipo
+      Mago do seu Deck \xE0 sua m\xE3o. Uma vez por turno, se este card for alvo
+      de um ataque: voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial 1 monstro do
+      Tipo Mago da sua m\xE3o, mas seus efeitos (se houverem) s\xE3o negados e, depois,
+      mude o alvo do ataque para ele e, se isso acontecer, o ATK do monstro atacante
+      se torna metade do seu ATK atual."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 91b8186037580be4c90e37bb36729deb
+    artwork: {fileID: 3022103985732423346, guid: 91b8186037580be4c90e37bb36729deb, type: 3}
+    displayName: "Filhote do Drag\xE3o Negro"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 36262024
+    typeName: Monstro de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 1
+    attack: 800
+    defense: 500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode enviar este card com a face para cima que voc\xEA controla
+      para o Cemit\xE9rio; Invoque por Invoca\xE7\xE3o-Especial 1 \"Drag\xE3o Negro
+      de Olhos Vermelhos\" da sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 0ca94be6355cd204089c9a4ad3328865
+    artwork: {fileID: -8729704030783006665, guid: 0ca94be6355cd204089c9a4ad3328865, type: 3}
+    displayName: Pequena Maga Negra
+    category: 1
+    monsterFrame: 3
+    officialCardId: 38033121
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 6
+    attack: 2000
+    defense: 1700
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Ganha 300 de ATK para cada \"Mago Negro\" ou \"Mago do Caos das
+      Trevas\" nos Cemit\xE9rios."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ec3c25210b4c2fb488f88b981c816292
+    artwork: {fileID: 4559619012117202255, guid: ec3c25210b4c2fb488f88b981c816292, type: 3}
+    displayName: "Drag\xE3o Branco Alternativo de Olhos Azuis"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 38517737
+    typeName: Monstro de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 3000
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "N\xE3o pode ser Invocado por Invoca\xE7\xE3o-Normal/Baixado. Primeiro
+      deve ser Invocado por Invoca\xE7\xE3o-Especial (da sua m\xE3o) ao revelar \"Drag\xE3o
+      Branco de Olhos Azuis\" na sua m\xE3o. Voc\xEA s\xF3 pode Invocar \"Drag\xE3o
+      Branco Alternativo de Olhos Azuis\" por Invoca\xE7\xE3o-Especial uma vez por
+      turno desta forma. O nome deste card se torna \"Drag\xE3o Branco de Olhos Azuis\"
+      enquanto estiver no campo ou no Cemit\xE9rio. Uma vez por turno: voc\xEA pode
+      escolher 1 monstro que seu oponente controla; destrua-o. Este card n\xE3o pode
+      atacar no turno em que este efeito for ativado."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a72a4961e5052fb4c9a778532123378a
+    artwork: {fileID: 8052349165833645169, guid: a72a4961e5052fb4c9a778532123378a, type: 3}
+    displayName: "Drag\xE3o Fuzileiro, a Besta de Dois Modos"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 51632798
+    typeName: Monstro de Efeito
+    raceName: "M\xE1quina"
+    attribute: 1
+    level: 7
+    attack: 2800
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Normal/Baixar
+      sem oferecer Tributo, mas seu ATK e DEF originais s\xE3o reduzidos \xE0 metade."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 154f397b99b773847b54abb54c2913c4
+    artwork: {fileID: -4259271639523556827, guid: 154f397b99b773847b54abb54c2913c4, type: 3}
+    displayName: Neo Kaiser Sea Horse
+    category: 1
+    monsterFrame: 3
+    officialCardId: 54332792
+    typeName: Monstro Regulador de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 4
+    attack: 1700
+    defense: 1650
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'If you control "Blue-Eyes White Dragon": You can Special Summon
+      this card from your hand. You can target 1 LIGHT Tuner you control; increase
+      or decrease its Level by 1. If this card is sent from the field to the GY:
+      You can send 1 "Blue-Eyes" monster or 1 monster that mentions "Blue-Eyes White
+      Dragon" from your Deck to the GY, except "Neo Kaiser Sea Horse". You can only
+      use each effect of "Neo Kaiser Sea Horse" once per turn.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 097d7fe7e4e9496499b1ca6478260c3e
+    artwork: {fileID: -7777083297714650445, guid: 097d7fe7e4e9496499b1ca6478260c3e, type: 3}
+    displayName: "Pequena Maga Ma\xE7\xE3"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 56132807
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 3
+    level: 3
+    attack: 1200
+    defense: 800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma vez por turno, se este card for escolhido como alvo de um ataque:
+      voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial 1 monstro do Tipo Mago de
+      N\xEDvel 5 ou menos da sua m\xE3o e, depois, mudar o alvo do ataque para ele
+      e, se isso acontecer, o ATK do monstro atacante se torna metade do seu ATK
+      atual. Se este card for destru\xEDdo em batalha ou por um efeito de card: voc\xEA
+      pode escolher at\xE9 3 outros monstros \"Pequena Maga\" com nomes diferentes
+      no seu Cemit\xE9rio; adicione-os \xE0 sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: b9ff459e1df30be4fab1ea369e94565c
+    artwork: {fileID: -523697779611857286, guid: b9ff459e1df30be4fab1ea369e94565c, type: 3}
+    displayName: Ogro Fantasma & Coelho da Neve
+    category: 1
+    monsterFrame: 3
+    officialCardId: 59438930
+    typeName: Monstro Regulador de Efeito
+    raceName: "Ps\xEDquico"
+    attribute: 4
+    level: 3
+    attack: 0
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando um monstro no campo ativar seu efeito, ou quando uma Magia/Armadilha
+      que j\xE1 esteja com a face para cima no campo ativar seu efeito (Efeito R\xE1pido):
+      voc\xEA pode enviar este card da sua m\xE3o ou do campo para o Cemit\xE9rio;
+      destrua esse card no campo. Voc\xEA s\xF3 pode usar este efeito de \"Ogro Fantasma
+      & Coelho da Neve\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3945fc6e019a22745b40a1791650966c
+    artwork: {fileID: 6932456792801517088, guid: 3945fc6e019a22745b40a1791650966c, type: 3}
+    displayName: "Mago das Cr\xF4nicas"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 60948488
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 7
+    attack: 2500
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se um ou mais monstros com 2500 de ATK ou DEF original forem Invocados
+      por Invoca\xE7\xE3o-Normal ou Especial no seu campo (exceto durante a Etapa
+      de Dano): voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Especial da sua
+      m\xE3o em Posi\xE7\xE3o de Defesa. Se este card for Invocado por Invoca\xE7\xE3o-Especial:
+      voc\xEA pode escolher 1 \"Mago Negro\" ou \"Drag\xE3o Branco de Olhos Azuis\"
+      na sua Zona de Monstros; ele ganha 2500 de ATK/DEF at\xE9 o final deste turno.
+      Voc\xEA s\xF3 pode usar cada efeito de \"Mago das Cr\xF4nicas\" uma vez por
+      turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3fb4f6c79f49b4a4082511484dad6a33
+    artwork: {fileID: -7153235804463050695, guid: 3fb4f6c79f49b4a4082511484dad6a33, type: 3}
+    displayName: "Ditador dos Drag\xF5es"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 66961194
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 4
+    attack: 1200
+    defense: 1100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Enquanto voc\xEA controlar um monstro \"Olhos Azuis\", voc\xEA seleciona
+      os alvos dos ataques do seu oponente. Voc\xEA s\xF3 pode usar cada um dos seguintes
+      efeitos de \"Ditador dos Drag\xF5es\" uma vez por turno. Voc\xEA pode enviar
+      1 \"Drag\xE3o Branco de Olhos Azuis\" da sua m\xE3o ou do Deck para o Cemit\xE9rio;
+      Invoque este card por Invoca\xE7\xE3o-Especial da sua m\xE3o. Voc\xEA pode
+      descartar 1 \"Drag\xE3o Branco de Olhos Azuis\" ou 1 card que o mencione e,
+      depois, escolha 1 monstro \"Olhos Azuis\" no seu Cemit\xE9rio; Invoque-o por
+      Invoca\xE7\xE3o-Especial."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4f11d83e546481541b854749e97b11a4
+    artwork: {fileID: 8878131583994668215, guid: 4f11d83e546481541b854749e97b11a4, type: 3}
+    displayName: Ciber-Stein
+    category: 1
+    monsterFrame: 3
+    officialCardId: 69015963
+    typeName: Monstro de Efeito
+    raceName: "M\xE1quina"
+    attribute: 1
+    level: 2
+    attack: 700
+    defense: 500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "(Este card n\xE3o \xE9 considerado como um card \"Ciber\".)\nVoc\xEA
+      pode pagar 5000 PV; Invoque por Invoca\xE7\xE3o-Especial 1 Monstro de Fus\xE3o
+      do seu Deck Adicional em Posi\xE7\xE3o de Ataque."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4bdce54cfa0c1fb438902175a8c4abf2
+    artwork: {fileID: -3032732910778386341, guid: 4bdce54cfa0c1fb438902175a8c4abf2, type: 3}
+    displayName: A Pedra Branca dos Antigos
+    category: 1
+    monsterFrame: 3
+    officialCardId: 71039903
+    typeName: Monstro Regulador de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 1
+    attack: 600
+    defense: 500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma vez por turno, durante a Fase Final, se este card estiver no
+      Cemit\xE9rio porque foi enviado para l\xE1 neste turno: voc\xEA pode Invocar
+      por Invoca\xE7\xE3o-Especial 1 monstro \"Olhos Azuis\" do seu Deck. Voc\xEA
+      pode banir este card do seu Cemit\xE9rio e, depois, escolha 1 monstro \"Olhos
+      Azuis\" no seu Cemit\xE9rio; adicione-o \xE0 sua m\xE3o. Voc\xEA s\xF3 pode
+      usar este efeito de \"A Pedra Branca dos Antigos\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: aa6ec48eb04065546914efdba33db4f4
+    artwork: {fileID: 1818591598165421328, guid: aa6ec48eb04065546914efdba33db4f4, type: 3}
+    displayName: "Soldado do Lustro Negro - Enviado do Princ\xEDpio"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 72989439
+    typeName: Monstro de Efeito
+    raceName: Guerreiro
+    attribute: 4
+    level: 8
+    attack: 3000
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "N\xE3o pode ser Invocado por Invoca\xE7\xE3o-Normal/Baixado. Primeiro
+      deve ser Invocado por Invoca\xE7\xE3o-Especial (da sua m\xE3o) ao banir 1 monstro
+      de LUZ e 1 de TREVAS do seu Cemit\xE9rio. Uma vez por turno, voc\xEA pode ativar
+      1 desses efeitos.\n\u25CFEscolha 1 monstro no campo; bana-o. Este card n\xE3o
+      pode atacar no turno em que este efeito for ativado.\n\u25CFSe este card que
+      estiver atacando destruir um monstro do oponente em batalha: ele pode realizar
+      um segundo ataque em seguida."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 5c21c6a18acfdab4299470d3b91ca11a
+    artwork: {fileID: 4194219216672927756, guid: 5c21c6a18acfdab4299470d3b91ca11a, type: 3}
+    displayName: "Tomate M\xEDstico"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 83011278
+    typeName: Monstro de Efeito
+    raceName: Planta
+    attribute: 1
+    level: 4
+    attack: 1400
+    defense: 1100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for destru\xEDdo em batalha e enviado para o Cemit\xE9rio:
+      voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial 1 monstro de TREVAS com 1500
+      ou menos de ATK do seu Deck, com a face para cima em Posi\xE7\xE3o de Ataque."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: f5864b46b200ba347bd911c27d20c95b
+    artwork: {fileID: -679148750803572780, guid: f5864b46b200ba347bd911c27d20c95b, type: 3}
+    displayName: Kycoo, o Destruidor de Fantasmas
+    category: 1
+    monsterFrame: 3
+    officialCardId: 88240808
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 4
+    attack: 1800
+    defense: 700
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card causar dano de batalha ao seu oponente: voc\xEA
+      pode escolher at\xE9 2 monstros no Cemit\xE9rio dele; bana os alvos. Seu oponente
+      n\xE3o pode banir cards do Cemit\xE9rio de um duelista."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e64daee03ebea6541b1f236dab551544
+    artwork: {fileID: -8533871148008266794, guid: e64daee03ebea6541b1f236dab551544, type: 3}
+    displayName: "Drag\xE3o das Trevas de Olhos Vermelhos"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 96561011
+    typeName: Monstro de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 9
+    attack: 2400
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "N\xE3o pode ser Invocado por Invoca\xE7\xE3o-Normal/Baixado. Deve
+      ser Invocado por Invoca\xE7\xE3o-Especial (da sua m\xE3o) ao oferecer como
+      Tributo 1 \"Drag\xE3o Negro de Olhos Vermelhos\". Ganha 300 de ATK para cada
+      monstro Drag\xE3o no seu Cemit\xE9rio."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 2e97b752a99970a41817db518c07ac66
+    artwork: {fileID: -7185374040732244693, guid: 2e97b752a99970a41817db518c07ac66, type: 3}
+    displayName: Almas dos Magos
+    category: 1
+    monsterFrame: 3
+    officialCardId: 97631303
+    typeName: Monstro de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 1
+    attack: 0
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode enviar at\xE9 2 Magias/Armadilhas da sua m\xE3o e/ou
+      do campo para o Cemit\xE9rio; compre esse n\xFAmero de cards. Se este card
+      estiver na sua m\xE3o: voc\xEA pode enviar 1 monstro Mago de N\xEDvel 6 ou
+      mais do seu Deck para o Cemit\xE9rio e, depois, ative 1 desses efeitos;\n\u25CFInvoque
+      este card por Invoca\xE7\xE3o-Especial.\n\u25CFEnvie este card para o Cemit\xE9rio
+      e, depois, voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial 1 \"Mago Negro\"
+      ou 1 \"Pequena Maga Negra\" do seu Cemit\xE9rio.\nVoc\xEA s\xF3 pode usar cada
+      efeito de \"Almas dos Magos\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 29df93e5dda06734a8f36aadac155a4b
+    artwork: {fileID: 4254962336228027735, guid: 29df93e5dda06734a8f36aadac155a4b, type: 3}
+    displayName: "Drag\xE3o G\xEAmeo da Explos\xE3o de Olhos Azuis"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 02129638
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 10
+    attack: 3000
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Drag\xE3o Branco de Olhos Azuis\" + \"Drag\xE3o Branco de Olhos
+      Azuis\"\nDeve ser Invocado por Invoca\xE7\xE3o-Fus\xE3o ou Invoca\xE7\xE3o-Especial
+      ao enviar os monstros acima que voc\xEA controla para o Cemit\xE9rio. N\xE3o
+      pode ser destru\xEDdo em batalha. Este card pode realizar at\xE9 2 ataques
+      contra monstros durante cada Fase de Batalha. No final da Etapa de Dano, quando
+      este card atacar um monstro do oponente, mas o monstro do oponente n\xE3o for
+      destru\xEDdo na batalha: voc\xEA pode banir esse monstro do oponente."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 9cf13d1d58b1c9145a1a9d0a934ed908
+    artwork: {fileID: -6777770638770413327, guid: 9cf13d1d58b1c9145a1a9d0a934ed908, type: 3}
+    displayName: "Drag\xE3o Tirano de Olhos Azuis"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 11443677
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 3400
+    defense: 2900
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Drag\xE3o Branco de Olhos Azuis\" + 1 monstro Drag\xE3o\nPrimeiro
+      deve ser Invocado por Invoca\xE7\xE3o-Fus\xE3o ou Invoca\xE7\xE3o-Especial
+      do seu Deck Adicional ao oferecer como Tributo 1 \"Drag\xE3o Branco de Olhos
+      Azuis\" equipado com um Monstro de Fus\xE3o. N\xE3o \xE9 afetado por Cards
+      de Armadilha ou seus efeitos. Este card pode atacar todos os monstros que seu
+      oponente controla, uma vez cada. Uma vez por turno, no final da Etapa de Dano,
+      se este card batalhou: voc\xEA pode escolher 1 Armadilha no seu Cemit\xE9rio;
+      Baixe-a na sua Zona de Magias & Armadilhas."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: eda4ff56e5b187f46947384d6eff578d
+    artwork: {fileID: 787695464979288380, guid: eda4ff56e5b187f46947384d6eff578d, type: 3}
+    displayName: Rei Dragoon
+    category: 1
+    monsterFrame: 5
+    officialCardId: 13756293
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 7
+    attack: 2400
+    defense: 1100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Senhor dos Drag\xF5es\" + \"Ragnarok, Drag\xE3o Sagrado\"\nSeu
+      oponente n\xE3o pode escolher monstros Drag\xE3o como alvo de efeitos de card.
+      Uma vez por turno: voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial 1 monstro
+      Drag\xE3o da sua m\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ecb202dcdea557a46bf767f938019ca1
+    artwork: {fileID: -4018035748845968113, guid: ecb202dcdea557a46bf767f938019ca1, type: 3}
+    displayName: "Mago Negro, o Cavaleiro Drag\xE3o"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 41721210
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 8
+    attack: 3000
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Mago Negro\" + 1 monstro Drag\xE3o\nO nome deste card se torna
+      \"Mago Negro\" enquanto estiver no campo ou no Cemit\xE9rio. Seu oponente
+      n\xE3o pode escolher Magias/Armadilhas que voc\xEA controla como alvo de efeitos
+      de card e, al\xE9m disso, elas n\xE3o podem ser destru\xEDdas pelos efeitos
+      de card do seu oponente."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 9e091c4ce7e0bbe4baa49f9466233cd7
+    artwork: {fileID: 7274585543817797867, guid: 9e091c4ce7e0bbe4baa49f9466233cd7, type: 3}
+    displayName: "Pequena Maga Negra, a Cavaleira Drag\xE3o"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 43892408
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 7
+    attack: 2600
+    defense: 1700
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Pequena Maga Negra\" + 1 monstro Drag\xE3o\nDeve ser Invocado
+      por Invoca\xE7\xE3o-Fus\xE3o com as Mat\xE9rias de Fus\xE3o acima ou com \"O
+      Olho de Timaeus\". Uma vez por turno (Efeito R\xE1pido): voc\xEA pode enviar
+      1 card da sua m\xE3o para o Cemit\xE9rio e, depois, escolha 1 card com a face
+      para cima no campo; destrua o alvo."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: bff6236bada2a2e4796294c23a338389
+    artwork: {fileID: -6203361290599750223, guid: bff6236bada2a2e4796294c23a338389, type: 3}
+    displayName: Os Magos Negros
+    category: 1
+    monsterFrame: 5
+    officialCardId: 50237654
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Mago
+    attribute: 1
+    level: 8
+    attack: 2800
+    defense: 2300
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Mago Negro\" ou \"Pequena Maga Negra\" + 1 monstro Mago\nUma vez
+      por turno, se um Card de Magia/Armadilha ou seus efeitos forem ativados (exceto
+      durante a Etapa de Dano): voc\xEA pode comprar 1 card e, depois, se era uma
+      Magia/Armadilha, voc\xEA pode Baix\xE1-la e, se era uma Armadilha ou Magia
+      R\xE1pida, voc\xEA pode ativ\xE1-la neste turno. Se este card for destru\xEDdo:
+      voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial tanto 1 \"Mago Negro\" quanto
+      1 \"Pequena Maga Negra\" da sua m\xE3o, do Deck e/ou do Cemit\xE9rio."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: ea688b50d743ffb40bfbbcc8f2a12f1f
+    artwork: {fileID: 5218828178395102508, guid: ea688b50d743ffb40bfbbcc8f2a12f1f, type: 3}
+    displayName: "Neo Drag\xE3o Definitivo de Olhos Azuis"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 56532353
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 12
+    attack: 4500
+    defense: 3800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Drag\xE3o Branco de Olhos Azuis\" + \"Drag\xE3o Branco de Olhos
+      Azuis\" + \"Drag\xE3o Branco de Olhos Azuis\"\nNo final da Etapa de Dano, se
+      este for o \xFAnico card com a face para cima que voc\xEA controla e este card
+      Invocado por Invoca\xE7\xE3o-Fus\xE3o atacou: voc\xEA pode enviar 1 Monstro
+      de Fus\xE3o \"Olhos Azuis\" do seu Deck Adicional para o Cemit\xE9rio; este
+      card pode atacar novamente em seguida. Voc\xEA pode usar este efeito de \"Neo
+      Drag\xE3o Definitivo de Olhos Azuis\" at\xE9 duas vezes por turno. Durante
+      o turno de qualquer duelista, quando um card ou efeito for ativado que escolha
+      como alvo um ou mais monstros \"Olhos Azuis\" que voc\xEA controla: voc\xEA
+      pode banir este card do seu Cemit\xE9rio; negue a ativa\xE7\xE3o e, se isso
+      acontecer, destrua esse card."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c567cf1ea98e2884c80478a9820e0152
+    artwork: {fileID: -1450304814239460202, guid: c567cf1ea98e2884c80478a9820e0152, type: 3}
+    displayName: "Restri\xE7\xE3o dos Mil Olhos"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 63519819
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Mago
+    attribute: 1
+    level: 1
+    attack: 0
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Renunciado\" + \"\xCDdolo dos Mil Olhos\"\nOutros monstros no
+      campo n\xE3o podem mudar suas posi\xE7\xF5es de batalha ou atacar. Uma vez
+      por turno: voc\xEA pode escolher 1 monstro que seu oponente controla; equipe
+      o alvo a este card (m\xE1x. 1). O ATK/DEF deste card se tornam iguais ao do
+      monstro equipado. Se este card seria destru\xEDdo em batalha, em vez disso,
+      destrua o monstro equipado."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a687f983f29e8c740b11aee74949f6c4
+    artwork: {fileID: 6011853975212453352, guid: a687f983f29e8c740b11aee74949f6c4, type: 3}
+    displayName: Paladino Negro
+    category: 1
+    monsterFrame: 5
+    officialCardId: 98502113
+    typeName: "Monstro de Fus\xE3o"
+    raceName: Mago
+    attribute: 1
+    level: 8
+    attack: 2900
+    defense: 2400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Mago Negro\" + \"Blader Not\xE1vel\"\nDeve ser Invocado por Invoca\xE7\xE3o-Fus\xE3o.
+      Quando um Card de Magia for ativado (Efeito R\xE1pido): voc\xEA pode descartar
+      1 card; negue a ativa\xE7\xE3o e, se isso acontecer, destrua-o. Este card deve
+      estar com a face para cima no campo para ativar e resolver este efeito. Ganha
+      500 de ATK para cada monstro Drag\xE3o no campo e nos Cemit\xE9rios."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4c903ec6d377194488c1b3575e83f1de
+    artwork: {fileID: 6233544788864510858, guid: 4c903ec6d377194488c1b3575e83f1de, type: 3}
+    displayName: "Cavaleira do Pesadelo F\xEAnix"
+    category: 1
+    monsterFrame: 8
+    officialCardId: 02857636
+    typeName: Monstro Link
+    raceName: "Dem\xF4nio"
+    attribute: 3
+    level: 0
+    attack: 1900
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2 monstros com nomes diferentes\nSe este card for Invocado por Invoca\xE7\xE3o-Link:
+      voc\xEA pode descartar 1 card e, depois, escolha 1 Magia/Armadilha que seu
+      oponente controla; destrua-a e, depois, se este card estava co-linkado quando
+      este efeito foi ativado, voc\xEA pode comprar 1 card. Voc\xEA s\xF3 pode usar
+      este efeito de \"Cavaleira do Pesadelo F\xEAnix\" uma vez por turno. Monstros
+      co-linkados que voc\xEA controla n\xE3o podem ser destru\xEDdos em batalha."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 6f87bb8ef031eef4090b3f3a5e332638
+    artwork: {fileID: -2189513137795715133, guid: 6f87bb8ef031eef4090b3f3a5e332638, type: 3}
+    displayName: Artemis, a Donzela da Lua Magistus
+    category: 1
+    monsterFrame: 8
+    officialCardId: 34755994
+    typeName: Monstro Link
+    raceName: Mago
+    attribute: 4
+    level: 0
+    attack: 800
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 monstro Mago de N\xEDvel 4 ou menos\nSe um ou mais outros monstros
+      \"Magistus\" forem Invocados por Invoca\xE7\xE3o-Normal ou Especial enquanto
+      voc\xEA controlar este monstro (exceto durante a Etapa de Dano): voc\xEA pode
+      escolher 1 desses monstros; equipe este card que voc\xEA controla a ele. Enquanto
+      este card estiver equipado a um monstro: voc\xEA pode adicionar 1 monstro \"Magistus\"
+      do seu Deck \xE0 sua m\xE3o. Voc\xEA s\xF3 pode usar cada efeito de \"Artemis,
+      a Donzela da Lua Magistus\" uma vez por turno. Voc\xEA s\xF3 pode Invocar \"Artemis,
+      a Donzela da Lua Magistus\" por Invoca\xE7\xE3o-Especial uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 7d0055bbba72e334a9baac9fc1a5481b
+    artwork: {fileID: -7730252935440066081, guid: 7d0055bbba72e334a9baac9fc1a5481b, type: 3}
+    displayName: "Cavaleiro do Pesadelo Unic\xF3rnio"
+    category: 1
+    monsterFrame: 8
+    officialCardId: 38342335
+    typeName: Monstro Link
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 0
+    attack: 2200
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2+ monstros com nomes diferentes\nSe este card for Invocado por
+      Invoca\xE7\xE3o-Link: voc\xEA pode descartar 1 card e, depois, escolha 1 card
+      no campo; embaralhe-o no Deck e, depois, se este card estava co-linkado quando
+      este efeito foi ativado, voc\xEA pode comprar 1 card. Voc\xEA s\xF3 pode usar
+      este efeito de \"Cavaleiro do Pesadelo Unic\xF3rnio\" uma vez por turno. Enquanto
+      qualquer monstro \"Cavaleiro(a) do Pesadelo\" co-linkado estiver no campo,
+      em sua compra normal na sua Fase de Compra, em vez de comprar apenas 1 card,
+      compre 1 card para cada nome de card diferente entre esses monstros \"Cavaleiro(a)
+      do Pesadelo\" co-linkados."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a8ec9a533d3dd7a4b8717dba05ce315e
+    artwork: {fileID: 2765799621639417172, guid: a8ec9a533d3dd7a4b8717dba05ce315e, type: 3}
+    displayName: I:P Mascarena
+    category: 1
+    monsterFrame: 8
+    officialCardId: 65741786
+    typeName: Monstro Link
+    raceName: Cyberse
+    attribute: 1
+    level: 0
+    attack: 800
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2 Monstros que n\xE3o sejam Link\nDurante a Fase Principal do seu
+      oponente, voc\xEA pode (Efeito R\xE1pido): imediatamente depois que este efeito
+      resolver, Invocar por Invoca\xE7\xE3o-Link 1 Monstro Link usando mat\xE9rias
+      que voc\xEA controla, incluindo este card. Voc\xEA s\xF3 pode usar este efeito
+      de \"I:P Mascarena\" uma vez por turno. Um Monstro Link que usou este card
+      como mat\xE9ria n\xE3o pode ser destru\xEDdo pelos efeitos de card do seu oponente."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 3d9ea3e650c5a154d9417c2570563c64
+    artwork: {fileID: 6092992613633843279, guid: 3d9ea3e650c5a154d9417c2570563c64, type: 3}
+    displayName: "L\xE2mina Bin\xE1ria"
+    category: 1
+    monsterFrame: 8
+    officialCardId: 80088625
+    typeName: Monstro Link
+    raceName: Cyberse
+    attribute: 2
+    level: 0
+    attack: 1800
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2 Monstros Normais\nEste card ganha esses efeitos de acordo com
+      o n\xFAmero de monstros co-linkados a este card.\n\u25CF1+: Quando este card
+      declarar um ataque contra um monstro do oponente: voc\xEA pode ativar este
+      efeito; este card pode realizar um segundo ataque durante cada Fase de Batalha
+      neste turno e, al\xE9m disso, se este card batalhar um monstro do oponente
+      neste turno, esse monstro do oponente n\xE3o pode ser destru\xEDdo nessa batalha.\n\u25CF2:
+      Depois do c\xE1lculo de dano, se este card batalhou um monstro do oponente:
+      voc\xEA pode banir o monstro do oponente."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 36359f55d7338f2489aeaedd0737736f
+    artwork: {fileID: -7323075245183453307, guid: 36359f55d7338f2489aeaedd0737736f, type: 3}
+    displayName: Anima Renunciado
+    category: 1
+    monsterFrame: 8
+    officialCardId: 94259633
+    typeName: Monstro Link
+    raceName: Mago
+    attribute: 1
+    level: 0
+    attack: 0
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 monstro de N\xEDvel 1, exceto uma Ficha\nVoc\xEA pode escolher
+      1 monstro com a face para cima para o qual este card apontar; equipe esse monstro
+      com a face para cima a este card (m\xE1x. 1). Voc\xEA s\xF3 pode usar este
+      efeito de \"Anima Renunciado\" uma vez por turno. Este card ganha ATK igual
+      ao do monstro equipado."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: d090e11145b91bd4b82bc5cd61931d77
+    artwork: {fileID: 4175386350286089005, guid: d090e11145b91bd4b82bc5cd61931d77, type: 3}
+    displayName: "Drag\xE3o Negro de Olhos Vermelhos"
+    category: 1
+    monsterFrame: 2
+    officialCardId: 74677422
+    typeName: Monstro Normal
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 7
+    attack: 2400
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Um drag\xE3o feroz com um ataque letal."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: a00a1fab42037d346ac77547ef4e4d07
+    artwork: {fileID: 1742923209984757832, guid: a00a1fab42037d346ac77547ef4e4d07, type: 3}
+    displayName: "Ilus\xE3o do Caos"
+    category: 1
+    monsterFrame: 4
+    officialCardId: 12266229
+    typeName: Monstro de Ritual de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 7
+    attack: 2100
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Ritual com \"Forma
+      do Caos\". Voc\xEA pode revelar este card na sua m\xE3o; adicione 1 \"Mago
+      Negro\" ou 1 monstro que n\xE3o seja de Ritual que o mencione, do seu Deck
+      \xE0 sua m\xE3o e, depois, coloque 1 card da sua m\xE3o no topo do Deck. Quando
+      seu oponente ativar um efeito de monstro (Efeito R\xE1pido): voc\xEA pode devolver
+      este card para a m\xE3o e, se isso acontecer, Invoque por Invoca\xE7\xE3o-Especial
+      1 \"Mago Negro\" do seu Cemit\xE9rio e, se isso acontecer, negue esse efeito
+      ativado. Voc\xEA s\xF3 pode usar cada efeito de \"Ilus\xE3o do Caos\" uma vez
+      por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e9328f3b581a72a4db6027b1d05f9597
+    artwork: {fileID: 3731267571505217393, guid: e9328f3b581a72a4db6027b1d05f9597, type: 3}
+    displayName: Mago do Caos
+    category: 1
+    monsterFrame: 4
+    officialCardId: 47963370
+    typeName: Monstro de Ritual de Efeito
+    raceName: Mago
+    attribute: 1
+    level: 7
+    attack: 2500
+    defense: 2100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Ritual com \"Forma
+      do Caos\". O nome deste card se torna \"Mago Negro\" enquanto estiver no campo
+      ou no Cemit\xE9rio. Uma vez por turno, quando um Card de Magia/Armadilha ou
+      seus efeitos for ativado (Efeito R\xE1pido): voc\xEA pode escolher 1 card no
+      campo; destrua-o. Se este card Invocado por Invoca\xE7\xE3o-Ritual for destru\xEDdo
+      em batalha ou por um efeito de card: voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial
+      1 Monstro de Ritual \"Caos\" ou \"Soldado do Lustro Negro\" da sua m\xE3o,
+      exceto \"Mago do Caos\", ignorando suas condi\xE7\xF5es de Invoca\xE7\xE3o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1a24e181fe971ba489963bbfb7365c33
+    artwork: {fileID: 6775998196307971954, guid: 1a24e181fe971ba489963bbfb7365c33, type: 3}
+    displayName: Lightstorm Dragon
+    category: 1
+    monsterFrame: 6
+    officialCardId: 10515412
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 9
+    attack: 2700
+    defense: 3000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: '1 Tuner + 1+ non-Tuner monsters
+
+      
+
+      If this card is
+      Special Summoned: You can target Spells/Traps on the field up to the number
+      of Normal Monsters in your GY +1; destroy them. If this card is destroyed by
+      battle or card effect: You can target 1 Spell/Trap in your GY; Set it, but
+      it cannot be activated unless you control a Normal Monster. You can only use
+      each effect of "Lightstorm Dragon" once per turn.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 44662187427b70e4d839dbd6a3a75ebb
+    artwork: {fileID: 4794304133410545462, guid: 44662187427b70e4d839dbd6a3a75ebb, type: 3}
+    displayName: "Drag\xE3o do Luar da Rosa Negra"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 33698022
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 7
+    attack: 2400
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nSe este card for Invocado
+      por Invoca\xE7\xE3o-Especial, ou se um ou mais monstros de N\xEDvel 5 ou mais
+      forem Invocados por Invoca\xE7\xE3o-Especial no campo do seu oponente: escolha
+      1 monstro Invocado por Invoca\xE7\xE3o-Especial que seu oponente controla;
+      devolva o alvo para a m\xE3o. Voc\xEA s\xF3 pode usar este efeito de \"Drag\xE3o
+      do Luar da Rosa Negra\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 36a56bbb236dc28498c7d3b54eaf5e2b
+    artwork: {fileID: 8036605483898190649, guid: 36a56bbb236dc28498c7d3b54eaf5e2b, type: 3}
+    displayName: "Drag\xE3o Prateado de Olhos Cer\xFAleos"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 40908371
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 9
+    attack: 2500
+    defense: 3000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ Monstros Normais n\xE3o-Reguladores\nSe este card
+      for Invocado por Invoca\xE7\xE3o-Especial: at\xE9 o final do pr\xF3ximo turno,
+      nenhum duelista pode escolher monstros Drag\xE3o que voc\xEA controla atualmente
+      como alvo de efeito de cards e, al\xE9m disso, eles n\xE3o podem ser destru\xEDdos
+      por efeitos de card. Uma vez por turno, durante sua Fase de Apoio: voc\xEA
+      pode escolher 1 Monstro Normal no seu Cemit\xE9rio; Invoque-o por Invoca\xE7\xE3o-Especial."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: c5c07d1656cd6a8408b8d6e7829a2862
+    artwork: {fileID: 1232737796420506982, guid: c5c07d1656cd6a8408b8d6e7829a2862, type: 3}
+    displayName: Ancient Fairy Life Dragon
+    category: 1
+    monsterFrame: 6
+    officialCardId: 43321985
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 2500
+    defense: 3300
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: '1 Tuner + 1+ non-Tuner monsters
+
+      
+
+      If this card is
+      Synchro Summoned: You can draw 1 card, or if "World of Spirits" is on the field,
+      add 1 LIGHT monster (Beast, Plant, or Fairy) or 1 "Eternal Sunshine" from your
+      Deck to your hand instead. You can only use this effect of "Ancient Fairy Life
+      Dragon" once per turn. Your "Ancient Fairy Dragon" and monsters that mention
+      it can attack while in face-up Defense Position (apply their DEF for damage
+      calculation).'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 25a26d09a985f3342a33bfc883992717
+    artwork: {fileID: 6350961498295589239, guid: 25a26d09a985f3342a33bfc883992717, type: 3}
+    displayName: "Drag\xE3o Esp\xEDrito de Olhos Azuis"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 59822133
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 9
+    attack: 2500
+    defense: 3000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros \"Olhos Azuis\" n\xE3o-Reguladores\nNenhum
+      duelista pode Invocar 2 ou mais monstros por Invoca\xE7\xE3o-Especial ao mesmo
+      tempo. Uma vez por turno, quando um efeito de um card no Cemit\xE9rio for ativado
+      (Efeito R\xE1pido): voc\xEA pode negar a ativa\xE7\xE3o. (Efeito R\xE1pido):
+      voc\xEA pode oferecer este card Invocado por Invoca\xE7\xE3o-Sincro como Tributo;
+      Invoque por Invoca\xE7\xE3o-Especial 1 Monstro Sincro Drag\xE3o de LUZ do seu
+      Deck Adicional em Posi\xE7\xE3o de Defesa, exceto \"Drag\xE3o Esp\xEDrito de
+      Olhos Azuis\", mas destrua-o durante a Fase Final deste turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 672b3c38d4b669148bc08811b6230d61
+    artwork: {fileID: 2570351691004816686, guid: 672b3c38d4b669148bc08811b6230d61, type: 3}
+    displayName: Blue-Eyes Ultimate Spirit Dragon
+    category: 1
+    monsterFrame: 6
+    officialCardId: 89604813
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 12
+    attack: 3500
+    defense: 4000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: '2+ Tuners + 1 non-Tuner "Blue-Eyes" monster
+
+      
+
+      Your
+      opponent cannot banish cards from your GY. You can only use each of the following
+      effects of "Blue-Eyes Ultimate Spirit Dragon" once per turn. When a card or
+      effect is activated on the field (Quick Effect): You can negate the activation,
+      and if you do, this card gains 1000 ATK until the end of this turn. If this
+      card is destroyed by battle or card effect: You can Special Summon 1 LIGHT
+      Dragon monster from your GY, except "Blue-Eyes Ultimate Spirit Dragon".'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 1934dc9fd9536f64da9f572aa1f7f020
+    artwork: {fileID: 3034914875319111525, guid: 1934dc9fd9536f64da9f572aa1f7f020, type: 3}
+    displayName: Indigo-Eyes Silver Dragon
+    category: 1
+    monsterFrame: 7
+    officialCardId: 16699558
+    typeName: Monstro Xyz
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 4000
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: '2 Level 8 Dragon monsters
+
+      
+
+      Cannot attack directly
+      unless this card has a Normal Monster as material. You can only use each of
+      the following effects of "Indigo-Eyes Silver Dragon" once per turn. If this
+      card is Xyz Summoned: You can negate the effects of all face-up cards your
+      opponent currently controls. You can detach 1 material from this card, then
+      target 1 Normal Monster in your GY or banishment; Special Summon it, and if
+      you do, it gains 1000 ATK.'
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 73f1d015e7c7956428b4cceabf48d6d7
+    artwork: {fileID: -250409577334698299, guid: 73f1d015e7c7956428b4cceabf48d6d7, type: 3}
+    displayName: "Drag\xE3o de F\xF3ton de Armadura Completa de Olhos das Gal\xE1xias"
+    category: 1
+    monsterFrame: 7
+    officialCardId: 39030163
+    typeName: Monstro Xyz
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 4000
+    defense: 3500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "3 monstros de N\xEDvel 8\nVoc\xEA tamb\xE9m pode Invocar este card
+      por Invoca\xE7\xE3o-Xyz ao usar um Monstro Xyz \"Olhos das Gal\xE1xias\" que
+      voc\xEA controla como mat\xE9ria, exceto \"Drag\xE3o de F\xF3ton de Armadura
+      Completa de Olhos das Gal\xE1xias\". (Transfira as mat\xE9rias dele para este
+      card.) Uma vez por turno: voc\xEA pode escolher at\xE9 2 Cards de Equipamento
+      equipados a este card; associe-os a este card como mat\xE9rias. Uma vez por
+      turno: voc\xEA pode desassociar 1 mat\xE9ria deste card e, depois, escolher
+      1 card com a face para cima que seu oponente controla; destrua-o."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 9f56ee988ed8f734cbaa9e2be46889a1
+    artwork: {fileID: -6630667148218462044, guid: 9f56ee988ed8f734cbaa9e2be46889a1, type: 3}
+    displayName: "N\xFAmero 39: Utopia"
+    category: 1
+    monsterFrame: 7
+    officialCardId: 84013237
+    typeName: Monstro Xyz
+    raceName: Guerreiro
+    attribute: 4
+    level: 4
+    attack: 2500
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2 monstros de N\xEDvel 4\nQuando um monstro declarar um ataque:
+      voc\xEA pode desassociar 1 mat\xE9ria deste card; negue o ataque. Se este card
+      for escolhido como alvo de um ataque enquanto n\xE3o tiver mat\xE9ria: destrua
+      este card."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 4a1ea56486670094cb5c91d81487cfda
+    artwork: {fileID: 2970239688279481747, guid: 4a1ea56486670094cb5c91d81487cfda, type: 3}
+    displayName: Mago Gagagaga
+    category: 1
+    monsterFrame: 7
+    officialCardId: 86331741
+    typeName: Monstro Xyz
+    raceName: Mago
+    attribute: 1
+    level: 4
+    attack: 2000
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2 monstros de N\xEDvel 4\nVoc\xEA pode desassociar 1 mat\xE9ria
+      deste card e, depois, escolha 1 Monstro Xyz no seu Cemit\xE9rio, exceto \"Mago
+      Gagagaga\"; Invoque-o por Invoca\xE7\xE3o-Especial, mas negue seus efeitos.
+      Voc\xEA s\xF3 pode usar este efeito de \"Mago Gagagaga\" uma vez por turno.
+      Um Monstro Xyz \"Futuro Ut\xF3pico\" que tenha este card como mat\xE9ria ganha
+      este efeito.\n\u25CFDurante sua Fase Principal: voc\xEA pode desassociar 2
+      mat\xE9rias deste card e, depois, escolha 1 Monstro Xyz que voc\xEA controla;
+      at\xE9 o final deste turno, mude o ATK dele para 4000 e, al\xE9m disso, negue
+      seus efeitos."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: 37d3ab45ae5c4f547bed2c34204c4e2d
+    artwork: {fileID: -8173135492819949128, guid: 37d3ab45ae5c4f547bed2c34204c4e2d, type: 3}
+    displayName: "N\xFAmero 107: Drag\xE3o de T\xE1quion de Olhos das Gal\xE1xias"
+    category: 1
+    monsterFrame: 7
+    officialCardId: 88177324
+    typeName: Monstro Xyz
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 3000
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2 monstros de N\xEDvel 8\nUma vez por Fase de Batalha, no come\xE7o
+      da sua Fase de Batalha: voc\xEA pode desassociar 1 mat\xE9ria deste card; negue
+      os efeitos de todos os outros monstros com a face para cima atualmente no campo
+      e, al\xE9m disso, seu ATK/DEF se tornam seu ATK/DEF originais. Durante a Fase
+      de Batalha, se voc\xEA ativou este efeito neste turno, sempre que um efeito
+      de card do oponente resolver, este card ganha 1000 de ATK at\xE9 o final da
+      Fase de Batalha e, al\xE9m disso, ele pode realizar um segundo ataque durante
+      cada Fase de Batalha neste turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."
+  - stableId: e7ae9858ed69ffc42944343369a47794
+    artwork: {fileID: 9075984718762710676, guid: e7ae9858ed69ffc42944343369a47794, type: 3}
+    displayName: "Mago de \xC9bano da Ilus\xE3o"
+    category: 1
+    monsterFrame: 7
+    officialCardId: 96471335
+    typeName: Monstro Xyz
+    raceName: Mago
+    attribute: 1
+    level: 7
+    attack: 2500
+    defense: 2100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2 monstros de N\xEDvel 7\nVoc\xEA tamb\xE9m pode Invocar este card
+      por Invoca\xE7\xE3o-Xyz ao usar um Monstro Xyz Mago de Classe 6 que voc\xEA
+      controla como mat\xE9ria. (Transfira as mat\xE9rias dele para este card.) Uma
+      vez por turno: voc\xEA pode desassociar 1 mat\xE9ria deste card; Invoque por
+      Invoca\xE7\xE3o-Especial 1 Monstro Normal Mago da sua m\xE3o ou do Deck. Quando
+      um Monstro Normal Mago declarar um ataque: voc\xEA pode escolher 1 card que
+      seu oponente controla; bana-o. Voc\xEA s\xF3 pode usar este efeito de \"Mago
+      de \xC9bano da Ilus\xE3o\" uma vez por turno."
+    reviewNotes: "Dados oficiais cadastrados localmente pelo c\xF3digo da carta."

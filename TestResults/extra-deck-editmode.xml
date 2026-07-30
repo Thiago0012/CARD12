@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="5" result="Passed" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0,1926082">
+  <test-suite type="TestSuite" id="1000" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.192608" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1062" name="ArcaneDuel.EditModeTests.dll" fullname="D:/JOGO Y/DO ZERO/Library/ScriptAssemblies/ArcaneDuel.EditModeTests.dll" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.185048" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="25588" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1063" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.184180" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1064" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.183626" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1065" name="EditMode" fullname="ArcaneDuel.Tests.EditMode" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.182770" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1043" name="ExtraDeckSummonEditModeTests" fullname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests" classname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.180601" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1048" name="EveryCompiledCardHasRuntimeDataAndRequiredScripts" fullname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests.EveryCompiledCardHasRuntimeDataAndRequiredScripts" methodname="EveryCompiledCardHasRuntimeDataAndRequiredScripts" classname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests" runstate="Runnable" seed="1321576843" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.052068" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1044" name="FusionSummonUsesPrintedMaterialsAndPolymerization" fullname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests.FusionSummonUsesPrintedMaterialsAndPolymerization" methodname="FusionSummonUsesPrintedMaterialsAndPolymerization" classname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests" runstate="Runnable" seed="2014523811" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.042584" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1047" name="LinkSummonUsesALegalLevelOneMaterial" fullname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests.LinkSummonUsesALegalLevelOneMaterial" methodname="LinkSummonUsesALegalLevelOneMaterial" classname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests" runstate="Runnable" seed="671619369" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.020411" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1045" name="SynchroSummonUsesTunerAndExactCombinedLevel" fullname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests.SynchroSummonUsesTunerAndExactCombinedLevel" methodname="SynchroSummonUsesTunerAndExactCombinedLevel" classname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests" runstate="Runnable" seed="983500574" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.019733" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1046" name="XyzSummonUsesTwoLevelSevenSpellcasters" fullname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests.XyzSummonUsesTwoLevelSevenSpellcasters" methodname="XyzSummonUsesTwoLevelSevenSpellcasters" classname="ArcaneDuel.Tests.EditMode.ExtraDeckSummonEditModeTests" runstate="Runnable" seed="750780365" result="Passed" start-time="2026-07-29 16:07:56Z" end-time="2026-07-29 16:07:56Z" duration="0.033743" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

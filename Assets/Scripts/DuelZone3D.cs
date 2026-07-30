@@ -1,0 +1,250 @@
+using ArcaneArena.Multiplayer;
+using UnityEngine;
+using UnityEngine.EventSystems;
+
+namespace ArcaneArena
+{
+    [DisallowMultipleComponent]
+    public sealed class DuelZone3D :
+        MonoBehaviour,
+        IPointerClickHandler,
+        IPointerEnterHandler,
+        IPointerExitHandler,
+        IBeginDragHandler,
+        IDragHandler,
+        IEndDragHandler
+    {
+        [SerializeField] private DuelZoneAddress address;
+        [SerializeField] private bool acceptsLocalInput;
+        [SerializeField] private string placedCardId;
+        [SerializeField] private Sprite placedCard;
+        [SerializeField] private bool faceUp = true;
+        [SerializeField] private DuelMonsterPosition monsterPosition =
+            DuelMonsterPosition.FaceUpAttack;
+        private Renderer dropSurface;
+        private Color dropSurfaceColor;
+        private bool dropHighlighted;
+        private bool pointerFocused;
+
+        public Sprite PlacedCard => placedCard;
+        public string StableId => address.StableId;
+        public DuelPlayerSide Owner => address.Owner;
+        public DuelZoneKind Kind => address.Kind;
+        public int ZoneIndex => address.Index;
+        public string PlacedCardId => placedCardId;
+        public bool IsFaceUp => faceUp;
+        public DuelMonsterPosition MonsterPosition => monsterPosition;
+        public bool AcceptsLocalInput => acceptsLocalInput;
+        public bool HasValidIdentity =>
+            !string.IsNullOrWhiteSpace(address.StableId) &&
+            System.Enum.IsDefined(typeof(DuelPlayerSide), address.Owner) &&
+            System.Enum.IsDefined(typeof(DuelZoneKind), address.Kind) &&
+            address.Index >= 0;
+
+        public void Setup(
+            DuelPlayerSide owner,
+            DuelZoneKind kind,
+            int index,
+            bool interactive)
+        {
+            address = new DuelZoneAddress(owner, kind, index);
+            acceptsLocalInput = interactive;
+        }
+
+        public void SetLocalControlEnabled(bool enabled)
+        {
+            acceptsLocalInput = enabled;
+        }
+
+        public bool EnsureIdentityFromHierarchy(bool resetEditorInput)
+        {
+            Transform ownerRoot = transform;
+            while (ownerRoot != null &&
+                   ownerRoot.name != "PLAYER_1" &&
+                   ownerRoot.name != "PLAYER_2")
+            {
+                ownerRoot = ownerRoot.parent;
+            }
+            if (ownerRoot == null) return false;
+
+            DuelPlayerSide owner = ownerRoot.name == "PLAYER_1"
+                ? DuelPlayerSide.PlayerOne
+                : DuelPlayerSide.PlayerTwo;
+            DuelZoneKind kind = KindFromName(gameObject.name);
+            int index = IndexFromName(gameObject.name);
+            address = new DuelZoneAddress(owner, kind, index);
+            if (resetEditorInput)
+            {
+                acceptsLocalInput =
+                    owner == DuelPlayerSide.PlayerOne &&
+                    (kind == DuelZoneKind.Monster ||
+                     kind == DuelZoneKind.SpellTrap ||
+                     kind == DuelZoneKind.Field);
+            }
+            if (GetComponent<Collider>() == null)
+            {
+                var collider = gameObject.AddComponent<BoxCollider>();
+                collider.center = new Vector3(0f, 0.2f, 0f);
+                collider.size = new Vector3(2f, 0.65f, 2.55f);
+            }
+            return true;
+        }
+
+        public void SetPlacedCard(
+            Sprite sprite,
+            string stableCardId,
+            bool isFaceUp)
+        {
+            placedCard = sprite;
+            placedCardId = sprite == null ? string.Empty : stableCardId;
+            faceUp = sprite == null || isFaceUp;
+            if (Kind == DuelZoneKind.Monster)
+            {
+                monsterPosition = faceUp
+                    ? DuelMonsterPosition.FaceUpAttack
+                    : DuelMonsterPosition.FaceDownDefense;
+            }
+        }
+
+        public void SetMonsterPosition(DuelMonsterPosition position)
+        {
+            monsterPosition = position;
+            faceUp = position != DuelMonsterPosition.FaceDownDefense;
+        }
+
+        public void ClearPlacedCard()
+        {
+            placedCard = null;
+            placedCardId = string.Empty;
+            faceUp = true;
+            monsterPosition = DuelMonsterPosition.FaceUpAttack;
+        }
+
+        public void SetDropHighlight(bool enabled)
+        {
+            dropHighlighted = enabled;
+            if (dropSurface == null)
+            {
+                Transform inset = transform.Find("Card Inset");
+                dropSurface = inset != null
+                    ? inset.GetComponent<Renderer>()
+                    : GetComponent<Renderer>();
+                if (dropSurface != null)
+                    dropSurfaceColor = dropSurface.sharedMaterial.color;
+            }
+            if (dropSurface != null)
+            {
+                dropSurface.material.color = enabled
+                    ? new Color(0.08f, 0.72f, 1f, 1f)
+                    : dropSurfaceColor;
+            }
+        }
+
+        private void Update()
+        {
+            if (dropSurface == null)
+                return;
+            if (dropHighlighted)
+            {
+                float pulse =
+                    0.5f + 0.5f *
+                    Mathf.Sin(Time.unscaledTime * 5.8f);
+                dropSurface.material.color =
+                    Color.Lerp(
+                        new Color(0.03f, 0.45f, 0.68f, 1f),
+                        new Color(0.35f, 1f, 0.78f, 1f),
+                        pulse);
+                return;
+            }
+            dropSurface.material.color = pointerFocused
+                ? Color.Lerp(
+                    dropSurfaceColor,
+                    new Color(0.10f, 0.34f, 0.38f, 1f),
+                    0.56f)
+                : dropSurfaceColor;
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (!HasValidIdentity &&
+                !EnsureIdentityFromHierarchy(false))
+            {
+                return;
+            }
+            FindAnyObjectByType<CardArenaBootstrap>()?.HandleZoneClick(
+                this,
+                eventData.clickCount);
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (!HasValidIdentity &&
+                !EnsureIdentityFromHierarchy(false))
+            {
+                pointerFocused = false;
+                return;
+            }
+            pointerFocused = true;
+            FindAnyObjectByType<CardArenaBootstrap>()?.HandleZoneHover(
+                this,
+                true);
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            pointerFocused = false;
+            if (!HasValidIdentity)
+                return;
+            FindAnyObjectByType<CardArenaBootstrap>()?.HandleZoneHover(
+                this,
+                false);
+        }
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            FindAnyObjectByType<CardArenaBootstrap>()?.BeginMonsterAttackDrag(
+                this,
+                eventData.position);
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            FindAnyObjectByType<CardArenaBootstrap>()?.UpdateMonsterAttackDrag(
+                eventData.position);
+        }
+
+        public void OnEndDrag(PointerEventData eventData)
+        {
+            FindAnyObjectByType<CardArenaBootstrap>()?.EndMonsterAttackDrag(
+                eventData.position);
+        }
+
+        private static DuelZoneKind KindFromName(string objectName)
+        {
+            if (objectName.StartsWith("SpellTrapZone_"))
+                return DuelZoneKind.SpellTrap;
+            if (objectName == "FieldZone")
+                return DuelZoneKind.Field;
+            if (objectName == "MainDeck")
+                return DuelZoneKind.MainDeck;
+            if (objectName == "ExtraDeck")
+                return DuelZoneKind.ExtraDeck;
+            if (objectName == "Graveyard")
+                return DuelZoneKind.Graveyard;
+            if (objectName == "Banishment")
+                return DuelZoneKind.Banishment;
+            return DuelZoneKind.Monster;
+        }
+
+        private static int IndexFromName(string objectName)
+        {
+            int separator = objectName.LastIndexOf('_');
+            return separator >= 0 &&
+                   int.TryParse(
+                       objectName.Substring(separator + 1),
+                       out int oneBased)
+                ? Mathf.Max(0, oneBased - 1)
+                : 0;
+        }
+    }
+}

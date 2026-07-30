@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="9" result="Passed" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-30 00:21:46Z" end-time="2026-07-30 00:21:52Z" duration="5,9373508">
+  <test-suite type="TestSuite" id="1019" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-30 00:21:46Z" end-time="2026-07-30 00:21:52Z" duration="5.937351" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1012" name="ArcaneDuel.PlayModeTests.dll" fullname="D:/JOGO Y/DO ZERO/Library/ScriptAssemblies/ArcaneDuel.PlayModeTests.dll" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-30 00:21:46Z" end-time="2026-07-30 00:21:52Z" duration="5.929250" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="27236" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1013" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-30 00:21:46Z" end-time="2026-07-30 00:21:52Z" duration="5.928731" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1014" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-30 00:21:46Z" end-time="2026-07-30 00:21:52Z" duration="5.928474" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1015" name="PlayMode" fullname="ArcaneDuel.Tests.PlayMode" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-30 00:21:46Z" end-time="2026-07-30 00:21:52Z" duration="5.928221" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1001" name="PlayableArenaPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-07-30 00:21:46Z" end-time="2026-07-30 00:21:52Z" duration="5.923593" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1004" name="CardLabSceneBootsCompleteDeckBuilder" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.CardLabSceneBootsCompleteDeckBuilder" methodname="CardLabSceneBootsCompleteDeckBuilder" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1689747625" result="Passed" start-time="2026-07-30 00:21:46Z" end-time="2026-07-30 00:21:47Z" duration="0.227315" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1005" name="DuelArenaHasIndependentAudioPresentation" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelArenaHasIndependentAudioPresentation" methodname="DuelArenaHasIndependentAudioPresentation" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1269331459" result="Passed" start-time="2026-07-30 00:21:47Z" end-time="2026-07-30 00:21:49Z" duration="2.139835" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1002" name="DuelSceneBootsPlayableArena" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelSceneBootsPlayableArena" methodname="DuelSceneBootsPlayableArena" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1677569277" result="Passed" start-time="2026-07-30 00:21:49Z" end-time="2026-07-30 00:21:49Z" duration="0.411087" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Restarting core with player='Deck Mago Negro' id='shop:yugi-mutou-dark-magician-classic' main=50 cards=[46986414,46986414,46986414,72989439,72989439,3078380,60948488,30603688] extra=15; opponent='Deck Mago Negro' main=50 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=50, playerExtra=15, opponentMain=50, opponentExtra=15, seed=34B20BF030B32B61.
+]]></output>
+              </test-case>
+              <test-case id="1006" name="DuelSceneBuildsProfessionalBattlePresentation" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelSceneBuildsProfessionalBattlePresentation" methodname="DuelSceneBuildsProfessionalBattlePresentation" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1028368091" result="Passed" start-time="2026-07-30 00:21:49Z" end-time="2026-07-30 00:21:50Z" duration="0.351685" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Restarting core with player='Deck Mago Negro' id='shop:yugi-mutou-dark-magician-classic' main=50 cards=[46986414,46986414,46986414,72989439,72989439,3078380,60948488,30603688] extra=15; opponent='Deck Mago Negro' main=50 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=50, playerExtra=15, opponentMain=50, opponentExtra=15, seed=70011E671C754C70.
+]]></output>
+              </test-case>
+              <test-case id="1009" name="EveryCompleteBotDeckStartsABotDuel" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.EveryCompleteBotDeckStartsABotDuel" methodname="EveryCompleteBotDeckStartsABotDuel" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="971156036" result="Passed" start-time="2026-07-30 00:21:50Z" end-time="2026-07-30 00:21:51Z" duration="1.778270" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Restarting core with player='Deck Mago Negro' id='shop:yugi-mutou-dark-magician-classic' main=50 cards=[46986414,46986414,46986414,72989439,72989439,3078380,60948488,30603688] extra=15; opponent='Deck Mago Negro' main=50 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=50, playerExtra=15, opponentMain=50, opponentExtra=15, seed=BD9022DAEF2ED956.
+[Arcane legacy bridge] StartDuelAgainstBot requested: player=Deck Mago Negro; bot=Deck Dragão Branco.
+[Arcane legacy bridge] Restarting core with player='Deck Mago Negro' id='shop:yugi-mutou-dark-magician-classic' main=50 cards=[46986414,46986414,46986414,72989439,72989439,3078380,60948488,30603688] extra=15; opponent='Deck Dragão Branco' main=40 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=50, playerExtra=15, opponentMain=40, opponentExtra=15, seed=F967354996FACF33.
+[Arcane legacy bridge] StartDuelAgainstBot requested: player=Deck Mago Negro; bot=Deck Dragão Negro.
+[Arcane legacy bridge] Restarting core with player='Deck Mago Negro' id='shop:yugi-mutou-dark-magician-classic' main=50 cards=[46986414,46986414,46986414,72989439,72989439,3078380,60948488,30603688] extra=15; opponent='Deck Dragão Negro' main=40 extra=4.
+[Arcane legacy bridge] Core restarted: playerMain=50, playerExtra=15, opponentMain=40, opponentExtra=4, seed=26F639BD5D29F716.
+[Arcane legacy bridge] StartDuelAgainstBot requested: player=Deck Mago Negro; bot=Deck Mago Negro.
+[Arcane legacy bridge] Restarting core with player='Deck Mago Negro' id='shop:yugi-mutou-dark-magician-classic' main=50 cards=[46986414,46986414,46986414,72989439,72989439,3078380,60948488,30603688] extra=15; opponent='Deck Mago Negro' main=50 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=50, playerExtra=15, opponentMain=50, opponentExtra=15, seed=62454C32140A38F0.
+]]></output>
+              </test-case>
+              <test-case id="1008" name="ExplicitSelectedDeckSnapshotReachesCore" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.ExplicitSelectedDeckSnapshotReachesCore" methodname="ExplicitSelectedDeckSnapshotReachesCore" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1866007820" result="Passed" start-time="2026-07-30 00:21:51Z" end-time="2026-07-30 00:21:52Z" duration="0.413215" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Restarting core with player='Deck Mago Negro' id='shop:yugi-mutou-dark-magician-classic' main=50 cards=[46986414,46986414,46986414,72989439,72989439,3078380,60948488,30603688] extra=15; opponent='Deck Mago Negro' main=50 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=50, playerExtra=15, opponentMain=50, opponentExtra=15, seed=AFD450A7E61D9A0E.
+[Arcane legacy bridge] StartLocalTestDuel requested: Deck Selecionado de Teste.
+[Arcane legacy bridge] Restarting core with player='Deck Selecionado de Teste' id='test:selected-red-eyes' main=40 cards=[74677422,74677422,74677422,74677422,74677422,74677422,74677422,74677422] extra=0; opponent='Deck Selecionado de Teste' main=40 extra=0.
+[Arcane legacy bridge] Core restarted: playerMain=40, playerExtra=0, opponentMain=40, opponentExtra=0, seed=4D9CD95D5B05EBF9.
+]]></output>
+              </test-case>
+              <test-case id="1003" name="MainMenuIsTheOnlyPlayerFacingStartScene" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.MainMenuIsTheOnlyPlayerFacingStartScene" methodname="MainMenuIsTheOnlyPlayerFacingStartScene" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1458061263" result="Passed" start-time="2026-07-30 00:21:52Z" end-time="2026-07-30 00:21:52Z" duration="0.209581" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1007" name="PlayerHandRestsInsideTheLowerResponsiveViewportStrip" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.PlayerHandRestsInsideTheLowerResponsiveViewportStrip" methodname="PlayerHandRestsInsideTheLowerResponsiveViewportStrip" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1548766324" result="Passed" start-time="2026-07-30 00:21:52Z" end-time="2026-07-30 00:21:52Z" duration="0.381221" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Restarting core with player='Deck Mago Negro' id='shop:yugi-mutou-dark-magician-classic' main=50 cards=[46986414,46986414,46986414,72989439,72989439,3078380,60948488,30603688] extra=15; opponent='Deck Mago Negro' main=50 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=50, playerExtra=15, opponentMain=50, opponentExtra=15, seed=8973EDD21002C609.
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1010" name="ProjectBootstrapPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-07-30 00:21:52Z" end-time="2026-07-30 00:21:52Z" duration="0.003507" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1011" name="SceneMarkerCanBeCreatedAtRuntime" fullname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests.SceneMarkerCanBeCreatedAtRuntime" methodname="SceneMarkerCanBeCreatedAtRuntime" classname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" runstate="Runnable" seed="25625661" result="Passed" start-time="2026-07-30 00:21:52Z" end-time="2026-07-30 00:21:52Z" duration="0.001493" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

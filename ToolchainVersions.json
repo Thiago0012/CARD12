@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "platform": "Windows x64",
+  "tools": [
+    {
+      "name": "w64devkit",
+      "version": "2.9.0",
+      "compiler": "GCC 16.1.0",
+      "source": "https://github.com/skeeto/w64devkit/releases/tag/v2.9.0",
+      "archive": "w64devkit-x64-2.9.0.7z.exe",
+      "archiveSha256": "BFF1D13FC2718EEBD93548CF37F8D0332D925458D5E99506CFF8F46EB5A9DE5A",
+      "installRoot": "D:\\JOGO Y\\Tools\\w64devkit"
+    },
+    {
+      "name": "Premake",
+      "version": "5.0.0-beta2",
+      "source": "https://github.com/premake/premake-core/releases/tag/v5.0.0-beta2",
+      "archive": "premake-5.0.0-beta2-windows.zip",
+      "archiveSha256": "87CFA10ED52FD1F4E835F738AC1033FF302035758671400FEC078B700C622C54",
+      "installRoot": "D:\\JOGO Y\\Tools\\premake-5.0.0-beta2"
+    }
+  ],
+  "buildAliases": [
+    {
+      "path": "D:\\JOGO_Y_PROJECT",
+      "target": "D:\\JOGO Y\\DO ZERO",
+      "reason": "GNU Make build-only path without spaces"
+    },
+    {
+      "path": "D:\\JOGO_Y_TOOLS",
+      "target": "D:\\JOGO Y\\Tools",
+      "reason": "GNU Make tool path without spaces"
+    }
+  ]
+}

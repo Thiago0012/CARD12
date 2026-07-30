@@ -1,0 +1,26 @@
+﻿{
+    "schemaVersion":  1,
+    "generatedUtc":  "2026-07-28T22:23:04.6077195Z",
+    "platform":  "Windows x64",
+    "configuration":  "Release",
+    "generator":  "gmake2",
+    "coreCommit":  "0764db0c75b3d1d574880d365aa3695ab1f13b43",
+    "unstrippedBuildOutput":  "ThirdParty/ygopro-core/bin/x64/release/ocgcore.dll",
+    "unstrippedSha256":  "0B998E463E0453B6DED2EB2138BAB8141ADC6F683B258C3404EDE2C61A9B17EE",
+    "unstrippedBytes":  204196033,
+    "output":  "Assets/Plugins/Windows/x86_64/ocgcore.dll",
+    "sha256":  "DD6FFC53CCBE9151A091C8972E003A1236A913527DEB7C29FA2431A3A71E9477",
+    "bytes":  1597854,
+    "dependencies":  [
+                         "KERNEL32.dll",
+                         "msvcrt.dll"
+                     ],
+    "toolchain":  {
+                      "compiler":  "g++.exe (GCC) 16.1.0",
+                      "make":  "GNU Make 4.4.1",
+                      "premake":  "premake5 (Premake Build Script Generator) 5.0.0-beta2",
+                      "root":  "D:\\JOGO Y\\Tools",
+                      "projectBuildAlias":  "D:\\JOGO_Y_PROJECT",
+                      "toolBuildAlias":  "D:\\JOGO_Y_TOOLS"
+                  }
+}

@@ -1,0 +1,9 @@
+[submodule "ThirdParty/ygopro-core"]
+	path = ThirdParty/ygopro-core
+	url = https://github.com/edo9300/ygopro-core.git
+[submodule "ThirdParty/CardScripts"]
+	path = ThirdParty/CardScripts
+	url = https://github.com/ProjectIgnis/CardScripts.git
+[submodule "ThirdParty/BabelCDB"]
+	path = ThirdParty/BabelCDB
+	url = https://github.com/ProjectIgnis/BabelCDB.git

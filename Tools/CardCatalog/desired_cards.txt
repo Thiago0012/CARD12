@@ -1,0 +1,112 @@
+# Blue-Eyes package (18)
+Blue-Eyes Alternative White Dragon
+Blue-Eyes Jet Dragon
+Dragon Spirit of White
+Dictator of D.
+Sage with Eyes of Blue
+Maiden with Eyes of Blue
+Master with Eyes of Blue
+Protector with Eyes of Blue
+The White Stone of Ancients
+The White Stone of Legend
+Blue-Eyes Chaos MAX Dragon
+Blue-Eyes Twin Burst Dragon
+Blue-Eyes Spirit Dragon
+Azure-Eyes Silver Dragon
+The Ultimate Creature of Destruction
+True Light
+Ultimate Fusion
+The Melody of Awakening Dragon
+
+# Dark Magician package (18)
+Dark Magician Girl
+Magician's Rod
+Magicians' Souls
+Apprentice Illusion Magician
+Palladium Oracle Mahad
+Timaeus the United Dragon
+Dark Magician of Chaos
+Illusion of Chaos
+The Dark Magicians
+Dark Magician the Dragon Knight
+Master of Chaos
+Ebon Illusion Magician
+Ebon High Magician
+Dark Magical Circle
+Eternal Soul
+Soul Servant
+Secrets of Dark Magic
+The Eye of Timaeus
+
+# Red-Eyes package (15)
+Red-Eyes Black Dragon
+Red-Eyes Black Metal Dragon
+Black Metal Dragon
+The Black Stone of Legend
+Red-Eyes Wyvern
+Red-Eyes Baby Dragon
+Gearfried the Red-Eyes Iron Knight
+Red-Eyes Flare Metal Dragon
+Red-Eyes Slash Dragon
+Archfiend Black Skull Dragon
+Red-Eyes Fusion
+Red-Eyes Insight
+Cards of the Red Stone
+Return of the Red-Eyes
+Red-Eyes Spirit
+
+# Classic and interactive Main Deck cards (24)
+Summoned Skull
+Buster Blader
+Celtic Guardian
+Gaia The Fierce Knight
+Black Luster Soldier
+Black Luster Soldier - Envoy of the Beginning
+Chaos Sorcerer
+Battle Fader
+Honest
+D.D. Crow
+Ash Blossom & Joyous Spring
+Ghost Ogre & Snow Rabbit
+Droll & Lock Bird
+Maxx "C"
+Nibiru, the Primal Being
+Gorz the Emissary of Darkness
+Spirit Reaper
+Treeborn Frog
+Snipe Hunter
+Card Trooper
+Cyber-Stein
+Morphing Jar
+Fiber Jar
+Witch of the Black Forest
+
+# Spells and Traps (21)
+Raigeki
+Harpie's Feather Duster
+Lightning Storm
+Change of Heart
+Graceful Charity
+Swords of Revealing Light
+Heavy Storm
+Premature Burial
+Snatch Steal
+Mage Power
+Forbidden Chalice
+Cosmic Cyclone
+Called by the Grave
+Infinite Impermanence
+Solemn Strike
+Solemn Warning
+Sakuretsu Armor
+Dimensional Prison
+Royal Decree
+Macro Cosmos
+DNA Surgery
+
+# Additional summon mechanics (5)
+Stardust Dragon
+Black Rose Dragon
+Number 39: Utopia
+Decode Talker
+Odd-Eyes Pendulum Dragon

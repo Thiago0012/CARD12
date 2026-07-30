@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-29 23:14:24Z" end-time="2026-07-29 23:14:25Z" duration="0,9912484">
+  <test-suite type="TestSuite" id="1019" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:14:24Z" end-time="2026-07-29 23:14:25Z" duration="0.991248" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1012" name="ArcaneDuel.PlayModeTests.dll" fullname="D:/JOGO Y/DO ZERO/Library/ScriptAssemblies/ArcaneDuel.PlayModeTests.dll" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:14:24Z" end-time="2026-07-29 23:14:25Z" duration="0.982466" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="12048" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1013" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:14:24Z" end-time="2026-07-29 23:14:25Z" duration="0.981870" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1014" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:14:24Z" end-time="2026-07-29 23:14:25Z" duration="0.981420" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1015" name="PlayMode" fullname="ArcaneDuel.Tests.PlayMode" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:14:24Z" end-time="2026-07-29 23:14:25Z" duration="0.981079" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1001" name="PlayableArenaPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-07-29 23:14:24Z" end-time="2026-07-29 23:14:25Z" duration="0.979852" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1009" name="ClickingACompleteBotDeckStartsABotDuel" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.ClickingACompleteBotDeckStartsABotDuel" methodname="ClickingACompleteBotDeckStartsABotDuel" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1330421218" result="Passed" start-time="2026-07-29 23:14:24Z" end-time="2026-07-29 23:14:25Z" duration="0.969108" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartDuelAgainstBot requested: player=Deck Dragão Negro; bot=Deck Dragão Negro.
+[Arcane legacy bridge] Restarting core with player='Deck Dragão Negro' id='shop:classic-red-eyes-black-dragon' main=40 cards=[74677422,74677422,74677422,36262024,36262024,51632798,51632798,51632798] extra=4; opponent='Deck Dragão Negro' main=40 extra=4.
+[Arcane legacy bridge] Core restarted: playerMain=40, playerExtra=4, opponentMain=40, opponentExtra=4, seed=34B2132E163D427D.
+Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

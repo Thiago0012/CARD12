@@ -1,0 +1,49 @@
+code,official_name,deck_section,cid,script_source,official_text,script_load,positive_core,negative_core,cost_target,timing_chain,once_per_turn,deck_interaction,protocol_ui_ai_visual,overall
+02314238,"Ataque da Magia Negra",main,6057,Assets/StreamingAssets/Ygo/Scripts/official/c2314238.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+02857636,"Cavaleira do Pesadelo Fênix",extra,13600,Assets/StreamingAssets/Ygo/Scripts/official/c2857636.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+03078380,"Timaeus, o Dragão Unido",main,16808,Assets/StreamingAssets/Ygo/Scripts/official/c3078380.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+07084129,"Bastão do Mago",main,12418,Assets/StreamingAssets/Ygo/Scripts/official/c7084129.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+07198399,"Pequena Maga Chocolate",main,12358,Assets/StreamingAssets/Ygo/Scripts/official/c7198399.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+07922915,"Navegação do Mago",main,12470,Assets/StreamingAssets/Ygo/Scripts/official/c7922915.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+09287078,"Renovação Negra",main,4822,Assets/StreamingAssets/Ygo/Scripts/official/c9287078.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+12266229,"Ilusão do Caos",main,16839,Assets/StreamingAssets/Ygo/Scripts/official/c12266229.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+14315573,"Negativação de Ataque",main,4804,Assets/StreamingAssets/Ygo/Scripts/official/c14315573.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+14558127,"Florescer de Cinzas & Primavera Feliz",main,12950,Assets/StreamingAssets/Ygo/Scripts/official/c14558127.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+20747792,"Pequena Maga Baga",main,12497,Assets/StreamingAssets/Ygo/Scripts/official/c20747792.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+23020408,"Servo da Alma",main,14907,Assets/StreamingAssets/Ygo/Scripts/official/c23020408.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+30603688,"Maga da Ilusão Aprendiz",main,12817,Assets/StreamingAssets/Ygo/Scripts/official/c30603688.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+34318086,"Pequena Maga Limão",main,12356,Assets/StreamingAssets/Ygo/Scripts/official/c34318086.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+34755994,"Artemis, a Donzela da Lua Magistus",extra,15619,Assets/StreamingAssets/Ygo/Scripts/official/c34755994.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+38033121,"Pequena Maga Negra",main,4766,Assets/StreamingAssets/Ygo/Scripts/official/c38033121.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+38342335,"Cavaleiro do Pesadelo Unicórnio",extra,13601,Assets/StreamingAssets/Ygo/Scripts/official/c38342335.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+41721210,"Mago Negro, o Cavaleiro Dragão",extra,13357,Assets/StreamingAssets/Ygo/Scripts/official/c41721210.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+43892408,"Pequena Maga Negra, a Cavaleira Dragão",extra,11151,Assets/StreamingAssets/Ygo/Scripts/official/c43892408.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+44095762,"Força do Espelho",main,4887,Assets/StreamingAssets/Ygo/Scripts/official/c44095762.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+46986414,"Mago Negro",main,4041,normal_monster_no_script,covered,covered,pending,pending,not_applicable,pending,not_applicable,pending,partial,pending
+47222536,"Círculo Mágico Negro",main,12456,Assets/StreamingAssets/Ygo/Scripts/official/c47222536.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+47963370,"Mago do Caos",main,14213,Assets/StreamingAssets/Ygo/Scripts/official/c47963370.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+48680970,"Alma Eterna",main,11672,Assets/StreamingAssets/Ygo/Scripts/official/c48680970.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+50237654,"Os Magos Negros",extra,14905,Assets/StreamingAssets/Ygo/Scripts/official/c50237654.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+56132807,"Pequena Maga Maçã",main,12498,Assets/StreamingAssets/Ygo/Scripts/official/c56132807.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+59438930,"Ogro Fantasma & Coelho da Neve",main,11708,Assets/StreamingAssets/Ygo/Scripts/official/c59438930.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+59514116,"Segredos da Magia Negra",main,14908,Assets/StreamingAssets/Ygo/Scripts/official/c59514116.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+60948488,"Mago das Crônicas",main,17031,Assets/StreamingAssets/Ygo/Scripts/official/c60948488.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+63391643,"Mil Facas",main,5166,Assets/StreamingAssets/Ygo/Scripts/official/c63391643.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+65741786,"I:P Mascarena",extra,14676,Assets/StreamingAssets/Ygo/Scripts/official/c65741786.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+68462976,"Vila Secreta dos Magos",main,7916,Assets/StreamingAssets/Ygo/Scripts/official/c68462976.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+72989439,"Soldado do Lustro Negro - Enviado do Princípio",main,5835,Assets/StreamingAssets/Ygo/Scripts/official/c72989439.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+73628505,"Transformação Campal",main,5537,Assets/StreamingAssets/Ygo/Scripts/official/c73628505.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+75190122,"Magia Ardente das Trevas",main,11670,Assets/StreamingAssets/Ygo/Scripts/official/c75190122.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+80088625,"Lâmina Binária",extra,14743,Assets/StreamingAssets/Ygo/Scripts/official/c80088625.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+82732705,"Drenar Habilidades",main,5740,Assets/StreamingAssets/Ygo/Scripts/official/c82732705.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+83764719,"Reviver Monstro",main,4842,Assets/StreamingAssets/Ygo/CustomScripts/c83764719.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+84013237,"Número 39: Utopia",extra,9575,Assets/StreamingAssets/Ygo/Scripts/official/c84013237.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+86331741,"Mago Gagagaga",extra,14920,Assets/StreamingAssets/Ygo/Scripts/official/c86331741.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+88177324,"Número 107: Dragão de Táquion de Olhos das Galáxias",extra,10525,Assets/StreamingAssets/Ygo/Scripts/official/c88177324.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+94259633,"Anima Renunciado",extra,13841,Assets/StreamingAssets/Ygo/Scripts/official/c94259633.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+95477924,"Salvação do Mago",main,16654,Assets/StreamingAssets/Ygo/Scripts/official/c95477924.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+96471335,"Mago de Ébano da Ilusão",extra,11125,Assets/StreamingAssets/Ygo/Scripts/official/c96471335.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+96729612,"Preparação de Ritos",main,8492,Assets/StreamingAssets/Ygo/Scripts/official/c96729612.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+97268402,"Ocultador de Efeitos",main,8933,Assets/StreamingAssets/Ygo/Scripts/official/c97268402.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+97631303,"Almas dos Magos",main,14906,Assets/StreamingAssets/Ygo/Scripts/official/c97631303.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending
+98502113,"Paladino Negro",extra,5628,Assets/StreamingAssets/Ygo/Scripts/official/c98502113.lua,covered,covered,pending,pending,pending,pending,pending,pending,partial,pending

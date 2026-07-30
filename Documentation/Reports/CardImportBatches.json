@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "catalogSha256": "74AE5A23B0495B216D47DD36DF90F04BB43FA5B2F83DFCBAC7B1AB2B76CDF026",
+  "batchSize": 25,
+  "batchCount": 8,
+  "totalCards": 200,
+  "missingArt": [],
+  "missingScripts": [],
+  "missingDatabaseRows": [],
+  "duplicateCodes": [],
+  "batches": [
+    {
+      "batch": 1,
+      "firstCode": 295517,
+      "lastCode": 9596126,
+      "cardCount": 25,
+      "riskA": 7,
+      "riskB": 12,
+      "riskC": 6,
+      "result": "PASS"
+    },
+    {
+      "batch": 2,
+      "firstCode": 9653271,
+      "lastCode": 22134079,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 12,
+      "riskC": 10,
+      "result": "PASS"
+    },
+    {
+      "batch": 3,
+      "firstCode": 22910685,
+      "lastCode": 33508719,
+      "cardCount": 25,
+      "riskA": 9,
+      "riskB": 11,
+      "riskC": 5,
+      "result": "PASS"
+    },
+    {
+      "batch": 4,
+      "firstCode": 36304921,
+      "lastCode": 45986603,
+      "cardCount": 25,
+      "riskA": 5,
+      "riskB": 10,
+      "riskC": 10,
+      "result": "PASS"
+    },
+    {
+      "batch": 5,
+      "firstCode": 46052429,
+      "lastCode": 56907389,
+      "cardCount": 25,
+      "riskA": 8,
+      "riskB": 4,
+      "riskC": 13,
+      "result": "PASS"
+    },
+    {
+      "batch": 6,
+      "firstCode": 56920308,
+      "lastCode": 71407486,
+      "cardCount": 25,
+      "riskA": 5,
+      "riskB": 16,
+      "riskC": 4,
+      "result": "PASS"
+    },
+    {
+      "batch": 7,
+      "firstCode": 71413901,
+      "lastCode": 84013237,
+      "cardCount": 25,
+      "riskA": 6,
+      "riskB": 13,
+      "riskC": 6,
+      "result": "PASS"
+    },
+    {
+      "batch": 8,
+      "firstCode": 84290642,
+      "lastCode": 98495314,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 11,
+      "riskC": 11,
+      "result": "PASS"
+    }
+  ]
+}

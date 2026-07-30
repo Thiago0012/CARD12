@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-29 23:16:42Z" end-time="2026-07-29 23:16:45Z" duration="2,1982528">
+  <test-suite type="TestSuite" id="1019" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:16:42Z" end-time="2026-07-29 23:16:45Z" duration="2.198253" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1012" name="ArcaneDuel.PlayModeTests.dll" fullname="D:/JOGO Y/DO ZERO/Library/ScriptAssemblies/ArcaneDuel.PlayModeTests.dll" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:16:42Z" end-time="2026-07-29 23:16:45Z" duration="2.190072" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="13156" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1013" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:16:42Z" end-time="2026-07-29 23:16:45Z" duration="2.189467" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1014" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:16:42Z" end-time="2026-07-29 23:16:45Z" duration="2.189135" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1015" name="PlayMode" fullname="ArcaneDuel.Tests.PlayMode" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-07-29 23:16:42Z" end-time="2026-07-29 23:16:45Z" duration="2.188789" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1001" name="PlayableArenaPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-07-29 23:16:42Z" end-time="2026-07-29 23:16:45Z" duration="2.187620" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1009" name="EveryCompleteBotDeckStartsABotDuel" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.EveryCompleteBotDeckStartsABotDuel" methodname="EveryCompleteBotDeckStartsABotDuel" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1225238175" result="Passed" start-time="2026-07-29 23:16:42Z" end-time="2026-07-29 23:16:45Z" duration="2.177122" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartDuelAgainstBot requested: player=Deck Dragão Negro; bot=Deck Dragão Branco.
+[Arcane legacy bridge] Restarting core with player='Deck Dragão Negro' id='shop:classic-red-eyes-black-dragon' main=40 cards=[74677422,74677422,74677422,36262024,36262024,51632798,51632798,51632798] extra=4; opponent='Deck Dragão Branco' main=40 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=40, playerExtra=4, opponentMain=40, opponentExtra=15, seed=34B2136ACA718750.
+[Arcane legacy bridge] StartDuelAgainstBot requested: player=Deck Dragão Negro; bot=Deck Dragão Negro.
+[Arcane legacy bridge] Restarting core with player='Deck Dragão Negro' id='shop:classic-red-eyes-black-dragon' main=40 cards=[74677422,74677422,74677422,36262024,36262024,51632798,51632798,51632798] extra=4; opponent='Deck Dragão Negro' main=40 extra=4.
+[Arcane legacy bridge] Core restarted: playerMain=40, playerExtra=4, opponentMain=40, opponentExtra=4, seed=700106FD00B5DF7A.
+[Arcane legacy bridge] StartDuelAgainstBot requested: player=Deck Dragão Negro; bot=Deck Mago Negro.
+[Arcane legacy bridge] Restarting core with player='Deck Dragão Negro' id='shop:classic-red-eyes-black-dragon' main=40 cards=[74677422,74677422,74677422,36262024,36262024,51632798,51632798,51632798] extra=4; opponent='Deck Mago Negro' main=50 extra=15.
+[Arcane legacy bridge] Core restarted: playerMain=40, playerExtra=4, opponentMain=50, opponentExtra=15, seed=BD903A405C6826FE.
+Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
