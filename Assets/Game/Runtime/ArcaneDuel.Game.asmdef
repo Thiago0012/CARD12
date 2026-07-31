@@ -2,7 +2,8 @@
   "name": "ArcaneDuel.Game",
   "rootNamespace": "ArcaneDuel.Game",
   "references": [
-    "ArcaneDuel.DuelEngine"
+    "ArcaneDuel.DuelEngine",
+    "Unity.InputSystem"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

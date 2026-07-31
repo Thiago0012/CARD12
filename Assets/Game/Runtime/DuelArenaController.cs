@@ -168,7 +168,7 @@ namespace ArcaneDuel.Game
         private void Update()
         {
             animationQueue.Tick(Time.unscaledDeltaTime);
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (ArcaneInput.EscapePressedThisFrame)
             {
                 if (zoomCode != 0)
                 {
@@ -178,7 +178,7 @@ namespace ArcaneDuel.Game
                 SceneManager.LoadScene(ProjectIdentity.BootstrapScene);
                 return;
             }
-            if (Input.GetKeyDown(KeyCode.F5) && state != null)
+            if (ArcaneInput.RefreshPressedThisFrame && state != null)
             {
                 DuelPresentationSnapshot snapshot = state.CaptureSnapshot();
                 state.RestoreSnapshot(snapshot);

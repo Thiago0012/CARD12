@@ -90,7 +90,7 @@ namespace ArcaneDuel.Game
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (ArcaneInput.EscapePressedThisFrame)
             {
                 if (mode != CardLabMode.Gallery)
                 {

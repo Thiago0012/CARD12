@@ -109,7 +109,7 @@ namespace ArcaneDuel.Game
         private void Update()
         {
             pulse = (Mathf.Sin(Time.unscaledTime * 1.7f) + 1f) * 0.5f;
-            if (Input.GetKeyDown(KeyCode.Return) &&
+            if (ArcaneInput.EnterPressedThisFrame &&
                 !showRules &&
                 !showDiagnostics &&
                 !showDuelSelection &&
@@ -117,7 +117,7 @@ namespace ArcaneDuel.Game
             {
                 showDuelSelection = true;
             }
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (ArcaneInput.EscapePressedThisFrame)
             {
                 if (showRules) showRules = false;
                 else if (showDiagnostics) showDiagnostics = false;
