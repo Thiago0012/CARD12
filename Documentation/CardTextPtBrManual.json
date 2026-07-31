@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "cards": [
+    {
+      "code": 19771459,
+      "name": "Caverguerra Gactos",
+      "description": "Se um monstro Guerreiro de TERRA for Invocado por Invocação-Normal no seu campo: você pode Invocar este card por Invocação-Especial da sua mão. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro \"Caverguerra\" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar este efeito de \"Caverguerra Gactos\" uma vez por turno.",
+      "strings": [
+        "Invocar este card por Invocação-Especial",
+        "Invocar um monstro \"Caverguerra\" por Invocação-Especial"
+      ]
+    },
+    {
+      "code": 47504322,
+      "name": "Caverguerra Wento",
+      "description": "Se um monstro Guerreiro de TERRA seu batalhar um monstro do oponente, durante o cálculo de dano (Efeito Rápido): você pode pagar 800 PV; até o final deste turno, seu monstro que está batalhando ganha 800 de ATK. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro \"Caverguerra\" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar cada efeito de \"Caverguerra Wento\" uma vez por turno.",
+      "strings": [
+        "Aumentar o ATK do monstro que está batalhando",
+        "Invocar um monstro \"Caverguerra\" por Invocação-Especial"
+      ]
+    },
+    {
+      "code": 83286340,
+      "name": "Caverguerra Fortia",
+      "description": "Se um monstro Guerreiro de TERRA seu batalhar, depois do cálculo de dano: você pode adicionar 1 card \"Caverguerra\" do seu Deck à sua mão, exceto \"Caverguerra Fortia\" e, depois, todos os monstros \"Caverguerra\" que você controla atualmente ganham 200 de ATK até o final do turno do seu oponente. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro \"Caverguerra\" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar cada efeito de \"Caverguerra Fortia\" uma vez por turno.",
+      "strings": [
+        "Adicionar um card \"Caverguerra\" do Deck à mão",
+        "Invocar um monstro \"Caverguerra\" por Invocação-Especial"
+      ]
+    },
+    {
+      "code": 45536531,
+      "name": "Coelho Negro Divertido",
+      "description": "Depois que este card for Invocado por Invocação-Normal ou Especial, durante sua Fase Principal neste turno, você pode Invocar por Invocação-Normal 1 monstro que mencione \"Mundo Toon\", além da sua Invocação-Normal/Baixar (você só pode ganhar este efeito uma vez por turno). Este card é considerado um monstro Toon enquanto \"Mundo Toon\" estiver no campo. Uma vez por turno: você pode adicionar à sua mão ou colocar com a face para cima no seu campo 1 Magia de Campo ou Contínua \"Toon\" do seu Deck.",
+      "strings": [
+        "Adicionar à mão ou colocar com a face para cima 1 Magia de Campo ou Contínua \"Toon\" do Deck",
+        "Afetado por \"Coelho Negro Divertido\": pode realizar 1 Invocação-Normal adicional de um monstro que mencione \"Mundo Toon\"",
+        "Invocar por Invocação-Normal (\"Coelho Negro Divertido\")",
+        "Selecione o card para adicionar à mão ou colocar com a face para cima",
+        "Colocá-lo com a face para cima no campo"
+      ]
+    },
+    {
+      "code": 7293697,
+      "name": "Mundo Toon, o Mundo Perfeito",
+      "description": "O nome deste card se torna \"Mundo Toon\" enquanto ele estiver na Zona do Campo. Uma vez por turno: você pode adicionar 1 card \"Toon\", ou 1 card que mencione o nome de um card \"Toon\", do seu Deck à sua mão. Você só pode usar este efeito de \"Mundo Toon, o Mundo Perfeito\" três vezes por turno. Antes de resolver outro card ou efeito ativado, você pode banir 1 monstro Toon que você controla até imediatamente depois que esse card/efeito resolver; além disso, você não pode banir monstros com esse mesmo nome original com este efeito de \"Mundo Toon, o Mundo Perfeito\" pelo resto deste turno.",
+      "strings": [
+        "Adicionar 1 card \"Toon\", ou 1 card que mencione o nome de um card \"Toon\", do Deck à mão",
+        "Banir 1 monstro Toon que você controla até imediatamente depois que esse card ou efeito resolver?"
+      ]
+    },
+    {
+      "code": 8915275,
+      "name": "Caixa Maligna",
+      "description": "Se você controlar \"Mundo Toon\": você pode Invocar este card por Invocação-Especial da sua mão e, depois, pode adicionar à sua mão ou Baixar 1 Armadilha \"Toon\" do seu Deck. Você só pode usar este efeito de \"Caixa Maligna\" uma vez por turno. Este card é considerado um monstro Toon enquanto \"Mundo Toon\" estiver no campo. Uma vez por turno (Efeito Rápido): você pode escolher 1 card em qualquer Cemitério; coloque-o no fundo do Deck.",
+      "strings": [
+        "Invocar este card por Invocação-Especial da mão",
+        "Colocar 1 card de qualquer Cemitério no fundo do Deck",
+        "Adicionar à mão ou Baixar 1 Armadilha \"Toon\" do Deck?",
+        "Selecione o card para adicionar à mão ou Baixar no campo",
+        "Baixá-lo no campo"
+      ]
+    },
+    {
+      "code": 72921536,
+      "name": "Gato dos Quadrinhos",
+      "description": "Este card é considerado um monstro Toon enquanto \"Mundo Toon\" estiver no campo. Durante a Fase Principal (Efeito Rápido): você pode oferecer 1 monstro como Tributo (se você controlar \"Mundo Toon\", pode oferecer como Tributo 1 monstro que seu oponente controla, mesmo que você não o controle) e, se isso acontecer, Invoque por Invocação-Especial 1 monstro que mencione \"Mundo Toon\" da sua mão ou do Deck, ignorando suas condições de Invocação. Você só pode usar este efeito de \"Gato dos Quadrinhos\" uma vez por turno.",
+      "strings": [
+        "Invocar por Invocação-Especial 1 monstro que mencione \"Mundo Toon\" da mão ou do Deck"
+      ]
+    },
+    {
+      "code": 34314989,
+      "name": "Mago Sem Rosto Ilusionista de Olhos Negros",
+      "description": "Se este card batalhar um monstro, nenhum dos dois pode ser destruído por essa batalha. Você pode descartar este card e, depois, ativar 1 destes efeitos (mas você só pode usar cada um destes efeitos de \"Mago Sem Rosto Ilusionista de Olhos Negros\" uma vez por turno);\r\n● Coloque 1 \"Varredura Mental\" da sua mão ou do Deck com a face para cima no seu campo.\r\n● Adicione à sua mão 1 outro monstro do seu Cemitério que mencione \"Mundo Toon\" e, depois, você pode Invocá-lo por Invocação-Especial, ignorando suas condições de Invocação.",
+      "strings": [
+        "Ativar 1 destes efeitos",
+        "Colocar 1 \"Varredura Mental\" com a face para cima no campo",
+        "Adicionar à mão 1 monstro que mencione \"Mundo Toon\"",
+        "Invocá-lo por Invocação-Especial, ignorando suas condições de Invocação?"
+      ]
+    },
+    {
+      "code": 40366667,
+      "name": "Impulso Dominus",
+      "description": "Se seu oponente controlar um card, você pode ativar este card da sua mão. Quando um card ou efeito que inclua um efeito que Invoque um ou mais monstros por Invocação-Especial for ativado: negue esse efeito e, depois, se você tiver uma Armadilha no seu Cemitério, destrua esse card. Se você ativou este card da sua mão, não pode ativar os efeitos de monstros de LUZ, TERRA e VENTO pelo resto deste Duelo. Você só pode ativar 1 \"Impulso Dominus\" por turno.",
+      "strings": [
+        "Negar esse efeito",
+        "Ativar usando \"Impulso Dominus\"",
+        "Afetado por \"Impulso Dominus\": não pode ativar os efeitos de monstros de LUZ, TERRA e VENTO"
+      ]
+    },
+    {
+      "code": 34298391,
+      "name": "Varredura Mental",
+      "description": "Enquanto você tiver um card \"Toon\" no seu campo ou Cemitério, seu oponente deve manter a mão dele revelada; além disso, você pode olhar os cards Baixados dele a qualquer momento. Se você tiver um monstro Toon e uma Magia \"Toon\" no seu campo e/ou Cemitério: você pode declarar o nome de 1 card que não esteja entre os cards/efeitos ativados nesta Corrente; negue os efeitos ativados de cards com esse nome original até o final deste turno, enquanto este card estiver com a face para cima no campo. Você só pode usar este efeito de \"Varredura Mental\" uma vez por turno.",
+      "strings": [
+        "Declarar o nome de 1 card que não esteja entre os cards ou efeitos ativados nesta Corrente"
+      ]
+    },
+    {
+      "code": 78114463,
+      "name": "Acusação Solene",
+      "description": "Você pode ativar este card no turno em que ele foi Baixado ao revelar 1 outra Armadilha com a face para baixo que você controla. Quando um Card de Magia/Armadilha for ativado: você pode ativar 1 destes efeitos;\r\n● Pague 1500 PV; negue a ativação e, se isso acontecer, destrua-o e, se isso acontecer, nenhum duelista pode ativar cards, ou efeitos de cards, com o mesmo nome original do card destruído pelo resto deste turno.\r\n● Pague 3000 PV; negue a ativação e, se isso acontecer, bana-o e, depois, seu oponente bane todos os cards da mão e do Deck dele com o mesmo nome original do card banido.",
+      "strings": [
+        "Ativar usando \"Acusação Solene\"",
+        "Ativar 1 destes efeitos",
+        "Negar a ativação e destruir esse card",
+        "Negar a ativação e banir esse card",
+        "Afetado por \"Acusação Solene\": não pode ativar cards ou efeitos de cards com o mesmo nome original do card destruído"
+      ]
+    },
+    {
+      "code": 6325660,
+      "name": "Faísca Dominus",
+      "description": "Durante o turno em que seu oponente ativou um efeito de monstro na mão ou no Cemitério, você pode ativar este card da sua mão. Escolha 1 monstro que seu oponente controla; bana-o e, depois, se você não tiver Armadilhas no seu Cemitério, seu oponente pode Invocar por Invocação-Especial 1 monstro da mão dele. Se você ativou este card da sua mão, não pode ativar os efeitos de monstros de TERRA, ÁGUA, FOGO e VENTO pelo resto deste Duelo. Você só pode ativar 1 \"Faísca Dominus\" por turno.",
+      "strings": [
+        "Banir 1 monstro que seu oponente controla",
+        "Invocar por Invocação-Especial 1 monstro da sua mão?",
+        "Afetado por \"Faísca Dominus\": não pode ativar os efeitos de monstros de TERRA, ÁGUA, FOGO e VENTO"
+      ]
+    },
+    {
+      "code": 71808988,
+      "name": "Dragão Toon Definitivo de Olhos Azuis",
+      "description": "\"Dragão Toon de Olhos Azuis\" + 2 monstros Toon\r\nDeve ser Invocado por Invocação-Especial (do seu Deck Adicional) ao embaralhar os cards acima da sua mão, campo e/ou Cemitério no Deck/Deck Adicional. Seus monstros Toon podem atacar diretamente. Uma vez por turno: você pode adicionar 1 card \"Toon\", ou 1 card que mencione o nome de um card \"Toon\", do seu Cemitério à sua mão. Durante o cálculo de dano, se seu monstro Toon for atacado: você pode bani-lo até o final da Etapa de Dano.",
+      "strings": [
+        "Invocar por Invocação-Especial (\"Dragão Toon Definitivo de Olhos Azuis\")",
+        "Adicionar 1 card \"Toon\", ou 1 card que mencione o nome de um card \"Toon\", do Cemitério à mão",
+        "Banir seu monstro Toon até o final da Etapa de Dano"
+      ]
+    },
+    {
+      "code": 53904087,
+      "name": "Rahamu, Enviado do Tomo Sagrado",
+      "description": "2 Monstros de Efeito\r\nUma vez, enquanto este card Invocado por Invocação-Link estiver com a face para cima no campo, você pode Invocar por Invocação-Normal 1 monstro de Nível 5 ou mais sem oferecer Tributo. Durante a Fase Principal, você pode (Efeito Rápido): imediatamente depois que este efeito resolver, Invoque por Invocação-Normal 1 monstro de TREVAS de Nível 5 ou mais. Durante sua Fase Final: você pode revelar qualquer número de monstros na sua mão e colocá-los no fundo do Deck em qualquer ordem e, depois, compre cards igual ao número colocado. Você só pode usar cada efeito de \"Rahamu, Enviado do Tomo Sagrado\" uma vez por turno.",
+      "strings": [
+        "Invocar por Invocação-Normal (\"Rahamu, Enviado do Tomo Sagrado\")",
+        "Imediatamente depois que este efeito resolver, Invocar por Invocação-Normal 1 monstro de TREVAS de Nível 5 ou mais",
+        "Revelar monstros na mão, colocá-los no fundo do Deck e comprar o mesmo número de cards"
+      ]
+    },
+    {
+      "code": 27519978,
+      "name": "Quarteto de Encantadoras em Flor",
+      "description": "2+ monstros\r\nGanha 300 de ATK para cada Atributo diferente no campo. Uma vez, enquanto este card estiver com a face para cima no campo, durante a Fase Principal (Efeito Rápido): você pode escolher 2 monstros no seu Cemitério com o mesmo Atributo, mas Tipos diferentes, ou com o mesmo Tipo, mas Atributos diferentes; Invoque os dois por Invocação-Especial e, além disso, até o final do próximo turno, este card e os monstros Invocados por Invocação-Especial não podem ser usados como matéria para uma Invocação-Fusão, Sincro, Xyz ou Link. Você só pode usar este efeito de \"Quarteto de Encantadoras em Flor\" uma vez por turno.",
+      "strings": [
+        "Invocar por Invocação-Especial 2 monstros compatíveis do Cemitério",
+        "Não pode ser usado como matéria para uma Invocação-Fusão, Sincro, Xyz ou Link"
+      ]
+    },
+    {
+      "code": 58036229,
+      "name": "Transmissor de Código Protetor",
+      "description": "2+ Monstros de Efeito\r\nSeu oponente não pode escolher monstros Link-4 ou mais que você controla como alvo de efeitos de card e, além disso, eles não podem ser destruídos em batalha. Se você controlar um Monstro Link \"Firewall\" (Efeito Rápido): você pode banir Monstros Link do seu Cemitério cuja soma dos Valores Link seja exatamente 3; Invoque este card por Invocação-Especial do seu Cemitério, mas bana-o quando ele deixar o campo. Você só pode usar este efeito de \"Transmissor de Código Protetor\" uma vez por turno.",
+      "strings": [
+        "Invocar este card por Invocação-Especial do Cemitério"
+      ]
+    },
+    {
+      "code": 45112597,
+      "name": "Dragão do Mar Mundial Zealantis",
+      "description": "1+ Monstros de Efeito\r\nVocê só pode controlar 1 \"Dragão do Mar Mundial Zealantis\". Você só pode usar cada um dos seguintes efeitos de \"Dragão do Mar Mundial Zealantis\" uma vez por turno. Durante sua Fase Principal: você pode banir todos os monstros no campo e, depois, Invoque por Invocação-Especial tantos monstros quanto possível que foram banidos por este efeito nos campos dos seus donos, com a face para cima ou com a face para baixo em Posição de Defesa. Durante a Fase de Batalha (Efeito Rápido): você pode destruir cards no campo até o número de monstros co-linkados no campo.",
+      "strings": [
+        "Banir e Invocar por Invocação-Especial",
+        "Destruir"
+      ]
+    },
+    {
+      "code": 7594154,
+      "name": "Donzelas Bonecas Enganadoras de Zenna",
+      "description": "2+ Monstros de Efeito\r\nVocê também pode usar 1 monstro na sua mão como matéria para a Invocação-Link deste card. Você só pode usar cada um dos seguintes efeitos de \"Donzelas Bonecas Enganadoras de Zenna\" uma vez por turno. Se este card for Invocado por Invocação-Link: você pode enviar 1 monstro do seu Deck para o Cemitério ou, se todas as matérias usadas para sua Invocação-Link eram monstros que você controlava, pode enviar 1 monstro do seu Deck Adicional em vez disso. Durante sua próxima Fase de Apoio depois que este card foi enviado do campo para o Cemitério: você pode adicionar 1 monstro do seu Cemitério à sua mão.",
+      "strings": [
+        "Enviar 1 monstro do Deck para o Cemitério",
+        "Adicionar 1 monstro do Cemitério à mão"
+      ]
+    },
+    {
+      "code": 92422871,
+      "name": "Desavewurm Ciberso",
+      "description": "1 Monstro Ciberso de Ritual, Fusão, Sincro, Xyz ou Link + 1 monstro Ciberso\r\nDurante sua Fase Principal: você pode Invocar por Invocação-Especial 1 monstro Ciberso da sua mão e, depois, pode fazer com que o Nível deste card se torne igual ao desse monstro. Quando seu oponente ativar um Card de Magia/Armadilha ou efeito enquanto você controlar um monstro Ciberso Link-4 ou mais (Efeito Rápido): você pode banir este card do seu campo ou Cemitério; negue a ativação. Você só pode usar cada efeito de \"Desavewurm Ciberso\" uma vez por turno.",
+      "strings": [
+        "Invocar por Invocação-Especial 1 monstro Ciberso da mão",
+        "Negar a ativação de uma Magia/Armadilha do oponente",
+        "Fazer com que o Nível deste card se torne igual ao desse monstro?"
+      ]
+    },
+    {
+      "code": 13203964,
+      "name": "Dragão Hydradrive Perfeitron",
+      "description": "1+ Monstros Link\r\nSe este card for Invocado por Invocação-Link, ou no final da Etapa de Dano se este card batalhou: destrua tantos monstros que seu oponente controla quanto possível e, depois, cause 300 de dano ao seu oponente para cada Monstro Link no seu Cemitério. Enquanto estiver com a face para cima no campo, este card também é dos Atributos LUZ, ÁGUA, FOGO e VENTO. Não é afetado pelos efeitos ativados de monstros que compartilhem um Atributo com este card. Se este card com 1000 ou mais de ATK seria destruído em batalha ou por um efeito de card, em vez disso, você pode reduzir o ATK dele em 1000.",
+      "strings": [
+        "Destruir os monstros do oponente e causar 300 de dano para cada Monstro Link no Cemitério"
+      ]
+    },
+    {
+      "code": 59400890,
+      "name": "Mago Negro da Destruição",
+      "description": "\"Mago Negro\" + 1 monstro de LUZ ou TREVAS\r\nDeve ser Invocado por Invocação-Fusão ou por Invocação-Especial (do seu Deck Adicional), durante o turno em que um Card de Magia ou efeito for ativado, ao banir 1 monstro Mago de TREVAS de Nível 6 ou mais que você controla como matéria. Você só pode Invocar por Invocação-Especial \"Mago Negro da Destruição\" uma vez por turno desta forma, independentemente do método usado. O nome deste card se torna \"Mago Negro\" enquanto ele estiver no campo ou no Cemitério. Se este card for Invocado por Invocação-Especial: você pode adicionar 1 \"Mago Negro\" ou 1 card que o mencione do seu Deck à sua mão.",
+      "strings": [
+        "Invocar por Invocação-Especial (\"Mago Negro da Destruição\")",
+        "Adicionar 1 \"Mago Negro\" ou 1 card que o mencione do Deck à mão"
+      ]
+    },
+    {
+      "code": 10515412,
+      "name": "Dragão da Tempestade de Luz",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\r\nSe este card for Invocado por Invocação-Especial: você pode escolher como alvo Magias/Armadilhas no campo, até o número de Monstros Normais no seu Cemitério +1; destrua-os. Se este card for destruído em batalha ou por um efeito de card: você pode escolher 1 Magia/Armadilha no seu Cemitério; Baixe-a, mas ela não pode ser ativada, a menos que você controle um Monstro Normal. Você só pode usar cada efeito de \"Dragão da Tempestade de Luz\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 16699558,
+      "name": "Dragão Prateado de Olhos Índigo",
+      "description": "2 monstros Dragão de Nível 8\r\nNão pode atacar diretamente, a menos que este card tenha um Monstro Normal como matéria. Você só pode usar cada um dos seguintes efeitos de \"Dragão Prateado de Olhos Índigo\" uma vez por turno. Se este card for Invocado por Invocação-Xyz: você pode negar os efeitos de todos os cards com a face para cima que seu oponente controla atualmente. Você pode desassociar 1 matéria deste card e, depois, escolher 1 Monstro Normal no seu Cemitério ou banimento; Invoque-o por Invocação-Especial e, se isso acontecer, ele ganha 1000 de ATK.",
+      "strings": []
+    },
+    {
+      "code": 17725109,
+      "name": "Rugido dos Dragões de Olhos Azuis",
+      "description": "Invoque por Invocação-Especial em Posição de Defesa 1 monstro \"Olhos Azuis\" do seu Deck, Cemitério ou banimento (mas, se você não controlar \"Dragão Branco de Olhos Azuis\", você só pode Invocar por Invocação-Especial \"Dragão Branco de Olhos Azuis\" com este efeito) e, além disso, você não pode Invocar por Invocação-Especial do Deck Adicional pelo resto deste turno, exceto monstros Dragão. Você pode banir este card do seu Cemitério; Invoque por Invocação-Fusão 1 Monstro de Fusão do seu Deck Adicional, usando monstros da sua mão ou do campo, incluindo um monstro \"Olhos Azuis\". Você só pode usar 1 efeito de \"Rugido dos Dragões de Olhos Azuis\" por turno e apenas uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 17947697,
+      "name": "Donzela de Branco",
+      "description": "Você pode enviar este card da sua mão ou do campo para o Cemitério; coloque 1 \"Luz Verdadeira\" da sua mão, Deck ou Cemitério, com a face para cima na sua Zona de Magias & Armadilhas. Se você Invocar por Invocação-Especial \"Dragão Branco de Olhos Azuis\" enquanto este card estiver no seu Cemitério (exceto durante a Etapa de Dano): você pode Invocar este card por Invocação-Especial. Quando um card ou efeito que escolha este card no campo como alvo for ativado, ou quando este card for escolhido como alvo de um ataque (Efeito Rápido): você pode Invocar por Invocação-Especial 1 \"Dragão Branco de Olhos Azuis\" ou 1 Regulador de LUZ de Nível 1 do seu Cemitério. Você só pode usar cada efeito de \"Donzela de Branco\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 43219114,
+      "name": "Majestade dos Dragões Brancos",
+      "description": "Mostre até 3 dos seus \"Dragão Branco de Olhos Azuis\" na sua mão, Zona de Monstros com a face para cima e/ou Cemitério e, depois, destrua o mesmo número de cards que seu oponente controla. Você pode banir este card do seu Cemitério; Invoque por Invocação-Ritual 1 Monstro de Ritual da sua mão, ao oferecer como Tributo \"Dragão Branco de Olhos Azuis\" da sua mão ou do campo cuja soma dos Níveis seja igual ao Nível dele. Você só pode usar cada efeito de \"Majestade dos Dragões Brancos\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 43321985,
+      "name": "Dragão Vital Fada Antiga",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\r\nSe este card for Invocado por Invocação-Sincro: você pode comprar 1 card ou, se \"Mundo dos Espíritos\" estiver no campo, em vez disso, adicione 1 monstro de LUZ (Besta, Planta ou Fada) ou 1 \"Luz do Sol Eterna\" do seu Deck à sua mão. Você só pode usar este efeito de \"Dragão Vital Fada Antiga\" uma vez por turno. Seu \"Dragão Fada Antigo\" e os monstros que o mencionem podem atacar enquanto estiverem em Posição de Defesa com a face para cima (aplique a DEF deles no cálculo de dano).",
+      "strings": []
+    },
+    {
+      "code": 54332792,
+      "name": "Neo Cavalo-Mar Kaiser",
+      "description": "Se você controlar \"Dragão Branco de Olhos Azuis\": você pode Invocar este card por Invocação-Especial da sua mão. Você pode escolher 1 Regulador de LUZ que você controla; aumente ou diminua o Nível dele em 1. Se este card for enviado do campo para o Cemitério: você pode enviar 1 monstro \"Olhos Azuis\" ou 1 monstro que mencione \"Dragão Branco de Olhos Azuis\" do seu Deck para o Cemitério, exceto \"Neo Cavalo-Mar Kaiser\". Você só pode usar cada efeito de \"Neo Cavalo-Mar Kaiser\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 80326401,
+      "name": "Desejos para os Olhos Azuis",
+      "description": "Descarte 1 card; adicione 1 Regulador de LUZ de Nível 1 e 1 Magia/Armadilha que mencione \"Dragão Branco de Olhos Azuis\" do seu Deck à sua mão, exceto \"Desejos para os Olhos Azuis\". Você pode banir este card do seu Cemitério e, depois, escolher 1 \"Dragão Branco de Olhos Azuis\" que você controla; equipe a ele 1 monstro \"Olhos Azuis\" do seu Deck Adicional como uma Magia de Equipamento que lhe concede 400 de ATK. Você só pode usar cada efeito de \"Desejos para os Olhos Azuis\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 85442146,
+      "name": "Mente do Dragão",
+      "description": "Quando um Card de Magia/Armadilha ou efeito de monstro for ativado enquanto você controlar um monstro com 2500 de ATK ou DEF originais: negue a ativação e, se isso acontecer, destrua esse card. Se este card estiver no seu Cemitério: você pode pagar 2500 PV; Baixe este card, mas bana-o quando ele deixar o campo. Você só pode usar cada efeito de \"Mente do Dragão\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 89604813,
+      "name": "Dragão Espírito Definitivo de Olhos Azuis",
+      "description": "2+ Reguladores + 1 monstro \"Olhos Azuis\" não-Regulador\r\nSeu oponente não pode banir cards do seu Cemitério. Você só pode usar cada um dos seguintes efeitos de \"Dragão Espírito Definitivo de Olhos Azuis\" uma vez por turno. Quando um card ou efeito for ativado no campo (Efeito Rápido): você pode negar a ativação e, se isso acontecer, este card ganha 1000 de ATK até o final deste turno. Se este card for destruído em batalha ou por um efeito de card: você pode Invocar por Invocação-Especial 1 monstro Dragão de LUZ do seu Cemitério, exceto \"Dragão Espírito Definitivo de Olhos Azuis\".",
+      "strings": []
+    }
+  ]
+}

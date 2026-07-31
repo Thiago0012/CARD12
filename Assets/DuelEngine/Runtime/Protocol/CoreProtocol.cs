@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using ArcaneDuel.DuelEngine.Data;
 
 namespace ArcaneDuel.DuelEngine.Protocol
 {
@@ -257,9 +258,13 @@ namespace ArcaneDuel.DuelEngine.Protocol
 
     public static class CoreMessageDecoder
     {
-        public static List<DuelEvent> Decode(byte[] nativeCopy)
+        public static List<DuelEvent> Decode(
+            byte[] nativeCopy,
+            IEnumerable<CardRecord> announceCardCandidates = null)
         {
             var events = new List<DuelEvent>();
+            CardRecord[] candidates = announceCardCandidates?.ToArray() ??
+                                      Array.Empty<CardRecord>();
             int offset = 0;
             while (offset < nativeCopy.Length)
             {
@@ -275,13 +280,16 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 }
                 byte message = nativeCopy[offset];
                 var reader = new PacketReader(nativeCopy, offset + 1, (int)size - 1);
-                events.Add(DecodePacket(message, reader));
+                events.Add(DecodePacket(message, reader, candidates));
                 offset += (int)size;
             }
             return events;
         }
 
-        private static DuelEvent DecodePacket(byte raw, PacketReader reader)
+        private static DuelEvent DecodePacket(
+            byte raw,
+            PacketReader reader,
+            IReadOnlyList<CardRecord> announceCardCandidates)
         {
             CoreMessage message = (CoreMessage)raw;
             var result = new DuelEvent { Message = message, RawMessage = raw };
@@ -400,6 +408,12 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 case CoreMessage.AnnounceRace:
                 case CoreMessage.AnnounceAttribute:
                     result.Prompt = DecodeAnnounceMask(reader, message);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.AnnounceCard:
+                    result.Prompt = DecodeAnnounceCard(
+                        reader,
+                        announceCardCandidates);
                     result.Player = result.Prompt.Player;
                     break;
                 case CoreMessage.AnnounceNumber:
@@ -984,6 +998,49 @@ namespace ArcaneDuel.DuelEngine.Protocol
                     number.ToString(),
                     0,
                     IntResponse(index)));
+            }
+            return prompt;
+        }
+
+        private static DuelPrompt DecodeAnnounceCard(
+            PacketReader reader,
+            IReadOnlyList<CardRecord> candidates)
+        {
+            byte player = reader.Byte();
+            uint count = GuardCount(reader.Byte(), 255, "announce-card opcodes");
+            var opcodes = new ulong[count];
+            for (int index = 0; index < count; index++)
+                opcodes[index] = reader.UInt64();
+
+            var prompt = NewPrompt(
+                CoreMessage.AnnounceCard,
+                player,
+                "Declare o nome de uma carta");
+            prompt.MinimumSelections = 1;
+            prompt.MaximumSelections = 1;
+            CardRecord[] matchingCards = candidates
+                .Where(card => AnnounceCardFilter.IsDeclarable(card, opcodes))
+                .OrderBy(card => card.Name, StringComparer.CurrentCulture)
+                .ThenBy(card => card.Code)
+                .ToArray();
+            if (matchingCards.Length > 0)
+            {
+                foreach (CardRecord card in matchingCards)
+                {
+                    prompt.Choices.Add(Choice(
+                        card.Name,
+                        card.Code,
+                        IntResponse(unchecked((int)card.Code))));
+                }
+                return prompt;
+            }
+
+            foreach (uint code in AnnounceCardFilter.LiteralCardCodes(opcodes))
+            {
+                prompt.Choices.Add(Choice(
+                    code.ToString("00000000"),
+                    code,
+                    IntResponse(unchecked((int)code))));
             }
             return prompt;
         }

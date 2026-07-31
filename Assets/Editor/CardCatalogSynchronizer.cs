@@ -12,11 +12,36 @@ namespace ArcaneArena.Editor
     {
         private const string CatalogPath =
             "Assets/Cards/CardCatalog.asset";
-        private const string ArtFolder =
+        private const string YugiArtFolder =
             "Assets/Cards/Cards/Decks/YugiMutoBattleCity";
+        private const string ToonArtFolder =
+            "Assets/Cards/Cards/Decks/ToonTest";
 
         [MenuItem("Arcane Arena/Content/Sync Yugi Battle City")]
         public static void SyncYugiMutoBattleCity()
+        {
+            SyncDeck(
+                "yugi-battle-city",
+                YugiArtFolder,
+                CuratedDeckLists.YugiMutoBattleCityMain,
+                CuratedDeckLists.YugiMutoBattleCityExtra);
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync Toon Deck and Portuguese Text")]
+        public static void SyncToonDeckAndPortugueseText()
+        {
+            SyncDeck(
+                "toon-test",
+                ToonArtFolder,
+                CuratedDeckLists.ToonTestMain,
+                CuratedDeckLists.ToonTestExtra);
+        }
+
+        private static void SyncDeck(
+            string deckId,
+            string artFolder,
+            uint[] mainDeck,
+            uint[] extraDeck)
         {
             CardCatalog catalog =
                 AssetDatabase.LoadAssetAtPath<CardCatalog>(CatalogPath);
@@ -24,8 +49,9 @@ namespace ArcaneArena.Editor
                 throw new FileNotFoundException(CatalogPath);
 
             CardDatabase database = CardDatabase.LoadDefault();
-            uint[] codes = CuratedDeckLists.YugiMutoBattleCityMain
-                .Concat(CuratedDeckLists.YugiMutoBattleCityExtra)
+            RefreshPortugueseMetadata(catalog, database);
+            uint[] codes = mainDeck
+                .Concat(extraDeck)
                 .Distinct()
                 .ToArray();
             int added = 0;
@@ -38,7 +64,7 @@ namespace ArcaneArena.Editor
                     continue;
                 }
 
-                string artPath = $"{ArtFolder}/{code}.jpg";
+                string artPath = $"{artFolder}/{code}.jpg";
                 ConfigureSprite(artPath);
                 Sprite sprite =
                     AssetDatabase.LoadAssetAtPath<Sprite>(artPath);
@@ -55,7 +81,24 @@ namespace ArcaneArena.Editor
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
             Debug.Log(
-                $"ARCANE_CARD_CATALOG_SYNC_OK deck=yugi-battle-city added={added}");
+                $"ARCANE_CARD_CATALOG_SYNC_OK deck={deckId} added={added}");
+        }
+
+        private static void RefreshPortugueseMetadata(
+            CardCatalog catalog,
+            CardDatabase database)
+        {
+            foreach (CardCatalogEntry entry in catalog.Entries)
+            {
+                if (entry == null ||
+                    !uint.TryParse(entry.OfficialCardId, out uint code) ||
+                    !database.TryGet(code, out CardRecord card))
+                {
+                    continue;
+                }
+
+                entry.ApplyCoreMetadata(card);
+            }
         }
 
         private static void ConfigureSprite(string assetPath)

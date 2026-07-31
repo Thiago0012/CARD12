@@ -26,6 +26,7 @@ namespace ArcaneDuel.Tests.EditMode
         [TestCase(7)]
         [TestCase(8)]
         [TestCase(9)]
+        [TestCase(10)]
         public void ImportedBatchHasDataArtAndResolvedScripts(int batchIndex)
         {
             CardDatabase database = CardDatabase.LoadDefault();
@@ -79,10 +80,10 @@ namespace ArcaneDuel.Tests.EditMode
         {
             CardVisualCatalog visuals = CardVisualCatalog.LoadDefault();
             CardVisualData[] cards = visuals.Cards.ToArray();
-            Assert.That(visuals.Count, Is.EqualTo(232));
+            Assert.That(visuals.Count, Is.EqualTo(263));
             Assert.That(
                 cards.Select(card => card.officialCode).Distinct().Count(),
-                Is.EqualTo(232));
+                Is.EqualTo(263));
             Assert.That(
                 typeof(CardVisualData).GetMethod("ResolveEffect"),
                 Is.Null,
@@ -91,7 +92,7 @@ namespace ArcaneDuel.Tests.EditMode
                 cards.Count(card => card.riskLevel == "A") +
                 cards.Count(card => card.riskLevel == "B") +
                 cards.Count(card => card.riskLevel == "C"),
-                Is.EqualTo(232));
+                Is.EqualTo(263));
         }
 
         [Test]
@@ -149,6 +150,7 @@ namespace ArcaneDuel.Tests.EditMode
         [TestCase(7)]
         [TestCase(8)]
         [TestCase(9)]
+        [TestCase(10)]
         public void CatalogBatchSurvivesTenTurnsThroughNativeCore(
             int batchIndex)
         {
@@ -208,7 +210,15 @@ namespace ArcaneDuel.Tests.EditMode
                     Assert.That(
                         engine.CurrentPrompt,
                         Is.Not.Null,
-                        $"Batch {batchIndex} stopped at an untyped prompt.");
+                        $"Batch {batchIndex} stopped at an untyped prompt. " +
+                        "events=" + string.Join(
+                            " | ",
+                            engine.EventHistory.TakeLast(10).Select(duelEvent =>
+                                $"{duelEvent.RawMessage}:{duelEvent.Message}:" +
+                                $"{duelEvent.Code}:{duelEvent.Detail}")) +
+                        "; native=" + string.Join(
+                            " | ",
+                            engine.NativeLogs.TakeLast(6)));
                     DuelChoice choice =
                         DeterministicDuelPolicy.Choose(engine.CurrentPrompt);
                     engine.SubmitResponse(choice.Response);

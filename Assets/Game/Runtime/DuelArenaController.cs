@@ -1294,6 +1294,7 @@ namespace ArcaneDuel.Game
                     "Defina a ordem solicitada para a resolucao.",
                 CoreMessage.AnnounceRace or
                     CoreMessage.AnnounceAttribute or
+                    CoreMessage.AnnounceCard or
                     CoreMessage.AnnounceNumber =>
                     "Escolha o valor anunciado solicitado pelo efeito.",
                 CoreMessage.SelectPosition =>
@@ -1871,6 +1872,7 @@ namespace ArcaneDuel.Game
                 prompt.Message == CoreMessage.SortChain ||
                 prompt.Message == CoreMessage.AnnounceRace ||
                 prompt.Message == CoreMessage.AnnounceAttribute ||
+                prompt.Message == CoreMessage.AnnounceCard ||
                 prompt.Message == CoreMessage.AnnounceNumber;
             List<DuelChoice> choices = modal
                 ? prompt.Choices.ToList()
@@ -1898,6 +1900,7 @@ namespace ArcaneDuel.Game
                     prompt.Message == CoreMessage.SortChain ||
                     prompt.Message == CoreMessage.AnnounceRace ||
                     prompt.Message == CoreMessage.AnnounceAttribute ||
+                    prompt.Message == CoreMessage.AnnounceCard ||
                     prompt.Message == CoreMessage.AnnounceNumber;
                 if (grid)
                 {
@@ -2161,6 +2164,7 @@ namespace ArcaneDuel.Game
                     "Escolha a ordem das cartas no painel central.",
                 CoreMessage.AnnounceRace or
                     CoreMessage.AnnounceAttribute or
+                    CoreMessage.AnnounceCard or
                     CoreMessage.AnnounceNumber =>
                     "Escolha o valor solicitado pelo efeito.",
                 _ =>

@@ -431,7 +431,9 @@ namespace ArcaneDuel.DuelEngine.Core
             }
             byte[] copy = new byte[length];
             Marshal.Copy(source, copy, 0, (int)length);
-            foreach (DuelEvent duelEvent in CoreMessageDecoder.Decode(copy))
+            foreach (DuelEvent duelEvent in CoreMessageDecoder.Decode(
+                         copy,
+                         database.Cards))
             {
                 Emit(duelEvent);
             }

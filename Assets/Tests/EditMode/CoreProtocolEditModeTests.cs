@@ -403,6 +403,34 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void AnnounceCardProducesSelectableNativeCardCodes()
+        {
+            const ulong isCode = 0x4000010000000000;
+            const ulong or = 0x4000000500000000;
+            var payload = new List<byte> { 0, 5 };
+            UInt64(payload, 24508238);
+            UInt64(payload, isCode);
+            UInt64(payload, 53094821);
+            UInt64(payload, isCode);
+            UInt64(payload, or);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.AnnounceCard,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt, Is.Not.Null);
+            Assert.That(prompt.Message, Is.EqualTo(CoreMessage.AnnounceCard));
+            Assert.That(prompt.Choices.Select(choice => choice.CardCode),
+                Is.EquivalentTo(new uint[] { 24508238, 53094821 }));
+            Assert.That(prompt.Choices.All(choice =>
+                choice.Response.Length == 4), Is.True);
+        }
+
+        [Test]
         public void KnownPresentationEventsAreNotReportedAsUnknown()
         {
             var framed = new List<byte>();

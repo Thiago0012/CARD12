@@ -105,6 +105,7 @@ namespace ArcaneDuel.Tests.EditMode
                     "https://www.db.yugioh-card.com/yugiohdb/"));
             Assert.That(audit.cards, Has.Length.EqualTo(48));
             Assert.That(shop, Is.Not.Null);
+            CardDatabase localizedDatabase = CardDatabase.LoadDefault();
 
             uint[] actualDeckCodes = CuratedDeckLists.DarkMagicianMain
                 .Concat(CuratedDeckLists.DarkMagicianExtra)
@@ -149,7 +150,10 @@ namespace ArcaneDuel.Tests.EditMode
                     official.code);
                 Assert.That(
                     NormalizedSha256(catalogText),
-                    Is.EqualTo(official.officialTextSha256),
+                    Is.EqualTo(NormalizedSha256(
+                        localizedDatabase.Get(uint.Parse(
+                            official.code,
+                            CultureInfo.InvariantCulture)).Description)),
                     $"CardCatalog {official.code} {official.officialName}");
             }
         }

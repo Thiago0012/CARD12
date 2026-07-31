@@ -110,6 +110,8 @@ namespace ArcaneArena.Frontend
             "classic-red-eyes-black-dragon";
         public const string YugiMutoBattleCityProductId =
             "yugi-muto-battle-city-722944";
+        public const string ToonTestProductId =
+            "toon-test-718475";
 
         private static readonly IReadOnlyList<DeckShopProduct>
             AvailableProducts = new[]
@@ -190,7 +192,19 @@ namespace ArcaneArena.Frontend
                     CuratedDeckLists.AsCardIds(
                         CuratedDeckLists.YugiMutoBattleCityMain),
                     CuratedDeckLists.AsCardIds(
-                        CuratedDeckLists.YugiMutoBattleCityExtra))
+                        CuratedDeckLists.YugiMutoBattleCityExtra)),
+                new DeckShopProduct(
+                    ToonTestProductId,
+                    "Deck Toon",
+                    "MUNDO TOON",
+                    "Estratégia Toon com controle, respostas rápidas e um Deck Adicional completo.",
+                    "53183600",
+                    "https://ygoprodeck.com/deck/toon-test-718475",
+                    0,
+                    CuratedDeckLists.AsCardIds(
+                        CuratedDeckLists.ToonTestMain),
+                    CuratedDeckLists.AsCardIds(
+                        CuratedDeckLists.ToonTestExtra))
             };
 
         private static readonly HashSet<string> LegacyOwnedCardIds =
