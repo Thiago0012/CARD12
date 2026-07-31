@@ -114,6 +114,8 @@ namespace ArcaneArena.Frontend
             "toon-test-718475";
         public const string ShiranuiSupremacyProductId =
             "shiranui-supremacy-699840";
+        public const string MausoleumLockdownEdisonProductId =
+            "mausoleum-lockdown-edison-724211";
 
         private static readonly IReadOnlyList<DeckShopProduct>
             AvailableProducts = new[]
@@ -218,7 +220,19 @@ namespace ArcaneArena.Frontend
                     CuratedDeckLists.AsCardIds(
                         CuratedDeckLists.ShiranuiSupremacyMain),
                     CuratedDeckLists.AsCardIds(
-                        CuratedDeckLists.ShiranuiSupremacyExtra))
+                        CuratedDeckLists.ShiranuiSupremacyExtra)),
+                new DeckShopProduct(
+                    MausoleumLockdownEdisonProductId,
+                    "Mausoléu Lockdown Edison",
+                    "FORMATO EDISON",
+                    "Campos que aceleram monstros de alto Nível, pressão de Máquinas e bloqueios clássicos do formato Edison.",
+                    "80921533",
+                    "https://ygoprodeck.com/deck/mausoleum-lockdown-edison-724211",
+                    2,
+                    CuratedDeckLists.AsCardIds(
+                        CuratedDeckLists.MausoleumLockdownEdisonMain),
+                    CuratedDeckLists.AsCardIds(
+                        CuratedDeckLists.MausoleumLockdownEdisonExtra))
             };
 
         private static readonly HashSet<string> LegacyOwnedCardIds =

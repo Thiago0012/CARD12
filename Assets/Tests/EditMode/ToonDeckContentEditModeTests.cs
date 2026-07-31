@@ -96,7 +96,7 @@ namespace ArcaneDuel.Tests.EditMode
             foreach (LocalizationCard card in localization.cards)
                 localized[card.code] = card;
 
-            Assert.That(authoredCodes, Has.Length.EqualTo(351));
+            Assert.That(authoredCodes, Has.Length.EqualTo(375));
             Assert.That(localized.Keys, Is.EquivalentTo(authoredCodes));
             CardDatabase database = CardDatabase.LoadDefault();
             foreach (uint code in authoredCodes)

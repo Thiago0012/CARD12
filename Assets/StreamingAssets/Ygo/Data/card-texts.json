@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "count": 358,
+  "count": 384,
   "cards": [
     {
       "code": 295517,
@@ -29,6 +29,29 @@
       "code": 1184620,
       "name": "Kojikocy",
       "description": "Um caçador de homens com braços poderosos, capazes de esmagar grandes rochas.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 1475311,
+      "name": "Fascinação das Trevas",
+      "description": "Compre 2 cards e, depois, bana 1 monstro de TREVAS da sua mão ou, se você não tiver nenhum na sua mão, envie toda a sua mão para o Cemitério.",
       "strings": [
         "",
         "",
@@ -578,6 +601,29 @@
       ]
     },
     {
+      "code": 5556499,
+      "name": "Fortaleza Autômata",
+      "description": "Você pode descartar um ou mais monstros Máquina cuja soma dos Níveis seja igual a 8 ou mais e, depois, Invoque este card por Invocação-Especial (da sua mão ou do Cemitério). Se este card for destruído em batalha e enviado para o Cemitério: escolha 1 card que seu oponente controla; destrua o alvo. Antes de resolver um efeito de monstro do oponente que escolha como alvo este card com a face para cima, olhe a mão do seu oponente e descarte 1 card da mão dele.",
+      "strings": [
+        "Destroy 1 card your opponent controls",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 5556668,
       "name": "Troca",
       "description": "Os dois duelistas revelam suas mãos e adicionam à sua própria mão 1 card da mão do outro.",
@@ -791,6 +837,29 @@
       "strings": [
         "Adicionar 1 card \"Toon\", ou 1 card que mencione o nome de um card \"Toon\", do Deck à mão",
         "Banir 1 monstro Toon que você controla até imediatamente depois que esse card ou efeito resolver?",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 7391448,
+      "name": "Guardião Goyo",
+      "description": "1 Regulador de TERRA + 1+ monstros não-Reguladores\nQuando este card destruir um monstro do oponente em batalha e enviá-lo para o Cemitério: você pode Invocar esse monstro por Invocação-Especial no seu campo em Posição de Defesa.",
+      "strings": [
+        "Special Summon",
+        "",
         "",
         "",
         "",
@@ -1251,6 +1320,29 @@
       "strings": [
         "Search",
         "Special Summon",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 12298909,
+      "name": "Dragão de Matéria Primitiva",
+      "description": "Qualquer efeito que causaria dano a um duelista, em vez disso, aumenta os Pontos de Vida dele no mesmo valor. Durante o turno de qualquer duelista, quando um card ou efeito que destruiria um ou mais monstros no campo for ativado: você pode enviar 1 card da sua mão para o Cemitério; negue a ativação e, se isso acontecer, destrua-o.",
+      "strings": [
+        "Negate and destroy the card",
+        "",
         "",
         "",
         "",
@@ -1889,6 +1981,29 @@
       ]
     },
     {
+      "code": 19974580,
+      "name": "Dragão da Corrente de Malha de Ferro",
+      "description": "1 Tuner + 1 ou mais monstros não Tuner\r\nVocê pode remover do jogo todos os monstros \"Iron Chain\" do seu Cemitério para fazer com que esta carta ganhe 200 pontos de ATK para cada monstro removido, até a End Phase. Quando esta carta inflige Dano de Batalha ao seu oponente, envie as 3 cartas do topo do Deck do seu oponente ao Cemitério.",
+      "strings": [
+        "Gain attack",
+        "Send the top 3 cards of your opponent's Deck to the Graveyard",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 20747792,
       "name": "Pequena Maga Baga",
       "description": "Se este card for Invocado por Invocação-Normal: você pode adicionar 1 monstro \"Pequena Maga\" do seu Deck à sua mão. Uma vez por turno, durante o turno de qualquer duelista, quando seu oponente ativar um card ou efeito que escolha este card como alvo, ou escolha este card como alvo de um ataque: você pode mudar a posição de batalha deste card e, se isso acontecer, Invoque por Invocação-Especial 1 monstro \"Pequena Maga\" do seu Deck, exceto \"Pequena Maga Baga\".",
@@ -2119,6 +2234,29 @@
       ]
     },
     {
+      "code": 23116809,
+      "name": "Fireball Token",
+      "description": "Special Summoned with the effect of \"Goka, the Pyre of Malice\".",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 23205979,
       "name": "Ceifeiro de Espíritos",
       "description": "Não pode ser destruído em batalha. Depois de resolver um efeito de card que escolher como alvo este card com a face para cima, destrua este card. Quando este card causar dano de batalha ao seu oponente em um ataque direto: descarte 1 card aleatório da mão dele.",
@@ -2170,6 +2308,29 @@
       "description": "Durante o turno de qualquer duelista: você pode enviar este card da sua mão para o Cemitério; neste turno, sempre que seu oponente Invocar um ou mais monstros por Invocação-Especial, imediatamente compre 1 card. Você só pode usar 1 \"\"C\" Maxx\" por turno.",
       "strings": [
         "Draw 1 card for eatch Special Summoned card on opponent's Field",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 23693634,
+      "name": "Lutador Colossal",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nGanha 100 de ATK para cada monstro Guerreiro nos Cemitérios. Quando este card for destruído em batalha e enviado para o Cemitério: você pode escolher 1 monstro Guerreiro em qualquer Cemitério; Invoque o alvo por Invocação-Especial.",
+      "strings": [
+        "Special Summon 1 Warrior monster from either GY",
         "",
         "",
         "",
@@ -2262,6 +2423,29 @@
       "description": "Escolha 1 monstro no Cemitério do seu oponente; bana-o e, se isso acontecer, até o final do próximo turno, os efeitos dele são negados, assim como os efeitos ativados e efeitos no campo de monstros com o mesmo nome original.",
       "strings": [
         "Banish 1 monster from your opponent's GY",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 24317029,
+      "name": "Espião do Coveiro",
+      "description": "VIRE: Invoque por Invocação-Especial do seu Deck 1 monstro \"do Coveiro\" com 1500 ou menos de ATK.",
+      "strings": [
+        "Special Summon",
         "",
         "",
         "",
@@ -2469,6 +2653,29 @@
       "description": "1 Regulador + 1+ monstros não-Reguladores\nVocê só pode Invocar um ou mais \"Shiranui Espadasaga\" por Invocação-Especial uma vez por turno. Se este card for Invocado por Invocação-Especial: você pode escolher 1 monstro no campo; mude a posição de batalha dele. Se este card for banido: você pode Invocar por Invocação-Especial 1 \"Ficha Shiranui\" (Zumbi/FOGO/Nível 1/ATK 0/DEF 0). Você só pode usar este efeito de \"Shiranui Espadasaga\" uma vez por turno.",
       "strings": [
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 26593852,
+      "name": "Catastor, Aliado da Justiça",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nNo começo da Etapa de Dano, se este card batalhar um monstro com a face para cima que não seja de TREVAS: destrua esse monstro.",
+      "strings": [
+        "Destroy non-DARK monster",
         "",
         "",
         "",
@@ -3177,6 +3384,29 @@
       ]
     },
     {
+      "code": 37694547,
+      "name": "Vila Mecânica",
+      "description": "Os dois duelistas podem Invocar por Invocação-Normal monstros \"Mecanismo Antigo\" oferecendo 1 Tributo a menos. Quando este card for destruído e enviado para o Cemitério: você pode Invocar por Invocação-Especial 1 monstro \"Mecanismo Antigo\" da sua mão, do Deck ou do Cemitério.",
+      "strings": [
+        "Special Summon",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 37742478,
       "name": "Honesto",
       "description": "Durante sua Fase Principal: você pode devolver este card com a face para cima do campo para a mão. Durante a Etapa de Dano, quando um monstro de LUZ que você controla batalhar (Efeito Rápido): você pode enviar este card da sua mão para o Cemitério; até o final deste turno, esse monstro ganha ATK igual ao ATK do monstro do oponente que ele estiver batalhando.",
@@ -3391,6 +3621,29 @@
         "",
         "Affected by \"Mayakashi Metamorphosis\": cannot Special Summon from the Extra Deck, except \"Mayakashi\" monsters",
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 40005099,
+      "name": "Shiranui Style Synthesis",
+      "description": "Once per turn, if you control no monsters: You can send 1 card from your hand to the Graveyard, then activate 1 of these effects.\r\n● Target 1 Zombie-Type monster with 0 DEF in your Graveyard; Special Summon it.\r\n● Target 1 of your banished Zombie-Type monsters with 0 DEF; return it to the Graveyard.\r\nYou can only activate 1 \"Shiranui Style Synthesis\" per turn.",
+      "strings": [
+        "Activate 1 of these effects",
+        "Special Summon 1 Zombie monster with 0 DEF",
+        "Return 1 Zombie monster with 0 DEF to your GY",
         "",
         "",
         "",
@@ -4189,6 +4442,29 @@
       ]
     },
     {
+      "code": 47084486,
+      "name": "Demônio da Vaidade",
+      "description": "Não pode ser Invocado por Invocação-Especial. Nenhum duelista pode Invocar monstros por Invocação-Especial.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 47222536,
       "name": "Círculo Mágico Negro",
       "description": "Quando este card for ativado: olhe os 3 cards do topo do seu Deck e, depois, você pode revelar 1 deles que seja \"Mago Negro\" ou uma Magia/Armadilha que mencione \"Mago Negro\" e adicioná-lo à sua mão e, além disso, coloque os cards restantes no topo do seu Deck em qualquer ordem. Se \"Mago Negro\" for Invocado por Invocação-Normal ou Especial no seu campo (exceto durante a Etapa de Dano): você pode escolher 1 card que seu oponente controla; bana-o. Você só pode usar cada efeito de \"Círculo Mágico Negro\" uma vez por turno.",
@@ -4198,6 +4474,29 @@
         "",
         "",
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 47297616,
+      "name": "Dragão da Luz e das Trevas",
+      "description": "Não pode ser Invocado por Invocação-Especial. Enquanto estiver com a face para cima no campo, este card também é do Atributo TREVAS. Uma vez por Corrente, durante o turno de qualquer duelista, quando um Card de Magia, Card de Armadilha ou um efeito de monstro for ativado: este card perde exatamente 500 de ATK e DEF e essa ativação e negada. Quando este card for destruído e enviado para o Cemitério: escolha 1 monstro em seu Cemitério (se possível); destrua todos os cards que você controla, além disso, Invoque esse monstro por Invocação-Especial (se houver).",
+      "strings": [
+        "Cannot be Special Summoned",
+        "Attribute is also treated as DARK",
+        "Negate effect",
+        "Los 500 ATK",
+        "Special Summon",
         "",
         "",
         "",
@@ -4465,12 +4764,58 @@
       ]
     },
     {
+      "code": 50321796,
+      "name": "Brionac, o Dragão da Barreira de Gelo",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nVocê pode descartar qualquer número de cards para o Cemitério e, depois, escolha o mesmo número de cards que seu oponente controla; devolva esses cards para a mão. Você só pode usar este efeito de \"Brionac, o Dragão da Barreira de Gelo\" uma vez por turno.",
+      "strings": [
+        "Return to hand",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 50913601,
       "name": "Montanha",
       "description": "Todos os monstros Dragão, Besta Alada e Trovão no campo ganham 200 de ATK/DEF.",
       "strings": [
         "",
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 50933533,
+      "name": "Dragão Gadjiltron do Mecanismo Antigo",
+      "description": "Se este card atacar, seu oponente não pode ativar nenhum Card de Magia/Armadilha até o final da Etapa de Dano. Este card ganha os efeitos apropriados se você Invocá-lo por Invocação-Normal oferecendo como Tributo esses monstros.\n●Dispositivo Verde: Se este card atacar um monstro em Posição de Defesa, cause dano de batalha perfurante ao seu oponente.\n●Dispositivo Vermelho: Se este card causar dano de batalha ao seu oponente: cause 400 de dano ao seu oponente.\n●Dispositivo Amarelo: Se este card destruir um monstro do oponente em batalha: cause 600 de dano ao seu oponente.",
+      "strings": [
+        "Inflict 400 damage",
+        "Inflict 600 damage",
         "",
         "",
         "",
@@ -4769,6 +5114,29 @@
       "description": "Quando um ou mais monstros forem Invocados: destrua todos os monstros no campo.",
       "strings": [
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 53714009,
+      "name": "Flamvell Uruquizas",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nSe este card atacar um monstro em Posição de Defesa, cause dano de batalha perfurante. Se este card causar dano de batalha ao seu oponente: ele ganha 300 de ATK.",
+      "strings": [
+        "Gain attack",
         "",
         "",
         "",
@@ -5385,6 +5753,29 @@
       ]
     },
     {
+      "code": 63101919,
+      "name": "Mago da Tempestade",
+      "description": "1 Tuner + 1 ou mais monstros não Tuner Spellcaster-Type\r\nQuando esta carta é Synchro Summoned, coloque 1 Spell Counter nela. Uma vez por turno, você pode descartar qualquer número de cartas para colocar 1 Spell Counter em um ou mais monstros que você controla para cada carta que você descartou. Você pode remover todos os Spell Counters no campo para infligir 500 pontos de dano ao seu oponente para cada Spell Counter removido.",
+      "strings": [
+        "Place spell counter",
+        "Discard any number of cards to place 1 Spell Counter on a monster(s) you control",
+        "Inflict 500 damage for each removed Spell Counter",
+        "Select monster to place Spell Counters on",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 63102017,
       "name": "Impedir a Defesa",
       "description": "Escolha 1 monstro no Campo do seu adversário e mude-o para a Posição de Ataque. Se o card estiver com a face para baixo, vire a face para cima. Se o card tiver algum efeito, ele é Activado imediatamente.",
@@ -5914,6 +6305,29 @@
       ]
     },
     {
+      "code": 70780151,
+      "name": "Arquidemônio Senhor dos Pensamentos",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nSe este card destruir um monstro em batalha e enviá-lo para o Cemitério: ganhe PV igual ao ATK original desse monstro no Cemitério. Quando um Card de Magia/Armadilha for ativado que escolha como alvo 1 monstro Psíquico (e nenhum outro card) (Efeito Rápido): você pode pagar 1000 PV; negue a ativação e, se isso acontecer, destrua-o.",
+      "strings": [
+        "Gain Life Points equal to that monster's original ATK",
+        "Negate the activation of a Spell or Trap Card that targets exactly 1 Psychic-Type monster, and destroy it.\r\n",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 70781052,
       "name": "Caveira Invocada",
       "description": "Um demônio com poderes das trevas para confundir o inimigo. Entre os monstros do tipo demônio, é dos mais fortes.\n\n(Este card é tratado como um card \"Arquidemônio\".)",
@@ -5943,6 +6357,29 @@
       "strings": [
         "",
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 70902743,
+      "name": "Dragão Vermelho Arquidemônio",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nDepois do cálculo de dano, se este card atacou um monstro do oponente em Posição de Defesa: destrua todos os monstros em Posição de Defesa que seu oponente controla. Uma vez por turno, durante sua Fase Final: destrua todos os outros monstros que você controla que não declararam um ataque neste turno. Este card deve estar com a face para cima no campo para ativar e resolver este efeito.",
+      "strings": [
+        "Destroy all Defense Position monsters your opponent controls.",
+        "Destroy all non-attacking Monster",
         "",
         "",
         "",
@@ -6811,6 +7248,29 @@
       ]
     },
     {
+      "code": 79229522,
+      "name": "Dragão Fortaleza Quimeratech",
+      "description": "\"Dragão Cibernético\" + 1+ monstros Máquina\nNão pode ser usado como Matéria de Fusão. Primeiro deve ser Invocado por Invocação-Especial (do seu Deck Adicional) ao enviar os cards acima de qualquer campo para o Cemitério. O ATK original deste card se torna 1000 x o número de matérias usadas para a sua Invocação-Especial.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 79571449,
       "name": "Caridade Graciosa",
       "description": "Compre 3 cards e, depois, descarte 2 cards.",
@@ -6949,6 +7409,29 @@
       ]
     },
     {
+      "code": 80921533,
+      "name": "Mausoléu do Imperador",
+      "description": "Durante a Fase Principal: o duelista do turno pode ativar esse(s) efeito(s).\n●Pague 1000 PV; imediatamente depois que este efeito resolver, Invoque por Invocação-Normal 1 monstro da sua mão que requer 1 Tributo, sem oferecer Tributo.\n●Pague 2000 PV; imediatamente depois que este efeito resolver, Invoque por Invocação-Normal 1 monstro da sua mão que requer 2 Tributos, sem oferecer Tributo.\n(Essa é sua uma Invocação-Normal/Baixar do turno em questão.)",
+      "strings": [
+        "Activate 1 of these effects",
+        "Normal Summon/Set a monster that requires 1 Tribute",
+        "Normal Summon/Set a monster that requires 2 Tributes",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 81510157,
       "name": "Rouba Almas",
       "description": "Escolha 1 monstro com a face para cima que seu oponente controla; destrua o alvo e, depois, seu oponente ganha 1000 PV.",
@@ -7023,6 +7506,29 @@
       "description": "Quando este card for destruído em batalha e enviado para o Cemitério: você pode Invocar por Invocação-Especial 1 monstro de TREVAS com 1500 ou menos de ATK do seu Deck, com a face para cima em Posição de Ataque.",
       "strings": [
         "Special Summon",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 83104731,
+      "name": "Golem do Mecanismo Antigo",
+      "description": "Não pode ser Invocado por Invocação-Especial. Se este card atacar, seu oponente não pode ativar quaisquer Cards de Magia/Armadilha até o final da Etapa de Dano. Se este card atacar um monstro em Posição de Defesa, cause dano de batalha perfurante.",
+      "strings": [
+        "",
         "",
         "",
         "",
@@ -7508,6 +8014,52 @@
         "Negate attack",
         "Special Summon",
         "Special Summon 1 \"Blue-Eyes White Dragon\" from your hand, Deck, or Graveyard?",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 88643579,
+      "name": "Dragão da Escuridão Final",
+      "description": "1 Tuner + 1 ou mais monstros DARK não Tuner\r\nUma vez por turno, você pode fazer com que esta carta perca 500 de ATK e DEF, e enviar 1 monstro que o seu oponente controla ao Cemitério.",
+      "strings": [
+        "Send 1 monster your opponent controls to the Graveyard.",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 89111398,
+      "name": "Espírito de Pó das Trevas",
+      "description": "Não pode ser Invocado por Invocação-Especial. Durante a Fase Final do turno em que este card for Invocado por Invocação-Normal ou virado com a face para cima: devolva-o para a mão. Quando este card for Invocado por Invocação-Normal ou virado com a face para cima: destrua todos os outros monstros com a face para cima no campo.",
+      "strings": [
+        "Destroy all other face-up monsters",
+        "",
+        "",
         "",
         "",
         "",
@@ -8168,6 +8720,29 @@
       ]
     },
     {
+      "code": 98380593,
+      "name": "Baga da Supremacia",
+      "description": "Se os seus LPs são menores que os LPs do seu oponente quando esta carta foi ativada, você ganha 2000 LPs. Se os seus LPs são maiores que os LPs do seu oponente, você recebe 1000 de dano.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 98495314,
       "name": "Espada dos Enraizados",
       "description": "O monstro equipado ganha 500 de ATK/DEF. Se este card for enviado para o seu Cemitério: coloque-o no topo do seu Deck.",
@@ -8198,6 +8773,29 @@
         "Negate and destroy Spell Card",
         "",
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 98777036,
+      "name": "Tragoedia",
+      "description": "Quando você sofrer dano de batalha: você pode Invocar este card por Invocação-Especial da sua mão. Ganha 600 de ATK/DEF para cada card na sua mão. Uma vez por turno: você pode enviar 1 monstro da sua mão para o Cemitério e, depois, escolha 1 monstro com a face para cima que seu oponente controla com o mesmo Nível que o monstro enviado tinha na mão; tome o controle desse monstro com a face para cima. Uma vez por turno: você pode escolher 1 monstro no seu Cemitério; até o final deste turno, o Nível deste card se torna o mesmo que o do alvo.",
+      "strings": [
+        "Special Summon this card",
+        "Take control of an opponent's monster",
+        "Change this card's Level",
         "",
         "",
         "",

@@ -18,6 +18,8 @@ namespace ArcaneArena.Editor
             "Assets/Cards/Cards/Decks/ToonTest";
         private const string ShiranuiArtFolder =
             "Assets/Cards/Cards/Decks/ShiranuiSupremacy";
+        private const string MausoleumArtFolder =
+            "Assets/Cards/Cards/Decks/MausoleumLockdownEdison";
 
         [MenuItem("Arcane Arena/Content/Sync Yugi Battle City")]
         public static void SyncYugiMutoBattleCity()
@@ -47,6 +49,16 @@ namespace ArcaneArena.Editor
                 ShiranuiArtFolder,
                 CuratedDeckLists.ShiranuiSupremacyMain,
                 CuratedDeckLists.ShiranuiSupremacyExtra);
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync Mausoleum Edison and Portuguese Text")]
+        public static void SyncMausoleumLockdownEdisonAndPortugueseText()
+        {
+            SyncDeck(
+                "mausoleum-lockdown-edison",
+                MausoleumArtFolder,
+                CuratedDeckLists.MausoleumLockdownEdisonMain,
+                CuratedDeckLists.MausoleumLockdownEdisonExtra);
         }
 
         private static void SyncDeck(

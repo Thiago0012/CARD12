@@ -236,7 +236,7 @@ namespace ArcaneDuel.Tests.PlayMode
         [UnityTest]
         public IEnumerator EveryCompleteBotDeckStartsABotDuel()
         {
-            for (int deckIndex = 0; deckIndex < 6; deckIndex++)
+            for (int deckIndex = 0; deckIndex < 7; deckIndex++)
             {
                 SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
                 yield return null;
@@ -276,8 +276,8 @@ namespace ArcaneDuel.Tests.PlayMode
                                 .Select(label => label.text))));
                 Assert.That(
                     deckTiles,
-                    Has.Length.EqualTo(6),
-                    "The bot selection must display all six curated decks. " +
+                    Has.Length.EqualTo(7),
+                    "The bot selection must display all seven curated decks. " +
                     validationDetails);
                 Button[] deckButtons = deckTiles
                     .Select(tile => tile.GetComponent<Button>())

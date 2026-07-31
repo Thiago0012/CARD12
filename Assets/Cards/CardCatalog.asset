@@ -6829,3 +6829,701 @@ MonoBehaviour:
       \"Progleo\" uma vez por turno."
     reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
       do Core."
+  - stableId: 6b0bedf974cf1e048a06514f94ad79be
+    artwork: {fileID: 21300000, guid: 6b0bedf974cf1e048a06514f94ad79be, type: 3}
+    displayName: Espadas da Luz Reveladora
+    category: 2
+    monsterFrame: 3
+    officialCardId: 72302403
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Depois da ativa\xE7\xE3o deste card, ele permanece no campo, mas
+      voc\xEA deve destru\xED-lo durante a Fase Final do 3\xBA turno do seu oponente.
+      Quando este card for ativado: se seu oponente controlar um monstro com a face
+      para baixo, vire com a face para cima todos os monstros que ele controla. Enquanto
+      este card estiver com a face para cima no campo, os monstros do seu oponente
+      n\xE3o podem declarar um ataque."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: c92697143db390a438dd23685918306a
+    artwork: {fileID: 21300000, guid: c92697143db390a438dd23685918306a, type: 3}
+    displayName: "Fascina\xE7\xE3o das Trevas"
+    category: 2
+    monsterFrame: 3
+    officialCardId: 01475311
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Compre 2 cards e, depois, bana 1 monstro de TREVAS da sua m\xE3o
+      ou, se voc\xEA n\xE3o tiver nenhum na sua m\xE3o, envie toda a sua m\xE3o para
+      o Cemit\xE9rio."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 8c44f98c4db174f40b4a82dd79e47f1c
+    artwork: {fileID: 21300000, guid: 8c44f98c4db174f40b4a82dd79e47f1c, type: 3}
+    displayName: Baga da Supremacia
+    category: 2
+    monsterFrame: 3
+    officialCardId: 98380593
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se os seus LPs s\xE3o menores que os LPs do seu oponente quando
+      esta carta foi ativada, voc\xEA ganha 2000 LPs. Se os seus LPs s\xE3o maiores
+      que os LPs do seu oponente, voc\xEA recebe 1000 de dano."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: eabed641cfd7bff41aafb5eb663a8971
+    artwork: {fileID: 21300000, guid: eabed641cfd7bff41aafb5eb663a8971, type: 3}
+    displayName: "Vila Mec\xE2nica"
+    category: 2
+    monsterFrame: 3
+    officialCardId: 37694547
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Os dois duelistas podem Invocar por Invoca\xE7\xE3o-Normal monstros
+      \"Mecanismo Antigo\" oferecendo 1 Tributo a menos. Quando este card for destru\xEDdo
+      e enviado para o Cemit\xE9rio: voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial
+      1 monstro \"Mecanismo Antigo\" da sua m\xE3o, do Deck ou do Cemit\xE9rio."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: b365d3145bf6ae9488207e6d417711a1
+    artwork: {fileID: 21300000, guid: b365d3145bf6ae9488207e6d417711a1, type: 3}
+    displayName: "Mausol\xE9u do Imperador"
+    category: 2
+    monsterFrame: 3
+    officialCardId: 80921533
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Durante a Fase Principal: o duelista do turno pode ativar esse(s)
+      efeito(s).\n\u25CFPague 1000 PV; imediatamente depois que este efeito resolver,
+      Invoque por Invoca\xE7\xE3o-Normal 1 monstro da sua m\xE3o que requer 1 Tributo,
+      sem oferecer Tributo.\n\u25CFPague 2000 PV; imediatamente depois que este efeito
+      resolver, Invoque por Invoca\xE7\xE3o-Normal 1 monstro da sua m\xE3o que requer
+      2 Tributos, sem oferecer Tributo.\n(Essa \xE9 sua uma Invoca\xE7\xE3o-Normal/Baixar
+      do turno em quest\xE3o.)"
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: b4cd66ee3ff85744a8873810a096f421
+    artwork: {fileID: 21300000, guid: b4cd66ee3ff85744a8873810a096f421, type: 3}
+    displayName: Desvanecer da Batalha
+    category: 1
+    monsterFrame: 3
+    officialCardId: 19665973
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 1
+    attack: 0
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando um monstro do oponente declarar um ataque direto: voc\xEA
+      pode Invocar este card por Invoca\xE7\xE3o-Especial da sua m\xE3o e, depois,
+      encerre a Fase de Batalha. Se Invocado desta forma, bana-o quando ele deixar
+      o campo."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 0097b26bd735f2340b0ddabc62aa3f77
+    artwork: {fileID: 21300000, guid: 0097b26bd735f2340b0ddabc62aa3f77, type: 3}
+    displayName: "Espi\xE3o do Coveiro"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 24317029
+    typeName: Monstro de Efeito de Virar
+    raceName: Mago
+    attribute: 1
+    level: 4
+    attack: 1200
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "VIRE: Invoque por Invoca\xE7\xE3o-Especial do seu Deck 1 monstro
+      \"do Coveiro\" com 1500 ou menos de ATK."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: dc415109b93f942419e71dc07ffbaaed
+    artwork: {fileID: 21300000, guid: dc415109b93f942419e71dc07ffbaaed, type: 3}
+    displayName: Tragoedia
+    category: 1
+    monsterFrame: 3
+    officialCardId: 98777036
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 10
+    attack: -2
+    defense: -2
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando voc\xEA sofrer dano de batalha: voc\xEA pode Invocar este
+      card por Invoca\xE7\xE3o-Especial da sua m\xE3o. Ganha 600 de ATK/DEF para
+      cada card na sua m\xE3o. Uma vez por turno: voc\xEA pode enviar 1 monstro da
+      sua m\xE3o para o Cemit\xE9rio e, depois, escolha 1 monstro com a face para
+      cima que seu oponente controla com o mesmo N\xEDvel que o monstro enviado tinha
+      na m\xE3o; tome o controle desse monstro com a face para cima. Uma vez por
+      turno: voc\xEA pode escolher 1 monstro no seu Cemit\xE9rio; at\xE9 o final
+      deste turno, o N\xEDvel deste card se torna o mesmo que o do alvo."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 67c63a1ebda082e47b25d734515cf826
+    artwork: {fileID: 21300000, guid: 67c63a1ebda082e47b25d734515cf826, type: 3}
+    displayName: "Gorz, o Emiss\xE1rio da Escurid\xE3o"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 44330098
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 7
+    attack: 2700
+    defense: 2500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando voc\xEA sofrer dano de um card em posse do seu oponente:
+      voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Especial da sua m\xE3o.
+      Voc\xEA n\xE3o pode controlar nenhum card para ativar e resolver este efeito.
+      Quando este card for Invocado por Invoca\xE7\xE3o-Especial por seu efeito:
+      ative o efeito apropriado, de acordo com o tipo de dano.\n\u25CFDano de batalha:
+      Invoque por Invoca\xE7\xE3o-Especial 1 \"Ficha de Emiss\xE1rio da Escurid\xE3o\"
+      (Fada/LUZ/N\xEDvel 7/ATK ?/DEF ?). Seu ATK e DEF s\xE3o iguais ao dano de batalha
+      que voc\xEA sofreu.\n\u25CFDano de efeito: Cause dano ao seu oponente igual
+      ao dano que voc\xEA sofreu."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: ef363bec9742ee54398f58846483413e
+    artwork: {fileID: 21300000, guid: ef363bec9742ee54398f58846483413e, type: 3}
+    displayName: "Esp\xEDrito de P\xF3 das Trevas"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 89111398
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 2
+    level: 6
+    attack: 2200
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "N\xE3o pode ser Invocado por Invoca\xE7\xE3o-Especial. Durante a
+      Fase Final do turno em que este card for Invocado por Invoca\xE7\xE3o-Normal
+      ou virado com a face para cima: devolva-o para a m\xE3o. Quando este card for
+      Invocado por Invoca\xE7\xE3o-Normal ou virado com a face para cima: destrua
+      todos os outros monstros com a face para cima no campo."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 86ca5151df6a1124b90fb80e8d856766
+    artwork: {fileID: 21300000, guid: 86ca5151df6a1124b90fb80e8d856766, type: 3}
+    displayName: "Drag\xE3o de Mat\xE9ria Primitiva"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 12298909
+    typeName: Monstro de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 6
+    attack: 2400
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Qualquer efeito que causaria dano a um duelista, em vez disso, aumenta
+      os Pontos de Vida dele no mesmo valor. Durante o turno de qualquer duelista,
+      quando um card ou efeito que destruiria um ou mais monstros no campo for ativado:
+      voc\xEA pode enviar 1 card da sua m\xE3o para o Cemit\xE9rio; negue a ativa\xE7\xE3o
+      e, se isso acontecer, destrua-o."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: c2ba76d32597d164892c8dbebd13d365
+    artwork: {fileID: 21300000, guid: c2ba76d32597d164892c8dbebd13d365, type: 3}
+    displayName: "Dem\xF4nio da Vaidade"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 47084486
+    typeName: Monstro de Efeito
+    raceName: "Dem\xF4nio"
+    attribute: 1
+    level: 6
+    attack: 2400
+    defense: 1200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "N\xE3o pode ser Invocado por Invoca\xE7\xE3o-Especial. Nenhum duelista
+      pode Invocar monstros por Invoca\xE7\xE3o-Especial."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: ae7aff36b91fc964db232efa286dd00f
+    artwork: {fileID: 21300000, guid: ae7aff36b91fc964db232efa286dd00f, type: 3}
+    displayName: "Fortaleza Aut\xF4mata"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 05556499
+    typeName: Monstro de Efeito
+    raceName: "M\xE1quina"
+    attribute: 2
+    level: 7
+    attack: 2500
+    defense: 1600
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode descartar um ou mais monstros M\xE1quina cuja soma
+      dos N\xEDveis seja igual a 8 ou mais e, depois, Invoque este card por Invoca\xE7\xE3o-Especial
+      (da sua m\xE3o ou do Cemit\xE9rio). Se este card for destru\xEDdo em batalha
+      e enviado para o Cemit\xE9rio: escolha 1 card que seu oponente controla; destrua
+      o alvo. Antes de resolver um efeito de monstro do oponente que escolha como
+      alvo este card com a face para cima, olhe a m\xE3o do seu oponente e descarte
+      1 card da m\xE3o dele."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: c37cba926d33cf1438f64ef445643fb8
+    artwork: {fileID: 21300000, guid: c37cba926d33cf1438f64ef445643fb8, type: 3}
+    displayName: Golem do Mecanismo Antigo
+    category: 1
+    monsterFrame: 3
+    officialCardId: 83104731
+    typeName: Monstro de Efeito
+    raceName: "M\xE1quina"
+    attribute: 2
+    level: 8
+    attack: 3000
+    defense: 3000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "N\xE3o pode ser Invocado por Invoca\xE7\xE3o-Especial. Se este card
+      atacar, seu oponente n\xE3o pode ativar quaisquer Cards de Magia/Armadilha
+      at\xE9 o final da Etapa de Dano. Se este card atacar um monstro em Posi\xE7\xE3o
+      de Defesa, cause dano de batalha perfurante."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 55cb5bdf7e320d44287fd6b99a7dce74
+    artwork: {fileID: 21300000, guid: 55cb5bdf7e320d44287fd6b99a7dce74, type: 3}
+    displayName: "Drag\xE3o Gadjiltron do Mecanismo Antigo"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 50933533
+    typeName: Monstro de Efeito
+    raceName: "M\xE1quina"
+    attribute: 2
+    level: 8
+    attack: 3000
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card atacar, seu oponente n\xE3o pode ativar nenhum Card
+      de Magia/Armadilha at\xE9 o final da Etapa de Dano. Este card ganha os efeitos
+      apropriados se voc\xEA Invoc\xE1-lo por Invoca\xE7\xE3o-Normal oferecendo como
+      Tributo esses monstros.\n\u25CFDispositivo Verde: Se este card atacar um monstro
+      em Posi\xE7\xE3o de Defesa, cause dano de batalha perfurante ao seu oponente.\n\u25CFDispositivo
+      Vermelho: Se este card causar dano de batalha ao seu oponente: cause 400 de
+      dano ao seu oponente.\n\u25CFDispositivo Amarelo: Se este card destruir um
+      monstro do oponente em batalha: cause 600 de dano ao seu oponente."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 966b90e8633b8104c8fd36783f7cb1eb
+    artwork: {fileID: 21300000, guid: 966b90e8633b8104c8fd36783f7cb1eb, type: 3}
+    displayName: "Drag\xE3o da Luz e das Trevas"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 47297616
+    typeName: Monstro de Efeito
+    raceName: "Drag\xE3o"
+    attribute: 4
+    level: 8
+    attack: 2800
+    defense: 2400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "N\xE3o pode ser Invocado por Invoca\xE7\xE3o-Especial. Enquanto
+      estiver com a face para cima no campo, este card tamb\xE9m \xE9 do Atributo
+      TREVAS. Uma vez por Corrente, durante o turno de qualquer duelista, quando
+      um Card de Magia, Card de Armadilha ou um efeito de monstro for ativado: este
+      card perde exatamente 500 de ATK e DEF e essa ativa\xE7\xE3o e negada. Quando
+      este card for destru\xEDdo e enviado para o Cemit\xE9rio: escolha 1 monstro
+      em seu Cemit\xE9rio (se poss\xEDvel); destrua todos os cards que voc\xEA controla,
+      al\xE9m disso, Invoque esse monstro por Invoca\xE7\xE3o-Especial (se houver)."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: d34939647c9be374998f8ee3c8575ed3
+    artwork: {fileID: 21300000, guid: d34939647c9be374998f8ee3c8575ed3, type: 3}
+    displayName: "Drag\xE3o Fortaleza Quimeratech"
+    category: 1
+    monsterFrame: 5
+    officialCardId: 79229522
+    typeName: "Monstro de Fus\xE3o"
+    raceName: "M\xE1quina"
+    attribute: 1
+    level: 8
+    attack: 0
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "\"Drag\xE3o Cibern\xE9tico\" + 1+ monstros M\xE1quina\nN\xE3o pode
+      ser usado como Mat\xE9ria de Fus\xE3o. Primeiro deve ser Invocado por Invoca\xE7\xE3o-Especial
+      (do seu Deck Adicional) ao enviar os cards acima de qualquer campo para o Cemit\xE9rio.
+      O ATK original deste card se torna 1000 x o n\xFAmero de mat\xE9rias usadas
+      para a sua Invoca\xE7\xE3o-Especial."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 96611b6846fa0114c9a313009149dc44
+    artwork: {fileID: 21300000, guid: 96611b6846fa0114c9a313009149dc44, type: 3}
+    displayName: Lutador Colossal
+    category: 1
+    monsterFrame: 6
+    officialCardId: 23693634
+    typeName: Monstro Sincro
+    raceName: Guerreiro
+    attribute: 1
+    level: 8
+    attack: 2800
+    defense: 1000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nGanha 100 de ATK para
+      cada monstro Guerreiro nos Cemit\xE9rios. Quando este card for destru\xEDdo
+      em batalha e enviado para o Cemit\xE9rio: voc\xEA pode escolher 1 monstro Guerreiro
+      em qualquer Cemit\xE9rio; Invoque o alvo por Invoca\xE7\xE3o-Especial."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 7183bce90ab8a7a4a8145b7f3993c53a
+    artwork: {fileID: 21300000, guid: 7183bce90ab8a7a4a8145b7f3993c53a, type: 3}
+    displayName: "Drag\xE3o da Poeira Estelar"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 44508094
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 6
+    level: 8
+    attack: 2500
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nQuando um card ou
+      efeito que destruiria um ou mais cards no campo for ativado (Efeito R\xE1pido):
+      voc\xEA pode oferecer este card como Tributo; negue a ativa\xE7\xE3o e, se
+      isso acontecer, destrua-o. Durante a Fase Final, se este efeito foi ativado
+      neste turno (e n\xE3o foi negado): voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Especial
+      do seu Cemit\xE9rio."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: bccba4847a7cc5241a71ee94d26dd7dc
+    artwork: {fileID: 21300000, guid: bccba4847a7cc5241a71ee94d26dd7dc, type: 3}
+    displayName: "Arquidem\xF4nio Senhor dos Pensamentos"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 70780151
+    typeName: Monstro Sincro
+    raceName: "Ps\xEDquico"
+    attribute: 1
+    level: 8
+    attack: 2700
+    defense: 2300
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nSe este card destruir
+      um monstro em batalha e envi\xE1-lo para o Cemit\xE9rio: ganhe PV igual ao
+      ATK original desse monstro no Cemit\xE9rio. Quando um Card de Magia/Armadilha
+      for ativado que escolha como alvo 1 monstro Ps\xEDquico (e nenhum outro card)
+      (Efeito R\xE1pido): voc\xEA pode pagar 1000 PV; negue a ativa\xE7\xE3o e, se
+      isso acontecer, destrua-o."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: c503ba884dd6f17488984135cbe12ab9
+    artwork: {fileID: 21300000, guid: c503ba884dd6f17488984135cbe12ab9, type: 3}
+    displayName: "Drag\xE3o da Escurid\xE3o Final"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 88643579
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 8
+    attack: 2600
+    defense: 2100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Tuner + 1 ou mais monstros DARK n\xE3o Tuner\r\nUma vez por turno,
+      voc\xEA pode fazer com que esta carta perca 500 de ATK e DEF, e enviar 1 monstro
+      que o seu oponente controla ao Cemit\xE9rio."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 1cd70f2eb44d4df4183a0f567ef2d7e7
+    artwork: {fileID: 21300000, guid: 1cd70f2eb44d4df4183a0f567ef2d7e7, type: 3}
+    displayName: "Drag\xE3o Vermelho Arquidem\xF4nio"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 70902743
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 1
+    level: 8
+    attack: 3000
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nDepois do c\xE1lculo
+      de dano, se este card atacou um monstro do oponente em Posi\xE7\xE3o de Defesa:
+      destrua todos os monstros em Posi\xE7\xE3o de Defesa que seu oponente controla.
+      Uma vez por turno, durante sua Fase Final: destrua todos os outros monstros
+      que voc\xEA controla que n\xE3o declararam um ataque neste turno. Este card
+      deve estar com a face para cima no campo para ativar e resolver este efeito."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 2c3ffd28c752d804aad362accff48cbd
+    artwork: {fileID: 21300000, guid: 2c3ffd28c752d804aad362accff48cbd, type: 3}
+    displayName: "Drag\xE3o da Rosa Negra"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 73580471
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 3
+    level: 7
+    attack: 2400
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nQuando este card for
+      Invocado por Invoca\xE7\xE3o-Sincro: voc\xEA pode destruir todos os cards no
+      campo. Uma vez por turno: voc\xEA pode banir 1 monstro Planta do seu Cemit\xE9rio
+      e, depois, escolha 1 monstro em Posi\xE7\xE3o de Defesa que seu oponente controla;
+      coloque o alvo com a face para cima em Posi\xE7\xE3o de Ataque e, se isso acontecer,
+      o ATK dele se torna 0 at\xE9 o final deste turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: bdb6160f9d058ff47b46c94a82642e2b
+    artwork: {fileID: 21300000, guid: bdb6160f9d058ff47b46c94a82642e2b, type: 3}
+    displayName: "Guardi\xE3o Goyo"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 07391448
+    typeName: Monstro Sincro
+    raceName: Guerreiro
+    attribute: 2
+    level: 6
+    attack: 2800
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador de TERRA + 1+ monstros n\xE3o-Reguladores\nQuando este
+      card destruir um monstro do oponente em batalha e envi\xE1-lo para o Cemit\xE9rio:
+      voc\xEA pode Invocar esse monstro por Invoca\xE7\xE3o-Especial no seu campo
+      em Posi\xE7\xE3o de Defesa."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: ca64277a97af30a49a13dc33cb04c90e
+    artwork: {fileID: 21300000, guid: ca64277a97af30a49a13dc33cb04c90e, type: 3}
+    displayName: "Brionac, o Drag\xE3o da Barreira de Gelo"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 50321796
+    typeName: Monstro Sincro
+    raceName: Serpente Marinha
+    attribute: 5
+    level: 6
+    attack: 2300
+    defense: 1400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nVoc\xEA pode descartar
+      qualquer n\xFAmero de cards para o Cemit\xE9rio e, depois, escolha o mesmo
+      n\xFAmero de cards que seu oponente controla; devolva esses cards para a m\xE3o.
+      Voc\xEA s\xF3 pode usar este efeito de \"Brionac, o Drag\xE3o da Barreira de
+      Gelo\" uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 3656d335af061a04c929455fe722376b
+    artwork: {fileID: 21300000, guid: 3656d335af061a04c929455fe722376b, type: 3}
+    displayName: "Drag\xE3o da Corrente de Malha de Ferro"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 19974580
+    typeName: Monstro Sincro
+    raceName: "Drag\xE3o"
+    attribute: 2
+    level: 6
+    attack: 2500
+    defense: 1300
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Tuner + 1 ou mais monstros n\xE3o Tuner\r\nVoc\xEA pode remover
+      do jogo todos os monstros \"Iron Chain\" do seu Cemit\xE9rio para fazer com
+      que esta carta ganhe 200 pontos de ATK para cada monstro removido, at\xE9 a
+      End Phase. Quando esta carta inflige Dano de Batalha ao seu oponente, envie
+      as 3 cartas do topo do Deck do seu oponente ao Cemit\xE9rio."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 6522fbc7742528e43b75ee4204830a8e
+    artwork: {fileID: 21300000, guid: 6522fbc7742528e43b75ee4204830a8e, type: 3}
+    displayName: Mago da Tempestade
+    category: 1
+    monsterFrame: 6
+    officialCardId: 63101919
+    typeName: Monstro Sincro
+    raceName: Mago
+    attribute: 1
+    level: 6
+    attack: 2200
+    defense: 1400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Tuner + 1 ou mais monstros n\xE3o Tuner Spellcaster-Type\r\nQuando
+      esta carta \xE9 Synchro Summoned, coloque 1 Spell Counter nela. Uma vez por
+      turno, voc\xEA pode descartar qualquer n\xFAmero de cartas para colocar 1 Spell
+      Counter em um ou mais monstros que voc\xEA controla para cada carta que voc\xEA
+      descartou. Voc\xEA pode remover todos os Spell Counters no campo para infligir
+      500 pontos de dano ao seu oponente para cada Spell Counter removido."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 46ed87f275721c24299b414f5a6cbdf7
+    artwork: {fileID: 21300000, guid: 46ed87f275721c24299b414f5a6cbdf7, type: 3}
+    displayName: Flamvell Uruquizas
+    category: 1
+    monsterFrame: 6
+    officialCardId: 53714009
+    typeName: Monstro Sincro
+    raceName: Piro
+    attribute: 3
+    level: 6
+    attack: 2100
+    defense: 400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nSe este card atacar
+      um monstro em Posi\xE7\xE3o de Defesa, cause dano de batalha perfurante. Se
+      este card causar dano de batalha ao seu oponente: ele ganha 300 de ATK."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: c99f922b23abe244e83e2f6d3a931077
+    artwork: {fileID: 21300000, guid: c99f922b23abe244e83e2f6d3a931077, type: 3}
+    displayName: "Catastor, Aliado da Justi\xE7a"
+    category: 1
+    monsterFrame: 6
+    officialCardId: 26593852
+    typeName: Monstro Sincro
+    raceName: "M\xE1quina"
+    attribute: 1
+    level: 5
+    attack: 2200
+    defense: 1200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nNo come\xE7o da Etapa
+      de Dano, se este card batalhar um monstro com a face para cima que n\xE3o seja
+      de TREVAS: destrua esse monstro."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."

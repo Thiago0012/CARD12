@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "count": 295,
-  "catalogSha256": "64E52FAF58474CF32AEAB9AEDDB4D45F5C6FC1E79FDFC193E25F6A5A4940C167",
+  "count": 319,
+  "catalogSha256": "2F1F8EE30DBDA8D55BB9D661C64D9452DC77E81C516061C22E873D50C55A6988",
   "cards": [
     {
       "officialCode": 295517,
@@ -31,6 +31,21 @@
         "Monstro Normal",
         "simple",
         "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 1475311,
+      "artFile": "1475311.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c1475311.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -334,6 +349,21 @@
       ]
     },
     {
+      "officialCode": 5556499,
+      "artFile": "5556499.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c5556499.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger_effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 5556668,
       "artFile": "5556668.jpg",
       "frameStyle": "spell",
@@ -466,6 +496,21 @@
         "Carta de Magia",
         "effect",
         "ygoprodeck_toon_test"
+      ]
+    },
+    {
+      "officialCode": 7391448,
+      "artFile": "7391448.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c7391448.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -706,6 +751,21 @@
         "Monstro de Ritual com Efeito",
         "exceptional",
         "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 12298909,
+      "artFile": "12298909.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c12298909.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick_effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -994,6 +1054,21 @@
       ]
     },
     {
+      "officialCode": 19974580,
+      "artFile": "19974580.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c19974580.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 21140872,
       "artFile": "21140872.jpg",
       "frameStyle": "fusion",
@@ -1159,6 +1234,21 @@
       ]
     },
     {
+      "officialCode": 23693634,
+      "artFile": "23693634.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c23693634.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 23771716,
       "artFile": "23771716.jpg",
       "frameStyle": "normal",
@@ -1216,6 +1306,21 @@
         "Carta de Magia",
         "negation",
         "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 24317029,
+      "artFile": "24317029.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c24317029.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "flip_effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -1336,6 +1441,21 @@
         "Monstro Sincro",
         "extra_deck",
         "ygoprodeck_shiranui_supremacy"
+      ]
+    },
+    {
+      "officialCode": 26593852,
+      "artFile": "26593852.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c26593852.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -1726,6 +1846,21 @@
         "Monstro de Fusão",
         "extra_deck",
         "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 37694547,
+      "artFile": "37694547.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c37694547.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "field_spell",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -2269,6 +2404,21 @@
       ]
     },
     {
+      "officialCode": 47084486,
+      "artFile": "47084486.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c47084486.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "continuous",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 47222536,
       "artFile": "47222536.jpg",
       "frameStyle": "spell",
@@ -2281,6 +2431,21 @@
         "Carta de Magia",
         "continuous",
         "ygoprodeck_dark_magician"
+      ]
+    },
+    {
+      "officialCode": 47297616,
+      "artFile": "47297616.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c47297616.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick_effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -2434,6 +2599,21 @@
       ]
     },
     {
+      "officialCode": 50321796,
+      "artFile": "50321796.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c50321796.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 50913601,
       "artFile": "50913601.jpg",
       "frameStyle": "spell",
@@ -2446,6 +2626,21 @@
         "Magia de Campo",
         "continuous",
         "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 50933533,
+      "artFile": "50933533.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c50933533.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger_effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -2611,6 +2806,21 @@
         "Armadilha Normal",
         "simple",
         "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 53714009,
+      "artFile": "53714009.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c53714009.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -2929,6 +3139,21 @@
       ]
     },
     {
+      "officialCode": 63101919,
+      "artFile": "63101919.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c63101919.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 63102017,
       "artFile": "63102017.jpg",
       "frameStyle": "spell",
@@ -3214,6 +3439,21 @@
       ]
     },
     {
+      "officialCode": 70780151,
+      "artFile": "70780151.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c70780151.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 70781052,
       "artFile": "70781052.jpg",
       "frameStyle": "normal",
@@ -3241,6 +3481,21 @@
         "Carta de Magia",
         "trigger",
         "ygoprodeck_interaction"
+      ]
+    },
+    {
+      "officialCode": 70902743,
+      "artFile": "70902743.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c70902743.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -3739,6 +3994,21 @@
       ]
     },
     {
+      "officialCode": 79229522,
+      "artFile": "79229522.jpg",
+      "frameStyle": "fusion",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c79229522.lua",
+      "presentationTags": [
+        "Monstro de Fusão",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 79571449,
       "artFile": "79571449.jpg",
       "frameStyle": "spell",
@@ -3799,6 +4069,21 @@
       ]
     },
     {
+      "officialCode": 80921533,
+      "artFile": "80921533.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c80921533.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "field_spell",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 81510157,
       "artFile": "81510157.jpg",
       "frameStyle": "spell",
@@ -3826,6 +4111,21 @@
         "Armadilha Contínua",
         "continuous",
         "provided_pool"
+      ]
+    },
+    {
+      "officialCode": 83104731,
+      "artFile": "83104731.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c83104731.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "continuous",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -4051,6 +4351,36 @@
         "Monstro Regulador de Efeito",
         "negation",
         "ygoprodeck_blue_eyes"
+      ]
+    },
+    {
+      "officialCode": 88643579,
+      "artFile": "88643579.jpg",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c88643579.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
+      "officialCode": 89111398,
+      "artFile": "89111398.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c89111398.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger_effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
@@ -4384,6 +4714,21 @@
       ]
     },
     {
+      "officialCode": 98380593,
+      "artFile": "98380593.jpg",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "C",
+      "scriptStatus": "true",
+      "scriptFile": "c98380593.lua",
+      "presentationTags": [
+        "Carta de Magia",
+        "effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
+      ]
+    },
+    {
       "officialCode": 98495314,
       "artFile": "98495314.jpg",
       "frameStyle": "spell",
@@ -4411,6 +4756,21 @@
         "Monstro de Fusão",
         "extra_deck",
         "ygoprodeck_yugi_muto_battle_city"
+      ]
+    },
+    {
+      "officialCode": 98777036,
+      "artFile": "98777036.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c98777036.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick_effect",
+        "ygoprodeck_mausoleum_lockdown_edison"
       ]
     },
     {
