@@ -79,10 +79,10 @@ namespace ArcaneDuel.Tests.EditMode
         {
             CardVisualCatalog visuals = CardVisualCatalog.LoadDefault();
             CardVisualData[] cards = visuals.Cards.ToArray();
-            Assert.That(visuals.Count, Is.EqualTo(229));
+            Assert.That(visuals.Count, Is.EqualTo(232));
             Assert.That(
                 cards.Select(card => card.officialCode).Distinct().Count(),
-                Is.EqualTo(229));
+                Is.EqualTo(232));
             Assert.That(
                 typeof(CardVisualData).GetMethod("ResolveEffect"),
                 Is.Null,
@@ -91,7 +91,7 @@ namespace ArcaneDuel.Tests.EditMode
                 cards.Count(card => card.riskLevel == "A") +
                 cards.Count(card => card.riskLevel == "B") +
                 cards.Count(card => card.riskLevel == "C"),
-                Is.EqualTo(229));
+                Is.EqualTo(232));
         }
 
         [Test]

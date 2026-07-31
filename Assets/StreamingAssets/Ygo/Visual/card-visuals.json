@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "count": 229,
-  "catalogSha256": "FD98D726BCBD1D6FC3E39F91CFCFD654B90A0CDDAC3595B70442CBB0154745F0",
+  "count": 232,
+  "catalogSha256": "F5F78247BC446E40326E2DD6D79FDD64D70FEA8E6352C3773AE0C6033DCB725E",
   "cards": [
     {
       "officialCode": 295517,
@@ -3436,6 +3436,51 @@
         "Monstro Normal",
         "simple",
         "ygoprodeck_yugi_muto_battle_city"
+      ]
+    },
+    {
+      "officialCode": 19771459,
+      "artFile": "19771459.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c19771459.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger",
+        "casual_pdf_war_rock"
+      ]
+    },
+    {
+      "officialCode": 47504322,
+      "artFile": "47504322.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c47504322.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "quick_effect",
+        "casual_pdf_war_rock"
+      ]
+    },
+    {
+      "officialCode": 83286340,
+      "artFile": "83286340.jpg",
+      "frameStyle": "effect",
+      "summonVfx": "normal_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "B",
+      "scriptStatus": "true",
+      "scriptFile": "c83286340.lua",
+      "presentationTags": [
+        "Monstro de Efeito",
+        "trigger_effect",
+        "casual_pdf_war_rock"
       ]
     }
   ]

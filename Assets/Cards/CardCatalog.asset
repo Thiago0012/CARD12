@@ -4261,6 +4261,63 @@ MonoBehaviour:
       reduced to 0 as a result, destroy it.'
     reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
       do Core."
+  - stableId: 279be85eb761f4ddee1d2a6cdaf99227
+    artwork: {fileID: 21300000, guid: 279be85eb761f4ddee1d2a6cdaf99227, type: 3}
+    displayName: Caverguerra Gactos
+    category: 1
+    monsterFrame: 3
+    officialCardId: 19771459
+    typeName: Monstro de Efeito
+    raceName: Guerreiro
+    attribute: 2
+    level: 4
+    attack: 1900
+    defense: 1900
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Se um monstro Guerreiro de TERRA for Invocado por Invocação-Normal no seu campo: você pode Invocar este card por Invocação-Especial da sua mão. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro "Caverguerra" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar este efeito de "Caverguerra Gactos" uma vez por turno.'
+    reviewNotes: Metadados oficiais em português sincronizados com o Core OCG.
+  - stableId: c1a5e4fe3e98a910d3c83baf48b99e9d
+    artwork: {fileID: 21300000, guid: c1a5e4fe3e98a910d3c83baf48b99e9d, type: 3}
+    displayName: Caverguerra Wento
+    category: 1
+    monsterFrame: 3
+    officialCardId: 47504322
+    typeName: Monstro de Efeito
+    raceName: Guerreiro
+    attribute: 2
+    level: 4
+    attack: 1800
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Se um monstro Guerreiro de TERRA seu batalhar um monstro do oponente, durante o cálculo de dano (Efeito Rápido): você pode pagar 800 PV; até o final deste turno, seu monstro que está batalhando ganha 800 de ATK. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro "Caverguerra" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar cada efeito de "Caverguerra Wento" uma vez por turno.'
+    reviewNotes: Metadados oficiais em português sincronizados com o Core OCG.
+  - stableId: 6a82fbc0b8d98d3bb923af403ef3bedf
+    artwork: {fileID: 21300000, guid: 6a82fbc0b8d98d3bb923af403ef3bedf, type: 3}
+    displayName: Caverguerra Fortia
+    category: 1
+    monsterFrame: 3
+    officialCardId: 83286340
+    typeName: Monstro de Efeito
+    raceName: Guerreiro
+    attribute: 2
+    level: 4
+    attack: 1700
+    defense: 1700
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Se um monstro Guerreiro de TERRA seu batalhar, depois do cálculo de dano: você pode adicionar 1 card "Caverguerra" do seu Deck à sua mão, exceto "Caverguerra Fortia" e, depois, todos os monstros "Caverguerra" que você controla atualmente ganham 200 de ATK até o final do turno do seu oponente. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro "Caverguerra" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar cada efeito de "Caverguerra Fortia" uma vez por turno.'
+    reviewNotes: Metadados oficiais em português sincronizados com o Core OCG.
   - stableId: 971445a0db4b17e46987794b92e285e4
     artwork: {fileID: 21300000, guid: 971445a0db4b17e46987794b92e285e4, type: 3}
     displayName: Alpha The Magnet Warrior

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "count": 291,
+  "count": 294,
   "cards": [
     {
       "code": 295517,
@@ -1550,6 +1550,29 @@
       "strings": [
         "End the Battle Phase",
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 19771459,
+      "name": "Caverguerra Gactos",
+      "description": "Se um monstro Guerreiro de TERRA for Invocado por Invocação-Normal no seu campo: você pode Invocar este card por Invocação-Especial da sua mão. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro \"Caverguerra\" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar este efeito de \"Caverguerra Gactos\" uma vez por turno.",
+      "strings": [
+        "Invocar este card por Invocação-Especial",
+        "Invocar um monstro \"Caverguerra\" por Invocação-Especial",
         "",
         "",
         "",
@@ -3413,6 +3436,29 @@
       "strings": [
         "Reveal 1 of them that is \"Dark Magician\" or a Spell/Trap that mentions \"Dark Magician\", and add it to your hand?",
         "Banish 1 card your opponent controls",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 47504322,
+      "name": "Caverguerra Wento",
+      "description": "Se um monstro Guerreiro de TERRA seu batalhar um monstro do oponente, durante o cálculo de dano (Efeito Rápido): você pode pagar 800 PV; até o final deste turno, seu monstro que está batalhando ganha 800 de ATK. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro \"Caverguerra\" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar cada efeito de \"Caverguerra Wento\" uma vez por turno.",
+      "strings": [
+        "Aumentar o ATK do monstro que está batalhando",
+        "Invocar um monstro \"Caverguerra\" por Invocação-Especial",
         "",
         "",
         "",
@@ -5644,6 +5690,29 @@
       "strings": [
         "",
         "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 83286340,
+      "name": "Caverguerra Fortia",
+      "description": "Se um monstro Guerreiro de TERRA seu batalhar, depois do cálculo de dano: você pode adicionar 1 card \"Caverguerra\" do seu Deck à sua mão, exceto \"Caverguerra Fortia\" e, depois, todos os monstros \"Caverguerra\" que você controla atualmente ganham 200 de ATK até o final do turno do seu oponente. Se este card for enviado da sua Zona de Monstros para o seu Cemitério por um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro \"Caverguerra\" de Nível 5 ou mais da sua mão ou do Deck. Você só pode usar cada efeito de \"Caverguerra Fortia\" uma vez por turno.",
+      "strings": [
+        "Adicionar um card \"Caverguerra\" do Deck à mão",
+        "Invocar um monstro \"Caverguerra\" por Invocação-Especial",
         "",
         "",
         "",

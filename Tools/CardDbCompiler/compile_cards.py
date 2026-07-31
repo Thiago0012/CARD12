@@ -36,7 +36,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--minimum-count", type=int, default=200)
     parser.add_argument("--sqlite3-cli", type=Path)
+    parser.add_argument("--localization", type=Path)
     return parser.parse_args()
+
+
+def load_localization(path: Path | None) -> dict[int, dict]:
+    if path is None:
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schemaVersion") != 1 or not isinstance(payload.get("cards"), list):
+        raise ValueError("Localization file must use schemaVersion 1 and contain cards")
+    overrides: dict[int, dict] = {}
+    for card in payload["cards"]:
+        code = int(card["code"])
+        if code in overrides:
+            raise ValueError(f"Localization contains duplicate code {code:08d}")
+        if not str(card.get("name", "")).strip():
+            raise ValueError(f"Localization name is empty for {code:08d}")
+        if not isinstance(card.get("strings", []), list):
+            raise ValueError(f"Localization strings must be a list for {code:08d}")
+        overrides[code] = card
+    return overrides
 
 
 class QueryRows(list):
@@ -123,7 +143,12 @@ def split_setcodes(raw: int) -> list[int]:
     return [part for shift in (0, 16, 32, 48) if (part := (value >> shift) & 0xFFFF)]
 
 
-def compile_database(codes: list[int], connection: sqlite3.Connection, output: Path) -> None:
+def compile_database(
+    codes: list[int],
+    connection: sqlite3.Connection,
+    output: Path,
+    localization: dict[int, dict],
+) -> None:
     output.mkdir(parents=True, exist_ok=True)
     records: list[tuple] = []
     text_cards: list[dict] = []
@@ -169,12 +194,17 @@ def compile_database(codes: list[int], connection: sqlite3.Connection, output: P
                 setcodes,
             )
         )
+        localized = localization.get(code, {})
+        localized_strings = localized.get("strings", [])
+        strings = [value or "" for value in text[2:18]]
+        for index, value in enumerate(localized_strings[:16]):
+            strings[index] = str(value or "")
         text_cards.append(
             {
                 "code": code,
-                "name": text[0] or f"Card {code:08d}",
-                "description": text[1] or "",
-                "strings": [value or "" for value in text[2:18]],
+                "name": localized.get("name") or text[0] or f"Card {code:08d}",
+                "description": localized.get("description") or text[1] or "",
+                "strings": strings,
             }
         )
 
@@ -226,10 +256,17 @@ def compile_database(codes: list[int], connection: sqlite3.Connection, output: P
 
 def main() -> None:
     args = parse_args()
+    localization = load_localization(args.localization)
     authored_codes = selected_codes(args.catalog, args.minimum_count)
     with open_connection(args.database, args.sqlite3_cli) as connection:
         runtime_codes = expand_alias_dependencies(authored_codes, connection)
-        compile_database(runtime_codes, connection, args.output)
+        unknown_localizations = sorted(set(localization) - set(runtime_codes))
+        if unknown_localizations:
+            raise ValueError(
+                "Localization references cards outside the runtime catalog: "
+                + ", ".join(f"{code:08d}" for code in unknown_localizations)
+            )
+        compile_database(runtime_codes, connection, args.output, localization)
 
 
 if __name__ == "__main__":

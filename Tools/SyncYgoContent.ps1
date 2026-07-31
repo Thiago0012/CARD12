@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 $catalog = Join-Path $ProjectRoot "Documentation\CoreCardCatalog.csv"
 $database = Join-Path $ProjectRoot "ThirdParty\BabelCDB\cards.cdb"
+$localization = Join-Path $ProjectRoot "Documentation\CardTextPtBr.json"
 $compiler = Join-Path $ProjectRoot "Tools\CardDbCompiler\compile_cards.py"
 $streaming = Join-Path $ProjectRoot "Assets\StreamingAssets\Ygo"
 $scriptsSource = Join-Path $ProjectRoot "ThirdParty\CardScripts"
@@ -24,6 +25,9 @@ $compilerArguments = @(
     "--output", $dataTarget,
     "--minimum-count", "200"
 )
+if (Test-Path -LiteralPath $localization) {
+    $compilerArguments += @("--localization", $localization)
+}
 if (-not [string]::IsNullOrWhiteSpace($Sqlite3)) {
     $compilerArguments += @("--sqlite3-cli", $Sqlite3)
 }
