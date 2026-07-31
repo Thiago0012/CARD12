@@ -261,6 +261,21 @@
       "name": "Dragão Espírito Definitivo de Olhos Azuis",
       "description": "2+ Reguladores + 1 monstro \"Olhos Azuis\" não-Regulador\r\nSeu oponente não pode banir cards do seu Cemitério. Você só pode usar cada um dos seguintes efeitos de \"Dragão Espírito Definitivo de Olhos Azuis\" uma vez por turno. Quando um card ou efeito for ativado no campo (Efeito Rápido): você pode negar a ativação e, se isso acontecer, este card ganha 1000 de ATK até o final deste turno. Se este card for destruído em batalha ou por um efeito de card: você pode Invocar por Invocação-Especial 1 monstro Dragão de LUZ do seu Cemitério, exceto \"Dragão Espírito Definitivo de Olhos Azuis\".",
       "strings": []
+    },
+    {
+      "code": 12612470,
+      "name": "Procissão do Jarro de Chá",
+      "description": "Os monstros em Posição de Defesa com a face para baixo na coluna deste card não podem mudar suas posições de batalha e, além disso, nenhum duelista pode ativar os cards Baixados nas Zonas de Magias & Armadilhas na coluna deste card. Você só pode usar cada um dos seguintes efeitos de \"Procissão do Jarro de Chá\" uma vez por turno. Durante sua Fase Principal: você pode mover este card para uma Zona de Monstros Principal adjacente não utilizada. Se este card na Zona de Monstros se mover para outra Zona de Monstros: coloque todos os outros monstros na coluna atual deste card em Posição de Defesa com a face para baixo.",
+      "strings": [
+        "Mover este card para uma Zona de Monstros Principal adjacente não utilizada",
+        "Colocar todos os outros monstros na coluna dele com a face para baixo"
+      ]
+    },
+    {
+      "code": 30888983,
+      "name": "A Seleção",
+      "description": "Pague 1000 Pontos de Vida. Negue a Invocação de um monstro que tenha o mesmo Tipo que um monstro no campo e destrua-o.",
+      "strings": []
     }
   ]
 }

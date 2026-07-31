@@ -112,6 +112,8 @@ namespace ArcaneArena.Frontend
             "yugi-muto-battle-city-722944";
         public const string ToonTestProductId =
             "toon-test-718475";
+        public const string ShiranuiSupremacyProductId =
+            "shiranui-supremacy-699840";
 
         private static readonly IReadOnlyList<DeckShopProduct>
             AvailableProducts = new[]
@@ -204,7 +206,19 @@ namespace ArcaneArena.Frontend
                     CuratedDeckLists.AsCardIds(
                         CuratedDeckLists.ToonTestMain),
                     CuratedDeckLists.AsCardIds(
-                        CuratedDeckLists.ToonTestExtra))
+                        CuratedDeckLists.ToonTestExtra)),
+                new DeckShopProduct(
+                    ShiranuiSupremacyProductId,
+                    "Supremacia Shiranui",
+                    "SHIRANUI / MAYAKASHI",
+                    "Sincronias Zumbi, efeitos no banimento e a escalada sobrenatural dos Shiranui e Mayakashi.",
+                    "59843383",
+                    "https://ygoprodeck.com/deck/shiranui-supremacy-699840",
+                    1,
+                    CuratedDeckLists.AsCardIds(
+                        CuratedDeckLists.ShiranuiSupremacyMain),
+                    CuratedDeckLists.AsCardIds(
+                        CuratedDeckLists.ShiranuiSupremacyExtra))
             };
 
         private static readonly HashSet<string> LegacyOwnedCardIds =

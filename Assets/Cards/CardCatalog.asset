@@ -6010,3 +6010,822 @@ MonoBehaviour:
       1 \"Mago Negro\" ou 1 card que o mencione do seu Deck \xE0 sua m\xE3o."
     reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
       do Core."
+  - stableId: ca7c375c9a1140c45830f3c96cf6ac6b
+    artwork: {fileID: 21300000, guid: ca7c375c9a1140c45830f3c96cf6ac6b, type: 3}
+    displayName: Zumbi Espalha-praga
+    category: 1
+    monsterFrame: 3
+    officialCardId: 33420078
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 1
+    level: 2
+    attack: 400
+    defense: 200
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card estiver no seu Cemit\xE9rio: voc\xEA pode colocar 1
+      card da sua m\xE3o no topo do Deck; Invoque este card por Invoca\xE7\xE3o-Especial,
+      mas bana-o quando ele deixar o campo."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: c21883de29c3530409cbdf562dba4fd7
+    artwork: {fileID: 21300000, guid: c21883de29c3530409cbdf562dba4fd7, type: 3}
+    displayName: Vento Perdido
+    category: 3
+    monsterFrame: 3
+    officialCardId: 74003290
+    typeName: Carta de Armadilha
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Escolha 1 monstro com a face para cima Invocado por Invoca\xE7\xE3o-Especial
+      no campo; negue seus efeitos e, al\xE9m disso, seu ATK original \xE9 diminu\xEDdo
+      pela metade. Se um monstro for Invocado por Invoca\xE7\xE3o-Especial do Deck
+      Adicional do seu oponente, enquanto este card estiver no seu Cemit\xE9rio (exceto
+      durante a Etapa de Dano): voc\xEA pode Baixar este card, mas bana-o quando
+      ele deixar o campo."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 10561515fa1e91549a44cea6393728d3
+    artwork: {fileID: 21300000, guid: 10561515fa1e91549a44cea6393728d3, type: 3}
+    displayName: Shiranui Escudeiro
+    category: 1
+    monsterFrame: 3
+    officialCardId: 41562624
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 3
+    level: 4
+    attack: 1500
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for Invocado por Invoca\xE7\xE3o-Normal, voc\xEA
+      pode: Invocar por Invoca\xE7\xE3o-Especial 1 monstro \"Shiranui Espada Espectral\"
+      da sua m\xE3o ou do Deck e, al\xE9m disso, voc\xEA n\xE3o pode Invocar monstros
+      por Invoca\xE7\xE3o-Especial pelo resto deste turno, exceto monstros Zumbi.
+      Se este card for banido: voc\xEA pode comprar 1 card e, depois, descartar 1
+      card. Voc\xEA s\xF3 pode usar cada efeito de \"Shiranui Escudeiro\" uma vez
+      por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 887b60f63337f2145b95e07b819d79c1
+    artwork: {fileID: 21300000, guid: 887b60f63337f2145b95e07b819d79c1, type: 3}
+    displayName: Shiranui Espada Espectral Sombria
+    category: 1
+    monsterFrame: 3
+    officialCardId: 79783880
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 3
+    level: 3
+    attack: 800
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA pode oferecer este card como Tributo e, depois, escolher
+      2 dos seus monstros Zumbi banidos, exceto \"Shiranui Espada Espectral Sombria\",
+      incluindo um monstro \"Shiranui\"; Invoque-os por Invoca\xE7\xE3o-Especial
+      em Posi\xE7\xE3o de Defesa, mas negue seus efeitos e, al\xE9m disso, voc\xEA
+      n\xE3o pode Invocar monstros por Invoca\xE7\xE3o-Especial pelo resto deste
+      turno, exceto monstros Zumbi. Voc\xEA s\xF3 pode usar este efeito de \"Shiranui
+      Espada Espectral Sombria\" uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: db8aeaea523304f46ab7bba1c299bc29
+    artwork: {fileID: 21300000, guid: db8aeaea523304f46ab7bba1c299bc29, type: 3}
+    displayName: Shiranui Mestre da Espada
+    category: 1
+    monsterFrame: 3
+    officialCardId: 05177985
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 3
+    level: 2
+    attack: 600
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card estiver no seu Cemit\xE9rio e voc\xEA controlar 2 ou
+      mais monstros \"Shiranui\" com nomes diferentes: voc\xEA pode Invocar este
+      card por Invoca\xE7\xE3o-Especial, mas bana-o quando ele deixar o campo. Se
+      este card for banido: voc\xEA pode escolher 1 monstro Zumbi que voc\xEA controla;
+      ele ganha 600 de ATK at\xE9 o final deste turno. Voc\xEA s\xF3 pode usar cada
+      efeito de \"Shiranui Mestre da Espada\" uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 523d8723f0dd7e74a92aa14b513410e0
+    artwork: {fileID: 21300000, guid: 523d8723f0dd7e74a92aa14b513410e0, type: 3}
+    displayName: Solenidade do Estilo Shiranui
+    category: 2
+    monsterFrame: 3
+    officialCardId: 40364916
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "O nome deste card se torna \"S\xEDntese do Estilo Shiranui\" enquanto
+      estiver na Zona de Magias & Armadilhas. Uma vez por turno, voc\xEA pode ativar
+      1 desses efeitos.\n\u25CFBana 1 monstro Zumbi do seu Cemit\xE9rio; as Invoca\xE7\xF5es-Normais
+      e Especiais dos seus monstros Zumbi n\xE3o podem ser negadas pelo resto deste
+      turno (mesmo que este card deixe o campo).\n\u25CFEscolha 1 monstro Zumbi que
+      voc\xEA controla; bana-o e, depois, voc\xEA pode enviar 1 monstro Zumbi com
+      DEF 0 do seu Deck para o Cemit\xE9rio."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 3a30bd7c3bf98c244a5f310480ac64b1
+    artwork: {fileID: 21300000, guid: 3a30bd7c3bf98c244a5f310480ac64b1, type: 3}
+    displayName: Sucesso do Estilo Shiranui
+    category: 3
+    monsterFrame: 3
+    officialCardId: 74798297
+    typeName: Carta de Armadilha
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Invoque por Invoca\xE7\xE3o-Especial 1 monstro Zumbi da sua m\xE3o,
+      mas bana-o quando ele deixar o campo. Voc\xEA pode banir este card do seu Cemit\xE9rio
+      e, depois, escolher 1 monstro Zumbi que voc\xEA controla; esse monstro Zumbi
+      n\xE3o \xE9 afetado por efeitos de card neste turno, exceto seus pr\xF3prios.
+      Voc\xEA s\xF3 pode usar 1 efeito de \"Sucesso do Estilo Shiranui\" por turno
+      e apenas uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: f06fd6f8da16b1149bdf6940f2c99814
+    artwork: {fileID: 21300000, guid: f06fd6f8da16b1149bdf6940f2c99814, type: 3}
+    displayName: Shafu, o Mayakashi com Rodas
+    category: 1
+    monsterFrame: 3
+    officialCardId: 78936551
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 2
+    level: 3
+    attack: 1200
+    defense: 400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card for Invocado por Invoca\xE7\xE3o-Normal ou Especial:
+      voc\xEA pode escolher 1 monstro \"Mayakashi\" no seu Cemit\xE9rio, exceto \"Shafu,
+      o Mayakashi com Rodas\"; Invoque-o por Invoca\xE7\xE3o-Especial em Posi\xE7\xE3o
+      de Defesa, mas negue seus efeitos. Voc\xEA s\xF3 pode usar este efeito de \"Shafu,
+      o Mayakashi com Rodas\" uma vez por turno. Voc\xEA n\xE3o pode Invocar monstros
+      por Invoca\xE7\xE3o-Especial do Deck Adicional, exceto monstros \"Mayakashi\"."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: afe9b45dcdcb840448c305363c204d77
+    artwork: {fileID: 21300000, guid: afe9b45dcdcb840448c305363c204d77, type: 3}
+    displayName: Tsukahagi, o Mayakashi Venenoso
+    category: 1
+    monsterFrame: 3
+    officialCardId: 05325155
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 2
+    level: 2
+    attack: 0
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Voc\xEA s\xF3 pode controlar 1 \"Tsukahagi, o Mayakashi Venenoso\".
+      Se um ou mais monstros \"Mayakashi\" em sua posse, exceto \"Tsukahagi, o Mayakashi
+      Venenoso\", forem destru\xEDdos em batalha ou por um efeito de card do oponente,
+      enquanto este card estiver no Cemit\xE9rio: voc\xEA pode Invocar este card
+      por Invoca\xE7\xE3o-Especial. Voc\xEA n\xE3o pode Invocar monstros por Invoca\xE7\xE3o-Especial
+      do Deck Adicional no turno em que ativar este efeito, exceto monstros \"Mayakashi\"."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: e8731ff6bcbcb9944ad29abee9210e62
+    artwork: {fileID: 21300000, guid: e8731ff6bcbcb9944ad29abee9210e62, type: 3}
+    displayName: Yuki-Musume, a Mayakashi de Gelo
+    category: 1
+    monsterFrame: 3
+    officialCardId: 72700231
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 5
+    level: 1
+    attack: 0
+    defense: 1900
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se voc\xEA controlar um card \"Mayakashi\" que n\xE3o seja \"Yuki-Musume,
+      a Mayakashi de Gelo\" enquanto este card estiver na sua m\xE3o ou no Cemit\xE9rio:
+      voc\xEA pode Invocar este card por Invoca\xE7\xE3o-Especial e, depois, enviar
+      1 monstro Zumbi do seu Deck para o Cemit\xE9rio. Voc\xEA s\xF3 pode usar este
+      efeito de \"Yuki-Musume, a Mayakashi de Gelo\" uma vez por turno. Voc\xEA n\xE3o
+      pode Invocar monstros do Deck Adicional por Invoca\xE7\xE3o-Especial, exceto
+      monstros \"Mayakashi\"."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: a75f03f63c48c9849a99aeabbf4f825a
+    artwork: {fileID: 21300000, guid: a75f03f63c48c9849a99aeabbf4f825a, type: 3}
+    displayName: Fantasma Encontra Garota - Um Manuscrito Mayakashi
+    category: 2
+    monsterFrame: 3
+    officialCardId: 83266006
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Durante a Fase Principal: escolha 1 Monstro Sincro Zumbi que voc\xEA
+      controla; Invoque por Invoca\xE7\xE3o-Especial 1 dos seus monstros Zumbi com
+      o mesmo Atributo, que esteja banido ou no seu Cemit\xE9rio, mas bana-o durante
+      a Fase Final e, al\xE9m disso, voc\xEA n\xE3o pode Invocar monstros por Invoca\xE7\xE3o-Especial
+      pelo resto deste turno depois que este card resolver, exceto monstros Zumbi.
+      Voc\xEA s\xF3 pode ativar 1 \"Fantasma Encontra Garota - Um Manuscrito Mayakashi\"
+      por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 490de1329a03a7e4b8d5d1271b1c6a8a
+    artwork: {fileID: 21300000, guid: 490de1329a03a7e4b8d5d1271b1c6a8a, type: 3}
+    displayName: "Perturba\xE7\xE3o Mayakashi"
+    category: 3
+    monsterFrame: 3
+    officialCardId: 41867019
+    typeName: Carta de Armadilha
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se um ou mais Monstros Sincro Zumbi forem Invocados por Invoca\xE7\xE3o-Especial,
+      exceto do Deck Adicional, mesmo durante a Etapa de Dano: voc\xEA pode aplicar
+      1 dos seguintes efeitos. Voc\xEA n\xE3o pode aplicar o mesmo efeito de \"Perturba\xE7\xE3o
+      Mayakashi\" pelo resto deste turno.\n\u25CFCompre 1 card.\n\u25CFBaixe 1 Magia/Armadilha
+      \"Mayakashi\" diretamente do seu Deck, exceto \"Perturba\xE7\xE3o Mayakashi\".\n\u25CFEnvie
+      para o Cemit\xE9rio o 1 monstro com o menor ATK que seu oponente controla (em
+      caso de empate, voc\xEA seleciona).\n\u25CFCause 800 de dano ao seu oponente.\nVoc\xEA
+      s\xF3 pode ativar o efeito de \"Perturba\xE7\xE3o Mayakashi\" uma vez por Corrente."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 3e6f68aefa0abfe499a02cafc1740f0a
+    artwork: {fileID: 21300000, guid: 3e6f68aefa0abfe499a02cafc1740f0a, type: 3}
+    displayName: Metamorfose dos Mayakashi
+    category: 3
+    monsterFrame: 3
+    officialCardId: 39753577
+    typeName: Carta de Armadilha
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Descarte 1 card e, depois, escolha 1 dos seus monstros \"Mayakashi\"
+      que estiverem banidos ou no seu Cemit\xE9rio; Invoque-o por Invoca\xE7\xE3o-Especial.
+      Neste turno, seu oponente n\xE3o pode escolh\xEA-lo como alvo de efeitos de
+      card. Voc\xEA n\xE3o pode Invocar monstros por Invoca\xE7\xE3o-Especial do
+      Deck Adicional no turno em que ativar este card, exceto monstros \"Mayakashi\".
+      Voc\xEA s\xF3 pode ativar 1 \"Metamorfose dos Mayakashi\" por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 3a2a8007a79c83e4ead6e2aaa032e072
+    artwork: {fileID: 21300000, guid: 3a2a8007a79c83e4ead6e2aaa032e072, type: 3}
+    displayName: "Goka, o Piro da Mal\xEDcia"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 23116808
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 3
+    level: 6
+    attack: 2200
+    defense: 1900
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se voc\xEA controlar um monstro de FOGO, voc\xEA pode Invocar este
+      card por Invoca\xE7\xE3o-Especial (da sua m\xE3o). Ao faz\xEA-lo: escolha 1
+      monstro de FOGO que voc\xEA controla; destrua o alvo. Durante cada uma de suas
+      Fases de Apoio: Invoque por Invoca\xE7\xE3o-Especial 1 \"Ficha de Bola de Fogo\"
+      (Tipo Piro/FOGO/N\xEDvel 1/ATK 100/DEF 100) em Posi\xE7\xE3o de Defesa. Voc\xEA
+      pode oferecer como Tributo 1 outro monstro de FOGO; este card ganha 500 de
+      ATK at\xE9 a Fase Final."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 15e3edec79a8ffa4fabbdbf1b887d4a8
+    artwork: {fileID: 21300000, guid: 15e3edec79a8ffa4fabbdbf1b887d4a8, type: 3}
+    displayName: Raposa de Nove Caudas
+    category: 1
+    monsterFrame: 3
+    officialCardId: 27198001
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 3
+    level: 6
+    attack: 2200
+    defense: 2000
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card estiver na sua m\xE3o ou no Cemit\xE9rio: voc\xEA pode
+      oferecer 2 monstros como Tributo; Invoque este card por Invoca\xE7\xE3o-Especial.
+      Voc\xEA s\xF3 pode usar este efeito de \"Raposa de Nove Caudas\" uma vez por
+      turno. Se este card que foi Invocado por Invoca\xE7\xE3o-Especial do Cemit\xE9rio
+      atacar um monstro em Posi\xE7\xE3o de Defesa, cause dano de batalha perfurante.
+      Se este card for destru\xEDdo em batalha ou por um efeito de card e enviado
+      para o Cemit\xE9rio: voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial 2 \"Ficha
+      de Raposa\" (Zumbi/FOGO/N\xEDvel 2/ATK 500/DEF 500)."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 13bdbb5dcecb28d46ba4532b464eee66
+    artwork: {fileID: 21300000, guid: 13bdbb5dcecb28d46ba4532b464eee66, type: 3}
+    displayName: Ogro Vermelho
+    category: 1
+    monsterFrame: 3
+    officialCardId: 68722455
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 2
+    level: 7
+    attack: 2800
+    defense: 2100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for Invocado por Invoca\xE7\xE3o Normal: voc\xEA
+      pode enviar qualquer n\xFAmero de cards da sua m\xE3o para o Cemit\xE9rio e,
+      depois, escolher o mesmo n\xFAmero de cards no campo; devolva os alvos para
+      a m\xE3o."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 8d8b7381ab0150e48b0e0c57b527fcd3
+    artwork: {fileID: 21300000, guid: 8d8b7381ab0150e48b0e0c57b527fcd3, type: 3}
+    displayName: Gozuki
+    category: 1
+    monsterFrame: 3
+    officialCardId: 52467217
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 2
+    level: 4
+    attack: 1700
+    defense: 800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Durante sua Fase Principal: voc\xEA pode enviar 1 monstro Zumbi
+      do seu Deck para o Cemit\xE9rio. Se este card for enviado para o Cemit\xE9rio:
+      voc\xEA pode banir 1 monstro Zumbi do seu Cemit\xE9rio, exceto \"Gozuki\";
+      Invoque por Invoca\xE7\xE3o-Especial 1 monstro Zumbi da sua m\xE3o. Voc\xEA
+      s\xF3 pode usar cada efeito de \"Gozuki\" uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 77c64484e7b942640a1e922ac6d3f40b
+    artwork: {fileID: 21300000, guid: 77c64484e7b942640a1e922ac6d3f40b, type: 3}
+    displayName: Guarda Fantasma
+    category: 1
+    monsterFrame: 3
+    officialCardId: 56198785
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 1
+    level: 4
+    attack: 1800
+    defense: 100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Se este card for Invocado por Invoca\xE7\xE3o-Especial do Cemit\xE9rio:
+      voc\xEA pode escolher 1 monstro que voc\xEA controla; ele n\xE3o pode ser destru\xEDdo
+      em batalha ou por efeitos de card neste turno. Durante a Fase Final, se este
+      card atualmente estiver banido e foi banido neste turno: voc\xEA pode adicionar
+      este card \xE0 sua m\xE3o. Voc\xEA s\xF3 pode usar cada efeito de \"Guarda
+      Fantasma\" uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: a203658ceb58af140bf9c9ee3e398601
+    artwork: {fileID: 21300000, guid: a203658ceb58af140bf9c9ee3e398601, type: 3}
+    displayName: "Prociss\xE3o do Jarro de Ch\xE1"
+    category: 1
+    monsterFrame: 3
+    officialCardId: 12612470
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 1
+    level: 3
+    attack: 500
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Os monstros em Posi\xE7\xE3o de Defesa com a face para baixo na
+      coluna deste card n\xE3o podem mudar suas posi\xE7\xF5es de batalha e, al\xE9m
+      disso, nenhum duelista pode ativar os cards Baixados nas Zonas de Magias &
+      Armadilhas na coluna deste card. Voc\xEA s\xF3 pode usar cada um dos seguintes
+      efeitos de \"Prociss\xE3o do Jarro de Ch\xE1\" uma vez por turno. Durante sua
+      Fase Principal: voc\xEA pode mover este card para uma Zona de Monstros Principal
+      adjacente n\xE3o utilizada. Se este card na Zona de Monstros se mover para
+      outra Zona de Monstros: coloque todos os outros monstros na coluna atual deste
+      card em Posi\xE7\xE3o de Defesa com a face para baixo."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 04b00d088b36ba5408aef893a042b9cf
+    artwork: {fileID: 21300000, guid: 04b00d088b36ba5408aef893a042b9cf, type: 3}
+    displayName: Caveira Samurai
+    category: 1
+    monsterFrame: 3
+    officialCardId: 68989981
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 1
+    level: 4
+    attack: 1700
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando este card for Invocado por Invoca\xE7\xE3o-Normal: voc\xEA
+      pode enviar 1 monstro Zumbi do seu Deck para o Cemit\xE9rio. Se este card com
+      a face para cima sob o controle do seu dono deixar o campo devido a um efeito
+      de card do oponente: voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial 1 monstro
+      Zumbi de N\xEDvel 4 ou menos do seu Deck, exceto \"Caveira Samurai\"."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 85901a129439a09408a957262b226799
+    artwork: {fileID: 21300000, guid: 85901a129439a09408a957262b226799, type: 3}
+    displayName: Shutendoji
+    category: 1
+    monsterFrame: 3
+    officialCardId: 65422840
+    typeName: Monstro de Efeito
+    raceName: Zumbi
+    attribute: 2
+    level: 4
+    attack: 1500
+    defense: 800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Uma vez por turno: voc\xEA pode ativar 1 desses efeitos.\n\u25CFBana
+      2 monstros Zumbi do seu Cemit\xE9rio; compre 1 card.\n\u25CFEscolha 1 dos seus
+      monstros Zumbi banidos; coloque o alvo no topo do seu Deck."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: ae70c067022284e47a59483f8195dbaf
+    artwork: {fileID: 21300000, guid: ae70c067022284e47a59483f8195dbaf, type: 3}
+    displayName: "A Sele\xE7\xE3o"
+    category: 3
+    monsterFrame: 3
+    officialCardId: 30888983
+    typeName: Carta de Armadilha
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Pague 1000 Pontos de Vida. Negue a Invoca\xE7\xE3o de um monstro
+      que tenha o mesmo Tipo que um monstro no campo e destrua-o."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 86977f9b282a962439116312d7953723
+    artwork: {fileID: 21300000, guid: 86977f9b282a962439116312d7953723, type: 3}
+    displayName: Julgamento de Enma
+    category: 3
+    monsterFrame: 3
+    officialCardId: 32120116
+    typeName: Carta de Armadilha
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "Quando seu oponente Invocar um ou mais monstros por Invoca\xE7\xE3o-Especial:
+      destrua-o e, depois, voc\xEA pode banir 5 monstros Zumbi do seu Cemit\xE9rio
+      e, se isso acontecer, Invoque por Invoca\xE7\xE3o-Especial 1 monstro Zumbi
+      de N\xEDvel 7 ou mais da sua m\xE3o ou do Deck."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 795dfa31c4a93634b84eb6de9e128864
+    artwork: {fileID: 21300000, guid: 795dfa31c4a93634b84eb6de9e128864, type: 3}
+    displayName: Shiranui Solsaga
+    category: 1
+    monsterFrame: 6
+    officialCardId: 59843383
+    typeName: Monstro Sincro
+    raceName: Zumbi
+    attribute: 3
+    level: 10
+    attack: 3500
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador Zumbi + 1+ monstros Zumbi n\xE3o-Reguladores\nSe este
+      card for Invocado por Invoca\xE7\xE3o-Especial: voc\xEA pode devolver para
+      o Deck Adicional qualquer n\xFAmero dos seus Monstros Sincro Zumbi que estiverem
+      banidos ou no seu Cemit\xE9rio e, depois, voc\xEA pode destruir cards que seu
+      oponente controla, igual ao n\xFAmero de cards devolvidos. Se um ou mais monstros
+      Zumbi que voc\xEA controla seriam destru\xEDdos em batalha ou por um efeito
+      de card, em vez disso, voc\xEA pode banir 1 monstro \"Shiranui\" do seu Cemit\xE9rio.
+      Voc\xEA s\xF3 pode Invocar um ou mais \"Shiranui Solsaga\" por Invoca\xE7\xE3o-Especial
+      uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 3c7f0632f99ea4845a6e8ecbac9c7b85
+    artwork: {fileID: 21300000, guid: 3c7f0632f99ea4845a6e8ecbac9c7b85, type: 3}
+    displayName: Shiranui Escudeirosaga
+    category: 1
+    monsterFrame: 6
+    officialCardId: 52711246
+    typeName: Monstro Sincro
+    raceName: Zumbi
+    attribute: 3
+    level: 7
+    attack: 2100
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nVoc\xEA s\xF3 pode
+      Invocar um ou mais \"Shiranui Escudeirosaga\" por Invoca\xE7\xE3o-Especial
+      uma vez por turno. Uma vez por turno: voc\xEA pode banir 1 monstro com a face
+      para cima que voc\xEA controla ou no seu Cemit\xE9rio e, depois, aplique esses
+      efeitos, em sequencia, dependendo do que era o monstro antes de ser banido,
+      caso fosse algum desses.\n\u25CFZumbi: Voc\xEA pode fazer com que todos os
+      monstros que voc\xEA controla ganhem 300 de ATK.\n\u25CFFOGO: Voc\xEA pode
+      destruir 1 Magia/Armadilha no campo.\n\u25CFSincro: Voc\xEA pode destruir 1
+      monstro no campo."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 0e02171e4c2d4c9498cafd20646dec67
+    artwork: {fileID: 21300000, guid: 0e02171e4c2d4c9498cafd20646dec67, type: 3}
+    displayName: Shiranui Espadasaga
+    category: 1
+    monsterFrame: 6
+    officialCardId: 26326541
+    typeName: Monstro Sincro
+    raceName: Zumbi
+    attribute: 3
+    level: 5
+    attack: 1900
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nVoc\xEA s\xF3 pode
+      Invocar um ou mais \"Shiranui Espadasaga\" por Invoca\xE7\xE3o-Especial uma
+      vez por turno. Se este card for Invocado por Invoca\xE7\xE3o-Especial: voc\xEA
+      pode escolher 1 monstro no campo; mude a posi\xE7\xE3o de batalha dele. Se
+      este card for banido: voc\xEA pode Invocar por Invoca\xE7\xE3o-Especial 1 \"Ficha
+      Shiranui\" (Zumbi/FOGO/N\xEDvel 1/ATK 0/DEF 0). Voc\xEA s\xF3 pode usar este
+      efeito de \"Shiranui Espadasaga\" uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: bc5d44fcf900c554997283aaf2c91987
+    artwork: {fileID: 21300000, guid: bc5d44fcf900c554997283aaf2c91987, type: 3}
+    displayName: Supremacia Shiranui Destrezasaga
+    category: 1
+    monsterFrame: 8
+    officialCardId: 86926989
+    typeName: Monstro Link
+    raceName: Zumbi
+    attribute: 3
+    level: 3
+    attack: 2300
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2+ monstros Zumbi\nMonstros Sincro que voc\xEA controla n\xE3o podem
+      ser destru\xEDdos por efeitos de card. Monstros de FOGO que voc\xEA controla
+      n\xE3o podem ser destru\xEDdos em batalha. Durante o turno do seu oponente
+      (Efeito R\xE1pido): voc\xEA pode escolher 1 dos seus Monstros Sincro Zumbi
+      banidos; Invoque-o por Invoca\xE7\xE3o-Especial em uma zona sua para a qual
+      este card apontar. Voc\xEA s\xF3 pode usar este efeito de \"Supremacia Shiranui
+      Destrezasaga\" uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: e6c75e65af1a6724d9ab18aa9daafc56
+    artwork: {fileID: 21300000, guid: e6c75e65af1a6724d9ab18aa9daafc56, type: 3}
+    displayName: Yoko, a Mayakashi Elegante
+    category: 1
+    monsterFrame: 6
+    officialCardId: 03486020
+    typeName: Monstro Sincro
+    raceName: Zumbi
+    attribute: 3
+    level: 9
+    attack: 2900
+    defense: 2400
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nVoc\xEA s\xF3 pode
+      controlar 1 \"Yoko, a Mayakashi Elegante\". Voc\xEA s\xF3 pode usar cada um
+      desses efeitos de \"Yoko, a Mayakashi Elegante\" uma vez por turno.\n\u25CFSe
+      um Monstro Sincro em sua posse, cujo N\xEDvel original seja 11, for destru\xEDdo
+      em batalha ou por um efeito de card do oponente enquanto este card estiver
+      no Cemit\xE9rio: voc\xEA pode banir 1 outro monstro Zumbi no seu Cemit\xE9rio
+      e, se isso acontecer, Invoque este card por Invoca\xE7\xE3o-Especial.\n\u25CFSe
+      este card for Invocado por Invoca\xE7\xE3o-Especial do Cemit\xE9rio: voc\xEA
+      pode destruir 1 monstro que seu oponente controla."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 37998388bfab96a4e984a8e62ea69190
+    artwork: {fileID: 21300000, guid: 37998388bfab96a4e984a8e62ea69190, type: 3}
+    displayName: Tengu, o Mayakashi Alado
+    category: 1
+    monsterFrame: 6
+    officialCardId: 04103668
+    typeName: Monstro Sincro
+    raceName: Zumbi
+    attribute: 6
+    level: 7
+    attack: 2600
+    defense: 1500
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nVoc\xEA s\xF3 pode
+      controlar 1 \"Tengu, o Mayakashi Alado\". Voc\xEA s\xF3 pode usar cada um desses
+      efeitos de \"Tengu, o Mayakashi Alado\" uma vez por turno.\n\u25CFSe um Monstro
+      Sincro em sua posse, cujo N\xEDvel original seja 9, for destru\xEDdo em batalha
+      ou por um efeito de card do oponente enquanto este card estiver no Cemit\xE9rio:
+      voc\xEA pode banir 1 outro monstro Zumbi no seu Cemit\xE9rio e, se isso acontecer,
+      Invoque este card por Invoca\xE7\xE3o-Especial.\n\u25CFSe este card for Invocado
+      por Invoca\xE7\xE3o-Especial do Cemit\xE9rio: voc\xEA pode destruir 1 Magia/Armadilha
+      que seu oponente controla."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: e3fb8b7f763d6c248a6522f17342bc6f
+    artwork: {fileID: 21300000, guid: e3fb8b7f763d6c248a6522f17342bc6f, type: 3}
+    displayName: Tsuchigumo, o Mayakashi Venenoso
+    category: 1
+    monsterFrame: 6
+    officialCardId: 77092311
+    typeName: Monstro Sincro
+    raceName: Zumbi
+    attribute: 2
+    level: 5
+    attack: 2000
+    defense: 1800
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nVoc\xEA s\xF3 pode
+      controlar 1 \"Tsuchigumo, o Mayakashi Venenoso\". Voc\xEA s\xF3 pode usar cada
+      um desses efeitos de \"Tsuchigumo, o Mayakashi Venenoso\" uma vez por turno.\n\u25CFSe
+      um Monstro Sincro em sua posse, cujo N\xEDvel original seja 7, for destru\xEDdo
+      em batalha ou por um efeito de card do oponente enquanto este card estiver
+      no Cemit\xE9rio: voc\xEA pode banir 1 outro monstro Zumbi no seu Cemit\xE9rio
+      e, se isso acontecer, Invoque este card por Invoca\xE7\xE3o-Especial.\n\u25CFSe
+      este card for Invocado por Invoca\xE7\xE3o-Especial do Cemit\xE9rio: voc\xEA
+      pode fazer com que cada duelista envie os 3 cards do topo do seu Deck para
+      o Cemit\xE9rio."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 67d9157fd117577439886ecf0c1f3900
+    artwork: {fileID: 21300000, guid: 67d9157fd117577439886ecf0c1f3900, type: 3}
+    displayName: Oboro-Guruma, o Mayakashi com Rodas
+    category: 1
+    monsterFrame: 6
+    officialCardId: 30607616
+    typeName: Monstro Sincro
+    raceName: Zumbi
+    attribute: 2
+    level: 3
+    attack: 800
+    defense: 2100
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "1 Regulador + 1+ monstros n\xE3o-Reguladores\nVoc\xEA s\xF3 pode
+      controlar 1 \"Oboro-Guruma, o Mayakashi com Rodas\". Voc\xEA s\xF3 pode usar
+      cada um desses efeitos de \"Oboro-Guruma, o Mayakashi com Rodas\" uma vez por
+      turno.\n\u25CFSe um Monstro Sincro em sua posse, cujo N\xEDvel original seja
+      5, for destru\xEDdo em batalha ou por um efeito de card do oponente enquanto
+      este card estiver no Cemit\xE9rio: voc\xEA pode banir 1 outro monstro Zumbi
+      no seu Cemit\xE9rio e, se isso acontecer, Invoque este card por Invoca\xE7\xE3o-Especial.\n\u25CFSe
+      este card for Invocado por Invoca\xE7\xE3o-Especial do Cemit\xE9rio: voc\xEA
+      pode ativar este efeito; neste turno, seus monstros n\xE3o podem ser destru\xEDdos
+      em batalha."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."
+  - stableId: 3db37b75b55460e4daf5c150ee7f0a68
+    artwork: {fileID: 21300000, guid: 3db37b75b55460e4daf5c150ee7f0a68, type: 3}
+    displayName: Progleo
+    category: 1
+    monsterFrame: 8
+    officialCardId: 52615248
+    typeName: Monstro Link
+    raceName: Ciberso
+    attribute: 4
+    level: 2
+    attack: 1000
+    defense: 0
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: "2 monstros, exceto Fichas\nDurante sua Fase Principal, se voc\xEA
+      controlar este card Invocado por Invoca\xE7\xE3o-Link: voc\xEA pode banir este
+      card e 1 dos seus monstros para os quais este card apontar e, depois, escolha
+      1 Monstro Link em qualquer Cemit\xE9rio; Invoque-o por Invoca\xE7\xE3o-Especial,
+      mas bana-o quando ele deixar o campo. Voc\xEA s\xF3 pode usar este efeito de
+      \"Progleo\" uma vez por turno."
+    reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
+      do Core."

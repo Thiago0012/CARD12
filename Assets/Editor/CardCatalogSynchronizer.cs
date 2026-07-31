@@ -16,6 +16,8 @@ namespace ArcaneArena.Editor
             "Assets/Cards/Cards/Decks/YugiMutoBattleCity";
         private const string ToonArtFolder =
             "Assets/Cards/Cards/Decks/ToonTest";
+        private const string ShiranuiArtFolder =
+            "Assets/Cards/Cards/Decks/ShiranuiSupremacy";
 
         [MenuItem("Arcane Arena/Content/Sync Yugi Battle City")]
         public static void SyncYugiMutoBattleCity()
@@ -35,6 +37,16 @@ namespace ArcaneArena.Editor
                 ToonArtFolder,
                 CuratedDeckLists.ToonTestMain,
                 CuratedDeckLists.ToonTestExtra);
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync Shiranui Deck and Portuguese Text")]
+        public static void SyncShiranuiDeckAndPortugueseText()
+        {
+            SyncDeck(
+                "shiranui-supremacy",
+                ShiranuiArtFolder,
+                CuratedDeckLists.ShiranuiSupremacyMain,
+                CuratedDeckLists.ShiranuiSupremacyExtra);
         }
 
         private static void SyncDeck(

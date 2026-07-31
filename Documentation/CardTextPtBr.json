@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "language": "pt-BR",
-  "generatedUtc": "2026-07-31T20:36:56.408987+00:00",
+  "generatedUtc": "2026-07-31T21:11:40.240415+00:00",
   "source": "https://db.ygoprodeck.com/api/v7/cardinfo.php?language=pt",
-  "manualOverrides": 31,
+  "manualOverrides": 33,
   "missingCodes": [],
   "cards": [
     {
@@ -79,6 +79,12 @@
       "strings": []
     },
     {
+      "code": 3486020,
+      "name": "Yoko, a Mayakashi Elegante",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nVocê só pode controlar 1 \"Yoko, a Mayakashi Elegante\". Você só pode usar cada um desses efeitos de \"Yoko, a Mayakashi Elegante\" uma vez por turno.\n●Se um Monstro Sincro em sua posse, cujo Nível original seja 11, for destruído em batalha ou por um efeito de card do oponente enquanto este card estiver no Cemitério: você pode banir 1 outro monstro Zumbi no seu Cemitério e, se isso acontecer, Invoque este card por Invocação-Especial.\n●Se este card for Invocado por Invocação-Especial do Cemitério: você pode destruir 1 monstro que seu oponente controla.",
+      "strings": []
+    },
+    {
       "code": 3819470,
       "name": "Sete Ferramentas do Bandido",
       "description": "Quando um Card de Armadilha for ativado: pague 1000 PV; negue a ativação e, se isso acontecer, destrua-o.",
@@ -88,6 +94,12 @@
       "code": 4031928,
       "name": "Mudança de Opinião",
       "description": "Escolha 1 monstro no Campo do seu adversário e controle-o até o final do seu turno.",
+      "strings": []
+    },
+    {
+      "code": 4103668,
+      "name": "Tengu, o Mayakashi Alado",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nVocê só pode controlar 1 \"Tengu, o Mayakashi Alado\". Você só pode usar cada um desses efeitos de \"Tengu, o Mayakashi Alado\" uma vez por turno.\n●Se um Monstro Sincro em sua posse, cujo Nível original seja 9, for destruído em batalha ou por um efeito de card do oponente enquanto este card estiver no Cemitério: você pode banir 1 outro monstro Zumbi no seu Cemitério e, se isso acontecer, Invoque este card por Invocação-Especial.\n●Se este card for Invocado por Invocação-Especial do Cemitério: você pode destruir 1 Magia/Armadilha que seu oponente controla.",
       "strings": []
     },
     {
@@ -121,9 +133,21 @@
       "strings": []
     },
     {
+      "code": 5177985,
+      "name": "Shiranui Mestre da Espada",
+      "description": "Se este card estiver no seu Cemitério e você controlar 2 ou mais monstros \"Shiranui\" com nomes diferentes: você pode Invocar este card por Invocação-Especial, mas bana-o quando ele deixar o campo. Se este card for banido: você pode escolher 1 monstro Zumbi que você controla; ele ganha 600 de ATK até o final deste turno. Você só pode usar cada efeito de \"Shiranui Mestre da Espada\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 5318639,
       "name": "Tufão Espacial Místico",
       "description": "Escolha 1 Magia/Armadilha no campo; destrua o alvo.",
+      "strings": []
+    },
+    {
+      "code": 5325155,
+      "name": "Tsukahagi, o Mayakashi Venenoso",
+      "description": "Você só pode controlar 1 \"Tsukahagi, o Mayakashi Venenoso\". Se um ou mais monstros \"Mayakashi\" em sua posse, exceto \"Tsukahagi, o Mayakashi Venenoso\", forem destruídos em batalha ou por um efeito de card do oponente, enquanto este card estiver no Cemitério: você pode Invocar este card por Invocação-Especial. Você não pode Invocar monstros por Invocação-Especial do Deck Adicional no turno em que ativar este efeito, exceto monstros \"Mayakashi\".",
       "strings": []
     },
     {
@@ -341,6 +365,15 @@
       "strings": []
     },
     {
+      "code": 12612470,
+      "name": "Procissão do Jarro de Chá",
+      "description": "Os monstros em Posição de Defesa com a face para baixo na coluna deste card não podem mudar suas posições de batalha e, além disso, nenhum duelista pode ativar os cards Baixados nas Zonas de Magias & Armadilhas na coluna deste card. Você só pode usar cada um dos seguintes efeitos de \"Procissão do Jarro de Chá\" uma vez por turno. Durante sua Fase Principal: você pode mover este card para uma Zona de Monstros Principal adjacente não utilizada. Se este card na Zona de Monstros se mover para outra Zona de Monstros: coloque todos os outros monstros na coluna atual deste card em Posição de Defesa com a face para baixo.",
+      "strings": [
+        "Mover este card para uma Zona de Monstros Principal adjacente não utilizada",
+        "Colocar todos os outros monstros na coluna dele com a face para baixo"
+      ]
+    },
+    {
       "code": 13039848,
       "name": "Soldado de Pedra Gigante",
       "description": "Um guerreiro gigante feito de pedra. Um soco desta criatura faz com que a terra estremeça.",
@@ -526,6 +559,12 @@
       "strings": []
     },
     {
+      "code": 23116808,
+      "name": "Goka, o Piro da Malícia",
+      "description": "Se você controlar um monstro de FOGO, você pode Invocar este card por Invocação-Especial (da sua mão). Ao fazê-lo: escolha 1 monstro de FOGO que você controla; destrua o alvo. Durante cada uma de suas Fases de Apoio: Invoque por Invocação-Especial 1 \"Ficha de Bola de Fogo\" (Tipo Piro/FOGO/Nível 1/ATK 100/DEF 100) em Posição de Defesa. Você pode oferecer como Tributo 1 outro monstro de FOGO; este card ganha 500 de ATK até a Fase Final.",
+      "strings": []
+    },
+    {
       "code": 23205979,
       "name": "Ceifeiro de Espíritos",
       "description": "Não pode ser destruído em batalha. Depois de resolver um efeito de card que escolher como alvo este card com a face para cima, destrua este card. Quando este card causar dano de batalha ao seu oponente em um ataque direto: descarte 1 card aleatório da mão dele.",
@@ -616,6 +655,18 @@
       "strings": []
     },
     {
+      "code": 26326541,
+      "name": "Shiranui Espadasaga",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nVocê só pode Invocar um ou mais \"Shiranui Espadasaga\" por Invocação-Especial uma vez por turno. Se este card for Invocado por Invocação-Especial: você pode escolher 1 monstro no campo; mude a posição de batalha dele. Se este card for banido: você pode Invocar por Invocação-Especial 1 \"Ficha Shiranui\" (Zumbi/FOGO/Nível 1/ATK 0/DEF 0). Você só pode usar este efeito de \"Shiranui Espadasaga\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 27198001,
+      "name": "Raposa de Nove Caudas",
+      "description": "Se este card estiver na sua mão ou no Cemitério: você pode oferecer 2 monstros como Tributo; Invoque este card por Invocação-Especial. Você só pode usar este efeito de \"Raposa de Nove Caudas\" uma vez por turno. Se este card que foi Invocado por Invocação-Especial do Cemitério atacar um monstro em Posição de Defesa, cause dano de batalha perfurante. Se este card for destruído em batalha ou por um efeito de card e enviado para o Cemitério: você pode Invocar por Invocação-Especial 2 \"Ficha de Raposa\" (Zumbi/FOGO/Nível 2/ATK 500/DEF 500).",
+      "strings": []
+    },
+    {
       "code": 27204311,
       "name": "Nibiru, o Ser Primitivo",
       "description": "Durante a Fase Principal, se seu oponente Invocou 5 ou mais monstros por Invocação-Normal ou Especial neste turno (Efeito Rápido): você pode oferecer como Tributo tantos monstros com a face para cima no campo quanto possível e, se isso acontecer, Invoque este card por Invocação-Especial da sua mão e, depois, Invoque por Invocação-Especial 1 \"Ficha de Ser Primitivo\" (Rocha/LUZ/Nível 11/ATK ?/DEF ?) no campo do seu oponente. (O ATK/DEF dessa Ficha se tornam a soma dos respectivos ATK/DEF originais dos monstros oferecidos como Tributo.) Você só pode usar este efeito de \"Nibiru, o Ser Primitivo\" uma vez por turno.",
@@ -673,9 +724,27 @@
       "strings": []
     },
     {
+      "code": 30607616,
+      "name": "Oboro-Guruma, o Mayakashi com Rodas",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nVocê só pode controlar 1 \"Oboro-Guruma, o Mayakashi com Rodas\". Você só pode usar cada um desses efeitos de \"Oboro-Guruma, o Mayakashi com Rodas\" uma vez por turno.\n●Se um Monstro Sincro em sua posse, cujo Nível original seja 5, for destruído em batalha ou por um efeito de card do oponente enquanto este card estiver no Cemitério: você pode banir 1 outro monstro Zumbi no seu Cemitério e, se isso acontecer, Invoque este card por Invocação-Especial.\n●Se este card for Invocado por Invocação-Especial do Cemitério: você pode ativar este efeito; neste turno, seus monstros não podem ser destruídos em batalha.",
+      "strings": []
+    },
+    {
+      "code": 30888983,
+      "name": "A Seleção",
+      "description": "Pague 1000 Pontos de Vida. Negue a Invocação de um monstro que tenha o mesmo Tipo que um monstro no campo e destrua-o.",
+      "strings": []
+    },
+    {
       "code": 31305911,
       "name": "Marshmallon",
       "description": "Não pode ser destruído em batalha. Depois do cálculo de dano, se este card foi atacado e estava com a face para baixo no começo da Etapa de Dano: o duelista atacante sofre 1000 de dano.",
+      "strings": []
+    },
+    {
+      "code": 32120116,
+      "name": "Julgamento de Enma",
+      "description": "Quando seu oponente Invocar um ou mais monstros por Invocação-Especial: destrua-o e, depois, você pode banir 5 monstros Zumbi do seu Cemitério e, se isso acontecer, Invoque por Invocação-Especial 1 monstro Zumbi de Nível 7 ou mais da sua mão ou do Deck.",
       "strings": []
     },
     {
@@ -688,6 +757,12 @@
       "code": 32566831,
       "name": "Cards da Pedra Vermelha",
       "description": "Envie 1 monstro \"Olhos Vermelhos\" de Nível 7 da sua mão para o Cemitério; compre 2 cards e, depois, você pode enviar 1 monstro \"Olhos Vermelhos\" de Nível 7 do seu Deck para o Cemitério. Você só pode ativar 1 \"Cards da Pedra Vermelha\" por turno.",
+      "strings": []
+    },
+    {
+      "code": 33420078,
+      "name": "Zumbi Espalha-praga",
+      "description": "Se este card estiver no seu Cemitério: você pode colocar 1 card da sua mão no topo do Deck; Invoque este card por Invocação-Especial, mas bana-o quando ele deixar o campo.",
       "strings": []
     },
     {
@@ -830,6 +905,18 @@
       "strings": []
     },
     {
+      "code": 39753577,
+      "name": "Metamorfose dos Mayakashi",
+      "description": "Descarte 1 card e, depois, escolha 1 dos seus monstros \"Mayakashi\" que estiverem banidos ou no seu Cemitério; Invoque-o por Invocação-Especial. Neste turno, seu oponente não pode escolhê-lo como alvo de efeitos de card. Você não pode Invocar monstros por Invocação-Especial do Deck Adicional no turno em que ativar este card, exceto monstros \"Mayakashi\". Você só pode ativar 1 \"Metamorfose dos Mayakashi\" por turno.",
+      "strings": []
+    },
+    {
+      "code": 40364916,
+      "name": "Solenidade do Estilo Shiranui",
+      "description": "O nome deste card se torna \"Síntese do Estilo Shiranui\" enquanto estiver na Zona de Magias & Armadilhas. Uma vez por turno, você pode ativar 1 desses efeitos.\n●Bana 1 monstro Zumbi do seu Cemitério; as Invocações-Normais e Especiais dos seus monstros Zumbi não podem ser negadas pelo resto deste turno (mesmo que este card deixe o campo).\n●Escolha 1 monstro Zumbi que você controla; bana-o e, depois, você pode enviar 1 monstro Zumbi com DEF 0 do seu Deck para o Cemitério.",
+      "strings": []
+    },
+    {
       "code": 40366667,
       "name": "Impulso Dominus",
       "description": "Se seu oponente controlar um card, você pode ativar este card da sua mão. Quando um card ou efeito que inclua um efeito que Invoque um ou mais monstros por Invocação-Especial for ativado: negue esse efeito e, depois, se você tiver uma Armadilha no seu Cemitério, destrua esse card. Se você ativou este card da sua mão, não pode ativar os efeitos de monstros de LUZ, TERRA e VENTO pelo resto deste Duelo. Você só pode ativar 1 \"Impulso Dominus\" por turno.",
@@ -882,9 +969,21 @@
       "strings": []
     },
     {
+      "code": 41562624,
+      "name": "Shiranui Escudeiro",
+      "description": "Quando este card for Invocado por Invocação-Normal, você pode: Invocar por Invocação-Especial 1 monstro \"Shiranui Espada Espectral\" da sua mão ou do Deck e, além disso, você não pode Invocar monstros por Invocação-Especial pelo resto deste turno, exceto monstros Zumbi. Se este card for banido: você pode comprar 1 card e, depois, descartar 1 card. Você só pode usar cada efeito de \"Shiranui Escudeiro\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 41721210,
       "name": "Mago Negro, o Cavaleiro Dragão",
       "description": "\"Mago Negro\" + 1 monstro Dragão\nO nome deste card se torna \"Mago Negro\" enquanto ele estiver no campo ou no Cemitério. Seu oponente não pode escolher Magias/Armadilhas que você controla como alvo de efeitos de card e, além disso, elas não podem ser destruídas pelos efeitos de card do seu oponente.",
+      "strings": []
+    },
+    {
+      "code": 41867019,
+      "name": "Perturbação Mayakashi",
+      "description": "Se um ou mais Monstros Sincro Zumbi forem Invocados por Invocação-Especial, exceto do Deck Adicional, mesmo durante a Etapa de Dano: você pode aplicar 1 dos seguintes efeitos. Você não pode aplicar o mesmo efeito de \"Perturbação Mayakashi\" pelo resto deste turno.\n●Compre 1 card.\n●Baixe 1 Magia/Armadilha \"Mayakashi\" diretamente do seu Deck, exceto \"Perturbação Mayakashi\".\n●Envie para o Cemitério o 1 monstro com o menor ATK que seu oponente controla (em caso de empate, você seleciona).\n●Cause 800 de dano ao seu oponente.\nVocê só pode ativar o efeito de \"Perturbação Mayakashi\" uma vez por Corrente.",
       "strings": []
     },
     {
@@ -1134,9 +1233,27 @@
       "strings": []
     },
     {
+      "code": 52467217,
+      "name": "Gozuki",
+      "description": "Durante sua Fase Principal: você pode enviar 1 monstro Zumbi do seu Deck para o Cemitério. Se este card for enviado para o Cemitério: você pode banir 1 monstro Zumbi do seu Cemitério, exceto \"Gozuki\"; Invoque por Invocação-Especial 1 monstro Zumbi da sua mão. Você só pode usar cada efeito de \"Gozuki\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 52615248,
+      "name": "Progleo",
+      "description": "2 monstros, exceto Fichas\nDurante sua Fase Principal, se você controlar este card Invocado por Invocação-Link: você pode banir este card e 1 dos seus monstros para os quais este card apontar e, depois, escolha 1 Monstro Link em qualquer Cemitério; Invoque-o por Invocação-Especial, mas bana-o quando ele deixar o campo. Você só pode usar este efeito de \"Progleo\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 52684508,
       "name": "Explosão de Fogo Infernal",
       "description": "Escolha 1 \"Dragão Negro de Olhos Vermelhos\" na sua Zona de Monstros; cause dano ao seu oponente igual ao ATK original desse \"Dragão Negro de Olhos Vermelhos\". \"Dragão Negro de Olhos Vermelhos\" não pode atacar no turno em que você ativar este card.",
+      "strings": []
+    },
+    {
+      "code": 52711246,
+      "name": "Shiranui Escudeirosaga",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nVocê só pode Invocar um ou mais \"Shiranui Escudeirosaga\" por Invocação-Especial uma vez por turno. Uma vez por turno: você pode banir 1 monstro com a face para cima que você controla ou no seu Cemitério e, depois, aplique esses efeitos, em sequencia, dependendo do que era o monstro antes de ser banido, caso fosse algum desses.\n●Zumbi: Você pode fazer com que todos os monstros que você controla ganhem 300 de ATK.\n●FOGO: Você pode destruir 1 Magia/Armadilha no campo.\n●Sincro: Você pode destruir 1 monstro no campo.",
       "strings": []
     },
     {
@@ -1222,6 +1339,12 @@
       "strings": []
     },
     {
+      "code": 56198785,
+      "name": "Guarda Fantasma",
+      "description": "Se este card for Invocado por Invocação-Especial do Cemitério: você pode escolher 1 monstro que você controla; ele não pode ser destruído em batalha ou por efeitos de card neste turno. Durante a Fase Final, se este card atualmente estiver banido e foi banido neste turno: você pode adicionar este card à sua mão. Você só pode usar cada efeito de \"Guarda Fantasma\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 56532353,
       "name": "Neo Dragão Definitivo de Olhos Azuis",
       "description": "\"Dragão Branco de Olhos Azuis\" + \"Dragão Branco de Olhos Azuis\" + \"Dragão Branco de Olhos Azuis\"\nNo final da Etapa de Dano, se este for o único card com a face para cima que você controla e este card Invocado por Invocação-Fusão atacou: você pode enviar 1 Monstro de Fusão \"Olhos Azuis\" do seu Deck Adicional para o Cemitério; este card pode atacar novamente em seguida. Você pode usar este efeito de \"Neo Dragão Definitivo de Olhos Azuis\" até duas vezes por turno. Durante o turno de qualquer duelista, quando um card ou efeito for ativado que escolha como alvo um ou mais monstros \"Olhos Azuis\" que você controla: você pode banir este card do seu Cemitério; negue a ativação e, se isso acontecer, destrua esse card.",
@@ -1284,6 +1407,12 @@
       "code": 59822133,
       "name": "Dragão Espírito de Olhos Azuis",
       "description": "1 Regulador + 1+ monstros \"Olhos Azuis\" não-Reguladores\nNenhum duelista pode Invocar 2 ou mais monstros por Invocação-Especial ao mesmo tempo. Uma vez por turno, quando um efeito de um card no Cemitério for ativado (Efeito Rápido): você pode negar a ativação. (Efeito Rápido): você pode oferecer este card Invocado por Invocação-Sincro como Tributo; Invoque por Invocação-Especial 1 Monstro Sincro Dragão de LUZ do seu Deck Adicional em Posição de Defesa, exceto \"Dragão Espírito de Olhos Azuis\", mas destrua-o durante a Fase Final deste turno.",
+      "strings": []
+    },
+    {
+      "code": 59843383,
+      "name": "Shiranui Solsaga",
+      "description": "1 Regulador Zumbi + 1+ monstros Zumbi não-Reguladores\nSe este card for Invocado por Invocação-Especial: você pode devolver para o Deck Adicional qualquer número dos seus Monstros Sincro Zumbi que estiverem banidos ou no seu Cemitério e, depois, você pode destruir cards que seu oponente controla, igual ao número de cards devolvidos. Se um ou mais monstros Zumbi que você controla seriam destruídos em batalha ou por um efeito de card, em vez disso, você pode banir 1 monstro \"Shiranui\" do seu Cemitério. Você só pode Invocar um ou mais \"Shiranui Solsaga\" por Invocação-Especial uma vez por turno.",
       "strings": []
     },
     {
@@ -1353,6 +1482,12 @@
       "strings": []
     },
     {
+      "code": 65422840,
+      "name": "Shutendoji",
+      "description": "Uma vez por turno: você pode ativar 1 desses efeitos.\n●Bana 2 monstros Zumbi do seu Cemitério; compre 1 card.\n●Escolha 1 dos seus monstros Zumbi banidos; coloque o alvo no topo do seu Deck.",
+      "strings": []
+    },
+    {
       "code": 65458948,
       "name": "Sereia Toon",
       "description": "Não pode ser Invocado por Invocação-Normal/Baixado. Primeiro deve ser Invocado por Invocação-Especial (da sua mão) enquanto você controlar \"Mundo Toon\". Não pode atacar no turno em que for Invocado por Invocação-Especial. Você deve pagar 500 PV para declarar um ataque com este monstro. Se \"Mundo Toon\" no campo for destruído, destrua este card. Pode atacar diretamente seu oponente, a não ser que ele controle um monstro Toon e, nesse caso, este card deve escolher um monstro Toon como alvo dos seus ataques.",
@@ -1410,6 +1545,18 @@
       "code": 68462976,
       "name": "Vila Secreta dos Magos",
       "description": "Se somente você controlar um monstro Mago, seu oponente não pode ativar Cards de Magia. Se você não controlar nenhum monstro Mago, você não pode ativar Cards de Magia.",
+      "strings": []
+    },
+    {
+      "code": 68722455,
+      "name": "Ogro Vermelho",
+      "description": "Quando este card for Invocado por Invocação Normal: você pode enviar qualquer número de cards da sua mão para o Cemitério e, depois, escolher o mesmo número de cards no campo; devolva os alvos para a mão.",
+      "strings": []
+    },
+    {
+      "code": 68989981,
+      "name": "Caveira Samurai",
+      "description": "Quando este card for Invocado por Invocação-Normal: você pode enviar 1 monstro Zumbi do seu Deck para o Cemitério. Se este card com a face para cima sob o controle do seu dono deixar o campo devido a um efeito de card do oponente: você pode Invocar por Invocação-Especial 1 monstro Zumbi de Nível 4 ou menos do seu Deck, exceto \"Caveira Samurai\".",
       "strings": []
     },
     {
@@ -1507,6 +1654,12 @@
       "strings": []
     },
     {
+      "code": 72700231,
+      "name": "Yuki-Musume, a Mayakashi de Gelo",
+      "description": "Se você controlar um card \"Mayakashi\" que não seja \"Yuki-Musume, a Mayakashi de Gelo\" enquanto este card estiver na sua mão ou no Cemitério: você pode Invocar este card por Invocação-Especial e, depois, enviar 1 monstro Zumbi do seu Deck para o Cemitério. Você só pode usar este efeito de \"Yuki-Musume, a Mayakashi de Gelo\" uma vez por turno. Você não pode Invocar monstros do Deck Adicional por Invocação-Especial, exceto monstros \"Mayakashi\".",
+      "strings": []
+    },
+    {
       "code": 72855441,
       "name": "Protetor com Azul nos Olhos",
       "description": "Quando este card for Invocado por Invocação-Normal: você pode Invocar por Invocação-Especial 1 Regulador de LUZ de Nível 1 da sua mão. Você pode escolher 1 Monstro de Efeito que você controla; envie-o para o Cemitério e, se isso acontecer, Invoque por Invocação-Especial 1 monstro \"Olhos Azuis\" da sua mão. Você só pode usar este efeito de \"Protetor com Azul nos Olhos\" uma vez por turno.",
@@ -1551,6 +1704,12 @@
       "strings": []
     },
     {
+      "code": 74003290,
+      "name": "Vento Perdido",
+      "description": "Escolha 1 monstro com a face para cima Invocado por Invocação-Especial no campo; negue seus efeitos e, além disso, seu ATK original é diminuído pela metade. Se um monstro for Invocado por Invocação-Especial do Deck Adicional do seu oponente, enquanto este card estiver no seu Cemitério (exceto durante a Etapa de Dano): você pode Baixar este card, mas bana-o quando ele deixar o campo.",
+      "strings": []
+    },
+    {
       "code": 74131780,
       "name": "Força Exilada",
       "description": "Você pode oferecer este card como Tributo para escolher 1 monstro no campo; destrua o alvo.",
@@ -1569,6 +1728,12 @@
       "strings": []
     },
     {
+      "code": 74798297,
+      "name": "Sucesso do Estilo Shiranui",
+      "description": "Invoque por Invocação-Especial 1 monstro Zumbi da sua mão, mas bana-o quando ele deixar o campo. Você pode banir este card do seu Cemitério e, depois, escolher 1 monstro Zumbi que você controla; esse monstro Zumbi não é afetado por efeitos de card neste turno, exceto seus próprios. Você só pode usar 1 efeito de \"Sucesso do Estilo Shiranui\" por turno e apenas uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 75190122,
       "name": "Magia Ardente das Trevas",
       "description": "Se você controlar monstros cujos nomes originais sejam \"Mago Negro\" e \"Pequena Maga Negra\": destrua todos os cards que seu oponente controla.",
@@ -1578,6 +1743,12 @@
       "code": 75347539,
       "name": "Valkyrion, o Guerreiro Ímã",
       "description": "Não pode ser Invocado por Invocação-Normal/Baixado. Primeiro deve ser Invocado por Invocação-Especial (da sua mão) ao oferecer como Tributo 1 \"Alfa, o Guerreiro Imã\", \"Beta, o Guerreiro Imã\" e \"Gama, o Guerreiro Imã\" da sua mão e/ou do campo. Você pode oferecer este card como Tributo e, depois, escolher 1 \"Alfa, o Guerreiro Imã\", \"Beta, o Guerreiro Imã\" e \"Gama, o Guerreiro Imã\" no seu Cemitério; Invoque-os por Invocação-Especial.",
+      "strings": []
+    },
+    {
+      "code": 77092311,
+      "name": "Tsuchigumo, o Mayakashi Venenoso",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\nVocê só pode controlar 1 \"Tsuchigumo, o Mayakashi Venenoso\". Você só pode usar cada um desses efeitos de \"Tsuchigumo, o Mayakashi Venenoso\" uma vez por turno.\n●Se um Monstro Sincro em sua posse, cujo Nível original seja 7, for destruído em batalha ou por um efeito de card do oponente enquanto este card estiver no Cemitério: você pode banir 1 outro monstro Zumbi no seu Cemitério e, se isso acontecer, Invoque este card por Invocação-Especial.\n●Se este card for Invocado por Invocação-Especial do Cemitério: você pode fazer com que cada duelista envie os 3 cards do topo do seu Deck para o Cemitério.",
       "strings": []
     },
     {
@@ -1647,9 +1818,21 @@
       "strings": []
     },
     {
+      "code": 78936551,
+      "name": "Shafu, o Mayakashi com Rodas",
+      "description": "Se este card for Invocado por Invocação-Normal ou Especial: você pode escolher 1 monstro \"Mayakashi\" no seu Cemitério, exceto \"Shafu, o Mayakashi com Rodas\"; Invoque-o por Invocação-Especial em Posição de Defesa, mas negue seus efeitos. Você só pode usar este efeito de \"Shafu, o Mayakashi com Rodas\" uma vez por turno. Você não pode Invocar monstros por Invocação-Especial do Deck Adicional, exceto monstros \"Mayakashi\".",
+      "strings": []
+    },
+    {
       "code": 79571449,
       "name": "Caridade Graciosa",
       "description": "Compre 3 cards e, depois, descarte 2 cards.",
+      "strings": []
+    },
+    {
+      "code": 79783880,
+      "name": "Shiranui Espada Espectral Sombria",
+      "description": "Você pode oferecer este card como Tributo e, depois, escolher 2 dos seus monstros Zumbi banidos, exceto \"Shiranui Espada Espectral Sombria\", incluindo um monstro \"Shiranui\"; Invoque-os por Invocação-Especial em Posição de Defesa, mas negue seus efeitos e, além disso, você não pode Invocar monstros por Invocação-Especial pelo resto deste turno, exceto monstros Zumbi. Você só pode usar este efeito de \"Shiranui Espada Espectral Sombria\" uma vez por turno.",
       "strings": []
     },
     {
@@ -1698,6 +1881,12 @@
       "code": 83225447,
       "name": "Poção de Estimulação",
       "description": "O monstro equipado ganha 700 de ATK. Durante cada uma das suas Fases de Apoio, o monstro equipado perde 200 de ATK.",
+      "strings": []
+    },
+    {
+      "code": 83266006,
+      "name": "Fantasma Encontra Garota - Um Manuscrito Mayakashi",
+      "description": "Durante a Fase Principal: escolha 1 Monstro Sincro Zumbi que você controla; Invoque por Invocação-Especial 1 dos seus monstros Zumbi com o mesmo Atributo, que esteja banido ou no seu Cemitério, mas bana-o durante a Fase Final e, além disso, você não pode Invocar monstros por Invocação-Especial pelo resto deste turno depois que este card resolver, exceto monstros Zumbi. Você só pode ativar 1 \"Fantasma Encontra Garota - Um Manuscrito Mayakashi\" por turno.",
       "strings": []
     },
     {
@@ -1779,6 +1968,12 @@
       "code": 86331741,
       "name": "Mago Gagagaga",
       "description": "2 monstros de Nível 4\nVocê pode desassociar 1 matéria deste card e, depois, escolha 1 Monstro Xyz no seu Cemitério, exceto \"Mago Gagagaga\"; Invoque-o por Invocação-Especial, mas negue seus efeitos. Você só pode usar este efeito de \"Mago Gagagaga\" uma vez por turno. Um Monstro Xyz \"Futuro Utópico\" que tenha este card como matéria ganha este efeito.\n●Durante sua Fase Principal: você pode desassociar 2 matérias deste card e, depois, escolha 1 Monstro Xyz que você controla; até o final deste turno, mude o ATK dele para 4000 e, além disso, negue seus efeitos.",
+      "strings": []
+    },
+    {
+      "code": 86926989,
+      "name": "Supremacia Shiranui Destrezasaga",
+      "description": "2+ monstros Zumbi\nMonstros Sincro que você controla não podem ser destruídos por efeitos de card. Monstros de FOGO que você controla não podem ser destruídos em batalha. Durante o turno do seu oponente (Efeito Rápido): você pode escolher 1 dos seus Monstros Sincro Zumbi banidos; Invoque-o por Invocação-Especial em uma zona sua para a qual este card apontar. Você só pode usar este efeito de \"Supremacia Shiranui Destrezasaga\" uma vez por turno.",
       "strings": []
     },
     {
