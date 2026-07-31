@@ -128,6 +128,9 @@ namespace ArcaneArena
         private bool presentationReady;
         private bool criticalInteractionLocked;
 
+        private bool InteractionLocked =>
+            criticalInteractionLocked || phasePresentationLocked;
+
         public bool IsPrimaryDuelInterface => primaryDuelInterface;
         public CardCatalog CardCatalog => cardCatalog;
         public bool NeedsEditorRebuild => false;
@@ -176,6 +179,7 @@ namespace ArcaneArena
         {
             presentationReady = false;
             criticalInteractionLocked = false;
+            phasePresentationLocked = false;
             if (core != null)
             {
                 core.CoreEventPresented -= OnCoreEvent;
@@ -452,6 +456,7 @@ namespace ArcaneArena
         {
             state = core.PresentationState;
             presentationReady = state != null && database != null;
+            PrepareTurnFlowPresentation(duelEvent);
             RefreshEverything(true);
             ValidatePresentationConsistency(duelEvent, true);
             HandleArenaPresentationEvent(duelEvent);
@@ -912,7 +917,7 @@ namespace ArcaneArena
         public void SelectCard(CardView card)
         {
             if (card == null) return;
-            if (criticalInteractionLocked)
+            if (InteractionLocked)
             {
                 SetStatus(
                     "Aguarde a conclusao da animacao confirmada pelo Core.",
@@ -970,14 +975,14 @@ namespace ArcaneArena
 
         public void BeginCardDrag(CardView card)
         {
-            if (card == null || criticalInteractionLocked) return;
+            if (card == null || InteractionLocked) return;
             SelectCard(card);
             ShowActionsForSelectedCard();
         }
 
         public void EndCardDrag(Vector2 screenPosition)
         {
-            if (criticalInteractionLocked) return;
+            if (InteractionLocked) return;
             DuelPrompt prompt = core.CurrentPrompt;
             if (prompt == null || selectedCard == null) return;
             if (TryRaycastZone(screenPosition, out DuelZone3D zone))
@@ -1031,6 +1036,11 @@ namespace ArcaneArena
 
         private void ShowActionsForSelectedCard()
         {
+            if (InteractionLocked)
+            {
+                actionPanel?.SetActive(false);
+                return;
+            }
             if (selectedCard == null || actionPanel == null) return;
             DuelPrompt prompt = core.CurrentPrompt;
             List<DuelChoice> choices =
@@ -1135,6 +1145,7 @@ namespace ArcaneArena
         private void SetHandPlacementMode(bool placement)
         {
             handPlacementMode = placement;
+            bool disabled = placement || InteractionLocked;
             ApplyResponsiveHandLayout(true);
             if (handRoot != null)
             {
@@ -1143,13 +1154,17 @@ namespace ArcaneArena
             }
             if (handInteractionGroup != null)
             {
-                handInteractionGroup.interactable = !placement;
-                handInteractionGroup.blocksRaycasts = !placement;
-                handInteractionGroup.alpha = placement ? 0.36f : 1f;
+                handInteractionGroup.interactable = !disabled;
+                handInteractionGroup.blocksRaycasts = !disabled;
+                handInteractionGroup.alpha = placement
+                    ? 0.36f
+                    : phasePresentationLocked
+                        ? 0.72f
+                        : 1f;
             }
             foreach (CardView card in handViews)
-                card?.SetInteraction(!placement);
-            if (placement)
+                card?.SetInteraction(!disabled);
+            if (disabled)
                 ClearHandSelection();
         }
 
@@ -1193,10 +1208,12 @@ namespace ArcaneArena
             DuelPrompt prompt = core.CurrentPrompt;
             foreach (CardView card in handViews)
             {
-                bool legal = ChoicesForCard(
-                        prompt,
-                        card.InstanceKey)
-                    .Any();
+                bool legal =
+                    !InteractionLocked &&
+                    ChoicesForCard(
+                            prompt,
+                            card.InstanceKey)
+                        .Any();
                 bool forced =
                     legal &&
                     prompt != null &&
@@ -1212,6 +1229,17 @@ namespace ArcaneArena
             CloseChoiceModal();
             CloseZoneBrowser();
             ClosePhaseNavigator();
+            if (phasePresentationLocked)
+            {
+                SetHandPlacementMode(false);
+                ClearHandSelection();
+                if (phaseButton != null)
+                    phaseButton.interactable = false;
+                SetStatus(
+                    "Aguarde a apresentação da fase atual.",
+                    PhaseAccent(presentationPhaseOverride ?? state.Phase));
+                return;
+            }
             UpdateDuelExperienceForPrompt(prompt);
             bool placementPrompt =
                 prompt != null &&
@@ -1299,7 +1327,9 @@ namespace ArcaneArena
         public void HandleZoneClick(DuelZone3D zone, int clickCount)
         {
             if (zone == null || core == null) return;
-            if (criticalInteractionLocked)
+            if (TryHandleDrawDeckClick(zone))
+                return;
+            if (InteractionLocked)
             {
                 SetStatus(
                     "Aguarde a conclusao da animacao confirmada pelo Core.",
@@ -1817,17 +1847,22 @@ namespace ArcaneArena
                 opponentLife.text = state.Players[1].LifePoints.ToString("N0");
             if (phaseLabel != null)
             {
+                uint displayedPhase =
+                    presentationPhaseOverride ?? state.Phase;
                 int phaseTransitions =
-                    DuelPromptPresentationRules.PhaseChoices(
-                        core?.CurrentPrompt).Count;
+                    phasePresentationLocked
+                        ? 0
+                        : DuelPromptPresentationRules.PhaseChoices(
+                            core?.CurrentPrompt).Count;
                 phaseLabel.text =
                     $"TURNO {Mathf.Max(1, state.TurnNumber)}\n" +
-                    CoreMessageDecoder.PhaseName(state.Phase).ToUpperInvariant() +
+                    CoreMessageDecoder.PhaseName(displayedPhase).ToUpperInvariant() +
                     (phaseTransitions > 0
                         ? "\nCLIQUE PARA AVANÇAR"
                         : string.Empty);
                 if (phaseButton != null)
                     phaseButton.interactable =
+                        !phasePresentationLocked &&
                         core?.CurrentPrompt?.Player == 0 &&
                         phaseTransitions > 0;
             }
@@ -2289,6 +2324,13 @@ namespace ArcaneArena
 
         private void OpenPhaseChoices()
         {
+            if (InteractionLocked)
+            {
+                SetStatus(
+                    "Aguarde a conclusão da apresentação da fase.",
+                    Muted);
+                return;
+            }
             DuelPrompt prompt = core.CurrentPrompt;
             if (prompt == null) return;
             List<DuelChoice> phases =
@@ -2556,7 +2598,7 @@ namespace ArcaneArena
             DuelZone3D zone,
             Vector2 screenPosition)
         {
-            if (criticalInteractionLocked ||
+            if (InteractionLocked ||
                 zone == null || core.CurrentPrompt?.Message !=
                 CoreMessage.SelectBattleCommand)
                 return;
@@ -2591,7 +2633,7 @@ namespace ArcaneArena
 
         public void EndMonsterAttackDrag(Vector2 screenPosition)
         {
-            if (criticalInteractionLocked ||
+            if (InteractionLocked ||
                 draggingAttacker == null) return;
             DuelZone3D attacker = draggingAttacker;
             draggingAttacker = null;

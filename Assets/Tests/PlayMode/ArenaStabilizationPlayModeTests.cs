@@ -536,6 +536,159 @@ namespace ArcaneDuel.Tests.PlayMode
                 Is.EqualTo(first.RuntimeId));
         }
 
+        [UnityTest]
+        public IEnumerator DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            BindingFlags flags =
+                BindingFlags.Instance |
+                BindingFlags.Public |
+                BindingFlags.NonPublic;
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            for (int frame = 0;
+                 frame < 600 && controller.CurrentPrompt == null;
+                 frame++)
+            {
+                yield return null;
+            }
+            Assert.That(
+                controller.CurrentPrompt,
+                Is.Not.Null,
+                "The native Core must reach a stable player decision first.");
+            arena.GetType()
+                .GetMethod("SuppressAnnouncementBanner", flags)
+                ?.Invoke(arena, null);
+            yield return null;
+
+            DuelPresentationState state = controller.PresentationState;
+            state.Players[0].Hand.Clear();
+            state.Players[0].HandInstances.Clear();
+            state.Apply(TurnEvent(0));
+            state.Apply(PhaseEvent(0x001));
+            DuelEvent draw = DrawEvent(0, EffectVeiler);
+            state.Apply(draw);
+            arena.GetType()
+                .GetMethod("RebuildHand", flags)
+                ?.Invoke(arena, null);
+
+            CardInstanceState drawn =
+                state.Players[0].HandInstances.Last();
+            Component drawnView = Resources
+                .FindObjectsOfTypeAll<Component>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType().Name == "CardView" &&
+                    RuntimeIdOf(component) == drawn.RuntimeId);
+            Component mainDeck = FindZone("PlayerOne", "MainDeck", 0);
+            Component extraDeck = FindZone("PlayerOne", "ExtraDeck", 0);
+            Assert.That(mainDeck, Is.Not.Null);
+            Assert.That(extraDeck, Is.Not.Null);
+            Vector3 originalDeckPosition = mainDeck.transform.position;
+
+            arena.GetType()
+                .GetMethod("PrepareTurnFlowPresentation", flags)
+                ?.Invoke(arena, new object[] { draw });
+            arena.GetType()
+                .GetMethod("QueueDrawPresentation", flags)
+                ?.Invoke(arena, new object[] { draw });
+
+            FieldInfo awaiting = arena.GetType().GetField(
+                "awaitingDrawDeckClick",
+                flags);
+            FieldInfo locked = arena.GetType().GetField(
+                "phasePresentationLocked",
+                flags);
+            Assert.That(awaiting, Is.Not.Null);
+            Assert.That(locked, Is.Not.Null);
+            for (int frame = 0;
+                 frame < 10 && !(bool)awaiting.GetValue(arena);
+                 frame++)
+            {
+                yield return null;
+            }
+
+            Assert.That(awaiting.GetValue(arena), Is.True);
+            Assert.That(locked.GetValue(arena), Is.True);
+            Component arena3D = Resources
+                .FindObjectsOfTypeAll<Component>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType().Name == "MasterDuelArena3D");
+            object localSide = mainDeck.GetType()
+                .GetProperty("Owner")
+                ?.GetValue(mainDeck);
+            Vector3 drawFocus = (Vector3)arena3D.GetType()
+                .GetMethod("GetDrawPresentationWorldPosition")
+                ?.Invoke(arena3D, new[] { localSide });
+            Assert.That(
+                Vector3.Distance(
+                    drawFocus,
+                    originalDeckPosition),
+                Is.GreaterThan(1f),
+                "The physical Deck needs a distinct position in front of the player.");
+            Assert.That(
+                drawnView.GetComponent<CanvasGroup>().alpha,
+                Is.EqualTo(0f).Within(0.001f),
+                "The Core draw must stay hidden until presentation confirms it.");
+
+            MethodInfo click = arena.GetType().GetMethod(
+                "TryHandleDrawDeckClick",
+                flags);
+            Assert.That(click, Is.Not.Null);
+            Assert.That(
+                click.Invoke(arena, new object[] { extraDeck }),
+                Is.False,
+                "Only the highlighted Main Deck may confirm the draw.");
+            Assert.That(
+                click.Invoke(arena, new object[] { mainDeck }),
+                Is.True);
+
+            FieldInfo activeRequest = arena.GetType().GetField(
+                "activeDrawRequest",
+                flags);
+            Assert.That(activeRequest, Is.Not.Null);
+            float drawDeadline = Time.realtimeSinceStartup + 3f;
+            while (activeRequest.GetValue(arena) != null &&
+                   Time.realtimeSinceStartup < drawDeadline)
+            {
+                yield return null;
+            }
+
+            bool drawCompleted = activeRequest.GetValue(arena) == null;
+            bool deckRestored = Vector3.Distance(
+                mainDeck.transform.position,
+                originalDeckPosition) < 0.01f;
+            float finalCardAlpha =
+                drawnView.GetComponent<CanvasGroup>().alpha;
+            arena.GetType()
+                .GetMethod("SuppressAnnouncementBanner", flags)
+                ?.Invoke(arena, null);
+
+            Assert.That(drawCompleted, Is.True);
+            Assert.That(
+                deckRestored,
+                Is.True,
+                "The Deck must return exactly to its authored position.");
+            Assert.That(finalCardAlpha, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(locked.GetValue(arena), Is.False);
+            FieldInfo timeout = arena.GetType().GetField(
+                "DrawClickTimeoutSeconds",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(timeout, Is.Not.Null);
+            Assert.That(timeout.GetRawConstantValue(), Is.EqualTo(5f));
+        }
+
         private static MonoBehaviour FindArena()
         {
             return Resources.FindObjectsOfTypeAll<MonoBehaviour>()
@@ -631,6 +784,24 @@ namespace ArcaneDuel.Tests.PlayMode
                 UInt32(payload, 0);
             }
             return Decode(CoreMessage.Draw, payload);
+        }
+
+        private static DuelEvent TurnEvent(byte player)
+        {
+            return Decode(
+                CoreMessage.NewTurn,
+                new List<byte> { player });
+        }
+
+        private static DuelEvent PhaseEvent(ushort phase)
+        {
+            return Decode(
+                CoreMessage.NewPhase,
+                new List<byte>
+                {
+                    (byte)(phase & 0xFF),
+                    (byte)((phase >> 8) & 0xFF)
+                });
         }
 
         private static DuelEvent MoveEvent(

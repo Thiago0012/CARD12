@@ -27,6 +27,7 @@ namespace ArcaneArena
         private bool dragging;
         private bool interactive = true;
         private bool entering;
+        private bool presentationHidden;
         private Coroutine poseRoutine;
 
         // Keep the authored prototype's restrained hand motion.  The larger
@@ -143,6 +144,31 @@ namespace ArcaneArena
             ApplyPose();
         }
 
+        public void SetPresentationVisible(bool visible)
+        {
+            presentationHidden = !visible;
+            if (canvasGroup == null)
+                return;
+
+            if (presentationHidden)
+            {
+                if (poseRoutine != null)
+                {
+                    StopCoroutine(poseRoutine);
+                    poseRoutine = null;
+                }
+                entering = false;
+                canvasGroup.alpha = 0f;
+                canvasGroup.blocksRaycasts = false;
+                return;
+            }
+
+            canvasGroup.alpha = 1f;
+            canvasGroup.blocksRaycasts = interactive;
+            if (isActiveAndEnabled && gameObject.activeInHierarchy)
+                ApplyPose();
+        }
+
         public void OnPointerEnter(PointerEventData eventData)
         {
             if (!interactive || dragging) return;
@@ -200,8 +226,13 @@ namespace ArcaneArena
         private void SetDragVisual(bool active)
         {
             if (canvasGroup == null) return;
-            canvasGroup.alpha = active ? 0.68f : 1f;
-            canvasGroup.blocksRaycasts = !active;
+            canvasGroup.alpha = presentationHidden
+                ? 0f
+                : active
+                    ? 0.68f
+                    : 1f;
+            canvasGroup.blocksRaycasts =
+                !presentationHidden && interactive && !active;
         }
 
         private void ApplyOutline()
@@ -264,7 +295,8 @@ namespace ArcaneArena
                     Vector3.Lerp(fromScale, Vector3.one * scale, t);
                 rect.localRotation =
                     Quaternion.Slerp(fromRotation, targetRotation, t);
-                if (entering && canvasGroup != null)
+                if (entering && canvasGroup != null &&
+                    !presentationHidden)
                     canvasGroup.alpha = Mathf.Lerp(fromAlpha, 1f, t);
                 yield return null;
             }
@@ -272,7 +304,11 @@ namespace ArcaneArena
             rect.localScale = Vector3.one * scale;
             rect.localRotation = targetRotation;
             if (canvasGroup != null)
-                canvasGroup.alpha = 1f;
+            {
+                canvasGroup.alpha = presentationHidden ? 0f : 1f;
+                canvasGroup.blocksRaycasts =
+                    !presentationHidden && interactive;
+            }
             entering = false;
             poseRoutine = null;
         }

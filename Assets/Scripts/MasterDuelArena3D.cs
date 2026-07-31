@@ -292,7 +292,7 @@ namespace ArcaneArena
 
         public Vector3 GetMainDeckWorldPosition(DuelPlayerSide side)
         {
-            var deck = side == DuelPlayerSide.PlayerOne ? _playerOneMainDeck : _playerTwoMainDeck;
+            var deck = GetMainDeckTransform(side);
             if (deck != null)
                 return deck.position + deck.up * 0.65f;
 
@@ -301,9 +301,23 @@ namespace ArcaneArena
                 : new Vector3(7f, 0.8f, 5.7f);
         }
 
+        public Transform GetMainDeckTransform(DuelPlayerSide side)
+        {
+            return side == DuelPlayerSide.PlayerOne
+                ? _playerOneMainDeck
+                : _playerTwoMainDeck;
+        }
+
+        public Vector3 GetDrawPresentationWorldPosition(
+            DuelPlayerSide side)
+        {
+            float z = side == DuelPlayerSide.PlayerOne ? -3.25f : 3.25f;
+            return transform.TransformPoint(new Vector3(0f, 1.05f, z));
+        }
+
         public void NotifyCardDrawn(DuelPlayerSide side)
         {
-            var deck = side == DuelPlayerSide.PlayerOne ? _playerOneMainDeck : _playerTwoMainDeck;
+            var deck = GetMainDeckTransform(side);
             if (deck == null)
                 return;
 

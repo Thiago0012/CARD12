@@ -24,6 +24,9 @@ namespace ArcaneArena
             public string Subtitle;
             public Color Accent;
             public float Hold;
+            public uint DisplayPhase;
+            public bool TurnFlow;
+            public DrawPresentationRequest Draw;
         }
 
         private readonly Queue<ArenaAnnouncement> announcementQueue = new();
@@ -72,6 +75,7 @@ namespace ArcaneArena
             announcementQueue.Clear();
             if (announcementRoutine != null)
                 StopCoroutine(announcementRoutine);
+            ResetTurnFlowPresentation(true);
             if (battlePresentationRoutine != null)
                 StopCoroutine(battlePresentationRoutine);
             ResetBattlePresentationVisuals();
@@ -87,7 +91,10 @@ namespace ArcaneArena
         {
             if (duelEvent == null)
                 return;
-            HandleDuelExperienceEvent(duelEvent);
+            if (!replayingDeferredPresentation)
+                HandleDuelExperienceEvent(duelEvent);
+            if (DeferBattlePresentationIfNeeded(duelEvent))
+                return;
 
             switch (duelEvent.Message)
             {
@@ -98,7 +105,9 @@ namespace ArcaneArena
                             : "TURNO DO OPONENTE",
                         $"TURNO {Mathf.Max(1, state?.TurnNumber ?? 1)}",
                         duelEvent.Player == 0 ? Cyan : Gold,
-                        0.65f);
+                        0.48f,
+                        0x001U,
+                        true);
                     break;
                 case CoreMessage.NewPhase:
                     byte turnPlayer = state?.TurnPlayer ?? 0;
@@ -109,7 +118,12 @@ namespace ArcaneArena
                             ? "VOCÊ TEM A PRIORIDADE"
                             : "O OPONENTE TEM A PRIORIDADE",
                         PhaseAccent(duelEvent.Value),
-                        IsMajorPhase(duelEvent.Value) ? 0.5f : 0.28f);
+                        IsMajorPhase(duelEvent.Value) ? 0.66f : 0.42f,
+                        duelEvent.Value,
+                        true);
+                    break;
+                case CoreMessage.Draw:
+                    QueueDrawPresentation(duelEvent);
                     break;
                 case CoreMessage.Attack:
                     latestBattleEvent = null;
@@ -397,7 +411,8 @@ namespace ArcaneArena
             DuelPrompt prompt,
             IReadOnlyList<DuelChoice> choices)
         {
-            if (phaseNavigator == null ||
+            if (InteractionLocked ||
+                phaseNavigator == null ||
                 prompt == null ||
                 choices == null ||
                 choices.Count == 0)
@@ -518,15 +533,21 @@ namespace ArcaneArena
             string title,
             string subtitle,
             Color accent,
-            float hold)
+            float hold,
+            uint displayPhase = 0,
+            bool turnFlow = false)
         {
+            if (turnFlow)
+                BeginTurnFlowPresentation();
             announcementQueue.Enqueue(
                 new ArenaAnnouncement
                 {
                     Title = title,
                     Subtitle = subtitle,
                     Accent = accent,
-                    Hold = hold
+                    Hold = hold,
+                    DisplayPhase = displayPhase,
+                    TurnFlow = turnFlow
                 });
             if (announcementRoutine == null)
                 announcementRoutine =
@@ -538,6 +559,16 @@ namespace ArcaneArena
             while (announcementQueue.Count > 0)
             {
                 ArenaAnnouncement item = announcementQueue.Dequeue();
+                if (item.TurnFlow)
+                {
+                    presentationPhaseOverride = item.DisplayPhase;
+                    UpdateLifeAndPhase();
+                }
+                if (item.Draw != null)
+                {
+                    yield return PlayDrawPresentation(item.Draw);
+                    continue;
+                }
                 announcementRoot.SetActive(true);
                 announcementRoot.transform.SetAsLastSibling();
                 announcementTitle.text = item.Title;
@@ -590,6 +621,7 @@ namespace ArcaneArena
                 announcementRoot.SetActive(false);
             }
             announcementRoutine = null;
+            CompleteTurnFlowPresentation();
         }
 
         private void StartBattlePresentation(DuelEvent attack)
@@ -877,6 +909,7 @@ namespace ArcaneArena
                 announcementGroup.alpha = 0f;
             if (announcementRoot != null)
                 announcementRoot.SetActive(false);
+            ResetTurnFlowPresentation(true);
         }
 
         private IEnumerator PlayDamagePresentation(
