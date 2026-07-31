@@ -24,6 +24,8 @@ namespace ArcaneDuel.Tests.EditMode
         [TestCase(5)]
         [TestCase(6)]
         [TestCase(7)]
+        [TestCase(8)]
+        [TestCase(9)]
         public void ImportedBatchHasDataArtAndResolvedScripts(int batchIndex)
         {
             CardDatabase database = CardDatabase.LoadDefault();
@@ -34,7 +36,11 @@ namespace ArcaneDuel.Tests.EditMode
                 .Take(BatchSize)
                 .ToArray();
 
-            Assert.That(batch, Has.Length.EqualTo(BatchSize));
+            int expectedCount = Math.Min(
+                BatchSize,
+                visuals.Count - batchIndex * BatchSize);
+            Assert.That(expectedCount, Is.GreaterThan(0));
+            Assert.That(batch, Has.Length.EqualTo(expectedCount));
             foreach (CardVisualData visual in batch)
             {
                 CardRecord record = database.Get(visual.officialCode);
@@ -69,14 +75,14 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
-        public void PresentationCatalogHasExactly200UniqueEntriesAndNoRuleMethods()
+        public void PresentationCatalogHasUniqueEntriesAndNoRuleMethods()
         {
             CardVisualCatalog visuals = CardVisualCatalog.LoadDefault();
             CardVisualData[] cards = visuals.Cards.ToArray();
-            Assert.That(visuals.Count, Is.EqualTo(200));
+            Assert.That(visuals.Count, Is.EqualTo(229));
             Assert.That(
                 cards.Select(card => card.officialCode).Distinct().Count(),
-                Is.EqualTo(200));
+                Is.EqualTo(229));
             Assert.That(
                 typeof(CardVisualData).GetMethod("ResolveEffect"),
                 Is.Null,
@@ -85,7 +91,7 @@ namespace ArcaneDuel.Tests.EditMode
                 cards.Count(card => card.riskLevel == "A") +
                 cards.Count(card => card.riskLevel == "B") +
                 cards.Count(card => card.riskLevel == "C"),
-                Is.EqualTo(200));
+                Is.EqualTo(229));
         }
 
         [Test]
@@ -104,7 +110,8 @@ namespace ArcaneDuel.Tests.EditMode
             {
                 foreach (CardRecord card in database.Cards.OrderBy(card => card.Code))
                 {
-                    bool requiresScript = card.Type != 17; // MONSTER | NORMAL
+                    bool requiresScript =
+                        DuelContentValidator.RequiresScript(card);
                     uint location = DeckRules.IsExtraDeck(card)
                         ? DuelLocation.Extra
                         : DuelLocation.Deck;
@@ -140,6 +147,8 @@ namespace ArcaneDuel.Tests.EditMode
         [TestCase(5)]
         [TestCase(6)]
         [TestCase(7)]
+        [TestCase(8)]
+        [TestCase(9)]
         public void CatalogBatchSurvivesTenTurnsThroughNativeCore(
             int batchIndex)
         {

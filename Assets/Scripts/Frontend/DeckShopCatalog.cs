@@ -108,6 +108,8 @@ namespace ArcaneArena.Frontend
             "yugi-mutou-dark-magician-classic";
         public const string RedEyesProductId =
             "classic-red-eyes-black-dragon";
+        public const string YugiMutoBattleCityProductId =
+            "yugi-muto-battle-city-722944";
 
         private static readonly IReadOnlyList<DeckShopProduct>
             AvailableProducts = new[]
@@ -176,7 +178,19 @@ namespace ArcaneArena.Frontend
                     new[]
                     {
                         "13756293", "13756293", "63519819", "63519819"
-                    })
+                    }),
+                new DeckShopProduct(
+                    YugiMutoBattleCityProductId,
+                    "Yugi Muto — Cidade das Batalhas",
+                    "CIDADE DAS BATALHAS",
+                    "A lista clássica de Yugi na Cidade das Batalhas, com Slifer e seus monstros emblemáticos.",
+                    "10000020",
+                    "https://ygoprodeck.com/deck/yugi-muto-battle-city-722944",
+                    2,
+                    CuratedDeckLists.AsCardIds(
+                        CuratedDeckLists.YugiMutoBattleCityMain),
+                    CuratedDeckLists.AsCardIds(
+                        CuratedDeckLists.YugiMutoBattleCityExtra))
             };
 
         private static readonly HashSet<string> LegacyOwnedCardIds =

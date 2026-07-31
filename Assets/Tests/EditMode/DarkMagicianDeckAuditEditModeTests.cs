@@ -218,7 +218,8 @@ namespace ArcaneDuel.Tests.EditMode
                 foreach (uint code in main.Concat(extra).Distinct())
                 {
                     CardRecord card = database.Get(code);
-                    bool requiresScript = card.Type != 17U;
+                    bool requiresScript =
+                        DuelContentValidator.RequiresScript(card);
                     uint location = DeckRules.IsExtraDeck(card)
                         ? DuelLocation.Extra
                         : DuelLocation.Deck;
@@ -356,13 +357,24 @@ namespace ArcaneDuel.Tests.EditMode
             scalar = string.Join(
                 " ",
                 scalar.Split('\n').Select(line => line.Trim()));
-            return DecodeUnityYamlDoubleQuotedScalar(scalar);
+            return DecodeUnityYamlScalar(scalar);
         }
 
-        private static string DecodeUnityYamlDoubleQuotedScalar(string scalar)
+        private static string DecodeUnityYamlScalar(string scalar)
         {
-            Assert.That(scalar, Does.StartWith("\""));
-            Assert.That(scalar, Does.EndWith("\""));
+            if (scalar.StartsWith("'", StringComparison.Ordinal) &&
+                scalar.EndsWith("'", StringComparison.Ordinal))
+            {
+                return scalar
+                    .Substring(1, scalar.Length - 2)
+                    .Replace("''", "'");
+            }
+
+            if (!scalar.StartsWith("\"", StringComparison.Ordinal) ||
+                !scalar.EndsWith("\"", StringComparison.Ordinal))
+            {
+                return scalar;
+            }
             string value = scalar.Substring(1, scalar.Length - 2);
             value = Regex.Replace(
                 value,

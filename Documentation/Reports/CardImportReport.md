@@ -1,8 +1,8 @@
 # Card visual import report
 
-- Catalog SHA-256: `74AE5A23B0495B216D47DD36DF90F04BB43FA5B2F83DFCBAC7B1AB2B76CDF026`
-- Cards: 200
-- Batches: 8
+- Catalog SHA-256: `FD98D726BCBD1D6FC3E39F91CFCFD654B90A0CDDAC3595B70442CBB0154745F0`
+- Cards: 229
+- Batches: 10
 - Missing database rows: 0
 - Missing scripts: 0
 - Missing art: 0
@@ -10,14 +10,16 @@
 
 | Batch | Range | Cards | Risk A | Risk B | Risk C | Result |
 |---:|---|---:|---:|---:|---:|---|
-| 1 | 295517–9596126 | 25 | 7 | 12 | 6 | PASS |
-| 2 | 9653271–22134079 | 25 | 3 | 12 | 10 | PASS |
-| 3 | 22910685–33508719 | 25 | 9 | 11 | 5 | PASS |
-| 4 | 36304921–45986603 | 25 | 5 | 10 | 10 | PASS |
-| 5 | 46052429–56907389 | 25 | 8 | 4 | 13 | PASS |
-| 6 | 56920308–71407486 | 25 | 5 | 16 | 4 | PASS |
-| 7 | 71413901–84013237 | 25 | 6 | 13 | 6 | PASS |
-| 8 | 84290642–98495314 | 25 | 3 | 11 | 11 | PASS |
+| 1 | 295517–8240199 | 25 | 8 | 10 | 7 | PASS |
+| 2 | 8267140–18807109 | 25 | 4 | 10 | 11 | PASS |
+| 3 | 19066538–28546905 | 25 | 8 | 12 | 5 | PASS |
+| 4 | 28593363–40908371 | 25 | 6 | 12 | 7 | PASS |
+| 5 | 41392891–50152549 | 25 | 6 | 9 | 10 | PASS |
+| 6 | 50237654–62473983 | 25 | 6 | 9 | 10 | PASS |
+| 7 | 63102017–72989439 | 25 | 4 | 19 | 2 | PASS |
+| 8 | 73134082–84290642 | 25 | 6 | 11 | 8 | PASS |
+| 9 | 84749824–97631303 | 25 | 5 | 11 | 9 | PASS |
+| 10 | 98252586–99785935 | 4 | 1 | 0 | 3 | PASS |
 
 Visual entries contain presentation metadata only. Card legality, costs,
 targets, chains, and effect resolution remain exclusively in ocgcore and Lua.

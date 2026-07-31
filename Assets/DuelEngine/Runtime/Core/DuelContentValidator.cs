@@ -61,10 +61,10 @@ namespace ArcaneDuel.DuelEngine.Core
                     continue;
                 }
 
-                // A plain Normal Monster has no activated/continuous script.
-                // Every other compiled card must resolve its printed-code Lua
-                // file (including aliases through CustomScripts wrappers).
-                if (record.Type == 17U)
+                // Plain Normal Monsters and generated Tokens do not own a
+                // Lua effect script. Other cards resolve their printed-code
+                // file, including aliases through CustomScripts wrappers.
+                if (!RequiresScript(record))
                     continue;
                 string scriptName = $"c{code}.lua";
                 if (!scripts.TryRead(scriptName, out byte[] bytes) ||
@@ -75,6 +75,15 @@ namespace ArcaneDuel.DuelEngine.Core
                 }
             }
             return problems.ToArray();
+        }
+
+        public static bool RequiresScript(CardRecord record)
+        {
+            if (record == null)
+                throw new ArgumentNullException(nameof(record));
+            const uint TokenType = 0x4000U;
+            return record.Type != 17U &&
+                   (record.Type & TokenType) == 0;
         }
 
         public static void ThrowIfUnsupported(

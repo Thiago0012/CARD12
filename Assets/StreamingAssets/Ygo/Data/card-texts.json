@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "count": 261,
+  "count": 291,
   "cards": [
     {
       "code": 295517,
@@ -279,6 +279,29 @@
       ]
     },
     {
+      "code": 3819470,
+      "name": "Seven Tools of the Bandit",
+      "description": "When a Trap Card is activated: Pay 1000 LP; negate the activation, and if you do, destroy it.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 4031928,
       "name": "Change of Heart",
       "description": "Target 1 monster your opponent controls; take control of it until the End Phase.",
@@ -371,6 +394,29 @@
       ]
     },
     {
+      "code": 4796100,
+      "name": "Chimera the Flying Mythical Beast",
+      "description": "\"Gazelle the King of Mythical Beasts\" + \"Berfomet\"\n(This card is always treated as a \"Phantom Beast\" card.)\nWhen this card is destroyed: You can target 1 \"Berfomet\" or 1 \"Gazelle the King of Mythical Beasts\" in your GY; Special Summon that target.",
+      "strings": [
+        "Special Summon",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 5318639,
       "name": "Mystical Space Typhoon",
       "description": "Target 1 Spell/Trap on the field; destroy that target.",
@@ -397,6 +443,52 @@
       "code": 5405694,
       "name": "Black Luster Soldier",
       "description": "You can Ritual Summon this card with \"Black Luster Ritual\".",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 5556668,
+      "name": "Exchange",
+      "description": "Both players reveal their hands and add 1 card from each other's hand to their hand.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 5818798,
+      "name": "Gazelle the King of Mythical Beasts",
+      "description": "This monster moves so fast that it looks like an illusion to mortal eyes.\n\n(This card is always treated as a \"Phantom Beast\" card.)",
       "strings": [
         "",
         "",
@@ -739,6 +831,29 @@
       ]
     },
     {
+      "code": 10000020,
+      "name": "Slifer the Sky Dragon",
+      "description": "Requires 3 Tributes to Normal Summon (cannot be Normal Set). This card's Normal Summon cannot be negated. When Normal Summoned, cards and effects cannot be activated. Once per turn, during the End Phase, if this card was Special Summoned: Send it to the GY. Gains 1000 ATK/DEF for each card in your hand. If a monster(s) is Normal or Special Summoned to your opponent's field in Attack Position: That monster(s) loses 2000 ATK, then if its ATK has been reduced to 0 as a result, destroy it.",
+      "strings": [
+        "Send to Graveyard",
+        "Lower attack",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 10045474,
       "name": "Infinite Impermanence",
       "description": "Target 1 face-up monster your opponent controls; negate its effects (until the end of this turn), then, if this card was Set before activation and is on the field at resolution, for the rest of this turn all other Spell/Trap effects in this column are negated. If you control no cards, you can activate this card from your hand.",
@@ -836,6 +951,29 @@
       "description": "\"Blue-Eyes White Dragon\" + 1 Dragon monster\r\nMust first be either Fusion Summoned, or Special Summoned from your Extra Deck by Tributing 1 \"Blue-Eyes White Dragon\" equipped with a Fusion Monster. Unaffected by Trap Cards or effects. This card can attack all monsters your opponent controls, once each. Once per turn, at the end of the Damage Step, if this card battled: You can target 1 Trap in your GY; Set it to your Spell & Trap Zone.",
       "strings": [
         "Set",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 11549357,
+      "name": "Gamma The Magnet Warrior",
+      "description": "Alpha, Beta, and Gamma meld as one to form a powerful monster.",
+      "strings": [
+        "",
         "",
         "",
         "",
@@ -1314,6 +1452,52 @@
       ]
     },
     {
+      "code": 18807108,
+      "name": "Spellbinding Circle",
+      "description": "Activate this card by targeting 1 monster your opponent controls; it cannot attack or change its battle position. When that monster is destroyed, destroy this card.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 18807109,
+      "name": "Spellbinding Circle",
+      "description": "Activate this card by targeting 1 monster your opponent controls; it cannot attack or change its battle position. When that monster is destroyed, destroy this card.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 19066538,
       "name": "Roaring Ocean Snake",
       "description": "\"Mystic Lamp\" + \"Hyosube\"",
@@ -1682,6 +1866,29 @@
       ]
     },
     {
+      "code": 24096228,
+      "name": "Double Spell",
+      "description": "Discard 1 Spell, then target 1 Spell in your opponent's GY; place that target in the appropriate Zone on your field, and as this card's effect resolution, follow its card text as if you had used it yourself.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 24224830,
       "name": "Called by the Grave",
       "description": "Target 1 monster in your opponent's GY; banish it, and if you do, until the end of the next turn, its effects are negated, as well as the activated effects and effects on the field of monsters with the same original name.",
@@ -1754,6 +1961,29 @@
       "code": 24611934,
       "name": "Ryu-Kishin Powered",
       "description": "A gargoyle enhanced by the powers of darkness. Very sharp talons make it a worthy opponent.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 25652259,
+      "name": "Queen's Knight",
+      "description": "This knight catches her opponents off guard, dominating them with swift yet graceful attacks.",
       "strings": [
         "",
         "",
@@ -2142,12 +2372,58 @@
       ]
     },
     {
+      "code": 34124316,
+      "name": "Cyber Jar",
+      "description": "FLIP: Destroy all monsters on the field, then both players reveal the top 5 cards from their Decks, then Special Summon all revealed Level 4 or lower monsters in face-up Attack Position or face-down Defense Position, also add any remaining cards to their hand. (If either player has less than 5 cards in their Deck, reveal as many as possible.)",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 34318086,
       "name": "Lemon Magician Girl",
       "description": "Once per turn: You can Tribute 1 \"Magician Girl\" monster, except \"Lemon Magician Girl\"; add 1 Spellcaster-Type monster from your Deck to your hand. Once per turn, if this card is targeted for an attack: You can Special Summon 1 Spellcaster-Type monster from your hand, but its effects (if any) are negated, then change the attack target to it, and if you do, the attacking monster's ATK becomes half its current ATK.",
       "strings": [
         "Search Spellcaster",
         "Special Summon",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 34710660,
+      "name": "Electromagnetic Turtle",
+      "description": "During your opponent's Battle Phase (Quick Effect): You can banish this card from your GY; end the Battle Phase. You can only use this effect of \"Electromagnetic Turtle\" once per Duel.",
+      "strings": [
+        "",
+        "",
         "",
         "",
         "",
@@ -2237,6 +2513,29 @@
       "code": 37313348,
       "name": "Turtle Tiger",
       "description": "A tiger encased in a protective shell that attacks with razor-sharp fangs.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 37383714,
+      "name": "Soul Rope",
+      "description": "When a monster you control is destroyed by a card effect and sent to the Graveyard (except during the Damage Step): Pay 1000 LP; Special Summon 1 Level 4 monster from your Deck.",
       "strings": [
         "",
         "",
@@ -2441,6 +2740,29 @@
       ]
     },
     {
+      "code": 39256679,
+      "name": "Beta The Magnet Warrior",
+      "description": "Alpha, Beta, and Gamma meld as one to form a powerful monster.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 39387565,
       "name": "Return of the Red-Eyes",
       "description": "If you control a \"Red-Eyes\" monster: You can target 1 Normal Monster in your GY; Special Summon it. If this card in your possession is destroyed by an opponent's card effect and sent to your GY: You can target 1 \"Red-Eyes\" monster in your GY; Special Summon it. You can only use each effect of \"Return of the Red-Eyes\" once per turn.",
@@ -2538,6 +2860,29 @@
       "description": "1 Tuner + 1+ non-Tuner Normal Monsters\nIf this card is Special Summoned: Until the end of the next turn, neither player can target Dragon monsters you currently control with card effects, also they cannot be destroyed by card effects. Once per turn, during your Standby Phase: You can target 1 Normal Monster in your GY; Special Summon it.",
       "strings": [
         "Special Summon",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 41392891,
+      "name": "Feral Imp",
+      "description": "A playful little fiend that lurks in the dark, waiting to attack an unwary enemy.",
+      "strings": [
+        "",
         "",
         "",
         "",
@@ -2724,6 +3069,29 @@
         "Special Summon this card from your hand",
         "Special Summon 1 \"Emissary of Darkness Token\"",
         "Inflict damage to your opponent",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 44330099,
+      "name": "Emissary of Darkness Token",
+      "description": "Special Summoned with the effect of \"Gorz the Emissary of Darkness\". The ATK and DEF of this Token are each equal to the amount of battle damage a player took when \"Gorz the Emissary of Darkness\" is Special Summoned.",
+      "strings": [
+        "",
+        "",
+        "",
         "",
         "",
         "",
@@ -3154,6 +3522,29 @@
       ]
     },
     {
+      "code": 49587034,
+      "name": "Lightforce Sword",
+      "description": "Banish 1 random card from your opponent's hand, face-down. During the Standby Phase of your opponent's 4th turn after this card's activation, return that card to their hand.\r\n\r\n* The above text is unofficial and describes the card's functionality in the OCG.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 50045299,
       "name": "Dragon Capture Jar",
       "description": "Change all face-up Dragon-Type monsters on the field to Defense Position, also they cannot change their battle positions.",
@@ -3208,6 +3599,29 @@
         "Set the card?",
         "Special Summon",
         "Activate using \"The Dark Magicians\"",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 50287060,
+      "name": "Archfiend of Gilfer",
+      "description": "When this card is sent to the GY: You can target 1 face-up monster on the field; equip this card to that target. That monster loses 500 ATK while equipped with this card.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
         "",
         "",
         "",
@@ -3798,6 +4212,29 @@
       ]
     },
     {
+      "code": 60082869,
+      "name": "Dust Tornado",
+      "description": "Target 1 Spell/Trap your opponent controls; destroy that target, then you can Set 1 Spell/Trap from your hand.",
+      "strings": [
+        "Set 1 Card?",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 60948488,
       "name": "Chronicle Magician",
       "description": "If a monster(s) with 2500 original ATK or DEF is Normal or Special Summoned to your field (except during the Damage Step): You can Special Summon this card from your hand in Defense Position. If this card is Special Summoned: You can target 1 \"Dark Magician\" or \"Blue-Eyes White Dragon\" in your Monster Zone; it gains 2500 ATK/DEF until the end of this turn. You can only use each effect of \"Chronicle Magician\" once per turn.",
@@ -3962,6 +4399,52 @@
       "code": 64335804,
       "name": "Red-Eyes Black Metal Dragon",
       "description": "Cannot be Normal Summoned/Set. Must first be Special Summoned (from your Deck) by Tributing \"Red-Eyes Black Dragon\" equipped with \"Metalmorph\".",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 64788463,
+      "name": "King's Knight",
+      "description": "When this card is Normal Summoned while you control \"Queen's Knight\": You can Special Summon 1 \"Jack's Knight\" from your Deck.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 65240384,
+      "name": "Big Shield Gardna",
+      "description": "When a Spell Card is activated that targets this face-down card (and no other cards) (Quick Effect): Change this card to face-up Defense Position, and if you do, negate the activation. If this card is attacked, change it to Attack Position at the end of the Damage Step.",
       "strings": [
         "",
         "",
@@ -4488,6 +4971,29 @@
       ]
     },
     {
+      "code": 72892473,
+      "name": "Card Destruction",
+      "description": "Both players discard as many cards as possible from their hands, then each player draws the same number of cards they discarded.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 72989439,
       "name": "Black Luster Soldier - Envoy of the Beginning",
       "description": "Cannot be Normal Summoned/Set. Must first be Special Summoned (from your hand) by banishing 1 LIGHT and 1 DARK monster from your GY. Once per turn, you can activate 1 of these effects.\r\n● Target 1 monster on the field; banish it. This card cannot attack the turn this effect is activated.\r\n● If this attacking card destroys an opponent's monster by battle: It can make a second attack in a row.",
@@ -4675,6 +5181,75 @@
       "code": 75190122,
       "name": "Dark Burning Magic",
       "description": "If you control monsters whose original names are \"Dark Magician\" and \"Dark Magician Girl\": Destroy all cards your opponent controls.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 75347539,
+      "name": "Valkyrion the Magna Warrior",
+      "description": "Cannot be Normal Summoned/Set. Must first be Special Summoned (from your hand) by Tributing 1 \"Alpha The Magnet Warrior\", \"Beta The Magnet Warrior\", and \"Gamma The Magnet Warrior\" from your hand and/or field. You can Tribute this card, then target 1 \"Alpha The Magnet Warrior\", \"Beta The Magnet Warrior\", and \"Gamma The Magnet Warrior\" in your GY; Special Summon them.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 77207191,
+      "name": "Berfomet",
+      "description": "When this card is Normal or Flip Summoned: You can add 1 \"Gazelle the King of Mythical Beasts\" from your Deck to your hand.",
+      "strings": [
+        "Search",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 77414722,
+      "name": "Magic Jammer",
+      "description": "When a Spell Card is activated: Discard 1 card; negate the activation, and if you do, destroy it.",
       "strings": [
         "",
         "",
@@ -4951,6 +5526,29 @@
       "code": 80770678,
       "name": "Spirit of the Harp",
       "description": "A spirit that soothes the soul with the music of its heavenly harp.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 81510157,
+      "name": "Soul Taker",
+      "description": "Target 1 face-up monster your opponent controls; destroy that target, then your opponent gains 1000 LP.",
       "strings": [
         "",
         "",
@@ -5362,6 +5960,29 @@
       ]
     },
     {
+      "code": 87910978,
+      "name": "Brain Control",
+      "description": "Pay 800 LP, then target 1 face-up monster your opponent controls that can be Normal Summoned/Set; take control of that target until the End Phase.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
       "code": 88177324,
       "name": "Number 107: Galaxy-Eyes Tachyon Dragon",
       "description": "2 Level 8 monsters\r\nOnce per Battle Phase, at the start of your Battle Phase: You can detach 1 material from this card; negate the effects of all other face-up monsters currently on the field, also their ATK/DEF become their original ATK/DEF. During the Battle Phase, if you activated this effect this turn, each time an opponent's card effect resolves, this card gains 1000 ATK until the end of the Battle Phase, also, it can make a second attack during each Battle Phase this turn.",
@@ -5480,6 +6101,52 @@
       "code": 89631139,
       "name": "Blue-Eyes White Dragon",
       "description": "This legendary dragon is a powerful engine of destruction. Virtually invincible, very few have faced this awesome creature and lived to tell the tale.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 90357090,
+      "name": "Silver Fang",
+      "description": "A snow wolf that's beautiful to the eye, but absolutely vicious in battle.",
+      "strings": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 90876561,
+      "name": "Jack's Knight",
+      "description": "A strong master swordsman. His loyalty is to justice, his duty to protect the weak.",
       "strings": [
         "",
         "",
@@ -5988,6 +6655,29 @@
       "description": "\"Dark Magician\" + \"Buster Blader\"\nMust be Fusion Summoned. When a Spell Card is activated (Quick Effect): You can discard 1 card; negate the activation, and if you do, destroy it. This card must be face-up on the field to activate and to resolve this effect. Gains 500 ATK for each Dragon monster on the field and in the GY.",
       "strings": [
         "Negate and destroy Spell Card",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 99785935,
+      "name": "Alpha The Magnet Warrior",
+      "description": "Alpha, Beta, and Gamma meld as one to form a powerful monster.",
+      "strings": [
+        "",
         "",
         "",
         "",

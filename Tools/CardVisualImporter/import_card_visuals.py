@@ -18,7 +18,7 @@ import unicodedata
 from pathlib import Path
 
 
-EXPECTED_CARD_COUNT = 200
+MINIMUM_CARD_COUNT = 200
 
 
 def normalized(value: str) -> str:
@@ -151,10 +151,12 @@ def main() -> int:
     with args.catalog.open("r", encoding="utf-8-sig", newline="") as stream:
         rows = list(csv.DictReader(stream))
 
-    if len(rows) != EXPECTED_CARD_COUNT:
-        raise ValueError(f"Expected {EXPECTED_CARD_COUNT} catalog rows, found {len(rows)}.")
+    if len(rows) < MINIMUM_CARD_COUNT:
+        raise ValueError(
+            f"Expected at least {MINIMUM_CARD_COUNT} catalog rows, found {len(rows)}."
+        )
     codes = [int(row["official_code"]) for row in rows]
-    if len(set(codes)) != EXPECTED_CARD_COUNT:
+    if len(set(codes)) != len(rows):
         raise ValueError("The catalog contains duplicate official codes.")
 
     args.art_output.mkdir(parents=True, exist_ok=True)
@@ -170,7 +172,8 @@ def main() -> int:
         source = locate_source(row, args.provided_root, args.downloaded_root)
         validate_jpeg(source)
         destination = args.art_output / f"{code}.jpg"
-        shutil.copy2(source, destination)
+        if source.resolve() != destination.resolve():
+            shutil.copy2(source, destination)
 
         style = frame_style(row["type"])
         summon_vfx, activation_sfx = presentation_profile(style)

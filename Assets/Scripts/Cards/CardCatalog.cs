@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ArcaneDuel.DuelEngine.Data;
 using UnityEngine;
 
 namespace ArcaneArena.Cards
@@ -132,6 +133,33 @@ namespace ArcaneArena.Cards
             reviewNotes = "Dados oficiais cadastrados localmente pelo código da carta.";
         }
 
+        public void ApplyCoreMetadata(CardRecord card)
+        {
+            if (card == null)
+                return;
+
+            officialCardId = card.Code.ToString("00000000");
+            displayName = card.Name ?? officialCardId;
+            category = CategoryFrom(card.Type);
+            monsterFrame = FrameFrom(card.Type);
+            typeName = TypeNameFrom(card.Type, monsterFrame);
+            raceName = category == CardCategory.Monster
+                ? RaceNameFrom(card.Race)
+                : string.Empty;
+            attribute = AttributeFrom(card.Attribute);
+            level = category == CardCategory.Monster
+                ? Math.Abs(card.Level)
+                : 0;
+            attack = category == CardCategory.Monster ? card.Attack : -1;
+            defense = category == CardCategory.Monster ? card.Defense : -1;
+            effectText = card.Description ?? string.Empty;
+            effectId = CardEffectId.None;
+            officiallyRegistered = true;
+            classificationConfidence = 1f;
+            needsManualReview = false;
+            reviewNotes = "Metadados de apresentação sincronizados do catálogo compilado do Core.";
+        }
+
         public void ApplyAutomaticClassification(
             CardCategory detectedCategory,
             MonsterFrameKind detectedFrame,
@@ -214,6 +242,75 @@ namespace ArcaneArena.Cards
             return string.IsNullOrWhiteSpace(assetName)
                 ? "Carta sem nome"
                 : assetName.Replace('_', ' ').Trim();
+        }
+
+        private static CardCategory CategoryFrom(uint type)
+        {
+            if ((type & 0x1U) != 0) return CardCategory.Monster;
+            if ((type & 0x2U) != 0) return CardCategory.Spell;
+            if ((type & 0x4U) != 0) return CardCategory.Trap;
+            return CardCategory.Unknown;
+        }
+
+        private static MonsterFrameKind FrameFrom(uint type)
+        {
+            if ((type & 0x4000000U) != 0) return MonsterFrameKind.Link;
+            if ((type & 0x1000000U) != 0) return MonsterFrameKind.Pendulum;
+            if ((type & 0x800000U) != 0) return MonsterFrameKind.Xyz;
+            if ((type & 0x2000U) != 0) return MonsterFrameKind.Synchro;
+            if ((type & 0x80U) != 0) return MonsterFrameKind.Ritual;
+            if ((type & 0x40U) != 0) return MonsterFrameKind.Fusion;
+            if ((type & 0x10U) != 0) return MonsterFrameKind.Normal;
+            return MonsterFrameKind.Effect;
+        }
+
+        private static string TypeNameFrom(
+            uint type,
+            MonsterFrameKind frame)
+        {
+            if ((type & 0x2U) != 0) return "Carta de Magia";
+            if ((type & 0x4U) != 0) return "Carta de Armadilha";
+            if ((type & 0x200000U) != 0)
+                return "Monstro de Efeito de Virar";
+            return frame switch
+            {
+                MonsterFrameKind.Normal => "Monstro Normal",
+                MonsterFrameKind.Ritual => "Monstro de Ritual",
+                MonsterFrameKind.Fusion => "Monstro de Fusão",
+                MonsterFrameKind.Synchro => "Monstro Sincro",
+                MonsterFrameKind.Xyz => "Monstro Xyz",
+                MonsterFrameKind.Link => "Monstro Link",
+                MonsterFrameKind.Pendulum => "Monstro Pêndulo",
+                _ => "Monstro de Efeito"
+            };
+        }
+
+        private static CardAttribute AttributeFrom(uint attribute)
+        {
+            if ((attribute & 0x20U) != 0) return CardAttribute.Dark;
+            if ((attribute & 0x10U) != 0) return CardAttribute.Light;
+            if ((attribute & 0x08U) != 0) return CardAttribute.Wind;
+            if ((attribute & 0x04U) != 0) return CardAttribute.Fire;
+            if ((attribute & 0x02U) != 0) return CardAttribute.Water;
+            if ((attribute & 0x01U) != 0) return CardAttribute.Earth;
+            if ((attribute & 0x40U) != 0) return CardAttribute.Divine;
+            return CardAttribute.None;
+        }
+
+        private static string RaceNameFrom(ulong race)
+        {
+            return race switch
+            {
+                1 => "Guerreiro",
+                2 => "Mago",
+                8 => "Demônio",
+                32 => "Máquina",
+                256 => "Rocha",
+                16384 => "Besta",
+                32768 => "Besta-Guerreira",
+                2097152 => "Besta Divina",
+                _ => "Monstro"
+            };
         }
     }
 
