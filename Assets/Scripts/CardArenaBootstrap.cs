@@ -117,6 +117,7 @@ namespace ArcaneArena
         private RectTransform zoneBrowserContent;
         private Text zoneBrowserTitle;
         private uint inspectedCode;
+        private DuelZone3D inspectedZone;
         private DuelPrompt observedPrompt;
         private DuelPrompt scheduledAutomaticPrompt;
         private Coroutine automaticPromptRoutine;
@@ -496,6 +497,8 @@ namespace ArcaneArena
                 observedFieldSignature = fieldSignature;
                 ReconcileField();
             }
+            if (force)
+                RefreshInspectedCombatStats();
 
             UpdateLifeAndPhase();
             DuelPrompt prompt = core.CurrentPrompt;
@@ -1348,7 +1351,7 @@ namespace ArcaneArena
                 }
                 if (cardChoices.Count > 1)
                 {
-                    ShowInspector(code);
+                    ShowInspector(zone);
                     OpenChoiceModal(prompt, cardChoices);
                     return;
                 }
@@ -1360,7 +1363,7 @@ namespace ArcaneArena
                 return;
             }
             uint inspected = CodeAt(zone);
-            if (inspected != 0) ShowInspector(inspected);
+            if (inspected != 0) ShowInspector(zone);
         }
 
         public void HandleZoneHover(DuelZone3D zone, bool hovered)
@@ -1374,7 +1377,7 @@ namespace ArcaneArena
             }
             uint code = CodeAt(zone);
             if (code != 0)
-                ShowInspector(code);
+                ShowInspector(zone);
             else if (IsSpecialZone(zone.Kind))
                 SetStatus(PileLabel(zone), Muted);
         }
@@ -1423,7 +1426,7 @@ namespace ArcaneArena
                 if (key == previous &&
                     HasWorldCardRepresentation(zone, key, code))
                 {
-                    ApplyWorldPosition(zone, position);
+                    ApplyWorldPosition(zone, code, position);
                     continue;
                 }
 
@@ -1643,18 +1646,9 @@ namespace ArcaneArena
             canvas.sortingOrder = 8;
             root.GetComponent<RectTransform>().sizeDelta =
                 new Vector2(300f, 76f);
-            string label = "ATK —";
-            if (database.TryGet(code, out CardRecord card))
-            {
-                bool defense =
-                    (position & (FaceUpDefense | FaceDownDefense)) != 0;
-                label = defense
-                    ? $"DEF {card.Defense}"
-                    : $"ATK {card.Attack}";
-            }
             Text text = CreateText(
                 root.transform,
-                label,
+                CombatLabelFor(zone, code, position),
                 46,
                 FontStyle.Bold,
                 Color.white,
@@ -1688,7 +1682,10 @@ namespace ArcaneArena
             if (card != null) card.localScale = finalScale;
         }
 
-        private void ApplyWorldPosition(DuelZone3D zone, uint position)
+        private void ApplyWorldPosition(
+            DuelZone3D zone,
+            uint code,
+            uint position)
         {
             Transform card = zone.transform.Find("Carta Invocada");
             if (card == null) return;
@@ -1705,6 +1702,72 @@ namespace ArcaneArena
                 card.GetComponent<WorldCardInstanceView>();
             if (view != null)
                 view.Bind(view.InstanceKey, faceUp);
+            RefreshCombatLabel(zone, code, position, faceUp);
+        }
+
+        private void RefreshCombatLabel(
+            DuelZone3D zone,
+            uint code,
+            uint position,
+            bool faceUp)
+        {
+            Transform root = zone.transform.Find("Indicador de ATK");
+            if (root == null)
+            {
+                if (faceUp && IsMonster(code))
+                    CreateCombatLabel(zone, code, position);
+                return;
+            }
+            root.gameObject.SetActive(faceUp && IsMonster(code));
+            Text text = root.GetComponentInChildren<Text>(true);
+            if (text != null)
+                text.text = CombatLabelFor(zone, code, position);
+        }
+
+        private string CombatLabelFor(
+            DuelZone3D zone,
+            uint code,
+            uint position)
+        {
+            bool defensePosition =
+                (position & (FaceUpDefense | FaceDownDefense)) != 0;
+            if (TryGetCombatStats(zone, code, out int attack, out int defense))
+            {
+                int value = defensePosition ? defense : attack;
+                string prefix = defensePosition ? "DEF" : "ATK";
+                return $"{prefix} {(value < 0 ? "?" : value.ToString())}";
+            }
+            return defensePosition ? "DEF —" : "ATK —";
+        }
+
+        private bool TryGetCombatStats(
+            DuelZone3D zone,
+            uint code,
+            out int attack,
+            out int defense)
+        {
+            if (zone != null &&
+                zone.Kind == DuelZoneKind.Monster &&
+                core != null &&
+                core.TryGetCurrentCombatStats(
+                    (byte)zone.Owner,
+                    LocationFor(zone.Kind),
+                    (uint)Mathf.Max(0, SequenceFor(zone)),
+                    out attack,
+                    out defense))
+            {
+                return true;
+            }
+            if (database != null &&
+                database.TryGet(code, out CardRecord card))
+            {
+                attack = card.Attack;
+                defense = card.Defense;
+                return true;
+            }
+            attack = 0;
+            defense = 0;
+            return false;
         }
 
         private static Quaternion CardRotation(bool monster, uint position)
@@ -1772,12 +1835,23 @@ namespace ArcaneArena
 
         private void ShowInspector(uint code)
         {
+            ShowInspector(code, null);
+        }
+
+        private void ShowInspector(DuelZone3D zone)
+        {
+            ShowInspector(CodeAt(zone), zone);
+        }
+
+        private void ShowInspector(uint code, DuelZone3D zone)
+        {
             if (code == 0 || database == null ||
                 !database.TryGet(code, out CardRecord card))
             {
                 return;
             }
             inspectedCode = code;
+            inspectedZone = zone;
             CardCatalogEntry legacy = LegacyEntryFor(code);
             detailPanel.SetActive(true);
             detailPanel.transform.SetAsLastSibling();
@@ -1812,7 +1886,16 @@ namespace ArcaneArena
                 effectColor.a = 1f;
                 detailEffect.color = effectColor;
             }
-            ApplyDetailInformation(legacy, card);
+            bool hasCurrentStats = TryGetCombatStats(
+                zone,
+                code,
+                out int currentAttack,
+                out int currentDefense);
+            ApplyDetailInformation(
+                legacy,
+                card,
+                hasCurrentStats ? currentAttack : null,
+                hasCurrentStats ? currentDefense : null);
             ApplyDetailTheme(legacy, card);
             EnsureCardDetailContentVisible();
         }
@@ -1924,9 +2007,33 @@ namespace ArcaneArena
                    cardCatalog.FindByOfficialId(code.ToString());
         }
 
+        private void RefreshInspectedCombatStats()
+        {
+            if (inspectedCode == 0 || inspectedZone == null ||
+                detailPanel == null || !detailPanel.activeSelf ||
+                CodeAt(inspectedZone) != inspectedCode ||
+                database == null ||
+                !database.TryGet(inspectedCode, out CardRecord card) ||
+                !TryGetCombatStats(
+                    inspectedZone,
+                    inspectedCode,
+                    out int attack,
+                    out int defense))
+            {
+                return;
+            }
+            ApplyDetailInformation(
+                LegacyEntryFor(inspectedCode),
+                card,
+                attack,
+                defense);
+        }
+
         private void ApplyDetailInformation(
             CardCatalogEntry entry,
-            CardRecord card)
+            CardRecord card,
+            int? currentAttack = null,
+            int? currentDefense = null)
         {
             bool isMonster = entry != null
                 ? entry.Category == CardCategory.Monster
@@ -1978,8 +2085,10 @@ namespace ArcaneArena
                 detailTypeIcon.enabled = typeSprite != null;
             }
 
-            int attack = entry != null ? entry.Attack : card.Attack;
-            int defense = entry != null ? entry.Defense : card.Defense;
+            int attack = currentAttack ??
+                         (entry != null ? entry.Attack : card.Attack);
+            int defense = currentDefense ??
+                          (entry != null ? entry.Defense : card.Defense);
             if (detailAttackIcon != null &&
                 detailAttackIconTemplate != null)
             {
@@ -2174,6 +2283,8 @@ namespace ArcaneArena
         {
             if (detailPanel != null)
                 detailPanel.SetActive(false);
+            inspectedCode = 0;
+            inspectedZone = null;
         }
 
         private void OpenPhaseChoices()
@@ -2437,7 +2548,7 @@ namespace ArcaneArena
         private void InspectZone(DuelZone3D zone)
         {
             uint code = CodeAt(zone);
-            if (code != 0) ShowInspector(code);
+            if (code != 0) ShowInspector(zone);
             SetStatus(PileLabel(zone), Muted);
         }
 

@@ -87,6 +87,9 @@ namespace ArcaneDuel.DuelEngine.Core
         private const ulong TcgSegocFirstTrigger = 0x200000000UL;
         private const ulong SimpleAi = 0x40UL;
         private const uint FaceDownDefense = 0x8;
+        private const uint QueryAttack = 0x100;
+        private const uint QueryDefense = 0x200;
+        private const uint QueryEnd = 0x80000000;
 
         private readonly CardDatabase database;
         private readonly ScriptRepository scripts;
@@ -220,6 +223,82 @@ namespace ArcaneDuel.DuelEngine.Core
             };
             OcgCoreNative.DuelNewCard(duel, ref info);
             ThrowCallbackFailure();
+        }
+
+        public bool TryGetCurrentCombatStats(
+            byte controller,
+            uint location,
+            uint sequence,
+            out int attack,
+            out int defense)
+        {
+            attack = 0;
+            defense = 0;
+            if (disposed || !IsStarted || controller > 1)
+                return false;
+
+            var info = new OcgQueryInfo
+            {
+                Flags = QueryAttack | QueryDefense,
+                Controller = controller,
+                Location = location,
+                Sequence = sequence,
+                OverlaySequence = 0
+            };
+            IntPtr result = OcgCoreNative.DuelQuery(
+                duel,
+                out uint length,
+                ref info);
+            if (result == IntPtr.Zero || length == 0 || length > int.MaxValue)
+                return false;
+
+            var buffer = new byte[(int)length];
+            Marshal.Copy(result, buffer, 0, buffer.Length);
+            return TryReadCombatStats(buffer, out attack, out defense);
+        }
+
+        private static bool TryReadCombatStats(
+            byte[] buffer,
+            out int attack,
+            out int defense)
+        {
+            attack = 0;
+            defense = 0;
+            bool hasAttack = false;
+            bool hasDefense = false;
+            int offset = 0;
+            while (buffer != null && offset + 6 <= buffer.Length)
+            {
+                ushort blockLength = BitConverter.ToUInt16(buffer, offset);
+                offset += sizeof(ushort);
+                if (blockLength < sizeof(uint) ||
+                    offset + blockLength > buffer.Length)
+                {
+                    return false;
+                }
+
+                uint flag = BitConverter.ToUInt32(buffer, offset);
+                if (flag == QueryEnd)
+                    break;
+                if (blockLength >= sizeof(uint) * 2)
+                {
+                    int value = BitConverter.ToInt32(
+                        buffer,
+                        offset + sizeof(uint));
+                    if (flag == QueryAttack)
+                    {
+                        attack = value;
+                        hasAttack = true;
+                    }
+                    else if (flag == QueryDefense)
+                    {
+                        defense = value;
+                        hasDefense = true;
+                    }
+                }
+                offset += blockLength;
+            }
+            return hasAttack && hasDefense;
         }
 
         public void Start()

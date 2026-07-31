@@ -87,6 +87,27 @@ namespace ArcaneDuel.Game
         public event Action<DuelEvent> CoreEventPresented;
         public event Action<string> CoreFailure;
 
+        public bool TryGetCurrentCombatStats(
+            byte controller,
+            byte location,
+            uint sequence,
+            out int attack,
+            out int defense)
+        {
+            if (engine != null)
+            {
+                return engine.TryGetCurrentCombatStats(
+                    controller,
+                    location,
+                    sequence,
+                    out attack,
+                    out defense);
+            }
+            attack = 0;
+            defense = 0;
+            return false;
+        }
+
         private void Awake()
         {
             Application.runInBackground = true;

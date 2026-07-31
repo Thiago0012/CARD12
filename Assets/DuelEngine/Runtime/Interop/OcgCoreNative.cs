@@ -33,6 +33,12 @@ namespace ArcaneDuel.DuelEngine.Interop
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true, EntryPoint = "OCG_DuelSetResponse")]
         internal static extern void DuelSetResponse(OcgDuelSafeHandle duel, byte[] response, uint length);
 
+        [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true, EntryPoint = "OCG_DuelQuery")]
+        internal static extern IntPtr DuelQuery(
+            OcgDuelSafeHandle duel,
+            out uint length,
+            ref OcgQueryInfo info);
+
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true, EntryPoint = "OCG_LoadScript")]
         internal static extern int LoadScript(IntPtr duel, byte[] script, uint length, [MarshalAs(UnmanagedType.LPStr)] string name);
     }

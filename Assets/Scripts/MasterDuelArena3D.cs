@@ -5,7 +5,7 @@ namespace ArcaneArena
 {
     public sealed class MasterDuelArena3D : MonoBehaviour
     {
-        public const int CurrentLayoutVersion = 10;
+        public const int CurrentLayoutVersion = 11;
         [SerializeField] private int layoutVersion;
         [SerializeField] private Texture2D cardBackTexture;
         private Material _stone;
@@ -125,6 +125,22 @@ namespace ArcaneArena
                     rotation, _spellGlow, owner, DuelZoneKind.SpellTrap, i, false);
             }
 
+            var extraMonsterGroup =
+                CreateGroup(side.transform, "ExtraMonsterZones");
+            for (var i = 0; i < 2; i++)
+            {
+                float direction = opponent ? 1f : -1f;
+                float x = direction * (i == 0 ? spacing : -spacing);
+                CreateExtraMonsterZone(
+                    extraMonsterGroup,
+                    $"MonsterZone_{i + 6}",
+                    new Vector3(x, 0.21f, 0f),
+                    rotation,
+                    owner,
+                    i + 5,
+                    opponent);
+            }
+
             var specials = CreateGroup(side.transform, "SpecialZones");
             var extraDeck = CreateDeckPedestal(specials, "ExtraDeck", new Vector3(-7.05f, 0.18f, sign * 5.75f),
                 rotation, _extraBack, false, owner, DuelZoneKind.ExtraDeck);
@@ -184,6 +200,55 @@ namespace ArcaneArena
             inset.transform.localScale = new Vector3(1.43f, 0.035f, 1.96f);
             inset.GetComponent<Renderer>().sharedMaterial = _darkStone;
             RemoveCollider(inset);
+        }
+
+        private void CreateExtraMonsterZone(
+            Transform parent,
+            string name,
+            Vector3 position,
+            Quaternion rotation,
+            DuelPlayerSide owner,
+            int zoneIndex,
+            bool sharedVisualProxy)
+        {
+            var root = new GameObject(name);
+            root.transform.SetParent(parent, false);
+            root.transform.localPosition = position;
+            root.transform.localRotation = rotation;
+            root.AddComponent<BoxCollider>().size =
+                new Vector3(2f, 0.45f, 2.55f);
+            DuelZone3D zone = root.AddComponent<DuelZone3D>();
+            zone.Setup(
+                owner,
+                DuelZoneKind.Monster,
+                zoneIndex,
+                owner == DuelPlayerSide.PlayerOne,
+                sharedVisualProxy);
+
+            if (!sharedVisualProxy)
+            {
+                var pedestal =
+                    GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                pedestal.name = "Octagonal Pedestal";
+                pedestal.transform.SetParent(root.transform, false);
+                pedestal.transform.localScale =
+                    new Vector3(0.91f, 0.07f, 1.25f);
+                pedestal.GetComponent<Renderer>().sharedMaterial =
+                    _monsterGlow;
+                RemoveCollider(pedestal);
+            }
+
+            var inset = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            inset.name = "Card Inset";
+            inset.transform.SetParent(root.transform, false);
+            inset.transform.localPosition = new Vector3(
+                0f,
+                sharedVisualProxy ? 0.089f : 0.085f,
+                0f);
+            inset.transform.localScale = new Vector3(1.43f, 0.035f, 1.96f);
+            inset.GetComponent<Renderer>().sharedMaterial = _darkStone;
+            RemoveCollider(inset);
+            zone.ClearPlacedCard();
         }
 
         private Transform CreateDeckPedestal(Transform parent, string name, Vector3 position, Quaternion rotation,

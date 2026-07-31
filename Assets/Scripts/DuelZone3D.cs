@@ -19,6 +19,7 @@ namespace ArcaneArena
         [SerializeField] private string placedCardId;
         [SerializeField] private Sprite placedCard;
         [SerializeField] private bool faceUp = true;
+        [SerializeField] private bool sharedVisualProxy;
         [SerializeField] private DuelMonsterPosition monsterPosition =
             DuelMonsterPosition.FaceUpAttack;
         private Renderer dropSurface;
@@ -45,10 +46,13 @@ namespace ArcaneArena
             DuelPlayerSide owner,
             DuelZoneKind kind,
             int index,
-            bool interactive)
+            bool interactive,
+            bool useSharedVisualProxy = false)
         {
             address = new DuelZoneAddress(owner, kind, index);
             acceptsLocalInput = interactive;
+            sharedVisualProxy = useSharedVisualProxy;
+            RefreshExtraMonsterZoneSurface();
         }
 
         public void SetLocalControlEnabled(bool enabled)
@@ -87,6 +91,7 @@ namespace ArcaneArena
                 collider.center = new Vector3(0f, 0.2f, 0f);
                 collider.size = new Vector3(2f, 0.65f, 2.55f);
             }
+            RefreshExtraMonsterZoneSurface();
             return true;
         }
 
@@ -96,14 +101,15 @@ namespace ArcaneArena
             bool isFaceUp)
         {
             placedCard = sprite;
-            placedCardId = sprite == null ? string.Empty : stableCardId;
-            faceUp = sprite == null || isFaceUp;
+            placedCardId = stableCardId ?? string.Empty;
+            faceUp = isFaceUp;
             if (Kind == DuelZoneKind.Monster)
             {
                 monsterPosition = faceUp
                     ? DuelMonsterPosition.FaceUpAttack
                     : DuelMonsterPosition.FaceDownDefense;
             }
+            RefreshExtraMonsterZoneSurface();
         }
 
         public void SetMonsterPosition(DuelMonsterPosition position)
@@ -118,11 +124,13 @@ namespace ArcaneArena
             placedCardId = string.Empty;
             faceUp = true;
             monsterPosition = DuelMonsterPosition.FaceUpAttack;
+            RefreshExtraMonsterZoneSurface();
         }
 
         public void SetDropHighlight(bool enabled)
         {
             dropHighlighted = enabled;
+            RefreshExtraMonsterZoneSurface();
             if (dropSurface == null)
             {
                 Transform inset = transform.Find("Card Inset");
@@ -138,6 +146,22 @@ namespace ArcaneArena
                     ? new Color(0.08f, 0.72f, 1f, 1f)
                     : dropSurfaceColor;
             }
+        }
+
+        private void RefreshExtraMonsterZoneSurface()
+        {
+            if (Kind != DuelZoneKind.Monster || ZoneIndex < 5)
+                return;
+            bool visibleOrInteractive =
+                dropHighlighted || !string.IsNullOrWhiteSpace(placedCardId);
+            Collider zoneCollider = GetComponent<Collider>();
+            if (zoneCollider != null)
+                zoneCollider.enabled = visibleOrInteractive;
+            if (!sharedVisualProxy)
+                return;
+            Transform proxySurface = transform.Find("Card Inset");
+            if (proxySurface != null)
+                proxySurface.gameObject.SetActive(visibleOrInteractive);
         }
 
         private void Update()

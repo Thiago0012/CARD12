@@ -386,6 +386,12 @@ namespace ArcaneDuel.Tests.EditMode
             AssertCoreNormalSummon(DarkMagician, 2);
         }
 
+        [Test]
+        public void CurrentCombatStatsComeFromCoreAfterFusilierSummon()
+        {
+            AssertCoreNormalSummon(51632798, 0, 1400, 1000);
+        }
+
         private static DuelPresentationState NewState()
         {
             return new DuelPresentationState(CardDatabase.LoadDefault());
@@ -393,7 +399,9 @@ namespace ArcaneDuel.Tests.EditMode
 
         private static void AssertCoreNormalSummon(
             uint summonedCard,
-            int tributeCount)
+            int tributeCount,
+            int? expectedAttack = null,
+            int? expectedDefense = null)
         {
             uint[] deck = Enumerable
                 .Repeat(BlueEyesWhiteDragon, 40)
@@ -413,6 +421,11 @@ namespace ArcaneDuel.Tests.EditMode
                 Application.streamingAssetsPath,
                 "Ygo");
             bool movedToField = false;
+            bool summonCompleted = false;
+            uint summonedSequence = 0;
+            int? queriedAttack = null;
+            int? queriedDefense = null;
+            string queryTrace = string.Empty;
             int retries = 0;
             int decisions = 0;
 
@@ -449,12 +462,16 @@ namespace ArcaneDuel.Tests.EditMode
                         DuelLocation.MonsterZone)
                     {
                         movedToField = true;
+                        summonedSequence = duelEvent.Current.Sequence;
                     }
+                    if (duelEvent.Message == CoreMessage.Summoned)
+                        summonCompleted = true;
                 };
 
                 engine.Start();
                 while (!engine.IsFinished &&
-                       !movedToField &&
+                       (!movedToField ||
+                        (expectedAttack.HasValue && !summonCompleted)) &&
                        decisions++ < 40)
                 {
                     DuelPrompt prompt = engine.CurrentPrompt;
@@ -476,6 +493,28 @@ namespace ArcaneDuel.Tests.EditMode
                     Assert.That(choice, Is.Not.Null);
                     engine.SubmitResponse(choice.Response);
                 }
+                if (movedToField && expectedAttack.HasValue)
+                {
+                    Assert.That(
+                        engine.TryGetCurrentCombatStats(
+                            0,
+                            DuelLocation.MonsterZone,
+                            summonedSequence,
+                            out int attack,
+                            out int defense),
+                        Is.True,
+                        "The Core must expose the current field stats.");
+                    queriedAttack = attack;
+                    queriedDefense = defense;
+                    queryTrace =
+                        "prompt=" + engine.CurrentPrompt?.Message + "; " +
+                        "choices=" + string.Join(",", engine.CurrentPrompt?
+                            .Choices.Select(candidate => candidate.Label) ??
+                            Array.Empty<string>()) + "; events=" +
+                        string.Join(",", engine.EventHistory
+                            .TakeLast(12)
+                            .Select(duelEvent => duelEvent.Message.ToString()));
+                }
             }
             Assert.That(
                 retries,
@@ -485,6 +524,17 @@ namespace ArcaneDuel.Tests.EditMode
                 movedToField,
                 Is.True,
                 "The summon must be completed only through Core prompts.");
+            if (expectedAttack.HasValue)
+            {
+                Assert.That(
+                    queriedAttack,
+                    Is.EqualTo(expectedAttack),
+                    queryTrace);
+                Assert.That(
+                    queriedDefense,
+                    Is.EqualTo(expectedDefense),
+                    queryTrace);
+            }
         }
 
         private static void ApplyDraw(

@@ -407,6 +407,8 @@ namespace ArcaneArena
 
             CloseChoiceModal();
             CloseZoneBrowser();
+            ClearHandSelection();
+            CloseCardDetails();
             SuppressAnnouncementBanner();
             SetDuelExperienceObscured(true);
             Array.Clear(phaseNodeChoices, 0, phaseNodeChoices.Length);

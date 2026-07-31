@@ -18,6 +18,7 @@ namespace ArcaneDuel.Tests.PlayMode
         private const uint DarkMagician = 46986414;
         private const uint DarkMagicalCircle = 47222536;
         private const uint EffectVeiler = 97268402;
+        private const uint RelinquishedAnima = 94259633;
         private const uint FaceDown = 0xA;
 
         [UnityTest]
@@ -47,6 +48,115 @@ namespace ArcaneDuel.Tests.PlayMode
 
             PlayerPrefs.SetInt("ArcaneAutoStart", 0);
             PlayerPrefs.Save();
+        }
+
+        [UnityTest]
+        public IEnumerator AuthoredArenaBuildsSevenMonsterZonesPerPlayer()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Component[] zones = Resources
+                .FindObjectsOfTypeAll<Component>()
+                .Where(component =>
+                    component != null &&
+                    component.gameObject.scene.IsValid() &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType().Name == "DuelZone3D" &&
+                    component.GetType().GetProperty("Kind")
+                        ?.GetValue(component)?.ToString() == "Monster")
+                .ToArray();
+            for (int player = 0; player < 2; player++)
+            {
+                int[] indexes = zones
+                    .Where(zone => System.Convert.ToInt32(
+                        zone.GetType().GetProperty("Owner")
+                            ?.GetValue(zone)) == player)
+                    .Select(zone => System.Convert.ToInt32(
+                        zone.GetType().GetProperty("ZoneIndex")
+                            ?.GetValue(zone)))
+                    .OrderBy(index => index)
+                    .ToArray();
+                Assert.That(
+                    indexes,
+                    Is.EqualTo(Enumerable.Range(0, 7).ToArray()));
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator LinkMonsterHasAVisibleWorldCardInExtraMonsterZone()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            controller.PresentationState.Apply(
+                MoveIntoMonsterZone(RelinquishedAnima, 5));
+            arena.GetType()
+                .GetMethod(
+                    "ReconcileField",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, null);
+            yield return null;
+
+            Component zone = FindZone("PlayerOne", "Monster", 5);
+            Assert.That(zone, Is.Not.Null);
+            Transform worldCard = zone.transform.Find("Carta Invocada");
+            Assert.That(worldCard, Is.Not.Null);
+            Transform front = worldCard.Find("Frente");
+            Assert.That(front, Is.Not.Null);
+            Assert.That(front.gameObject.activeSelf, Is.True);
+            Assert.That(
+                front.GetComponent<UnityEngine.UI.Image>().sprite,
+                Is.Not.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator PhaseNavigatorClosesCardInspectorAndActions()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            BindingFlags flags =
+                BindingFlags.Instance |
+                BindingFlags.Public |
+                BindingFlags.NonPublic;
+            arena.GetType()
+                .GetMethod("PrepareCaptureState", flags)
+                ?.Invoke(arena, new object[] { "inspector" });
+            GameObject actions = arena.GetType()
+                .GetField("actionPanel", flags)
+                ?.GetValue(arena) as GameObject;
+            GameObject details = arena.GetType()
+                .GetField("detailPanel", flags)
+                ?.GetValue(arena) as GameObject;
+            GameObject phases = arena.GetType()
+                .GetField("phaseNavigator", flags)
+                ?.GetValue(arena) as GameObject;
+            Assert.That(actions, Is.Not.Null);
+            Assert.That(details, Is.Not.Null);
+            Assert.That(phases, Is.Not.Null);
+            actions.SetActive(true);
+            Assert.That(details.activeSelf, Is.True);
+
+            arena.GetType()
+                .GetMethod("OpenPhaseChoices", flags)
+                ?.Invoke(arena, null);
+            yield return null;
+
+            Assert.That(phases.activeSelf, Is.True);
+            Assert.That(actions.activeSelf, Is.False);
+            Assert.That(details.activeSelf, Is.False);
         }
 
         [UnityTest]
