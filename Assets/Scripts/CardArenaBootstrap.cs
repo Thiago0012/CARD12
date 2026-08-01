@@ -171,6 +171,7 @@ namespace ArcaneArena
             if (core == null) core = gameObject.AddComponent<DuelArenaController>();
             core.CoreEventPresented += OnCoreEvent;
             core.CoreFailure += OnCoreFailure;
+            core.PresentationStateChanged += OnPresentationStateChanged;
 
             yield return null;
             state = core.PresentationState;
@@ -192,6 +193,7 @@ namespace ArcaneArena
             {
                 core.CoreEventPresented -= OnCoreEvent;
                 core.CoreFailure -= OnCoreFailure;
+                core.PresentationStateChanged -= OnPresentationStateChanged;
             }
             DisposeArenaPresentation();
             ResetCardSoundPresentation();
@@ -477,6 +479,13 @@ namespace ArcaneArena
             ValidatePresentationConsistency(duelEvent, true);
             HandleArenaPresentationEvent(duelEvent);
             QueueCardSoundPresentation(duelEvent);
+        }
+
+        private void OnPresentationStateChanged()
+        {
+            state = core != null ? core.PresentationState : null;
+            presentationReady = state != null && database != null;
+            RefreshEverything(true);
         }
 
         private void RefreshEverything(bool force)
@@ -1424,7 +1433,7 @@ namespace ArcaneArena
             }
             DuelPrompt prompt = core.CurrentPrompt;
             if (zone.Kind == DuelZoneKind.ExtraDeck &&
-                zone.Owner == DuelPlayerSide.PlayerOne)
+                IsLocalZone(zone))
             {
                 OpenZoneChoices(zone, prompt);
                 return;
@@ -1435,7 +1444,7 @@ namespace ArcaneArena
                 return;
             }
 
-            byte controller = (byte)zone.Owner;
+            byte controller = StatePlayerForZone(zone);
             byte location = LocationFor(zone.Kind);
             int sequence = SequenceFor(zone);
 
@@ -1554,8 +1563,8 @@ namespace ArcaneArena
                     : new CardInstanceKey(
                         code == 0 ? 0UL : SyntheticZoneRuntimeId(zone),
                         code,
-                        (byte)zone.Owner,
-                        (byte)zone.Owner,
+                        StatePlayerForZone(zone),
+                        StatePlayerForZone(zone),
                         LocationFor(zone.Kind),
                         (uint)Mathf.Max(0, SequenceFor(zone)),
                         position);
@@ -1595,7 +1604,7 @@ namespace ArcaneArena
         {
             if (zone == null || state == null)
                 return null;
-            byte controller = (byte)zone.Owner;
+            byte controller = StatePlayerForZone(zone);
             byte location = LocationFor(zone.Kind);
             if (zone.Kind == DuelZoneKind.Graveyard)
             {
@@ -1619,12 +1628,12 @@ namespace ArcaneArena
                 (uint)Mathf.Max(0, SequenceFor(zone)));
         }
 
-        private static ulong SyntheticZoneRuntimeId(DuelZone3D zone)
+        private ulong SyntheticZoneRuntimeId(DuelZone3D zone)
         {
             unchecked
             {
                 return 0xF000000000000000UL |
-                       ((ulong)(byte)zone.Owner << 48) |
+                       ((ulong)StatePlayerForZone(zone) << 48) |
                        ((ulong)(byte)zone.Kind << 40) |
                        (uint)Mathf.Max(0, SequenceFor(zone)) + 1UL;
             }
@@ -1671,8 +1680,8 @@ namespace ArcaneArena
                     : new CardInstanceKey(
                         SyntheticZoneRuntimeId(zone),
                         code,
-                        (byte)zone.Owner,
-                        (byte)zone.Owner,
+                        StatePlayerForZone(zone),
+                        StatePlayerForZone(zone),
                         LocationFor(zone.Kind),
                         (uint)Mathf.Max(0, SequenceFor(zone)),
                         PositionAt(zone));
@@ -1889,7 +1898,7 @@ namespace ArcaneArena
                 zone.Kind == DuelZoneKind.Monster &&
                 core != null &&
                 core.TryGetCurrentCombatStats(
-                    (byte)zone.Owner,
+                    StatePlayerForZone(zone),
                     LocationFor(zone.Kind),
                     (uint)Mathf.Max(0, SequenceFor(zone)),
                     out attack,
@@ -2704,12 +2713,13 @@ namespace ArcaneArena
             List<DuelChoice> choices = prompt?.Choices
                 .Where(choice =>
                     choice.HasLocation &&
-                    choice.Controller == (byte)zone.Owner &&
+                    choice.Controller == StatePlayerForZone(zone) &&
                     (choice.Location & LocationFor(zone.Kind)) != 0)
                 .ToList() ?? new List<DuelChoice>();
             bool browsingExtraDeck =
                 zone.Kind == DuelZoneKind.ExtraDeck &&
-                zone.Owner == DuelPlayerSide.PlayerOne;
+                IsLocalZone(zone) &&
+                !core.IsNetworkReplica;
             List<uint> cards = browsingExtraDeck
                 ? core.PlayerExtraDeckCards.ToList()
                 : choices.Select(choice => choice.CardCode)
@@ -2874,7 +2884,7 @@ namespace ArcaneArena
             DuelChoice attack = ChoicesForCard(
                     core.CurrentPrompt,
                     CodeAt(zone),
-                    (byte)zone.Owner,
+                    StatePlayerForZone(zone),
                     (byte)DuelLocation.MonsterZone,
                     zone.ZoneIndex)
                 .FirstOrDefault(choice => Contains(choice.Label, "Atacar"));
@@ -3091,7 +3101,7 @@ namespace ArcaneArena
             {
                 return 0;
             }
-            int player = (int)zone.Owner;
+            int player = StatePlayerForZone(zone);
             if (player < 0 || player >= state.Players.Length)
                 return 0;
             int sequence = SequenceFor(zone);
@@ -3124,7 +3134,7 @@ namespace ArcaneArena
             {
                 return FaceUpAttack;
             }
-            int player = (int)zone.Owner;
+            int player = StatePlayerForZone(zone);
             if (player < 0 || player >= state.Players.Length)
                 return FaceUpAttack;
             int sequence = SequenceFor(zone);
@@ -3160,7 +3170,7 @@ namespace ArcaneArena
                                     ? DuelZoneKind.Graveyard
                                     : DuelZoneKind.Banishment;
             return AllZones().FirstOrDefault(zone =>
-                (byte)zone.Owner == controller &&
+                StatePlayerForZone(zone) == controller &&
                 zone.Kind == kind &&
                 (kind != DuelZoneKind.Monster &&
                  kind != DuelZoneKind.SpellTrap
@@ -3173,6 +3183,25 @@ namespace ArcaneArena
             return FindObjectsByType<DuelZone3D>(
                 FindObjectsInactive.Exclude,
                 FindObjectsSortMode.None);
+        }
+
+        // The host arena uses the authored P1/P2 table directly. A joining
+        // player sees a perspective-mapped state (own side is logical P0),
+        // so convert between that safe state and the physical P2 half of the
+        // authored table only at the presentation boundary.
+        private byte StatePlayerForZone(DuelZone3D zone)
+        {
+            if (zone == null)
+                return 0;
+            bool invert = core != null && core.IsNetworkReplica &&
+                          core.NetworkLocalPlayer == 1;
+            byte physical = (byte)zone.Owner;
+            return invert ? (byte)(1 - physical) : physical;
+        }
+
+        private bool IsLocalZone(DuelZone3D zone)
+        {
+            return StatePlayerForZone(zone) == 0;
         }
 
         private void ClearZoneHighlights()
@@ -3334,7 +3363,7 @@ namespace ArcaneArena
             }
             if (state == null || state.Players == null)
                 return "Zona sendo inicializada";
-            int player = (int)zone.Owner;
+            int player = StatePlayerForZone(zone);
             if (player < 0 || player >= state.Players.Length ||
                 state.Players[player] == null)
             {

@@ -3,18 +3,27 @@ using UnityEngine;
 namespace ArcaneArena.Multiplayer
 {
     /// <summary>
-    /// Presentation-only compatibility boundary for the migrated menu.
-    /// The legacy online authority is deliberately excluded.
+    /// Compatibility facade kept for the authored menu. The real Relay
+    /// session lives in <see cref="DuelOnlineSession"/> and persists while
+    /// the player moves from the frontend into the arena scene.
     /// </summary>
     public sealed class ArcaneArenaMultiplayerController : MonoBehaviour
     {
         public static ArcaneArenaMultiplayerController Instance { get; private set; }
 
-        public bool IsOnlineDuelActive => false;
+        public bool IsOnlineDuelActive =>
+            DuelOnlineSession.Instance != null &&
+            DuelOnlineSession.Instance.IsOnlineDuelActive;
 
         private void Awake()
         {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
             Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
 
         private void OnDestroy()
@@ -25,15 +34,12 @@ namespace ArcaneArena.Multiplayer
 
         public static void ShowPanel(bool focusJoinCode = false)
         {
-            Debug.LogWarning(
-                focusJoinCode
-                    ? "Entrada por código aguarda a camada multiplayer do core novo."
-                    : "Sala privada aguarda a camada multiplayer do core novo.");
+            DuelOnlineSession.EnsureInstance().ShowPanel(focusJoinCode);
         }
 
         public void AttachOnlineArena(CardArenaBootstrap arena)
         {
-            // Transport and online authority will be implemented on the new core.
+            DuelOnlineSession.EnsureInstance().AttachOnlineArena(arena);
         }
     }
 }
