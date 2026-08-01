@@ -14,15 +14,21 @@ namespace ArcaneArena.Frontend
     /// </summary>
     public sealed class DeckRepository
     {
-        private const int CurrentSchemaVersion = 2;
+        private const int CurrentSchemaVersion = 3;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
         private const int ExtraDeckMaximum = 15;
         private const int CopyLimit = 3;
+        public const int MinimumPlayerNameLength = 3;
+        public const int MaximumPlayerNameLength = 18;
         private readonly string _savePath;
         private CardCatalog _catalog;
 
         public DeckCollectionState State { get; private set; }
+        public string PlayerDisplayName =>
+            State?.playerDisplayName?.Trim() ?? string.Empty;
+        public bool HasPlayerProfile =>
+            !string.IsNullOrWhiteSpace(PlayerDisplayName);
         public DeckRecord SelectedDeck =>
             State?.decks?.Find(deck =>
                 deck != null &&
@@ -95,6 +101,76 @@ namespace ArcaneArena.Frontend
 
             if (persistNormalizedState)
                 Save();
+        }
+
+        public bool TrySetPlayerDisplayName(
+            string proposedName,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            if (State == null)
+            {
+                rejection =
+                    "O perfil local ainda não foi carregado.";
+                return false;
+            }
+
+            if (!TryValidatePlayerDisplayName(
+                    proposedName,
+                    out var normalizedName,
+                    out rejection))
+            {
+                return false;
+            }
+
+            State.playerDisplayName = normalizedName;
+            Save();
+            return true;
+        }
+
+        public static bool TryValidatePlayerDisplayName(
+            string proposedName,
+            out string normalizedName,
+            out string rejection)
+        {
+            normalizedName = string.Empty;
+            rejection = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(proposedName))
+            {
+                rejection = "Escolha um nome de duelista.";
+                return false;
+            }
+
+            var parts = proposedName.Trim().Split(
+                (char[])null,
+                StringSplitOptions.RemoveEmptyEntries);
+            normalizedName = string.Join(" ", parts);
+            if (normalizedName.Length < MinimumPlayerNameLength ||
+                normalizedName.Length > MaximumPlayerNameLength)
+            {
+                rejection =
+                    $"Use de {MinimumPlayerNameLength} a {MaximumPlayerNameLength} caracteres.";
+                return false;
+            }
+
+            foreach (var character in normalizedName)
+            {
+                if (char.IsLetterOrDigit(character) ||
+                    character == ' ' ||
+                    character == '-' ||
+                    character == '_' ||
+                    character == '.')
+                {
+                    continue;
+                }
+
+                rejection =
+                    "Use apenas letras, números, espaços, hífen, sublinhado ou ponto.";
+                return false;
+            }
+
+            return true;
         }
 
         public bool IsDeckProductUnlocked(string productId)
@@ -246,7 +322,8 @@ namespace ArcaneArena.Frontend
 
             loadout = DuelDeckLoadout.Create(
                 State.localProfileId,
-                selected);
+                selected,
+                PlayerDisplayName);
             return loadout != null;
         }
 
