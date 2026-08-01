@@ -280,14 +280,15 @@ namespace ArcaneArena
                 legalGlowPrimary,
                 legalGlowSecondary,
                 colorBlend);
+            color = Color.Lerp(color, Color.white, pulse * 0.16f);
             outline.effectDistance = new Vector2(
-                Mathf.Lerp(3.5f, 7f, pulse),
-                -Mathf.Lerp(3.5f, 7f, pulse));
+                Mathf.Lerp(4.5f, 9.5f, pulse),
+                -Mathf.Lerp(4.5f, 9.5f, pulse));
             outline.effectColor = new Color(
                 color.r,
                 color.g,
                 color.b,
-                Mathf.Lerp(0.58f, 1f, pulse));
+                Mathf.Lerp(0.78f, 1f, pulse));
         }
 
         private void ApplyPose()

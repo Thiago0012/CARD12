@@ -137,12 +137,19 @@ namespace ArcaneDuel.Tests.PlayMode
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();
             for (int frame = 0;
-                 frame < 600 && controller.CurrentPrompt == null;
+                 frame < 600 &&
+                 (controller.CurrentPrompt == null ||
+                  DuelPromptPresentationRules.PhaseChoices(
+                      controller.CurrentPrompt).Count == 0);
                  frame++)
             {
                 yield return null;
             }
             Assert.That(controller.CurrentPrompt, Is.Not.Null);
+            Assert.That(
+                DuelPromptPresentationRules.PhaseChoices(
+                    controller.CurrentPrompt),
+                Is.Not.Empty);
             arena.GetType()
                 .GetMethod("PrepareCaptureState", flags)
                 ?.Invoke(arena, new object[] { "inspector" });
@@ -724,6 +731,12 @@ namespace ArcaneDuel.Tests.PlayMode
                 activationSound,
                 3,
                 ArcaneCardSound.Trap);
+            AssertSoundForCategory(
+                arena,
+                catalog,
+                activationSound,
+                1,
+                ArcaneCardSound.Magic);
 
             DuelEvent setCard = MoveEvent(
                 DarkMagician,
@@ -737,6 +750,116 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(
                 faceDown.Invoke(null, new object[] { setCard }),
                 Is.True);
+            arena.GetType().GetMethod(
+                    "QueueCardSoundPresentation",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, new object[] { setCard });
+            yield return null;
+            Assert.That(
+                arena.GetType().GetField(
+                        "cardSoundPresentationRoutine",
+                        BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.GetValue(arena),
+                Is.Null,
+                "Carta baixada deve tocar o som sem abrir destaque na tela.");
+            arena.GetType().GetMethod(
+                    "ResetCardSoundPresentation",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, null);
+        }
+
+        [UnityTest]
+        public IEnumerator ExtraDeckAndGraveyardUseVisibleLegalOutlines()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            Component extra = FindZone("PlayerOne", "ExtraDeck", 0);
+            Component grave = FindZone("PlayerOne", "Graveyard", 0);
+            Assert.That(extra, Is.Not.Null);
+            Assert.That(grave, Is.Not.Null);
+            arena.enabled = false;
+
+            var prompt = new DuelPrompt();
+            typeof(DuelPrompt).GetProperty("Message")
+                ?.SetValue(prompt, CoreMessage.SelectIdleCommand);
+            typeof(DuelPrompt).GetProperty("Player")
+                ?.SetValue(prompt, (byte)0);
+            prompt.Choices.Add(LocatedChoice(
+                "Invocação especial",
+                (byte)DuelLocation.Extra));
+            prompt.Choices.Add(LocatedChoice(
+                "Ativar",
+                (byte)DuelLocation.Graveyard));
+            arena.GetType().GetMethod(
+                    "HighlightPromptZones",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, new object[] { prompt });
+            extra.GetType().GetMethod(
+                    "Update",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(extra, null);
+            grave.GetType().GetMethod(
+                    "Update",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(grave, null);
+
+            LineRenderer extraOutline = extra.transform
+                .Find("Contorno de ação legal")
+                ?.GetComponent<LineRenderer>();
+            LineRenderer graveOutline = grave.transform
+                .Find("Contorno de ação legal")
+                ?.GetComponent<LineRenderer>();
+            Assert.That(extraOutline, Is.Not.Null);
+            Assert.That(graveOutline, Is.Not.Null);
+            Assert.That(extraOutline.enabled, Is.True);
+            Assert.That(graveOutline.enabled, Is.True);
+            Assert.That(extraOutline.loop, Is.True);
+            Assert.That(graveOutline.loop, Is.True);
+            Assert.That(extraOutline.startColor.g, Is.GreaterThan(0.75f));
+            Assert.That(graveOutline.startColor.g, Is.GreaterThan(0.75f));
+        }
+
+        [UnityTest]
+        public IEnumerator CardPresentationLocksPlayerAndBotDecisions()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            for (int frame = 0;
+                 frame < 600 && controller.CurrentPrompt == null;
+                 frame++)
+            {
+                yield return null;
+            }
+            DuelPrompt prompt = controller.CurrentPrompt;
+            Assert.That(prompt, Is.Not.Null);
+            Assert.That(prompt.Choices, Is.Not.Empty);
+            arena.GetType().GetMethod(
+                    "SetCardPresentationDecisionLock",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, new object[] { true });
+            Assert.That(controller.PresentationDecisionLocked, Is.True);
+            controller.SubmitChoice(prompt.Choices[0]);
+            Assert.That(
+                controller.CurrentPrompt,
+                Is.SameAs(prompt),
+                "O Core não deve aceitar outra jogada durante o destaque.");
+            arena.GetType().GetMethod(
+                    "SetCardPresentationDecisionLock",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, new object[] { false });
+            Assert.That(controller.PresentationDecisionLocked, Is.False);
         }
 
         [UnityTest]
@@ -1007,6 +1130,20 @@ namespace ArcaneDuel.Tests.PlayMode
                            zoneIndex is int current &&
                            current == index;
                 });
+        }
+
+        private static DuelChoice LocatedChoice(
+            string label,
+            byte location)
+        {
+            var choice = new DuelChoice();
+            System.Type type = typeof(DuelChoice);
+            type.GetProperty("Label")?.SetValue(choice, label);
+            type.GetProperty("HasLocation")?.SetValue(choice, true);
+            type.GetProperty("Controller")?.SetValue(choice, (byte)0);
+            type.GetProperty("Location")?.SetValue(choice, location);
+            type.GetProperty("Sequence")?.SetValue(choice, 0u);
+            return choice;
         }
 
         private static void AssertWorldViewMatches(

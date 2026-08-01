@@ -78,12 +78,15 @@ namespace ArcaneDuel.Game
         private float nextAutoDecision;
         private Vector2 actionScroll;
         private bool externalPresentation;
+        private bool presentationDecisionLocked;
 
         public bool ExternalPresentation => externalPresentation;
         public DuelPrompt CurrentPrompt => engine?.CurrentPrompt;
         public DuelPresentationState PresentationState => state;
         public CardDatabase Database => database;
         public bool IsFinished => engine == null || engine.IsFinished;
+        public bool PresentationDecisionLocked =>
+            presentationDecisionLocked;
         public event Action<DuelEvent> CoreEventPresented;
         public event Action<string> CoreFailure;
 
@@ -208,6 +211,7 @@ namespace ArcaneDuel.Game
             if (engine == null ||
                 engine.IsFinished ||
                 engine.CurrentPrompt == null ||
+                presentationDecisionLocked ||
                 Time.unscaledTime < nextAutoDecision)
             {
                 return;
@@ -1357,6 +1361,13 @@ namespace ArcaneDuel.Game
             Submit(choice);
         }
 
+        public void SetPresentationDecisionLocked(bool locked)
+        {
+            presentationDecisionLocked = locked;
+            if (!locked)
+                nextAutoDecision = Time.unscaledTime + 0.12f;
+        }
+
         public void SubmitCoreResponse(
             byte[] response,
             ulong requestId = 0)
@@ -1400,6 +1411,7 @@ namespace ArcaneDuel.Game
             uint[] opponentMain,
             uint[] opponentExtra)
         {
+            presentationDecisionLocked = false;
             if (!externalPresentation || database == null)
                 return;
             if (playerMain == null || playerMain.Length < 40)
@@ -1456,6 +1468,11 @@ namespace ArcaneDuel.Game
         private void SubmitRaw(byte[] response)
         {
             if (engine == null || response == null) return;
+            if (presentationDecisionLocked)
+            {
+                status = "Aguarde a apresentação da carta terminar.";
+                return;
+            }
             try
             {
                 state.ClearPrompt();

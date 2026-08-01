@@ -131,7 +131,9 @@ namespace ArcaneArena
         private bool criticalInteractionLocked;
 
         private bool InteractionLocked =>
-            criticalInteractionLocked || phasePresentationLocked;
+            criticalInteractionLocked ||
+            phasePresentationLocked ||
+            cardPresentationDecisionLocked;
 
         public bool IsPrimaryDuelInterface => primaryDuelInterface;
         public CardCatalog CardCatalog => cardCatalog;
@@ -1180,6 +1182,12 @@ namespace ArcaneArena
             DuelChoice choice)
         {
             yield return null;
+            while (InteractionLocked &&
+                   core != null &&
+                   ReferenceEquals(core.CurrentPrompt, prompt))
+            {
+                yield return null;
+            }
             if (core != null &&
                 ReferenceEquals(core.CurrentPrompt, prompt))
             {
@@ -1456,12 +1464,15 @@ namespace ArcaneArena
                     (int)choice.Sequence);
                 if (zone == null)
                     continue;
-                bool red =
+                bool effectAccent =
                     (choice.Location & DuelLocation.Graveyard) != 0 ||
                     (choice.Location & DuelLocation.Extra) != 0 ||
                     IsEffectActivationChoice(prompt, choice);
-                if (!highlighted.TryGetValue(zone, out bool existing) || red)
-                    highlighted[zone] = existing || red;
+                if (!highlighted.TryGetValue(zone, out bool existing) ||
+                    effectAccent)
+                {
+                    highlighted[zone] = existing || effectAccent;
+                }
             }
             foreach (KeyValuePair<DuelZone3D, bool> item in highlighted)
             {
@@ -2802,7 +2813,6 @@ namespace ArcaneArena
                 yield return null;
             }
             cardPresentationCanAccelerate = false;
-            cardAudioDirector?.StopCardCue();
             Destroy(overlay);
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using ArcaneDuel.DuelEngine.Protocol;
 using UnityEngine;
@@ -29,6 +30,11 @@ namespace ArcaneDuel.Game
             new Dictionary<AudioClip, float>();
         private AudioSource source;
         private AudioSource cardSource;
+        private Coroutine generalEnvelopeRoutine;
+        private Coroutine cardEnvelopeRoutine;
+        private float generalEnvelope = 1f;
+        private float cardEnvelope = 1f;
+        private float cardPlaybackGain = 1f;
 
         public bool Enabled
         {
@@ -107,7 +113,7 @@ namespace ArcaneDuel.Game
             };
             if (key != null && clips.TryGetValue(key, out AudioClip clip))
             {
-                source.PlayOneShot(clip);
+                PlayGeneralCue(clip);
             }
         }
 
@@ -119,42 +125,160 @@ namespace ArcaneDuel.Game
                 return 0f;
             }
 
+            if (cardEnvelopeRoutine != null)
+                StopCoroutine(cardEnvelopeRoutine);
             cardSource.Stop();
             cardSource.pitch = 1f;
-            float gain = balancedGains.TryGetValue(clip, out float value)
+            cardPlaybackGain = balancedGains.TryGetValue(
+                    clip,
+                    out float value)
                 ? value
                 : 1f;
-            cardSource.PlayOneShot(clip, gain);
+            cardEnvelope = 0f;
+            ApplySourceVolumes();
+            cardSource.clip = clip;
+            cardSource.Play();
+            cardEnvelopeRoutine = StartCoroutine(
+                PlayEnvelope(cardSource, clip.length, true));
             return clip.length;
         }
 
-        public void AccelerateCardCue()
+        public void FadeOutCardCue(float duration = 0.38f)
         {
-            if (cardSource != null && cardSource.isPlaying)
-                cardSource.pitch = 2f;
+            if (cardSource == null || !cardSource.isPlaying)
+                return;
+            if (cardEnvelopeRoutine != null)
+                StopCoroutine(cardEnvelopeRoutine);
+            cardEnvelopeRoutine = StartCoroutine(
+                FadeOutCardSource(Mathf.Max(0.08f, duration)));
         }
 
         public void StopCardCue()
         {
             if (cardSource == null)
                 return;
+            if (cardEnvelopeRoutine != null)
+            {
+                StopCoroutine(cardEnvelopeRoutine);
+                cardEnvelopeRoutine = null;
+            }
             cardSource.Stop();
             cardSource.pitch = 1f;
+            cardEnvelope = 1f;
+            cardPlaybackGain = 1f;
+            ApplySourceVolumes();
         }
 
         private void ApplyPreferences()
         {
             bool muted = !ArcaneAudioPreferences.Enabled;
-            float volume = ArcaneAudioPreferences.Volume;
             if (source != null)
             {
                 source.mute = muted;
-                source.volume = volume;
             }
             if (cardSource != null)
             {
                 cardSource.mute = muted;
-                cardSource.volume = volume;
+            }
+            ApplySourceVolumes();
+        }
+
+        private void PlayGeneralCue(AudioClip clip)
+        {
+            if (clip == null || source == null)
+                return;
+            if (generalEnvelopeRoutine != null)
+                StopCoroutine(generalEnvelopeRoutine);
+            source.Stop();
+            source.pitch = 1f;
+            source.clip = clip;
+            generalEnvelope = 0f;
+            ApplySourceVolumes();
+            source.Play();
+            generalEnvelopeRoutine = StartCoroutine(
+                PlayEnvelope(source, clip.length, false));
+        }
+
+        private IEnumerator PlayEnvelope(
+            AudioSource target,
+            float duration,
+            bool card)
+        {
+            float fadeIn = Mathf.Min(0.055f, duration * 0.22f);
+            float fadeOut = Mathf.Min(0.20f, duration * 0.34f);
+            float elapsed = 0f;
+            while (target != null && target.isPlaying && elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float envelope = elapsed < fadeIn
+                    ? Mathf.Clamp01(elapsed / Mathf.Max(0.001f, fadeIn))
+                    : elapsed > duration - fadeOut
+                        ? Mathf.Clamp01(
+                            (duration - elapsed) /
+                            Mathf.Max(0.001f, fadeOut))
+                        : 1f;
+                if (card)
+                    cardEnvelope = envelope;
+                else
+                    generalEnvelope = envelope;
+                ApplySourceVolumes();
+                yield return null;
+            }
+            if (target != null)
+            {
+                if (target.isPlaying)
+                    target.Stop();
+                target.pitch = 1f;
+            }
+            if (card)
+            {
+                cardEnvelope = 1f;
+                cardPlaybackGain = 1f;
+                cardEnvelopeRoutine = null;
+            }
+            else
+            {
+                generalEnvelope = 1f;
+                generalEnvelopeRoutine = null;
+            }
+            ApplySourceVolumes();
+        }
+
+        private IEnumerator FadeOutCardSource(float duration)
+        {
+            float from = cardEnvelope;
+            for (float elapsed = 0f;
+                 cardSource != null && cardSource.isPlaying &&
+                 elapsed < duration;
+                 elapsed += Time.unscaledDeltaTime)
+            {
+                cardEnvelope = Mathf.Lerp(
+                    from,
+                    0f,
+                    Mathf.SmoothStep(0f, 1f, elapsed / duration));
+                ApplySourceVolumes();
+                yield return null;
+            }
+            if (cardSource != null)
+            {
+                cardSource.Stop();
+                cardSource.pitch = 1f;
+            }
+            cardEnvelope = 1f;
+            cardPlaybackGain = 1f;
+            cardEnvelopeRoutine = null;
+            ApplySourceVolumes();
+        }
+
+        private void ApplySourceVolumes()
+        {
+            float volume = ArcaneAudioPreferences.Volume;
+            if (source != null)
+                source.volume = volume * generalEnvelope;
+            if (cardSource != null)
+            {
+                cardSource.volume =
+                    volume * cardEnvelope * cardPlaybackGain;
             }
         }
 
