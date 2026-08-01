@@ -3091,14 +3091,6 @@ namespace ArcaneArena
             if (runtimeSprites.TryGetValue(code, out Sprite cached))
                 return cached;
             string official = code.ToString("00000000");
-            CardCatalogEntry entry =
-                cardCatalog?.FindByOfficialId(official) ??
-                cardCatalog?.FindByOfficialId(code.ToString());
-            if (entry?.Artwork != null)
-            {
-                runtimeSprites[code] = entry.Artwork;
-                return entry.Artwork;
-            }
             try
             {
                 visualCatalog ??= CardVisualCatalog.LoadDefault();
@@ -3125,6 +3117,15 @@ namespace ArcaneArena
             {
                 Debug.LogWarning(
                     $"Arte {official} não carregada: {exception.Message}");
+            }
+
+            CardCatalogEntry entry =
+                cardCatalog?.FindByOfficialId(official) ??
+                cardCatalog?.FindByOfficialId(code.ToString());
+            if (entry?.Artwork != null)
+            {
+                runtimeSprites[code] = entry.Artwork;
+                return entry.Artwork;
             }
             return cardBackSprite;
         }

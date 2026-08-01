@@ -66,5 +66,29 @@ namespace ArcaneDuel.Tests.EditMode
                     ArcaneGraphicsQuality.VeryHigh),
                 Is.EqualTo("MUITO ALTO"));
         }
+
+        [Test]
+        public void EditorWithFourGigabytesOfGraphicsMemory_IsCappedAtMedium()
+        {
+            ArcaneGraphicsQuality result =
+                ArcaneGraphicsPreferences.ApplyHardwareSafetyLimit(
+                    ArcaneGraphicsQuality.VeryHigh,
+                    true,
+                    4096);
+
+            Assert.That(result, Is.EqualTo(ArcaneGraphicsQuality.Medium));
+        }
+
+        [Test]
+        public void PlayerBuild_KeepsRequestedGraphicsQuality()
+        {
+            ArcaneGraphicsQuality result =
+                ArcaneGraphicsPreferences.ApplyHardwareSafetyLimit(
+                    ArcaneGraphicsQuality.VeryHigh,
+                    false,
+                    2048);
+
+            Assert.That(result, Is.EqualTo(ArcaneGraphicsQuality.VeryHigh));
+        }
     }
 }

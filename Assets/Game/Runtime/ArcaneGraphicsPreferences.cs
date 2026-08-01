@@ -17,6 +17,7 @@ namespace ArcaneDuel.Game
     public static class ArcaneGraphicsPreferences
     {
         private const string QualityKey = "ArcaneGraphicsQuality";
+        private const int EditorSafeGraphicsMemoryMb = 4096;
 
         public static event Action QualityChanged;
 
@@ -43,7 +44,7 @@ namespace ArcaneDuel.Game
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void ApplyOnStartup()
         {
-            Quality = PlayerPrefs.HasKey(QualityKey)
+            ArcaneGraphicsQuality requested = PlayerPrefs.HasKey(QualityKey)
                 ? Sanitize(PlayerPrefs.GetInt(QualityKey))
                 : ResolveAutomaticQuality(
                     IsMobileRuntime,
@@ -51,6 +52,10 @@ namespace ArcaneDuel.Game
                     SystemInfo.graphicsMemorySize,
                     SystemInfo.graphicsShaderLevel,
                     SystemInfo.processorCount);
+            Quality = ApplyHardwareSafetyLimit(
+                requested,
+                Application.isEditor,
+                SystemInfo.graphicsMemorySize);
             Apply(Quality, false);
             Application.lowMemory -= ReleaseUnusedMemory;
             Application.lowMemory += ReleaseUnusedMemory;
@@ -113,10 +118,30 @@ namespace ArcaneDuel.Game
             };
         }
 
+        public static ArcaneGraphicsQuality ApplyHardwareSafetyLimit(
+            ArcaneGraphicsQuality requested,
+            bool editor,
+            int graphicsMemoryMb)
+        {
+            if (editor &&
+                graphicsMemoryMb > 0 &&
+                graphicsMemoryMb <= EditorSafeGraphicsMemoryMb &&
+                requested > ArcaneGraphicsQuality.Medium)
+            {
+                return ArcaneGraphicsQuality.Medium;
+            }
+
+            return requested;
+        }
+
         private static void Apply(
             ArcaneGraphicsQuality quality,
             bool persist)
         {
+            quality = ApplyHardwareSafetyLimit(
+                quality,
+                Application.isEditor,
+                SystemInfo.graphicsMemorySize);
             Quality = quality;
             int qualityIndex = quality == ArcaneGraphicsQuality.VeryHigh
                 ? Mathf.Max(0, QualitySettings.names.Length - 1)

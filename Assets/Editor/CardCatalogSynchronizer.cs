@@ -199,16 +199,21 @@ namespace ArcaneArena.Editor
                 AssetImporter.GetAtPath(assetPath) as TextureImporter;
             if (importer == null)
                 throw new FileNotFoundException(assetPath);
-            if (importer.textureType == TextureImporterType.Sprite &&
-                importer.spriteImportMode == SpriteImportMode.Single)
+            bool changed = false;
+            if (importer.textureType != TextureImporterType.Sprite)
             {
-                return;
+                importer.textureType = TextureImporterType.Sprite;
+                changed = true;
             }
-
-            importer.textureType = TextureImporterType.Sprite;
-            importer.spriteImportMode = SpriteImportMode.Single;
-            importer.mipmapEnabled = false;
-            importer.SaveAndReimport();
+            if (importer.spriteImportMode != SpriteImportMode.Single)
+            {
+                importer.spriteImportMode = SpriteImportMode.Single;
+                changed = true;
+            }
+            changed |= CatalogTextureImportOptimizer.ConfigureImporter(
+                importer);
+            if (changed)
+                importer.SaveAndReimport();
         }
     }
 }
