@@ -79,17 +79,28 @@ namespace ArcaneDuel.Game
         private Vector2 actionScroll;
         private bool externalPresentation;
         private bool presentationDecisionLocked;
+        private bool networkReplica;
+        private bool remotePlayerOneAuthority;
+        private byte networkLocalPlayer;
+        private DuelPrompt replicaPrompt;
 
         public bool ExternalPresentation => externalPresentation;
-        public DuelPrompt CurrentPrompt => engine?.CurrentPrompt;
+        public bool IsNetworkReplica => networkReplica;
+        public byte NetworkLocalPlayer => networkLocalPlayer;
+        public DuelPrompt CurrentPrompt => networkReplica
+            ? replicaPrompt
+            : engine?.CurrentPrompt;
         public DuelPresentationState PresentationState => state;
         public CardDatabase Database => database;
         public IReadOnlyList<uint> PlayerExtraDeckCards => playerExtraCards;
-        public bool IsFinished => engine == null || engine.IsFinished;
+        public bool IsFinished => networkReplica
+            ? state != null && state.Winner.HasValue
+            : engine == null || engine.IsFinished;
         public bool PresentationDecisionLocked =>
             presentationDecisionLocked;
         public event Action<DuelEvent> CoreEventPresented;
         public event Action<string> CoreFailure;
+        public event Action PresentationStateChanged;
 
         public bool TryGetCurrentCombatStats(
             byte controller,
@@ -218,6 +229,13 @@ namespace ArcaneDuel.Game
                 return;
             }
             bool opponentPrompt = engine.CurrentPrompt.Player == 1;
+            if (opponentPrompt && remotePlayerOneAuthority)
+            {
+                // A segunda cadeira pertence ao cliente remoto. Nunca deixe
+                // a IA local consumir uma escolha que ainda precisa viajar
+                // pelo Relay.
+                return;
+            }
             if (!opponentPrompt && !autoPlay)
             {
                 return;
@@ -1359,7 +1377,78 @@ namespace ArcaneDuel.Game
 
         public void SubmitChoice(DuelChoice choice)
         {
+            if (networkReplica)
+            {
+                DuelOnlineBridge.SubmitReplicaChoice?.Invoke(choice);
+                return;
+            }
             Submit(choice);
+        }
+
+        /// <summary>
+        /// Coloca esta arena no modo de apresentação remota. Neste modo
+        /// nenhuma instância local do Core decide regras ou recebe dados
+        /// secretos do adversário.
+        /// </summary>
+        public void ConfigureNetworkReplica(byte localPlayer)
+        {
+            networkReplica = true;
+            networkLocalPlayer = localPlayer;
+            remotePlayerOneAuthority = false;
+            replicaPrompt = null;
+            presentationDecisionLocked = false;
+            if (engine != null)
+            {
+                engine.EventReceived -= OnCoreEvent;
+                engine.Dispose();
+                engine = null;
+            }
+            if (database != null)
+            {
+                state = new DuelPresentationState(database);
+            }
+            choicePresenter.Rebuild(null);
+            contextualChoices.Clear();
+            selectedPromptIndexes.Clear();
+            status = "Conectado à autoridade da sala. Aguardando o duelo.";
+        }
+
+        /// <summary>
+        /// O host conserva o Core, mas entrega todas as decisões do jogador
+        /// 2 ao cliente remoto em vez de acionar a IA de demonstração.
+        /// </summary>
+        public void ConfigureRemotePlayerOneAuthority(bool enabled)
+        {
+            remotePlayerOneAuthority = enabled;
+        }
+
+        public void ApplyNetworkState(IDuelNetworkState networkState)
+        {
+            if (!networkReplica || networkState == null || database == null)
+                return;
+
+            try
+            {
+                networkState.ApplyTo(state, database, out replicaPrompt);
+                choicePresenter.Rebuild(replicaPrompt);
+                contextualChoices.Clear();
+                selectedPromptIndexes.Clear();
+                showPhaseChoices = false;
+                status = string.IsNullOrWhiteSpace(networkState.Status)
+                    ? "Duelo online sincronizado."
+                    : networkState.Status;
+                // The authored arena caches the presentation-state reference.
+                // Notify it after replacing a replica snapshot so it rebinds
+                // without fabricating a Core event on this assembly boundary.
+                PresentationStateChanged?.Invoke();
+            }
+            catch (Exception exception)
+            {
+                string failure = exception.GetBaseException().Message;
+                status = $"Falha de sincronização online: {failure}";
+                CoreFailure?.Invoke(failure);
+                Debug.LogException(exception);
+            }
         }
 
         public void SetPresentationDecisionLocked(bool locked)
@@ -1373,6 +1462,13 @@ namespace ArcaneDuel.Game
             byte[] response,
             ulong requestId = 0)
         {
+            if (networkReplica)
+            {
+                DuelOnlineBridge.SubmitReplicaResponse?.Invoke(
+                    response,
+                    requestId == 0 ? replicaPrompt?.RequestId ?? 0 : requestId);
+                return;
+            }
             DuelPrompt prompt = engine?.CurrentPrompt;
             if (requestId != 0 &&
                 prompt != null &&

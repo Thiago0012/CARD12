@@ -3402,8 +3402,7 @@ namespace ArcaneArena.Frontend
             ResolveProjectReferences();
             SetDuelPresentation(true);
 
-            var online =
-                ArcaneArenaMultiplayerController.Instance;
+            var online = DuelOnlineSession.Instance;
             if (online != null &&
                 online.IsOnlineDuelActive)
             {
