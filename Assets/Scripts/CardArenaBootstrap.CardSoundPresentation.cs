@@ -22,6 +22,7 @@ namespace ArcaneArena
             cardSoundPresentationQueue = new();
         private Coroutine cardSoundPresentationRoutine;
         private ArcaneAudioDirector cardAudioDirector;
+        private bool cardPresentationDecisionLocked;
         private bool cardPresentationCanAccelerate;
         private bool cardPresentationAccelerated;
         private float lastCardPresentationClick = -10f;
@@ -41,9 +42,16 @@ namespace ArcaneArena
                 CreateCardSoundPresentation(duelEvent);
             if (request == null)
                 return;
+            if (request.HideIdentity)
+            {
+                cardAudioDirector ??= GetComponent<ArcaneAudioDirector>();
+                cardAudioDirector?.PlayCardCue(request.Sound);
+                return;
+            }
             cardSoundPresentationQueue.Enqueue(request);
             if (cardSoundPresentationRoutine == null)
             {
+                SetCardPresentationDecisionLock(true);
                 cardSoundPresentationRoutine =
                     StartCoroutine(PlayCardSoundPresentationQueue());
             }
@@ -112,6 +120,7 @@ namespace ArcaneArena
             {
                 CardCategory.Spell => ArcaneCardSound.Magic,
                 CardCategory.Trap => ArcaneCardSound.Trap,
+                CardCategory.Monster => ArcaneCardSound.Magic,
                 _ => ArcaneCardSound.None
             };
         }
@@ -149,11 +158,15 @@ namespace ArcaneArena
                     request.HideIdentity);
             }
             cardSoundPresentationRoutine = null;
+            SetCardPresentationDecisionLock(false);
+            observedPrompt = null;
+            RefreshEverything(true);
         }
 
         private void UpdateCardPresentationAcceleration()
         {
-            if (!cardPresentationCanAccelerate)
+            if (!cardPresentationCanAccelerate ||
+                cardPresentationAccelerated)
                 return;
             bool pressed =
                 UnityEngine.InputSystem.Mouse.current?.leftButton
@@ -166,7 +179,7 @@ namespace ArcaneArena
             if (now - lastCardPresentationClick <= 0.36f)
             {
                 cardPresentationAccelerated = true;
-                cardAudioDirector?.AccelerateCardCue();
+                cardAudioDirector?.FadeOutCardCue(0.38f);
                 lastCardPresentationClick = -10f;
             }
             else
@@ -183,6 +196,13 @@ namespace ArcaneArena
             cardAudioDirector?.StopCardCue();
             cardSoundPresentationQueue.Clear();
             cardSoundPresentationRoutine = null;
+            SetCardPresentationDecisionLock(false);
+        }
+
+        private void SetCardPresentationDecisionLock(bool locked)
+        {
+            cardPresentationDecisionLocked = locked;
+            core?.SetPresentationDecisionLocked(locked);
         }
     }
 }

@@ -68,13 +68,31 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(loaded[ArcaneCardSound.Trap], Is.Not.Null);
             Assert.That(loaded[ArcaneCardSound.PutCard], Is.Not.Null);
             float originalVolume = ArcaneAudioPreferences.Volume;
+            bool originalEnabled = ArcaneAudioPreferences.Enabled;
+            director.Enabled = true;
             director.Volume = 0.25f;
             Assert.That(ArcaneAudioPreferences.Volume, Is.EqualTo(0.25f));
             Assert.That(
                 director.GetComponents<AudioSource>()
-                    .All(audio => Mathf.Approximately(audio.volume, 0.25f)),
+                    .All(audio => audio.volume <= 0.25f + 0.001f),
                 Is.True);
+            float cueLength = director.PlayCardCue(
+                ArcaneCardSound.MonsterSummon);
+            Assert.That(cueLength, Is.GreaterThan(0f));
+            yield return null;
+            FieldInfo cardSourceField = typeof(ArcaneAudioDirector).GetField(
+                "cardSource",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            AudioSource cardSource =
+                cardSourceField?.GetValue(director) as AudioSource;
+            Assert.That(cardSource, Is.Not.Null);
+            Assert.That(cardSource.pitch, Is.EqualTo(1f));
+            director.FadeOutCardCue(0.08f);
+            yield return new WaitForSecondsRealtime(0.14f);
+            Assert.That(cardSource.pitch, Is.EqualTo(1f));
+            Assert.That(cardSource.isPlaying, Is.False);
             director.Volume = originalVolume;
+            director.Enabled = originalEnabled;
         }
 
         [UnityTest]

@@ -28,6 +28,8 @@ namespace ArcaneArena
         private Color dropHighlightColor =
             new Color(0.08f, 0.58f, 1f, 1f);
         private bool pointerFocused;
+        private LineRenderer specialZoneOutline;
+        private Material specialZoneOutlineMaterial;
 
         public Sprite PlacedCard => placedCard;
         public string StableId => address.StableId;
@@ -141,6 +143,7 @@ namespace ArcaneArena
             dropHighlighted = enabled;
             if (enabled)
                 dropHighlightColor = color;
+            RefreshSpecialZoneOutline(enabled);
             RefreshExtraMonsterZoneSurface();
             if (dropSurface == null)
             {
@@ -177,6 +180,7 @@ namespace ArcaneArena
 
         private void Update()
         {
+            UpdateSpecialZoneOutline();
             if (dropSurface == null)
                 return;
             if (dropHighlighted)
@@ -202,6 +206,110 @@ namespace ArcaneArena
                     new Color(0.10f, 0.34f, 0.38f, 1f),
                     0.56f)
                 : dropSurfaceColor;
+        }
+
+        private void RefreshSpecialZoneOutline(bool enabled)
+        {
+            if (Kind != DuelZoneKind.ExtraDeck &&
+                Kind != DuelZoneKind.Graveyard)
+            {
+                return;
+            }
+            if (enabled)
+                EnsureSpecialZoneOutline();
+            if (specialZoneOutline != null)
+                specialZoneOutline.enabled = enabled;
+        }
+
+        private void EnsureSpecialZoneOutline()
+        {
+            if (specialZoneOutline != null)
+                return;
+            Transform outlineParent = Kind == DuelZoneKind.ExtraDeck
+                ? transform.Find("Card Stack") ?? transform
+                : transform;
+            var outlineObject = new GameObject("Contorno de ação legal");
+            outlineObject.transform.SetParent(outlineParent, false);
+            specialZoneOutline = outlineObject.AddComponent<LineRenderer>();
+            specialZoneOutline.useWorldSpace = false;
+            specialZoneOutline.loop = true;
+            specialZoneOutline.alignment = LineAlignment.View;
+            specialZoneOutline.numCapVertices = 4;
+            specialZoneOutline.numCornerVertices = 4;
+            Shader shader = Shader.Find("Sprites/Default") ??
+                            Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader != null)
+            {
+                specialZoneOutlineMaterial = new Material(shader)
+                {
+                    name = "Contorno pulsante de zona especial"
+                };
+                specialZoneOutline.material = specialZoneOutlineMaterial;
+            }
+
+            if (Kind == DuelZoneKind.ExtraDeck)
+            {
+                Transform topCard = outlineParent.Find("Top Card Back");
+                float halfWidth = topCard != null
+                    ? Mathf.Abs(topCard.localScale.x) * 0.5f + 0.07f
+                    : 0.79f;
+                float halfDepth = topCard != null
+                    ? Mathf.Abs(topCard.localScale.z) * 0.5f + 0.07f
+                    : 1.05f;
+                float height = topCard != null
+                    ? topCard.localPosition.y +
+                      Mathf.Abs(topCard.localScale.y) * 0.5f + 0.035f
+                    : 0.16f;
+                specialZoneOutline.positionCount = 4;
+                specialZoneOutline.SetPositions(new[]
+                {
+                    new Vector3(-halfWidth, height, -halfDepth),
+                    new Vector3(-halfWidth, height, halfDepth),
+                    new Vector3(halfWidth, height, halfDepth),
+                    new Vector3(halfWidth, height, -halfDepth)
+                });
+            }
+            else
+            {
+                const int segments = 40;
+                specialZoneOutline.positionCount = segments;
+                for (int index = 0; index < segments; index++)
+                {
+                    float angle = index * Mathf.PI * 2f / segments;
+                    specialZoneOutline.SetPosition(
+                        index,
+                        new Vector3(
+                            Mathf.Cos(angle) * 1.18f,
+                            0.34f,
+                            Mathf.Sin(angle) * 1.18f));
+                }
+            }
+        }
+
+        private void UpdateSpecialZoneOutline()
+        {
+            if (specialZoneOutline == null || !dropHighlighted)
+                return;
+            float pulse = 0.5f + 0.5f *
+                          Mathf.Sin(Time.unscaledTime * 5.8f);
+            Color color = Color.Lerp(
+                new Color(
+                    dropHighlightColor.r,
+                    dropHighlightColor.g,
+                    dropHighlightColor.b,
+                    0.72f),
+                Color.white,
+                pulse * 0.38f);
+            specialZoneOutline.startColor = color;
+            specialZoneOutline.endColor = color;
+            specialZoneOutline.widthMultiplier =
+                Mathf.Lerp(0.075f, 0.15f, pulse);
+        }
+
+        private void OnDestroy()
+        {
+            if (specialZoneOutlineMaterial != null)
+                Destroy(specialZoneOutlineMaterial);
         }
 
         public void OnPointerClick(PointerEventData eventData)
