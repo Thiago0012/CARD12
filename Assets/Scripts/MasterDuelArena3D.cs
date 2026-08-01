@@ -1,11 +1,12 @@
 using UnityEngine;
 using ArcaneArena.Multiplayer;
+using ArcaneDuel.Game;
 
 namespace ArcaneArena
 {
     public sealed class MasterDuelArena3D : MonoBehaviour
     {
-        public const int CurrentLayoutVersion = 11;
+        public const int CurrentLayoutVersion = 12;
         [SerializeField] private int layoutVersion;
         [SerializeField] private Texture2D cardBackTexture;
         private Material _stone;
@@ -66,6 +67,7 @@ namespace ArcaneArena
             CreatePlayerHalf(players, true);
             CreateBorder();
             CreateLighting();
+            OptimizeStaticGeometry();
             RestorePlayerDeckLayout(
                 mainDeckSnapshot,
                 extraDeckSnapshot,
@@ -111,6 +113,7 @@ namespace ArcaneArena
             side.transform.SetParent(players, false);
 
             var sign = opponent ? 1f : -1f;
+            var horizontalSign = opponent ? -1f : 1f;
             var rotation = opponent ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
             const float spacing = 2.3f;
 
@@ -118,10 +121,10 @@ namespace ArcaneArena
             var spellGroup = CreateGroup(side.transform, "SpellTrapZones");
             for (var i = 0; i < 5; i++)
             {
-                var x = (i - 2) * spacing;
-                CreateCardZone(monsterGroup, $"MonsterZone_{i + 1}", new Vector3(x, 0.2f, sign * 1.5f),
+                var x = (i - 2) * spacing * horizontalSign;
+                CreateCardZone(monsterGroup, $"MonsterZone_{i + 1}", new Vector3(x, 0.2f, sign * 2.1f),
                     rotation, _monsterGlow, owner, DuelZoneKind.Monster, i, !opponent);
-                CreateCardZone(spellGroup, $"SpellTrapZone_{i + 1}", new Vector3(x, 0.19f, sign * 4.0f),
+                CreateCardZone(spellGroup, $"SpellTrapZone_{i + 1}", new Vector3(x, 0.19f, sign * 4.45f),
                     rotation, _spellGlow, owner, DuelZoneKind.SpellTrap, i, false);
             }
 
@@ -142,9 +145,11 @@ namespace ArcaneArena
             }
 
             var specials = CreateGroup(side.transform, "SpecialZones");
-            var extraDeck = CreateDeckPedestal(specials, "ExtraDeck", new Vector3(-7.05f, 0.18f, sign * 5.75f),
+            float rightSide = 7.05f * horizontalSign;
+            float leftSide = -rightSide;
+            var extraDeck = CreateDeckPedestal(specials, "ExtraDeck", new Vector3(leftSide, 0.18f, sign * 5.75f),
                 rotation, _extraBack, false, owner, DuelZoneKind.ExtraDeck);
-            var mainDeck = CreateDeckPedestal(specials, "MainDeck", new Vector3(7.05f, 0.18f, sign * 5.75f),
+            var mainDeck = CreateDeckPedestal(specials, "MainDeck", new Vector3(rightSide, 0.18f, sign * 5.75f),
                 rotation, _cardBack, true, owner, DuelZoneKind.MainDeck);
             if (!opponent)
             {
@@ -156,14 +161,14 @@ namespace ArcaneArena
                 _playerTwoMainDeck = mainDeck;
                 _playerTwoExtraDeck = extraDeck;
             }
-            CreateWell(specials, "Graveyard", new Vector3(7.05f, 0.16f, sign * 3.1f),
+            CreateWell(specials, "Graveyard", new Vector3(rightSide, 0.16f, sign * 3.1f),
                 _blueWell, owner, DuelZoneKind.Graveyard);
-            CreateWell(specials, "Banishment", new Vector3(7.05f, 0.16f, sign * 0.62f),
+            CreateWell(specials, "Banishment", new Vector3(rightSide, 0.16f, sign * 0.62f),
                 _violetWell, owner, DuelZoneKind.Banishment);
             CreateCardZone(
                 specials,
                 "FieldZone",
-                new Vector3(-7.05f, 0.19f, sign * 3.1f),
+                new Vector3(leftSide, 0.19f, sign * 3.1f),
                 rotation,
                 _spellGlow,
                 owner,
@@ -298,7 +303,7 @@ namespace ArcaneArena
 
             return side == DuelPlayerSide.PlayerOne
                 ? new Vector3(7f, 0.8f, -5.7f)
-                : new Vector3(7f, 0.8f, 5.7f);
+                : new Vector3(-7f, 0.8f, 5.7f);
         }
 
         public Transform GetMainDeckTransform(DuelPlayerSide side)
@@ -428,7 +433,7 @@ namespace ArcaneArena
                 return;
 
             var position = source.localPosition;
-            target.localPosition = new Vector3(position.x, position.y, -position.z);
+            target.localPosition = new Vector3(-position.x, position.y, -position.z);
             target.localScale = source.localScale;
             target.localRotation = Quaternion.Euler(0f, 180f, 0f) * source.localRotation;
             CopyChildTransforms(source, target);
@@ -512,12 +517,29 @@ namespace ArcaneArena
             light.type = LightType.Directional;
             light.intensity = 1.25f;
             light.color = new Color(1f, 0.92f, 0.75f);
-            light.shadows = LightShadows.Soft;
+            light.shadows = ArcaneGraphicsPreferences.ReduceArenaLighting
+                ? LightShadows.None
+                : LightShadows.Soft;
 
             CreatePointLight(lighting, "Blue Graveyard Light", new Vector3(7.05f, 1.4f, -3.1f), new Color(0.12f, 0.5f, 1f));
             CreatePointLight(lighting, "Violet Banish Light", new Vector3(7.05f, 1.2f, -0.62f), new Color(0.6f, 0.18f, 1f));
             CreatePointLight(lighting, "Opponent Blue Graveyard Light", new Vector3(7.05f, 1.4f, 3.1f), new Color(0.12f, 0.5f, 1f));
             CreatePointLight(lighting, "Opponent Violet Banish Light", new Vector3(7.05f, 1.2f, 0.62f), new Color(0.6f, 0.18f, 1f));
+        }
+
+        private void OptimizeStaticGeometry()
+        {
+            if (!Application.isPlaying ||
+                !ArcaneGraphicsPreferences.UseStaticArenaBatching)
+            {
+                return;
+            }
+            Transform environment = transform.Find("Environment");
+            Transform border = transform.Find("Arena Border");
+            if (environment != null)
+                StaticBatchingUtility.Combine(environment.gameObject);
+            if (border != null)
+                StaticBatchingUtility.Combine(border.gameObject);
         }
 
         private void CreatePointLight(Transform parent, string name, Vector3 position, Color color)

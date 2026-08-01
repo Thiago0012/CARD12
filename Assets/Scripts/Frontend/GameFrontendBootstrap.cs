@@ -1291,7 +1291,7 @@ namespace ArcaneArena.Frontend
 
             CreateText(
                 panel.transform,
-                "ANIMAÇÕES DO DUELO",
+                "GRÁFICOS E ANIMAÇÕES",
                 40,
                 FontStyle.Bold,
                 Color.white,
@@ -1308,14 +1308,15 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.90f, 0.86f),
                 TextAnchor.MiddleCenter);
 
-            BuildAudioVolumeRow(panel.transform, 0.70f);
+            BuildGraphicsQualityRow(panel.transform, 0.73f);
+            BuildAudioVolumeRow(panel.transform, 0.585f);
 
             BuildAnimationOptionRow(
                 panel.transform,
                 "INVOCAÇÃO DE MONSTROS",
                 DuelAnimationPreferences.MonsterEnabled,
                 DuelAnimationPreferences.MonsterSpeedMultiplier,
-                0.51f,
+                0.43f,
                 () =>
                 {
                     DuelAnimationPreferences.MonsterEnabled =
@@ -1334,7 +1335,7 @@ namespace ArcaneArena.Frontend
                 DuelAnimationPreferences.SpellTrapEnabled,
                 DuelAnimationPreferences
                     .SpellTrapSpeedMultiplier,
-                0.31f,
+                0.285f,
                 () =>
                 {
                     DuelAnimationPreferences.SpellTrapEnabled =
@@ -1352,7 +1353,7 @@ namespace ArcaneArena.Frontend
                 "APRESENTAÇÃO DA CORRENTE",
                 DuelAnimationPreferences.ChainEnabled,
                 DuelAnimationPreferences.ChainSpeedMultiplier,
-                0.11f,
+                0.14f,
                 () =>
                 {
                     DuelAnimationPreferences.ChainEnabled =
@@ -1384,8 +1385,67 @@ namespace ArcaneArena.Frontend
                     DuelAnimationPreferences
                         .ResetToDefaults();
                     ArcaneAudioPreferences.ResetToDefaults();
+                    ArcaneGraphicsPreferences.ResetToAutomatic();
                     ShowAnimationOptions();
                 });
+        }
+
+        private void BuildGraphicsQualityRow(Transform parent, float yMin)
+        {
+            var row = CreatePanel(
+                parent,
+                "Qualidade gráfica",
+                new Vector2(0.055f, yMin),
+                new Vector2(0.945f, yMin + 0.115f),
+                new Color(0.025f, 0.09f, 0.135f, 0.94f));
+            AddOutline(
+                row.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.35f),
+                new Vector2(2f, -2f));
+            CreateText(
+                row.transform,
+                "GRÁFICOS\n" + ArcaneGraphicsPreferences.DisplayName(
+                    ArcaneGraphicsPreferences.Quality),
+                16,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.02f, 0.12f),
+                new Vector2(0.25f, 0.88f),
+                TextAnchor.MiddleLeft);
+
+            ArcaneGraphicsQuality[] levels =
+            {
+                ArcaneGraphicsQuality.VeryLow,
+                ArcaneGraphicsQuality.Low,
+                ArcaneGraphicsQuality.Medium,
+                ArcaneGraphicsQuality.High,
+                ArcaneGraphicsQuality.VeryHigh
+            };
+            string[] labels =
+            {
+                "M. BAIXO",
+                "BAIXO",
+                "MÉDIO",
+                "ALTO",
+                "M. ALTO"
+            };
+            for (int index = 0; index < levels.Length; index++)
+            {
+                ArcaneGraphicsQuality level = levels[index];
+                float xMin = 0.27f + index * 0.139f;
+                bool selected = ArcaneGraphicsPreferences.Quality == level;
+                CreateButton(
+                    row.transform,
+                    labels[index],
+                    new Vector2(xMin, 0.18f),
+                    new Vector2(xMin + 0.125f, 0.82f),
+                    selected ? Lime : Cyan,
+                    () =>
+                    {
+                        ArcaneGraphicsPreferences.SetQuality(level);
+                        ShowAnimationOptions();
+                    });
+            }
         }
 
         private void BuildAudioVolumeRow(Transform parent, float yMin)
@@ -1441,7 +1501,7 @@ namespace ArcaneArena.Frontend
             Action toggle,
             Action<float> setSpeed)
         {
-            const float rowHeight = 0.17f;
+            const float rowHeight = 0.13f;
             var row = CreatePanel(
                 parent,
                 label,

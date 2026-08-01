@@ -38,18 +38,11 @@ namespace ArcaneDuel.Game
                 return false;
             }
 
-            texture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
-            {
-                name = $"CardArt_{code}",
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear
-            };
-            if (!texture.LoadImage(File.ReadAllBytes(path)))
-            {
-                UnityEngine.Object.Destroy(texture);
-                texture = null;
+            texture = RuntimeCardTextureLoader.Load(
+                path,
+                $"CardArt_{code}");
+            if (texture == null)
                 return false;
-            }
             textures.Add(code, texture);
             return true;
         }

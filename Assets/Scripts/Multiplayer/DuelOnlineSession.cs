@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Text;
 using System.Threading.Tasks;
 using ArcaneArena;
@@ -27,12 +28,14 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelOnlineSession : MonoBehaviour
     {
         private const string DuelArenaScene = "DuelArena";
-        private const string ProtocolVersion = "arcane-duel-online-v1";
-        private const string HelloMessage = "arcane.duel.hello.v1";
-        private const string StartMessage = "arcane.duel.start.v1";
-        private const string StateMessage = "arcane.duel.state.v1";
-        private const string ResponseMessage = "arcane.duel.response.v1";
+        private const string ProtocolVersion = "arcane-duel-online-v2";
+        private const string HelloMessage = "arcane.duel.hello.v2";
+        private const string StartMessage = "arcane.duel.start.v2";
+        private const string StateMessage = "arcane.duel.state.v2";
+        private const string ResponseMessage = "arcane.duel.response.v2";
         private const int MaxWireBytes = 96 * 1024;
+        private const ushort NgoProtocolVersion = 2;
+        private const uint NetworkTickRate = 20;
 
         private enum SessionRole
         {
@@ -45,6 +48,7 @@ namespace ArcaneArena.Multiplayer
         private sealed class HelloPayload
         {
             public string protocolVersion;
+            public string compatibility;
             public string coreApiVersion;
             public string coreCommit;
             public DuelDeckLoadout loadout;
@@ -61,6 +65,7 @@ namespace ArcaneArena.Multiplayer
         private sealed class StartPayload
         {
             public string protocolVersion;
+            public string compatibility;
         }
 
         public static DuelOnlineSession Instance { get; private set; }
@@ -77,6 +82,7 @@ namespace ArcaneArena.Multiplayer
         private int nextStateSequence;
         private int lastReplicaSequence;
         private bool matchStarted;
+        private Coroutine pendingStateBroadcast;
         private bool showPanel;
         private bool focusJoinCode;
         private bool requestJoinFocus;
@@ -224,7 +230,11 @@ namespace ArcaneArena.Multiplayer
 
             networkManager.NetworkConfig ??= new NetworkConfig();
             networkManager.NetworkConfig.NetworkTransport = transport;
+            networkManager.NetworkConfig.ProtocolVersion =
+                NgoProtocolVersion;
             networkManager.NetworkConfig.ConnectionApproval = true;
+            networkManager.NetworkConfig.TickRate = NetworkTickRate;
+            networkManager.NetworkConfig.ClientConnectionBufferTimeout = 20;
             // Each peer deliberately opens the arena locally after the Relay
             // handshake. This card game has no spawned scene objects, so NGO
             // scene replication would only add races.
@@ -376,6 +386,7 @@ namespace ArcaneArena.Multiplayer
                 SendToServer(HelloMessage, new HelloPayload
                 {
                     protocolVersion = ProtocolVersion,
+                    compatibility = ProjectIdentity.MultiplayerCompatibility,
                     coreApiVersion = ProjectIdentity.CoreApiVersion,
                     coreCommit = ProjectIdentity.CoreCommit,
                     loadout = localLoadout
@@ -445,7 +456,10 @@ namespace ArcaneArena.Multiplayer
             if (role != SessionRole.Client ||
                 senderClientId != NetworkManager.ServerClientId ||
                 !TryRead(reader, out StartPayload start) ||
-                start.protocolVersion != ProtocolVersion || matchStarted)
+                start.protocolVersion != ProtocolVersion ||
+                start.compatibility !=
+                    ProjectIdentity.MultiplayerCompatibility ||
+                matchStarted)
             {
                 return;
             }
@@ -515,7 +529,9 @@ namespace ArcaneArena.Multiplayer
                 status = "Duelo online ativo. O host valida todas as jogadas.";
                 SendToClient(remoteClientId, StartMessage, new StartPayload
                 {
-                    protocolVersion = ProtocolVersion
+                    protocolVersion = ProtocolVersion,
+                    compatibility =
+                        ProjectIdentity.MultiplayerCompatibility
                 });
                 BroadcastState();
             }
@@ -528,8 +544,17 @@ namespace ArcaneArena.Multiplayer
 
         private void OnHostCoreEvent(DuelEvent duelEvent)
         {
-            if (matchStarted)
-                BroadcastState();
+            if (!matchStarted || pendingStateBroadcast != null)
+                return;
+            pendingStateBroadcast = StartCoroutine(
+                BroadcastLatestStateAtEndOfFrame());
+        }
+
+        private IEnumerator BroadcastLatestStateAtEndOfFrame()
+        {
+            yield return new WaitForEndOfFrame();
+            pendingStateBroadcast = null;
+            BroadcastState();
         }
 
         private void BroadcastState()
@@ -587,6 +612,8 @@ namespace ArcaneArena.Multiplayer
             rejection = string.Empty;
             if (hello == null || hello.loadout == null ||
                 hello.protocolVersion != ProtocolVersion ||
+                hello.compatibility !=
+                    ProjectIdentity.MultiplayerCompatibility ||
                 hello.coreApiVersion != ProjectIdentity.CoreApiVersion ||
                 hello.coreCommit != ProjectIdentity.CoreCommit)
             {
@@ -706,6 +733,7 @@ namespace ArcaneArena.Multiplayer
             remoteLoadout = null;
             remoteClientId = ulong.MaxValue;
             matchStarted = false;
+            pendingStateBroadcast = null;
             if (networkManager != null &&
                 (networkManager.IsClient || networkManager.IsServer))
             {
@@ -725,9 +753,17 @@ namespace ArcaneArena.Multiplayer
                 new Rect(0f, 0f, Screen.width, Screen.height),
                 Texture2D.whiteTexture);
             GUI.color = originalColor;
+            Matrix4x4 previousMatrix = GUI.matrix;
+            float scale = CalculateLobbyScale(
+                Screen.width,
+                Screen.height);
+            GUI.matrix = Matrix4x4.Scale(
+                new Vector3(scale, scale, 1f));
+            float logicalWidth = Screen.width / scale;
+            float logicalHeight = Screen.height / scale;
             var area = new Rect(
-                (Screen.width - width) * 0.5f,
-                (Screen.height - height) * 0.5f,
+                (logicalWidth - width) * 0.5f,
+                (logicalHeight - height) * 0.5f,
                 width,
                 height);
             Color originalBackground = GUI.backgroundColor;
@@ -738,6 +774,17 @@ namespace ArcaneArena.Multiplayer
             GUI.backgroundColor = new Color(0.035f, 0.13f, 0.17f, 1f);
             GUI.ModalWindow(912701, area, DrawPanel, string.Empty);
             GUI.backgroundColor = originalBackground;
+            GUI.matrix = previousMatrix;
+        }
+
+        private static float CalculateLobbyScale(
+            float screenWidth,
+            float screenHeight)
+        {
+            return Mathf.Clamp(
+                Mathf.Min(screenWidth / 900f, screenHeight / 620f),
+                0.70f,
+                1.60f);
         }
 
         private void DrawPanel(int windowId)

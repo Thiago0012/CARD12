@@ -3,7 +3,8 @@
     "rootNamespace":  "ArcaneDuel.Tests.PlayMode",
     "references":  [
                        "ArcaneDuel.Game",
-                       "ArcaneDuel.DuelEngine"
+                       "ArcaneDuel.DuelEngine",
+                       "Unity.Netcode.Runtime"
                    ],
     "includePlatforms":  [
 

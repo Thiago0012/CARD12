@@ -37,6 +37,8 @@ namespace ArcaneArena
         private const float HandMinimumVisibleHeight = 124f;
         private const float HandMaximumVisibleHeight = 154f;
         private const float HandLowerViewportOffset = 82f;
+        private const float DesktopPassiveRefreshInterval = 0.08f;
+        private const float MobilePassiveRefreshInterval = 0.20f;
 
         [SerializeField] private List<Sprite> cardSprites = new();
         [SerializeField] private Sprite cardBackSprite;
@@ -127,12 +129,13 @@ namespace ArcaneArena
         private DuelPrompt observedPrompt;
         private DuelPrompt scheduledAutomaticPrompt;
         private Coroutine automaticPromptRoutine;
-        private string observedHandSignature = string.Empty;
-        private string observedFieldSignature = string.Empty;
+        private ulong observedHandSignature;
+        private ulong observedFieldSignature;
         private DuelZone3D draggingAttacker;
         private LineRenderer attackLine;
         private bool presentationReady;
         private bool criticalInteractionLocked;
+        private float nextPassiveRefreshTime;
 
         private bool InteractionLocked =>
             criticalInteractionLocked ||
@@ -228,7 +231,8 @@ namespace ArcaneArena
             UpdateCardPresentationAcceleration();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
-            RefreshEverything(false);
+            if (Time.unscaledTime >= nextPassiveRefreshTime)
+                RefreshEverything(false);
         }
 
         private void LateUpdate()
@@ -344,8 +348,8 @@ namespace ArcaneArena
                     opponentExtra);
                 state = core.PresentationState;
                 observedPrompt = null;
-                observedHandSignature = string.Empty;
-                observedFieldSignature = string.Empty;
+                observedHandSignature = 0UL;
+                observedFieldSignature = 0UL;
                 RefreshEverything(true);
                 SetStatus(
                     versusBot
@@ -491,20 +495,18 @@ namespace ArcaneArena
         private void RefreshEverything(bool force)
         {
             if (state == null) return;
-            string handSignature =
-                string.Join(
-                    ",",
-                    state.Players[0].HandInstances.Select(instance =>
-                        instance != null
-                            ? instance.RuntimeId.ToString()
-                            : "missing"));
+            nextPassiveRefreshTime = Time.unscaledTime +
+                (ArcaneGraphicsPreferences.IsMobileRuntime
+                    ? MobilePassiveRefreshInterval
+                    : DesktopPassiveRefreshInterval);
+            ulong handSignature = BuildHandSignature();
             if (handSignature != observedHandSignature)
             {
                 observedHandSignature = handSignature;
                 RebuildHand();
             }
 
-            string fieldSignature = BuildFieldSignature();
+            ulong fieldSignature = BuildFieldSignature();
             if (force || fieldSignature != observedFieldSignature)
             {
                 observedFieldSignature = fieldSignature;
@@ -1941,20 +1943,52 @@ namespace ArcaneArena
             }
         }
 
-        private string BuildFieldSignature()
+        private ulong BuildHandSignature()
         {
-            var parts = new List<string>();
+            ulong hash = 1469598103934665603UL;
+            foreach (CardInstanceState instance in
+                     state.Players[0].HandInstances)
+            {
+                hash = MixSignature(
+                    hash,
+                    instance?.RuntimeId ?? 0UL);
+            }
+            return MixSignature(
+                hash,
+                (ulong)state.Players[0].HandInstances.Count);
+        }
+
+        private ulong BuildFieldSignature()
+        {
+            ulong hash = 1469598103934665603UL;
             for (byte player = 0; player < 2; player++)
             {
                 DuelistState duelist = state.Players[player];
-                parts.AddRange(duelist.MonsterZones.Select(
-                    (code, index) =>
-                        $"{player}m{index}:{code}:{duelist.MonsterPositions[index]}"));
-                parts.AddRange(duelist.SpellTrapZones.Select(
-                    (code, index) =>
-                        $"{player}s{index}:{code}:{duelist.SpellTrapPositions[index]}"));
+                for (int index = 0;
+                     index < duelist.MonsterZones.Length;
+                     index++)
+                {
+                    hash = MixSignature(hash, duelist.MonsterZones[index]);
+                    hash = MixSignature(
+                        hash,
+                        duelist.MonsterPositions[index]);
+                }
+                for (int index = 0;
+                     index < duelist.SpellTrapZones.Length;
+                     index++)
+                {
+                    hash = MixSignature(hash, duelist.SpellTrapZones[index]);
+                    hash = MixSignature(
+                        hash,
+                        duelist.SpellTrapPositions[index]);
+                }
             }
-            return string.Join("|", parts);
+            return hash;
+        }
+
+        private static ulong MixSignature(ulong hash, ulong value)
+        {
+            return (hash ^ value) * 1099511628211UL;
         }
 
         private void UpdateLifeAndPhase()
@@ -2465,7 +2499,7 @@ namespace ArcaneArena
                 Gold);
         }
 
-        private void BuildChoiceModal()
+        private void BuildChoiceModalLegacy()
         {
             choiceModal = CreatePanel(
                 frame,
@@ -2500,7 +2534,7 @@ namespace ArcaneArena
             choiceModal.SetActive(false);
         }
 
-        private void OpenChoiceModal(
+        private void OpenChoiceModalLegacy(
             DuelPrompt prompt,
             IReadOnlyList<DuelChoice> choices)
         {
@@ -2595,7 +2629,7 @@ namespace ArcaneArena
                 $"SELECIONAR · {selectedPromptIndexes.Count}";
         }
 
-        private void ConfirmMultiSelection()
+        private void ConfirmMultiSelectionLegacy()
         {
             DuelPrompt prompt = core.CurrentPrompt;
             if (prompt == null ||
@@ -2618,6 +2652,7 @@ namespace ArcaneArena
         private void CloseChoiceModal()
         {
             if (choiceModal != null) choiceModal.SetActive(false);
+            ResetChoiceSelectionState();
             SetDuelExperienceObscured(false);
         }
 
@@ -2640,6 +2675,7 @@ namespace ArcaneArena
                 new Vector2(0.295f, 0.15f),
                 new Vector2(0.96f, 0.60f),
                 new Color(0.006f, 0.025f, 0.045f, 0.985f));
+            ConfigureZoneBrowserTrayArtwork();
             AddOutline(zoneBrowserTray, Gold);
             var trayInputBlocker = zoneBrowserTray.AddComponent<Button>();
             trayInputBlocker.targetGraphic =
@@ -2659,7 +2695,7 @@ namespace ArcaneArena
             GameObject viewportObject = CreatePanel(
                 zoneBrowserTray.transform,
                 "Área de rolagem",
-                new Vector2(0.025f, 0.13f),
+                new Vector2(0.025f, 0.22f),
                 new Vector2(0.975f, 0.81f),
                 new Color(0.012f, 0.055f, 0.075f, 0.82f));
             AddOutline(viewportObject, new Color(0.18f, 0.55f, 0.62f, 1f));
@@ -2696,14 +2732,16 @@ namespace ArcaneArena
             zoneBrowserScroll.scrollSensitivity = 38f;
             zoneBrowserScroll.decelerationRate = 0.12f;
 
+            BuildZoneBrowserConfirmation(zoneBrowserTray.transform);
+
             CreateText(
                 zoneBrowserTray.transform,
-                "CLIQUE NA CARTA PARA INSPECIONAR · ARRASTE OU USE A RODA PARA ROLAR · CLIQUE FORA PARA FECHAR",
+                "SELECIONE UMA CARTA · CONFIRME ABAIXO · ARRASTE OU USE A RODA PARA ROLAR",
                 11,
                 FontStyle.Bold,
                 Muted,
-                new Vector2(0.03f, 0.015f),
-                new Vector2(0.97f, 0.11f),
+                new Vector2(0.03f, 0.15f),
+                new Vector2(0.97f, 0.21f),
                 TextAnchor.MiddleCenter);
             zoneBrowser.SetActive(false);
         }
@@ -2736,6 +2774,8 @@ namespace ArcaneArena
                     .Select(choice => choice.CardCode)
                     .Where(code => code != 0));
             }
+            ResizeZoneBrowserTray(cards.Count);
+            ResetZoneBrowserSelection(prompt);
             CloseChoiceModal();
             ClearChildren(zoneBrowserContent);
             int legalCardCount = choices
@@ -2798,44 +2838,31 @@ namespace ArcaneArena
                 Vector2.one,
                 new Color(0.018f, 0.075f, 0.10f, 0.98f));
             var cardLayout = card.AddComponent<LayoutElement>();
-            cardLayout.minWidth = 138f;
-            cardLayout.preferredWidth = 148f;
+            cardLayout.minWidth = ChoiceCardWidth;
+            cardLayout.preferredWidth = ChoiceCardWidth;
             cardLayout.flexibleWidth = 0f;
             AddOutline(card, canUse ? EffectGlow : Muted);
 
             Image artwork = CreateImage(
                 card.transform,
                 "Arte",
-                new Vector2(0.07f, canUse ? 0.22f : 0.06f),
+                new Vector2(0.07f, 0.06f),
                 new Vector2(0.93f, 0.96f),
                 Color.white);
             artwork.sprite = SpriteFor(code);
             artwork.preserveAspect = true;
             var inspectButton = card.AddComponent<Button>();
             inspectButton.targetGraphic = card.GetComponent<Image>();
-            inspectButton.onClick.AddListener(
-                () =>
-                {
-                    ShowInspector(code);
-                    SetStatus(
-                        canUse
-                            ? "Carta do Deck Adicional selecionada. Use INVOCAR para confirmar."
-                            : "Carta do Deck Adicional aberta somente para consulta.",
-                        canUse ? EffectGlow : Muted);
-                });
-
-            if (!canUse)
-                return;
+            Outline cardOutline = card.GetComponent<Outline>();
+            RegisterZoneBrowserChoice(cardOutline);
             IReadOnlyList<DuelChoice> capturedChoices =
-                legalChoices.ToArray();
-            CreateButton(
-                card.transform,
-                "Invocar",
-                "INVOCAR",
-                new Vector2(0.08f, 0.025f),
-                new Vector2(0.92f, 0.19f),
-                EffectGlow,
-                () => SubmitZoneBrowserAction(prompt, capturedChoices));
+                legalChoices?.ToArray();
+            inspectButton.onClick.AddListener(
+                () => StageZoneBrowserSelection(
+                    code,
+                    prompt,
+                    capturedChoices,
+                    cardOutline));
         }
 
         private void SubmitZoneBrowserAction(
@@ -2863,6 +2890,7 @@ namespace ArcaneArena
         private void CloseZoneBrowser()
         {
             if (zoneBrowser != null) zoneBrowser.SetActive(false);
+            ResetZoneBrowserSelection();
             SetDuelExperienceObscured(false);
         }
 
@@ -2955,7 +2983,8 @@ namespace ArcaneArena
             string heading,
             Color accent,
             ArcaneCardSound sound,
-            bool hideIdentity)
+            bool hideIdentity,
+            bool extraDeckSummon)
         {
             if ((!hideIdentity && code == 0) || arenaCanvas == null)
                 yield break;
@@ -2968,6 +2997,9 @@ namespace ArcaneArena
             overlay.transform.SetAsLastSibling();
             var group = overlay.AddComponent<CanvasGroup>();
             group.alpha = 0f;
+            ExtraDeckSummonFocus summonFocus = extraDeckSummon
+                ? CreateExtraDeckSummonFocus(overlay.transform, accent)
+                : null;
             Image art = CreateImage(
                 overlay.transform,
                 "Carta Apresentada",
@@ -3033,6 +3065,11 @@ namespace ArcaneArena
                     art.rectTransform.localScale = Vector3.one;
                     art.rectTransform.localRotation = Quaternion.identity;
                 }
+                UpdateExtraDeckSummonFocus(
+                    summonFocus,
+                    elapsed,
+                    totalDuration,
+                    speed);
                 yield return null;
             }
             cardPresentationCanAccelerate = false;
@@ -3068,13 +3105,11 @@ namespace ArcaneArena
                 string path = visualCatalog.ArtPath(code);
                 if (File.Exists(path))
                 {
-                    var texture = new Texture2D(
-                        2,
-                        2,
-                        TextureFormat.RGBA32,
-                        false);
-                    texture.LoadImage(File.ReadAllBytes(path));
-                    texture.name = official;
+                    Texture2D texture = RuntimeCardTextureLoader.Load(
+                        path,
+                        official);
+                    if (texture == null)
+                        return cardBackSprite;
                     var sprite = Sprite.Create(
                         texture,
                         new Rect(0f, 0f, texture.width, texture.height),

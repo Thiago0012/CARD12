@@ -67,6 +67,14 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(loaded[ArcaneCardSound.Magic], Is.Not.Null);
             Assert.That(loaded[ArcaneCardSound.Trap], Is.Not.Null);
             Assert.That(loaded[ArcaneCardSound.PutCard], Is.Not.Null);
+            FieldInfo magicGain = typeof(ArcaneAudioDirector).GetField(
+                "MagicSoundGain",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(magicGain, Is.Not.Null);
+            Assert.That(
+                (float)magicGain.GetRawConstantValue(),
+                Is.EqualTo(0.75f),
+                "MagicSound must be 25% quieter than its balanced base gain.");
             float originalVolume = ArcaneAudioPreferences.Volume;
             bool originalEnabled = ArcaneAudioPreferences.Enabled;
             director.Enabled = true;
@@ -161,6 +169,56 @@ namespace ArcaneDuel.Tests.PlayMode
                         "Every hand card needs a CanvasGroup for unobstructed drag presentation.");
                 }
             }
+        }
+
+        [UnityTest]
+        public IEnumerator DuelSceneBuildsFiveCardConfirmationTrays()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena =
+                Resources.FindObjectsOfTypeAll<MonoBehaviour>()
+                    .FirstOrDefault(component =>
+                        component != null &&
+                        component.gameObject.activeInHierarchy &&
+                        component.GetType().Name == "CardArenaBootstrap");
+            Assert.That(arena, Is.Not.Null);
+            BindingFlags flags = BindingFlags.Instance |
+                                 BindingFlags.NonPublic;
+            System.Type type = arena.GetType();
+            Sprite template = type.GetField(
+                    "choiceSelectionTemplate",
+                    flags)
+                ?.GetValue(arena) as Sprite;
+            ScrollRect promptScroll = type.GetField(
+                    "choiceScroll",
+                    flags)
+                ?.GetValue(arena) as ScrollRect;
+            ScrollRect zoneScroll = type.GetField(
+                    "zoneBrowserScroll",
+                    flags)
+                ?.GetValue(arena) as ScrollRect;
+            Button zoneConfirm = type.GetField(
+                    "zoneBrowserConfirm",
+                    flags)
+                ?.GetValue(arena) as Button;
+            FieldInfo visibleLimit = type.GetField(
+                "MaximumVisibleChoiceCards",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            Assert.That(template, Is.Not.Null);
+            Assert.That(promptScroll, Is.Not.Null);
+            Assert.That(promptScroll.horizontal, Is.True);
+            Assert.That(promptScroll.vertical, Is.False);
+            Assert.That(zoneScroll, Is.Not.Null);
+            Assert.That(zoneScroll.horizontal, Is.True);
+            Assert.That(zoneScroll.vertical, Is.False);
+            Assert.That(zoneConfirm, Is.Not.Null);
+            Assert.That(zoneConfirm.interactable, Is.False);
+            Assert.That(visibleLimit, Is.Not.Null);
+            Assert.That(visibleLimit.GetRawConstantValue(), Is.EqualTo(5));
         }
 
         [UnityTest]

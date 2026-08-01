@@ -388,7 +388,7 @@ namespace ArcaneArena.Multiplayer
                 return;
 
             var position = source.localPosition;
-            target.localPosition = new Vector3(position.x, position.y, -position.z);
+            target.localPosition = new Vector3(-position.x, position.y, -position.z);
             target.localScale = source.localScale;
             target.localRotation = Quaternion.Euler(0f, 180f, 0f) * source.localRotation;
             CopyChildTransforms(source, target);

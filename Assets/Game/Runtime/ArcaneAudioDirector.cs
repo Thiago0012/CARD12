@@ -22,6 +22,7 @@ namespace ArcaneDuel.Game
     [RequireComponent(typeof(AudioSource))]
     public sealed class ArcaneAudioDirector : MonoBehaviour
     {
+        private const float MagicSoundGain = 0.75f;
         private readonly Dictionary<string, AudioClip> clips =
             new Dictionary<string, AudioClip>();
         private readonly Dictionary<ArcaneCardSound, AudioClip> cardClips =
@@ -292,7 +293,11 @@ namespace ArcaneDuel.Game
             }
             clip.LoadAudioData();
             cardClips[cue] = clip;
-            balancedGains[clip] = CalculateBalancedGain(clip);
+            float categoryGain = cue == ArcaneCardSound.Magic
+                ? MagicSoundGain
+                : 1f;
+            balancedGains[clip] =
+                CalculateBalancedGain(clip) * categoryGain;
         }
 
         private static float CalculateBalancedGain(AudioClip clip)

@@ -23,6 +23,7 @@ namespace ArcaneArena
         [SerializeField] private DuelMonsterPosition monsterPosition =
             DuelMonsterPosition.FaceUpAttack;
         private Renderer dropSurface;
+        private Material dropSurfaceMaterial;
         private Color dropSurfaceColor;
         private bool dropHighlighted;
         private Color dropHighlightColor =
@@ -145,18 +146,11 @@ namespace ArcaneArena
                 dropHighlightColor = color;
             RefreshSpecialZoneOutline(enabled);
             RefreshExtraMonsterZoneSurface();
-            if (dropSurface == null)
+            if (enabled)
+                EnsureDropSurfaceMaterial();
+            if (dropSurfaceMaterial != null)
             {
-                Transform inset = transform.Find("Card Inset");
-                dropSurface = inset != null
-                    ? inset.GetComponent<Renderer>()
-                    : GetComponent<Renderer>();
-                if (dropSurface != null)
-                    dropSurfaceColor = dropSurface.sharedMaterial.color;
-            }
-            if (dropSurface != null)
-            {
-                dropSurface.material.color = enabled
+                dropSurfaceMaterial.color = enabled
                     ? dropHighlightColor
                     : dropSurfaceColor;
             }
@@ -178,10 +172,26 @@ namespace ArcaneArena
                 proxySurface.gameObject.SetActive(visibleOrInteractive);
         }
 
+        private void EnsureDropSurfaceMaterial()
+        {
+            if (dropSurfaceMaterial != null)
+                return;
+            Transform inset = transform.Find("Card Inset");
+            dropSurface = inset != null
+                ? inset.GetComponent<Renderer>()
+                : GetComponent<Renderer>();
+            if (dropSurface == null)
+                return;
+            dropSurfaceColor = dropSurface.sharedMaterial.color;
+            dropSurfaceMaterial = dropSurface.material;
+        }
+
         private void Update()
         {
+            if (!dropHighlighted && !pointerFocused)
+                return;
             UpdateSpecialZoneOutline();
-            if (dropSurface == null)
+            if (dropSurfaceMaterial == null)
                 return;
             if (dropHighlighted)
             {
@@ -196,16 +206,14 @@ namespace ArcaneArena
                     dropHighlightColor,
                     Color.white,
                     0.34f);
-                dropSurface.material.color =
+                dropSurfaceMaterial.color =
                     Color.Lerp(low, high, pulse);
                 return;
             }
-            dropSurface.material.color = pointerFocused
-                ? Color.Lerp(
-                    dropSurfaceColor,
-                    new Color(0.10f, 0.34f, 0.38f, 1f),
-                    0.56f)
-                : dropSurfaceColor;
+            dropSurfaceMaterial.color = Color.Lerp(
+                dropSurfaceColor,
+                new Color(0.10f, 0.34f, 0.38f, 1f),
+                0.56f);
         }
 
         private void RefreshSpecialZoneOutline(bool enabled)
@@ -310,6 +318,8 @@ namespace ArcaneArena
         {
             if (specialZoneOutlineMaterial != null)
                 Destroy(specialZoneOutlineMaterial);
+            if (dropSurfaceMaterial != null)
+                Destroy(dropSurfaceMaterial);
         }
 
         public void OnPointerClick(PointerEventData eventData)
@@ -333,6 +343,7 @@ namespace ArcaneArena
                 return;
             }
             pointerFocused = true;
+            EnsureDropSurfaceMaterial();
             FindAnyObjectByType<CardArenaBootstrap>()?.HandleZoneHover(
                 this,
                 true);
@@ -341,6 +352,8 @@ namespace ArcaneArena
         public void OnPointerExit(PointerEventData eventData)
         {
             pointerFocused = false;
+            if (!dropHighlighted && dropSurfaceMaterial != null)
+                dropSurfaceMaterial.color = dropSurfaceColor;
             if (!HasValidIdentity)
                 return;
             FindAnyObjectByType<CardArenaBootstrap>()?.HandleZoneHover(

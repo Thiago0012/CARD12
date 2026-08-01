@@ -16,6 +16,7 @@ namespace ArcaneArena
             public Color Accent;
             public ArcaneCardSound Sound;
             public bool HideIdentity;
+            public bool ExtraDeckSummon;
         }
 
         private readonly Queue<CardSoundPresentationRequest>
@@ -69,11 +70,13 @@ namespace ArcaneArena
                 return new CardSoundPresentationRequest
                 {
                     Code = duelEvent.Code,
-                    Heading = "INVOCAÇÃO DE MONSTRO",
+                    Heading = SummonPresentationHeading(duelEvent.Code),
                     Accent = Cyan,
                     Sound = duelEvent.Message == CoreMessage.FlipSummoning
                         ? ArcaneCardSound.None
-                        : SummonSoundFor(duelEvent.Code)
+                        : SummonSoundFor(duelEvent.Code),
+                    ExtraDeckSummon =
+                        IsExtraDeckSummonPresentation(duelEvent.Code)
                 };
             }
             if (duelEvent.Message == CoreMessage.Chaining)
@@ -155,7 +158,8 @@ namespace ArcaneArena
                     request.Heading,
                     request.Accent,
                     request.Sound,
-                    request.HideIdentity);
+                    request.HideIdentity,
+                    request.ExtraDeckSummon);
             }
             cardSoundPresentationRoutine = null;
             SetCardPresentationDecisionLock(false);
@@ -203,6 +207,30 @@ namespace ArcaneArena
         {
             cardPresentationDecisionLocked = locked;
             core?.SetPresentationDecisionLocked(locked);
+        }
+
+        private bool IsExtraDeckSummonPresentation(uint code)
+        {
+            MonsterFrameKind frame =
+                LegacyEntryFor(code)?.MonsterFrame ??
+                MonsterFrameKind.Unknown;
+            return frame == MonsterFrameKind.Fusion ||
+                   frame == MonsterFrameKind.Synchro ||
+                   frame == MonsterFrameKind.Xyz ||
+                   frame == MonsterFrameKind.Link;
+        }
+
+        private string SummonPresentationHeading(uint code)
+        {
+            return LegacyEntryFor(code)?.MonsterFrame switch
+            {
+                MonsterFrameKind.Fusion => "INVOCAÇÃO-FUSÃO",
+                MonsterFrameKind.Synchro => "INVOCAÇÃO-SINCRO",
+                MonsterFrameKind.Xyz => "INVOCAÇÃO-XYZ",
+                MonsterFrameKind.Link => "INVOCAÇÃO-LINK",
+                MonsterFrameKind.Pendulum => "INVOCAÇÃO-PÊNDULO",
+                _ => "INVOCAÇÃO DE MONSTRO"
+            };
         }
     }
 }
