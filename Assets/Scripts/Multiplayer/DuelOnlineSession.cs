@@ -30,6 +30,7 @@ namespace ArcaneArena.Multiplayer
         private const string DuelArenaScene = "DuelArena";
         private const string ProtocolVersion = "arcane-duel-online-v2";
         private const string HelloMessage = "arcane.duel.hello.v2";
+        private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v2";
         private const string StartMessage = "arcane.duel.start.v2";
         private const string StateMessage = "arcane.duel.state.v2";
         private const string ResponseMessage = "arcane.duel.response.v2";
@@ -68,6 +69,13 @@ namespace ArcaneArena.Multiplayer
             public string compatibility;
         }
 
+        [Serializable]
+        private sealed class HelloAcceptedPayload
+        {
+            public string protocolVersion;
+            public string compatibility;
+        }
+
         public static DuelOnlineSession Instance { get; private set; }
 
         private NetworkManager networkManager;
@@ -83,6 +91,8 @@ namespace ArcaneArena.Multiplayer
         private int lastReplicaSequence;
         private bool matchStarted;
         private Coroutine pendingStateBroadcast;
+        private Coroutine helloRetry;
+        private bool helloAccepted;
         private bool showPanel;
         private bool focusJoinCode;
         private bool requestJoinFocus;
@@ -130,6 +140,8 @@ namespace ArcaneArena.Multiplayer
 
         private void OnDestroy()
         {
+            if (helloRetry != null)
+                StopCoroutine(helloRetry);
             if (hostController != null)
                 hostController.CoreEventPresented -= OnHostCoreEvent;
             if (DuelOnlineBridge.SubmitReplicaChoice == SubmitRemoteChoice)
@@ -253,6 +265,9 @@ namespace ArcaneArena.Multiplayer
                 HelloMessage,
                 OnHelloMessage);
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
+                HelloAcceptedMessage,
+                OnHelloAcceptedMessage);
+            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
                 StartMessage,
                 OnStartMessage);
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
@@ -333,6 +348,7 @@ namespace ArcaneArena.Multiplayer
                     AllocationUtils.ToRelayServerData(allocation, "dtls"));
                 roomCode = normalizedCode;
                 role = SessionRole.Client;
+                helloAccepted = false;
                 if (!networkManager.StartClient())
                     throw new InvalidOperationException(
                         "O NetworkManager não iniciou como cliente.");
@@ -383,6 +399,26 @@ namespace ArcaneArena.Multiplayer
                 clientId == networkManager.LocalClientId)
             {
                 status = "Conectado. Enviando o deck para validação do host...";
+                if (helloRetry != null)
+                    StopCoroutine(helloRetry);
+                helloRetry = StartCoroutine(SendHelloUntilAccepted());
+            }
+        }
+
+        private IEnumerator SendHelloUntilAccepted()
+        {
+            // The Netcode client-connected callback can happen in the same
+            // frame as the messaging channel becomes usable. Retrying the
+            // idempotent deck handshake closes that timing gap and also makes
+            // a transient Relay packet loss harmless.
+            yield return null;
+
+            int attempts = 0;
+            while (!helloAccepted && role == SessionRole.Client &&
+                   networkManager != null && networkManager.IsConnectedClient &&
+                   localLoadout != null)
+            {
+                attempts++;
                 SendToServer(HelloMessage, new HelloPayload
                 {
                     protocolVersion = ProtocolVersion,
@@ -391,8 +427,14 @@ namespace ArcaneArena.Multiplayer
                     coreCommit = ProjectIdentity.CoreCommit,
                     loadout = localLoadout
                 });
-                status = "Lobby conectado. Aguardando o host validar os decks.";
+
+                status = attempts == 1
+                    ? "Lobby conectado. Enviando o deck ao anfitriao..."
+                    : $"Aguardando confirmacao do anfitriao. Reenviando deck ({attempts})...";
+                yield return new WaitForSecondsRealtime(1f);
             }
+
+            helloRetry = null;
         }
 
         private void OnClientDisconnected(ulong clientId)
@@ -407,6 +449,7 @@ namespace ArcaneArena.Multiplayer
             if (clientId == remoteClientId && IsHost)
             {
                 remoteClientId = ulong.MaxValue;
+                remoteLoadout = null;
                 status = "O rival desconectou. O duelo online foi interrompido.";
                 hostController?.SetPresentationDecisionLocked(true);
                 return;
@@ -414,6 +457,7 @@ namespace ArcaneArena.Multiplayer
 
             if (clientId == networkManager.LocalClientId && !networkManager.IsServer)
             {
+                helloAccepted = false;
                 status = "A conexão com o host foi encerrada.";
                 replicaController?.SetPresentationDecisionLocked(true);
             }
@@ -437,6 +481,35 @@ namespace ArcaneArena.Multiplayer
             }
             remoteLoadout = hello.loadout;
             status = "Rival conectado e deck validado. O anfitriao pode iniciar a partida.";
+            SendToClient(senderClientId, HelloAcceptedMessage,
+                new HelloAcceptedPayload
+                {
+                    protocolVersion = ProtocolVersion,
+                    compatibility = ProjectIdentity.MultiplayerCompatibility
+                });
+        }
+
+        private void OnHelloAcceptedMessage(
+            ulong senderClientId,
+            FastBufferReader reader)
+        {
+            if (role != SessionRole.Client ||
+                senderClientId != NetworkManager.ServerClientId ||
+                !TryRead(reader, out HelloAcceptedPayload accepted) ||
+                accepted.protocolVersion != ProtocolVersion ||
+                accepted.compatibility !=
+                    ProjectIdentity.MultiplayerCompatibility)
+            {
+                return;
+            }
+
+            helloAccepted = true;
+            if (helloRetry != null)
+            {
+                StopCoroutine(helloRetry);
+                helloRetry = null;
+            }
+            status = "Deck validado. Aguardando o anfitriao iniciar a partida.";
         }
 
         private void BeginHostMatch()
@@ -737,6 +810,12 @@ namespace ArcaneArena.Multiplayer
             remoteClientId = ulong.MaxValue;
             matchStarted = false;
             pendingStateBroadcast = null;
+            helloAccepted = false;
+            if (helloRetry != null)
+            {
+                StopCoroutine(helloRetry);
+                helloRetry = null;
+            }
             if (networkManager != null &&
                 (networkManager.IsClient || networkManager.IsServer))
             {
