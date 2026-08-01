@@ -808,7 +808,9 @@ namespace ArcaneDuel.Tests.PlayMode
                     BindingFlags.Instance | BindingFlags.NonPublic)
                 ?.Invoke(grave, null);
 
-            LineRenderer extraOutline = extra.transform
+            Transform extraStack = extra.transform.Find("Card Stack");
+            Assert.That(extraStack, Is.Not.Null);
+            LineRenderer extraOutline = extraStack
                 .Find("Contorno de ação legal")
                 ?.GetComponent<LineRenderer>();
             LineRenderer graveOutline = grave.transform
@@ -818,10 +820,86 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(graveOutline, Is.Not.Null);
             Assert.That(extraOutline.enabled, Is.True);
             Assert.That(graveOutline.enabled, Is.True);
+            Assert.That(extraOutline.transform.parent, Is.EqualTo(extraStack));
             Assert.That(extraOutline.loop, Is.True);
             Assert.That(graveOutline.loop, Is.True);
             Assert.That(extraOutline.startColor.g, Is.GreaterThan(0.75f));
             Assert.That(graveOutline.startColor.g, Is.GreaterThan(0.75f));
+        }
+
+        [UnityTest]
+        public IEnumerator ExtraDeckBrowserOpensForInspectionWithoutLegalSummon()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            FieldInfo readyField = arena.GetType().GetField(
+                "presentationReady",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            for (int frame = 0;
+                 frame < 600 &&
+                 !(bool)(readyField?.GetValue(arena) ?? false);
+                 frame++)
+            {
+                yield return null;
+            }
+            Assert.That(readyField, Is.Not.Null);
+            Assert.That(readyField.GetValue(arena), Is.True);
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            Assert.That(controller, Is.Not.Null);
+            Assert.That(controller.PlayerExtraDeckCards, Is.Not.Empty);
+            Component extra = FindZone("PlayerOne", "ExtraDeck", 0);
+            Assert.That(extra, Is.Not.Null);
+
+            MethodInfo openBrowser = arena.GetType().GetMethod(
+                "OpenZoneChoices",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(openBrowser, Is.Not.Null);
+            openBrowser.Invoke(arena, new object[] { extra, null });
+
+            GameObject browser = arena.GetType().GetField(
+                    "zoneBrowser",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(arena) as GameObject;
+            RectTransform content = arena.GetType().GetField(
+                    "zoneBrowserContent",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(arena) as RectTransform;
+            Assert.That(browser, Is.Not.Null);
+            Assert.That(browser.activeSelf, Is.True);
+            Assert.That(content, Is.Not.Null);
+            Assert.That(
+                content.childCount,
+                Is.EqualTo(controller.PlayerExtraDeckCards.Count));
+            ScrollRect scroll = browser.GetComponentInChildren<ScrollRect>();
+            Assert.That(scroll, Is.Not.Null);
+            Assert.That(scroll.horizontal, Is.True);
+            Assert.That(scroll.vertical, Is.False);
+
+            Button inspect = content.GetChild(0).GetComponent<Button>();
+            Assert.That(inspect, Is.Not.Null);
+            inspect.onClick.Invoke();
+            uint inspectedCode = (uint)arena.GetType().GetField(
+                    "inspectedCode",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(arena);
+            Assert.That(
+                inspectedCode,
+                Is.EqualTo(controller.PlayerExtraDeckCards[0]));
+            Assert.That(
+                content.GetChild(0).transform.Find("Invocar"),
+                Is.Null,
+                "Sem escolha legal, a bandeja deve ser somente consulta.");
+
+            Button dismiss = browser.GetComponent<Button>();
+            Assert.That(dismiss, Is.Not.Null);
+            dismiss.onClick.Invoke();
+            Assert.That(browser.activeSelf, Is.False);
         }
 
         [UnityTest]

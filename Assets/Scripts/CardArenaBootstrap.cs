@@ -116,6 +116,8 @@ namespace ArcaneArena
         private RectTransform choiceContent;
         private Button choiceConfirm;
         private GameObject zoneBrowser;
+        private GameObject zoneBrowserTray;
+        private ScrollRect zoneBrowserScroll;
         private RectTransform zoneBrowserContent;
         private Text zoneBrowserTitle;
         private uint inspectedCode;
@@ -1376,6 +1378,12 @@ namespace ArcaneArena
                 return;
             }
             DuelPrompt prompt = core.CurrentPrompt;
+            if (zone.Kind == DuelZoneKind.ExtraDeck &&
+                zone.Owner == DuelPlayerSide.PlayerOne)
+            {
+                OpenZoneChoices(zone, prompt);
+                return;
+            }
             if (prompt == null)
             {
                 InspectZone(zone);
@@ -2564,25 +2572,85 @@ namespace ArcaneArena
             zoneBrowser = CreatePanel(
                 frame,
                 "Navegador de Zona",
-                new Vector2(0.18f, 0.16f),
-                new Vector2(0.82f, 0.52f),
-                new Color(0.006f, 0.025f, 0.045f, 0.985f));
-            AddOutline(zoneBrowser, Gold);
-            zoneBrowserTitle = CreateText(
+                Vector2.zero,
+                Vector2.one,
+                new Color(0f, 0.01f, 0.018f, 0.48f));
+            var dismissButton = zoneBrowser.AddComponent<Button>();
+            dismissButton.targetGraphic = zoneBrowser.GetComponent<Image>();
+            dismissButton.transition = Selectable.Transition.None;
+            dismissButton.onClick.AddListener(CloseZoneBrowser);
+
+            zoneBrowserTray = CreatePanel(
                 zoneBrowser.transform,
+                "Bandeja do Deck Adicional",
+                new Vector2(0.295f, 0.15f),
+                new Vector2(0.96f, 0.60f),
+                new Color(0.006f, 0.025f, 0.045f, 0.985f));
+            AddOutline(zoneBrowserTray, Gold);
+            var trayInputBlocker = zoneBrowserTray.AddComponent<Button>();
+            trayInputBlocker.targetGraphic =
+                zoneBrowserTray.GetComponent<Image>();
+            trayInputBlocker.transition = Selectable.Transition.None;
+
+            zoneBrowserTitle = CreateText(
+                zoneBrowserTray.transform,
                 "DECK ADICIONAL",
                 20,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.04f, 0.82f),
-                new Vector2(0.96f, 0.96f),
+                new Vector2(0.04f, 0.83f),
+                new Vector2(0.96f, 0.97f),
                 TextAnchor.MiddleCenter);
+
+            GameObject viewportObject = CreatePanel(
+                zoneBrowserTray.transform,
+                "Área de rolagem",
+                new Vector2(0.025f, 0.13f),
+                new Vector2(0.975f, 0.81f),
+                new Color(0.012f, 0.055f, 0.075f, 0.82f));
+            AddOutline(viewportObject, new Color(0.18f, 0.55f, 0.62f, 1f));
+            RectTransform viewport =
+                viewportObject.GetComponent<RectTransform>();
+            viewportObject.AddComponent<RectMask2D>();
             zoneBrowserContent = CreateRect(
-                zoneBrowser.transform,
+                viewportObject.transform,
                 "Cartas",
-                new Vector2(0.035f, 0.06f),
-                new Vector2(0.965f, 0.80f),
-                Vector2.zero);
+                new Vector2(0f, 0f),
+                new Vector2(0f, 1f),
+                new Vector2(0f, -16f));
+            zoneBrowserContent.pivot = new Vector2(0f, 0.5f);
+            zoneBrowserContent.anchoredPosition = new Vector2(12f, 0f);
+            var layout = zoneBrowserContent.gameObject
+                .AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = 12f;
+            layout.padding = new RectOffset(4, 16, 8, 8);
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = true;
+            var fitter = zoneBrowserContent.gameObject
+                .AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+            zoneBrowserScroll = viewportObject.AddComponent<ScrollRect>();
+            zoneBrowserScroll.viewport = viewport;
+            zoneBrowserScroll.content = zoneBrowserContent;
+            zoneBrowserScroll.horizontal = true;
+            zoneBrowserScroll.vertical = false;
+            zoneBrowserScroll.movementType = ScrollRect.MovementType.Elastic;
+            zoneBrowserScroll.scrollSensitivity = 38f;
+            zoneBrowserScroll.decelerationRate = 0.12f;
+
+            CreateText(
+                zoneBrowserTray.transform,
+                "CLIQUE NA CARTA PARA INSPECIONAR · ARRASTE OU USE A RODA PARA ROLAR · CLIQUE FORA PARA FECHAR",
+                11,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.03f, 0.015f),
+                new Vector2(0.97f, 0.11f),
+                TextAnchor.MiddleCenter);
             zoneBrowser.SetActive(false);
         }
 
@@ -2594,53 +2662,153 @@ namespace ArcaneArena
                     choice.Controller == (byte)zone.Owner &&
                     (choice.Location & LocationFor(zone.Kind)) != 0)
                 .ToList() ?? new List<DuelChoice>();
-            if (choices.Count == 0)
+            bool browsingExtraDeck =
+                zone.Kind == DuelZoneKind.ExtraDeck &&
+                zone.Owner == DuelPlayerSide.PlayerOne;
+            List<uint> cards = browsingExtraDeck
+                ? core.PlayerExtraDeckCards.ToList()
+                : choices.Select(choice => choice.CardCode)
+                    .Where(code => code != 0)
+                    .ToList();
+            if (!browsingExtraDeck && choices.Count == 0)
             {
                 InspectZone(zone);
                 return;
             }
+            if (cards.Count == 0 && choices.Count > 0)
+            {
+                cards.AddRange(choices
+                    .Select(choice => choice.CardCode)
+                    .Where(code => code != 0));
+            }
             CloseChoiceModal();
             ClearChildren(zoneBrowserContent);
-            zoneBrowserTitle.text = zone.Kind == DuelZoneKind.ExtraDeck
-                ? $"DECK ADICIONAL · {choices.Count} INVOCAÇÃO(ÕES) LEGAL(IS) · CLIQUE NA CARTA"
+            int legalCardCount = choices
+                .Select(choice => choice.Sequence)
+                .Distinct()
+                .Count();
+            zoneBrowserTitle.text = browsingExtraDeck
+                ? legalCardCount > 0
+                    ? $"DECK ADICIONAL · {cards.Count} CARTA(S) · {legalCardCount} DISPONÍVEL(IS)"
+                    : $"DECK ADICIONAL · {cards.Count} CARTA(S) · SOMENTE CONSULTA"
                 : PileLabel(zone).ToUpperInvariant();
-            int count = choices.Count;
-            float width = Mathf.Min(150f, 880f / Mathf.Max(1, count));
-            float start = -(count - 1) * width * 0.5f;
-            for (int index = 0; index < count; index++)
+
+            for (int index = 0; index < cards.Count; index++)
             {
-                DuelChoice choice = choices[index];
-                Image image = CreateImage(
-                    zoneBrowserContent,
-                    $"Carta {index + 1}",
-                    new Vector2(0.5f, 0.5f),
-                    new Vector2(0.5f, 0.5f),
-                    Color.white);
-                image.rectTransform.sizeDelta =
-                    new Vector2(width - 10f, 205f);
-                image.rectTransform.anchoredPosition =
-                    new Vector2(start + index * width, 0f);
-                image.sprite = SpriteFor(choice.CardCode);
-                image.preserveAspect = true;
-                AddOutline(image.gameObject, EffectGlow);
-                var button = image.gameObject.AddComponent<Button>();
-                button.targetGraphic = image;
-                DuelChoice captured = choice;
-                button.onClick.AddListener(
-                    () =>
-                    {
-                        ShowInspector(captured.CardCode);
-                        core.SubmitChoice(captured);
-                        RefreshEverything(true);
-                    });
+                uint code = cards[index];
+                List<DuelChoice> legalChoices = browsingExtraDeck
+                    ? choices.Where(choice =>
+                            choice.Sequence == (uint)index &&
+                            (choice.CardCode == 0 ||
+                             choice.CardCode == code))
+                        .ToList()
+                    : new List<DuelChoice> { choices[index] };
+                CreateZoneBrowserCard(
+                    code,
+                    index,
+                    prompt,
+                    legalChoices);
             }
+            if (cards.Count == 0)
+            {
+                CreateText(
+                    zoneBrowserContent,
+                    "O Deck Adicional está vazio.",
+                    18,
+                    FontStyle.Bold,
+                    Muted,
+                    Vector2.zero,
+                    Vector2.one,
+                    TextAnchor.MiddleCenter);
+            }
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(zoneBrowserContent);
+            zoneBrowserScroll.horizontalNormalizedPosition = 0f;
+            SetDuelExperienceObscured(true);
             zoneBrowser.SetActive(true);
             zoneBrowser.transform.SetAsLastSibling();
+        }
+
+        private void CreateZoneBrowserCard(
+            uint code,
+            int index,
+            DuelPrompt prompt,
+            IReadOnlyList<DuelChoice> legalChoices)
+        {
+            bool canUse = legalChoices != null && legalChoices.Count > 0;
+            GameObject card = CreatePanel(
+                zoneBrowserContent,
+                $"Carta {index + 1}",
+                Vector2.zero,
+                Vector2.one,
+                new Color(0.018f, 0.075f, 0.10f, 0.98f));
+            var cardLayout = card.AddComponent<LayoutElement>();
+            cardLayout.minWidth = 138f;
+            cardLayout.preferredWidth = 148f;
+            cardLayout.flexibleWidth = 0f;
+            AddOutline(card, canUse ? EffectGlow : Muted);
+
+            Image artwork = CreateImage(
+                card.transform,
+                "Arte",
+                new Vector2(0.07f, canUse ? 0.22f : 0.06f),
+                new Vector2(0.93f, 0.96f),
+                Color.white);
+            artwork.sprite = SpriteFor(code);
+            artwork.preserveAspect = true;
+            var inspectButton = card.AddComponent<Button>();
+            inspectButton.targetGraphic = card.GetComponent<Image>();
+            inspectButton.onClick.AddListener(
+                () =>
+                {
+                    ShowInspector(code);
+                    SetStatus(
+                        canUse
+                            ? "Carta do Deck Adicional selecionada. Use INVOCAR para confirmar."
+                            : "Carta do Deck Adicional aberta somente para consulta.",
+                        canUse ? EffectGlow : Muted);
+                });
+
+            if (!canUse)
+                return;
+            IReadOnlyList<DuelChoice> capturedChoices =
+                legalChoices.ToArray();
+            CreateButton(
+                card.transform,
+                "Invocar",
+                "INVOCAR",
+                new Vector2(0.08f, 0.025f),
+                new Vector2(0.92f, 0.19f),
+                EffectGlow,
+                () => SubmitZoneBrowserAction(prompt, capturedChoices));
+        }
+
+        private void SubmitZoneBrowserAction(
+            DuelPrompt prompt,
+            IReadOnlyList<DuelChoice> choices)
+        {
+            if (prompt == null ||
+                core.CurrentPrompt != prompt ||
+                choices == null ||
+                choices.Count == 0)
+            {
+                CloseZoneBrowser();
+                return;
+            }
+            CloseZoneBrowser();
+            if (choices.Count > 1)
+            {
+                OpenChoiceModal(prompt, choices);
+                return;
+            }
+            core.SubmitChoice(choices[0]);
+            RefreshEverything(true);
         }
 
         private void CloseZoneBrowser()
         {
             if (zoneBrowser != null) zoneBrowser.SetActive(false);
+            SetDuelExperienceObscured(false);
         }
 
         private void InspectZone(DuelZone3D zone)

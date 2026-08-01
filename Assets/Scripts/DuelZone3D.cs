@@ -225,8 +225,11 @@ namespace ArcaneArena
         {
             if (specialZoneOutline != null)
                 return;
+            Transform outlineParent = Kind == DuelZoneKind.ExtraDeck
+                ? transform.Find("Card Stack") ?? transform
+                : transform;
             var outlineObject = new GameObject("Contorno de ação legal");
-            outlineObject.transform.SetParent(transform, false);
+            outlineObject.transform.SetParent(outlineParent, false);
             specialZoneOutline = outlineObject.AddComponent<LineRenderer>();
             specialZoneOutline.useWorldSpace = false;
             specialZoneOutline.loop = true;
@@ -246,13 +249,24 @@ namespace ArcaneArena
 
             if (Kind == DuelZoneKind.ExtraDeck)
             {
+                Transform topCard = outlineParent.Find("Top Card Back");
+                float halfWidth = topCard != null
+                    ? Mathf.Abs(topCard.localScale.x) * 0.5f + 0.07f
+                    : 0.79f;
+                float halfDepth = topCard != null
+                    ? Mathf.Abs(topCard.localScale.z) * 0.5f + 0.07f
+                    : 1.05f;
+                float height = topCard != null
+                    ? topCard.localPosition.y +
+                      Mathf.Abs(topCard.localScale.y) * 0.5f + 0.035f
+                    : 0.16f;
                 specialZoneOutline.positionCount = 4;
                 specialZoneOutline.SetPositions(new[]
                 {
-                    new Vector3(-1.12f, 0.77f, -1.43f),
-                    new Vector3(-1.12f, 0.77f, 1.43f),
-                    new Vector3(1.12f, 0.77f, 1.43f),
-                    new Vector3(1.12f, 0.77f, -1.43f)
+                    new Vector3(-halfWidth, height, -halfDepth),
+                    new Vector3(-halfWidth, height, halfDepth),
+                    new Vector3(halfWidth, height, halfDepth),
+                    new Vector3(halfWidth, height, -halfDepth)
                 });
             }
             else

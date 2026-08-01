@@ -84,6 +84,7 @@ namespace ArcaneDuel.Game
         public DuelPrompt CurrentPrompt => engine?.CurrentPrompt;
         public DuelPresentationState PresentationState => state;
         public CardDatabase Database => database;
+        public IReadOnlyList<uint> PlayerExtraDeckCards => playerExtraCards;
         public bool IsFinished => engine == null || engine.IsFinished;
         public bool PresentationDecisionLocked =>
             presentationDecisionLocked;
