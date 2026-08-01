@@ -348,6 +348,54 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void SumAtLeastPromptCanCombineAllSelectableMaterials()
+        {
+            var payload = new List<byte> { 0, 1 };
+            UInt32(payload, 6);
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            UInt32(payload, 2);
+            UInt32(payload, 11111111);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                0,
+                1);
+            UInt32(payload, 3);
+            UInt32(payload, 22222222);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                1,
+                1);
+            UInt32(payload, 3);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectSum,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt.SumAtLeast, Is.True);
+            Assert.That(
+                CoreMessageDecoder.IsValidSelection(prompt, new[] { 0 }),
+                Is.False);
+            Assert.That(
+                CoreMessageDecoder.IsValidSelection(prompt, new[] { 0, 1 }),
+                Is.True);
+            Assert.That(
+                DeterministicDuelPolicy.Choose(prompt).Response,
+                Is.EqualTo(
+                    CoreMessageDecoder.CardSelectionResponse(
+                        new uint[] { 0, 1 })));
+        }
+
+        [Test]
         public void AnnounceAndSortPromptsProduceNativeWidthResponses()
         {
             var racePayload = new List<byte> { 0, 1 };

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using ArcaneArena.Cards;
 using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
+using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -975,12 +976,14 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.90f, 0.86f),
                 TextAnchor.MiddleCenter);
 
+            BuildAudioVolumeRow(panel.transform, 0.70f);
+
             BuildAnimationOptionRow(
                 panel.transform,
                 "INVOCAÇÃO DE MONSTROS",
                 DuelAnimationPreferences.MonsterEnabled,
                 DuelAnimationPreferences.MonsterSpeedMultiplier,
-                0.59f,
+                0.51f,
                 () =>
                 {
                     DuelAnimationPreferences.MonsterEnabled =
@@ -999,7 +1002,7 @@ namespace ArcaneArena.Frontend
                 DuelAnimationPreferences.SpellTrapEnabled,
                 DuelAnimationPreferences
                     .SpellTrapSpeedMultiplier,
-                0.36f,
+                0.31f,
                 () =>
                 {
                     DuelAnimationPreferences.SpellTrapEnabled =
@@ -1017,7 +1020,7 @@ namespace ArcaneArena.Frontend
                 "APRESENTAÇÃO DA CORRENTE",
                 DuelAnimationPreferences.ChainEnabled,
                 DuelAnimationPreferences.ChainSpeedMultiplier,
-                0.13f,
+                0.11f,
                 () =>
                 {
                     DuelAnimationPreferences.ChainEnabled =
@@ -1041,8 +1044,53 @@ namespace ArcaneArena.Frontend
                 {
                     DuelAnimationPreferences
                         .ResetToDefaults();
+                    ArcaneAudioPreferences.ResetToDefaults();
                     ShowAnimationOptions();
                 });
+        }
+
+        private void BuildAudioVolumeRow(Transform parent, float yMin)
+        {
+            var row = CreatePanel(
+                parent,
+                "Volume dos efeitos",
+                new Vector2(0.055f, yMin),
+                new Vector2(0.945f, yMin + 0.13f),
+                new Color(0.025f, 0.09f, 0.135f, 0.94f));
+            AddOutline(
+                row.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.35f),
+                new Vector2(2f, -2f));
+            CreateText(
+                row.transform,
+                $"VOLUME DOS EFEITOS · {ArcaneAudioPreferences.Volume:P0}",
+                19,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.025f, 0.18f),
+                new Vector2(0.35f, 0.84f),
+                TextAnchor.MiddleLeft);
+
+            float[] volumes = { 0f, 0.25f, 0.50f, 0.75f, 1f };
+            for (int index = 0; index < volumes.Length; index++)
+            {
+                float volume = volumes[index];
+                float xMin = 0.39f + index * 0.116f;
+                bool selected = Mathf.Abs(
+                    ArcaneAudioPreferences.Volume - volume) < 0.01f;
+                CreateButton(
+                    row.transform,
+                    $"{volume:P0}",
+                    new Vector2(xMin, 0.18f),
+                    new Vector2(xMin + 0.098f, 0.82f),
+                    selected ? Lime : Cyan,
+                    () =>
+                    {
+                        ArcaneAudioPreferences.Volume = volume;
+                        ArcaneAudioPreferences.Enabled = volume > 0f;
+                        ShowAnimationOptions();
+                    });
+            }
         }
 
         private void BuildAnimationOptionRow(
@@ -1054,7 +1102,7 @@ namespace ArcaneArena.Frontend
             Action toggle,
             Action<float> setSpeed)
         {
-            const float rowHeight = 0.18f;
+            const float rowHeight = 0.17f;
             var row = CreatePanel(
                 parent,
                 label,

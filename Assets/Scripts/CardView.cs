@@ -28,6 +28,10 @@ namespace ArcaneArena
         private bool interactive = true;
         private bool entering;
         private bool presentationHidden;
+        private bool legalGlowEnabled;
+        private bool dualLegalGlow;
+        private Color legalGlowPrimary;
+        private Color legalGlowSecondary;
         private Coroutine poseRoutine;
 
         // Keep the authored prototype's restrained hand motion.  The larger
@@ -121,12 +125,27 @@ namespace ArcaneArena
 
         public void SetLegalActionGlow(Color color, bool enabled)
         {
+            SetLegalActionGlow(color, color, enabled);
+        }
+
+        public void SetLegalActionGlow(
+            Color primary,
+            Color secondary,
+            bool enabled)
+        {
             if (outline == null) return;
-            outline.effectColor = new Color(
-                color.r,
-                color.g,
-                color.b,
-                enabled ? 0.96f : 0f);
+            legalGlowEnabled = enabled;
+            legalGlowPrimary = primary;
+            legalGlowSecondary = secondary;
+            dualLegalGlow = enabled && primary != secondary;
+            ApplyOutline();
+        }
+
+        private void Update()
+        {
+            if (!legalGlowEnabled || selected || outline == null)
+                return;
+            ApplyLegalGlow();
         }
 
         public void SetInteraction(bool enabled)
@@ -238,13 +257,37 @@ namespace ArcaneArena
         private void ApplyOutline()
         {
             if (outline == null) return;
+            if (legalGlowEnabled)
+            {
+                ApplyLegalGlow();
+                return;
+            }
+            outline.effectDistance = new Vector2(4f, -4f);
             outline.effectColor = selected
-                ? new Color(0.75f, 1f, 0.05f, 1f)
-                : new Color(
-                    outline.effectColor.r,
-                    outline.effectColor.g,
-                    outline.effectColor.b,
-                    outline.effectColor.a);
+                ? new Color(0.90f, 0.96f, 1f, 1f)
+                : new Color(0f, 0f, 0f, 0f);
+        }
+
+        private void ApplyLegalGlow()
+        {
+            float pulse = 0.5f + 0.5f * Mathf.Sin(
+                Time.unscaledTime * 6.4f + HandIndex * 0.47f);
+            float colorBlend = dualLegalGlow
+                ? 0.5f + 0.5f * Mathf.Sin(
+                    Time.unscaledTime * 2.8f + HandIndex * 0.31f)
+                : 0f;
+            Color color = Color.Lerp(
+                legalGlowPrimary,
+                legalGlowSecondary,
+                colorBlend);
+            outline.effectDistance = new Vector2(
+                Mathf.Lerp(3.5f, 7f, pulse),
+                -Mathf.Lerp(3.5f, 7f, pulse));
+            outline.effectColor = new Color(
+                color.r,
+                color.g,
+                color.b,
+                Mathf.Lerp(0.58f, 1f, pulse));
         }
 
         private void ApplyPose()

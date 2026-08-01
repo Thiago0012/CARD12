@@ -20,6 +20,8 @@ namespace ArcaneArena.Editor
             "Assets/Cards/Cards/Decks/ShiranuiSupremacy";
         private const string MausoleumArtFolder =
             "Assets/Cards/Cards/Decks/MausoleumLockdownEdison";
+        private const string BatchJuly2026ArtFolder =
+            "Assets/Cards/Cards/Decks/BatchJuly2026";
 
         [MenuItem("Arcane Arena/Content/Sync Yugi Battle City")]
         public static void SyncYugiMutoBattleCity()
@@ -59,6 +61,38 @@ namespace ArcaneArena.Editor
                 MausoleumArtFolder,
                 CuratedDeckLists.MausoleumLockdownEdisonMain,
                 CuratedDeckLists.MausoleumLockdownEdisonExtra);
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync July 2026 Deck Batch")]
+        public static void SyncBatchJuly2026()
+        {
+            SyncDeck(
+                "july-2026-nine-deck-batch",
+                BatchJuly2026ArtFolder,
+                new[]
+                {
+                    CuratedDeckLists.AzaminaIllusionsMain,
+                    CuratedDeckLists.PlantLinkMain,
+                    CuratedDeckLists.NoobsGaiaMain,
+                    CuratedDeckLists.SummonBansMain,
+                    CuratedDeckLists.StarWarriorLevel5XyzMain,
+                    CuratedDeckLists.AssaultModeGoodStuffMain,
+                    CuratedDeckLists.Dragones2Main,
+                    CuratedDeckLists.FemaleReptileMain,
+                    CuratedDeckLists.ReturnToSenderMain
+                }.SelectMany(cards => cards).ToArray(),
+                new[]
+                {
+                    CuratedDeckLists.AzaminaIllusionsExtra,
+                    CuratedDeckLists.PlantLinkExtra,
+                    CuratedDeckLists.NoobsGaiaExtra,
+                    CuratedDeckLists.SummonBansExtra,
+                    CuratedDeckLists.StarWarriorLevel5XyzExtra,
+                    CuratedDeckLists.AssaultModeGoodStuffExtra,
+                    CuratedDeckLists.Dragones2Extra,
+                    CuratedDeckLists.FemaleReptileExtra,
+                    CuratedDeckLists.ReturnToSenderExtra
+                }.SelectMany(cards => cards).ToArray());
         }
 
         private static void SyncDeck(

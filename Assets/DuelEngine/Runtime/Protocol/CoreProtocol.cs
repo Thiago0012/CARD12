@@ -1269,8 +1269,9 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 .Distinct()
                 .OrderBy(value => value)
                 .ToArray() ?? Array.Empty<int>();
-            if (indexes.Length < prompt.MinimumSelections ||
-                indexes.Length > prompt.MaximumSelections)
+            if (!prompt.SumAtLeast &&
+                (indexes.Length < prompt.MinimumSelections ||
+                 indexes.Length > prompt.MaximumSelections))
             {
                 return false;
             }

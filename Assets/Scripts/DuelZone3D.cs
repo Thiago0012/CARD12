@@ -25,6 +25,8 @@ namespace ArcaneArena
         private Renderer dropSurface;
         private Color dropSurfaceColor;
         private bool dropHighlighted;
+        private Color dropHighlightColor =
+            new Color(0.08f, 0.58f, 1f, 1f);
         private bool pointerFocused;
 
         public Sprite PlacedCard => placedCard;
@@ -129,7 +131,16 @@ namespace ArcaneArena
 
         public void SetDropHighlight(bool enabled)
         {
+            SetDropHighlight(
+                enabled,
+                new Color(0.08f, 0.58f, 1f, 1f));
+        }
+
+        public void SetDropHighlight(bool enabled, Color color)
+        {
             dropHighlighted = enabled;
+            if (enabled)
+                dropHighlightColor = color;
             RefreshExtraMonsterZoneSurface();
             if (dropSurface == null)
             {
@@ -143,7 +154,7 @@ namespace ArcaneArena
             if (dropSurface != null)
             {
                 dropSurface.material.color = enabled
-                    ? new Color(0.08f, 0.72f, 1f, 1f)
+                    ? dropHighlightColor
                     : dropSurfaceColor;
             }
         }
@@ -173,11 +184,16 @@ namespace ArcaneArena
                 float pulse =
                     0.5f + 0.5f *
                     Mathf.Sin(Time.unscaledTime * 5.8f);
+                Color low = Color.Lerp(
+                    Color.black,
+                    dropHighlightColor,
+                    0.58f);
+                Color high = Color.Lerp(
+                    dropHighlightColor,
+                    Color.white,
+                    0.34f);
                 dropSurface.material.color =
-                    Color.Lerp(
-                        new Color(0.03f, 0.45f, 0.68f, 1f),
-                        new Color(0.35f, 1f, 0.78f, 1f),
-                        pulse);
+                    Color.Lerp(low, high, pulse);
                 return;
             }
             dropSurface.material.color = pointerFocused

@@ -37,6 +37,13 @@ if ($LASTEXITCODE -ne 0) { throw "Card database compiler failed with exit code $
 Get-ChildItem -LiteralPath $scriptsSource -File -Filter "*.lua" |
     Copy-Item -Destination (Join-Path $streaming "Scripts") -Force
 
+$unofficialProcedure = Join-Path $scriptsSource "unofficial\proc_unofficial.lua"
+if (Test-Path -LiteralPath $unofficialProcedure) {
+    Copy-Item -LiteralPath $unofficialProcedure `
+        -Destination (Join-Path $streaming "Scripts\proc_unofficial.lua") `
+        -Force
+}
+
 $rows = Import-Csv -LiteralPath $catalog
 if ($rows.Count -lt 200) { throw "Expected at least 200 catalog rows; found $($rows.Count)." }
 $uniqueCodes = @($rows.official_code | Sort-Object -Unique)
@@ -50,6 +57,9 @@ foreach ($row in $rows) {
 
     $sourceName = "c$([uint64]$row.script_code).lua"
     $source = Join-Path $officialSource $sourceName
+    if (-not (Test-Path -LiteralPath $source)) {
+        $source = Join-Path $scriptsSource $sourceName
+    }
     if (-not (Test-Path -LiteralPath $source)) {
         throw "Catalog script is missing from pinned CardScripts: $sourceName"
     }

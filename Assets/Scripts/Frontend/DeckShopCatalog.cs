@@ -100,7 +100,7 @@ namespace ArcaneArena.Frontend
     /// Main/Extra Deck das páginas informadas; Side Deck não faz parte do
     /// modelo de deck atual do projeto.
     /// </summary>
-    public static class DeckShopCatalog
+    public static partial class DeckShopCatalog
     {
         public const string BlueEyesProductId =
             "classic-blue-eyes-dragon-genesys-99";
@@ -233,7 +233,9 @@ namespace ArcaneArena.Frontend
                         CuratedDeckLists.MausoleumLockdownEdisonMain),
                     CuratedDeckLists.AsCardIds(
                         CuratedDeckLists.MausoleumLockdownEdisonExtra))
-            };
+            }
+            .Concat(CreateBatchJuly2026Products())
+            .ToArray();
 
         private static readonly HashSet<string> LegacyOwnedCardIds =
             new HashSet<string>(

@@ -311,8 +311,8 @@ namespace ArcaneArena
         public Vector3 GetDrawPresentationWorldPosition(
             DuelPlayerSide side)
         {
-            float z = side == DuelPlayerSide.PlayerOne ? -3.25f : 3.25f;
-            return transform.TransformPoint(new Vector3(0f, 1.05f, z));
+            float z = side == DuelPlayerSide.PlayerOne ? -3.85f : 3.85f;
+            return transform.TransformPoint(new Vector3(0f, 1.28f, z));
         }
 
         public void NotifyCardDrawn(DuelPlayerSide side)

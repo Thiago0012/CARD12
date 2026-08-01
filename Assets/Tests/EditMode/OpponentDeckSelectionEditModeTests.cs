@@ -28,7 +28,7 @@ namespace ArcaneDuel.Tests.EditMode
             object[] decks = ((IEnumerable)createRoster.Invoke(null, null))
                 .Cast<object>()
                 .ToArray();
-            Assert.That(decks, Has.Length.EqualTo(7));
+            Assert.That(decks, Has.Length.EqualTo(16));
 
             string[] expectedSizes =
             {
@@ -38,7 +38,16 @@ namespace ArcaneDuel.Tests.EditMode
                 "40+2",
                 "40+15",
                 "40+11",
-                "40+15"
+                "40+15",
+                "40+15",
+                "40+15",
+                "40+10",
+                "40+1",
+                "40+15",
+                "40+15",
+                "40+1",
+                "42+8",
+                "45+0"
             };
             string[] actualSizes = decks
                 .Select(deck =>
@@ -76,7 +85,9 @@ namespace ArcaneDuel.Tests.EditMode
             string playerDeckId = Text(roster[0], "deckId");
             var selectedDeckIds = new HashSet<string>(StringComparer.Ordinal);
 
-            for (ulong selector = 0; selector < 24; selector++)
+            for (ulong selector = 0;
+                 selector < (ulong)(roster.Length * 2);
+                 selector++)
             {
                 object selected = choose.Invoke(
                     null,
@@ -92,7 +103,7 @@ namespace ArcaneDuel.Tests.EditMode
 
             Assert.That(
                 selectedDeckIds.Count,
-                Is.EqualTo(6),
+                Is.EqualTo(roster.Length - 1),
                 "Every complete alternative theme should be reachable by the random selector.");
         }
 
@@ -193,7 +204,9 @@ namespace ArcaneDuel.Tests.EditMode
                     matchupIndex++;
                 }
             }
-            Assert.That(matchupIndex, Is.EqualTo(49));
+            Assert.That(
+                matchupIndex,
+                Is.EqualTo(roster.Length * roster.Length));
         }
 
         private static uint[] CardCodes(object deck, string fieldName)

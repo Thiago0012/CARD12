@@ -55,6 +55,8 @@ namespace ArcaneArena
         [SerializeField] private List<Sprite> detailTypeIconTemplates = new();
 
         private static readonly Color Cyan = Hex("#52E8E0");
+        private static readonly Color SummonBlue = Hex("#52C3FF");
+        private static readonly Color EffectGlow = Hex("#A0FF25");
         private static readonly Color Gold = Hex("#F6C766");
         private static readonly Color Lime = Hex("#C8FF19");
         private static readonly Color Muted = Hex("#87A8B7");
@@ -186,6 +188,7 @@ namespace ArcaneArena
                 core.CoreFailure -= OnCoreFailure;
             }
             DisposeArenaPresentation();
+            ResetCardSoundPresentation();
             if (automaticPromptRoutine != null)
                 StopCoroutine(automaticPromptRoutine);
             foreach (Texture2D texture in runtimeTextures.Values)
@@ -213,6 +216,8 @@ namespace ArcaneArena
         private void Update()
         {
             UpdateDuelExperienceAnimation();
+            UpdateDrawRevealFastForward();
+            UpdateCardPresentationAcceleration();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
             RefreshEverything(false);
@@ -460,24 +465,7 @@ namespace ArcaneArena
             RefreshEverything(true);
             ValidatePresentationConsistency(duelEvent, true);
             HandleArenaPresentationEvent(duelEvent);
-            if (duelEvent.Message == CoreMessage.Summoning ||
-                duelEvent.Message == CoreMessage.SpecialSummoning ||
-                duelEvent.Message == CoreMessage.FlipSummoning)
-            {
-                StartCoroutine(
-                    ShowCardPresentation(
-                        duelEvent.Code,
-                        "INVOCAÇÃO DE MONSTRO",
-                        Cyan));
-            }
-            else if (duelEvent.Message == CoreMessage.Chaining)
-            {
-                StartCoroutine(
-                    ShowCardPresentation(
-                        duelEvent.Code,
-                        $"CORRENTE · ELO {Mathf.Max(1, (int)duelEvent.Value)}",
-                        Gold));
-            }
+            QueueCardSoundPresentation(duelEvent);
         }
 
         private void RefreshEverything(bool force)
@@ -1049,9 +1037,7 @@ namespace ArcaneArena
                     selectedCard.InstanceKey);
             bool canActivate = choices.Any(choice =>
                 Contains(choice.Label, "Ativar"));
-            bool canSummon = choices.Any(choice =>
-                Contains(choice.Label, "Invocar") &&
-                !Contains(choice.Label, "Baixar"));
+            bool canSummon = choices.Any(IsSummonChoice);
             bool canSet = choices.Any(choice =>
                 Contains(choice.Label, "Baixar"));
             activateAction.SetActive(canActivate);
@@ -1087,7 +1073,9 @@ namespace ArcaneArena
                     core.CurrentPrompt,
                     selectedCard.InstanceKey)
                 .FirstOrDefault(candidate =>
-                    Contains(candidate.Label, label));
+                    label == "Invocar"
+                        ? IsSummonChoice(candidate)
+                        : Contains(candidate.Label, label));
             if (choice == null) return;
             actionPanel.SetActive(false);
             ClearHandSelection();
@@ -1208,19 +1196,56 @@ namespace ArcaneArena
             DuelPrompt prompt = core.CurrentPrompt;
             foreach (CardView card in handViews)
             {
-                bool legal =
-                    !InteractionLocked &&
-                    ChoicesForCard(
-                            prompt,
-                            card.InstanceKey)
-                        .Any();
-                bool forced =
-                    legal &&
-                    prompt != null &&
-                    prompt.Forced &&
-                    IsDirectSelectionPrompt(prompt);
-                card.SetLegalActionGlow(forced ? Gold : Cyan, legal);
+                List<DuelChoice> choices = ChoicesForCard(
+                    prompt,
+                    card.InstanceKey);
+                bool legal = !InteractionLocked && choices.Count > 0;
+                bool canNormalSummon =
+                    legal && choices.Any(IsNormalSummonChoice);
+                bool canSpecialSummon =
+                    legal && choices.Any(IsSpecialSummonChoice);
+                bool canActivate = legal && choices.Any(choice =>
+                    IsEffectActivationChoice(prompt, choice));
+                bool effectAction = canSpecialSummon || canActivate;
+                card.SetLegalActionGlow(
+                    effectAction || !canNormalSummon
+                        ? EffectGlow
+                        : SummonBlue,
+                    legal);
             }
+        }
+
+        private static bool IsSummonChoice(DuelChoice choice)
+        {
+            return choice != null &&
+                   Contains(choice.Label, "Invoc") &&
+                   !Contains(choice.Label, "Ativar");
+        }
+
+        private static bool IsSpecialSummonChoice(DuelChoice choice)
+        {
+            return IsSummonChoice(choice) &&
+                   Contains(choice.Label, "especial");
+        }
+
+        private static bool IsNormalSummonChoice(DuelChoice choice)
+        {
+            return IsSummonChoice(choice) &&
+                   !IsSpecialSummonChoice(choice);
+        }
+
+        private static bool IsEffectActivationChoice(
+            DuelPrompt prompt,
+            DuelChoice choice)
+        {
+            if (choice == null)
+                return false;
+            if (Contains(choice.Label, "Ativar"))
+                return true;
+            return prompt != null &&
+                   (prompt.Message == CoreMessage.SelectChain ||
+                    prompt.Message == CoreMessage.SelectEffectYesNo ||
+                    prompt.Message == CoreMessage.SelectYesNo);
         }
 
         private void RefreshPrompt(DuelPrompt prompt)
@@ -1286,7 +1311,7 @@ namespace ArcaneArena
                     {
                         SetStatus(
                             $"DECK ADICIONAL DISPONÍVEL · {legalExtraSummons} invocação(ões) legal(is) · clique no monte iluminado.",
-                            Lime);
+                            EffectGlow);
                     }
                     else
                     {
@@ -1316,6 +1341,12 @@ namespace ArcaneArena
                     if (HasOffFieldChoices(prompt))
                         OpenChoiceModal(prompt, prompt.Choices);
                     SetStatus(prompt.Title, Gold);
+                    break;
+                case CoreMessage.SelectChain:
+                case CoreMessage.SelectEffectYesNo:
+                    HighlightPromptZones(prompt);
+                    OpenChoiceModal(prompt, prompt.Choices);
+                    SetStatus(prompt.Title, EffectGlow);
                     break;
                 default:
                     OpenChoiceModal(prompt, prompt.Choices);
@@ -1415,6 +1446,7 @@ namespace ArcaneArena
         private void HighlightPromptZones(DuelPrompt prompt)
         {
             if (prompt == null) return;
+            var highlighted = new Dictionary<DuelZone3D, bool>();
             foreach (DuelChoice choice in prompt.Choices)
             {
                 if (!choice.HasLocation) continue;
@@ -1422,7 +1454,20 @@ namespace ArcaneArena
                     choice.Controller,
                     choice.Location,
                     (int)choice.Sequence);
-                zone?.SetDropHighlight(true);
+                if (zone == null)
+                    continue;
+                bool red =
+                    (choice.Location & DuelLocation.Graveyard) != 0 ||
+                    (choice.Location & DuelLocation.Extra) != 0 ||
+                    IsEffectActivationChoice(prompt, choice);
+                if (!highlighted.TryGetValue(zone, out bool existing) || red)
+                    highlighted[zone] = existing || red;
+            }
+            foreach (KeyValuePair<DuelZone3D, bool> item in highlighted)
+            {
+                item.Key.SetDropHighlight(
+                    true,
+                    item.Value ? EffectGlow : SummonBlue);
             }
         }
 
@@ -2566,7 +2611,7 @@ namespace ArcaneArena
                     new Vector2(start + index * width, 0f);
                 image.sprite = SpriteFor(choice.CardCode);
                 image.preserveAspect = true;
-                AddOutline(image.gameObject, Lime);
+                AddOutline(image.gameObject, EffectGlow);
                 var button = image.gameObject.AddComponent<Button>();
                 button.targetGraphic = image;
                 DuelChoice captured = choice;
@@ -2674,9 +2719,12 @@ namespace ArcaneArena
         private IEnumerator ShowCardPresentation(
             uint code,
             string heading,
-            Color accent)
+            Color accent,
+            ArcaneCardSound sound,
+            bool hideIdentity)
         {
-            if (code == 0 || arenaCanvas == null) yield break;
+            if ((!hideIdentity && code == 0) || arenaCanvas == null)
+                yield break;
             GameObject overlay = CreatePanel(
                 arenaCanvas.transform,
                 "Apresentação de Card",
@@ -2692,7 +2740,7 @@ namespace ArcaneArena
                 new Vector2(0.395f, 0.19f),
                 new Vector2(0.605f, 0.82f),
                 Color.white);
-            art.sprite = SpriteFor(code);
+            art.sprite = hideIdentity ? cardBackSprite : SpriteFor(code);
             art.preserveAspect = true;
             art.rectTransform.localScale = Vector3.one * 0.62f;
             CreateText(
@@ -2706,32 +2754,55 @@ namespace ArcaneArena
                 TextAnchor.MiddleCenter);
             CreateText(
                 overlay.transform,
-                CardName(code),
+                hideIdentity ? "CARTA VIRADA PARA BAIXO" : CardName(code),
                 30,
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.20f, 0.08f),
                 new Vector2(0.80f, 0.17f),
                 TextAnchor.MiddleCenter);
-            float enter = 0.34f;
-            for (float time = 0f; time < enter;
-                 time += Time.unscaledDeltaTime)
+            cardAudioDirector ??= GetComponent<ArcaneAudioDirector>();
+            float soundDuration =
+                cardAudioDirector?.PlayCardCue(sound) ?? 0f;
+            float totalDuration = soundDuration > 0f
+                ? soundDuration
+                : 1.02f;
+            float enter = Mathf.Min(0.34f, totalDuration * 0.32f);
+            float exit = Mathf.Min(0.20f, totalDuration * 0.20f);
+            float elapsed = 0f;
+            cardPresentationAccelerated = false;
+            cardPresentationCanAccelerate = true;
+            lastCardPresentationClick = -10f;
+            while (elapsed < totalDuration)
             {
-                float t = Mathf.SmoothStep(0f, 1f, time / enter);
-                group.alpha = t;
-                art.rectTransform.localScale =
-                    Vector3.one * Mathf.Lerp(0.62f, 1f, t);
-                art.rectTransform.localRotation =
-                    Quaternion.Euler(0f, 0f, Mathf.Lerp(50f, 0f, t));
+                float speed = cardPresentationAccelerated ? 2f : 1f;
+                elapsed += Time.unscaledDeltaTime * speed;
+                if (elapsed < enter)
+                {
+                    float t = Mathf.SmoothStep(0f, 1f, elapsed / enter);
+                    group.alpha = t;
+                    art.rectTransform.localScale =
+                        Vector3.one * Mathf.Lerp(0.62f, 1f, t);
+                    art.rectTransform.localRotation = Quaternion.Euler(
+                        0f,
+                        0f,
+                        Mathf.Lerp(50f, 0f, t));
+                }
+                else if (elapsed > totalDuration - exit)
+                {
+                    group.alpha = Mathf.Clamp01(
+                        (totalDuration - elapsed) / exit);
+                }
+                else
+                {
+                    group.alpha = 1f;
+                    art.rectTransform.localScale = Vector3.one;
+                    art.rectTransform.localRotation = Quaternion.identity;
+                }
                 yield return null;
             }
-            yield return new WaitForSecondsRealtime(0.48f);
-            for (float time = 0f; time < 0.2f;
-                 time += Time.unscaledDeltaTime)
-            {
-                group.alpha = 1f - time / 0.2f;
-                yield return null;
-            }
+            cardPresentationCanAccelerate = false;
+            cardAudioDirector?.StopCardCue();
             Destroy(overlay);
         }
 

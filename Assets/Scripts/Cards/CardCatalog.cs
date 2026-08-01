@@ -255,11 +255,11 @@ namespace ArcaneArena.Cards
         private static MonsterFrameKind FrameFrom(uint type)
         {
             if ((type & 0x4000000U) != 0) return MonsterFrameKind.Link;
-            if ((type & 0x1000000U) != 0) return MonsterFrameKind.Pendulum;
             if ((type & 0x800000U) != 0) return MonsterFrameKind.Xyz;
             if ((type & 0x2000U) != 0) return MonsterFrameKind.Synchro;
-            if ((type & 0x80U) != 0) return MonsterFrameKind.Ritual;
             if ((type & 0x40U) != 0) return MonsterFrameKind.Fusion;
+            if ((type & 0x80U) != 0) return MonsterFrameKind.Ritual;
+            if ((type & 0x1000000U) != 0) return MonsterFrameKind.Pendulum;
             if ((type & 0x10U) != 0) return MonsterFrameKind.Normal;
             return MonsterFrameKind.Effect;
         }

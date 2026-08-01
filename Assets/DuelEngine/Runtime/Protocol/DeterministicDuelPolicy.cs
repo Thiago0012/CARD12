@@ -63,10 +63,14 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 .Distinct()
                 .OrderBy(index => index)
                 .ToArray();
-            int minimum = checked((int)prompt.MinimumSelections);
-            int maximum = Math.Min(
-                checked((int)prompt.MaximumSelections),
-                indexes.Length);
+            int minimum = prompt.SumAtLeast
+                ? 0
+                : checked((int)prompt.MinimumSelections);
+            int maximum = prompt.SumAtLeast
+                ? indexes.Length
+                : Math.Min(
+                    checked((int)prompt.MaximumSelections),
+                    indexes.Length);
             for (int size = minimum; size <= maximum; size++)
             {
                 var selected = new List<int>(size);

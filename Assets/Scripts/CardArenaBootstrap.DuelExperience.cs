@@ -385,8 +385,8 @@ namespace ArcaneArena
                     image.type = Image.Type.Simple;
                     image.preserveAspect = true;
                 }
-                Color accent = action == activateAction ? Lime
-                    : action == summonAction ? Cyan : Gold;
+                Color accent = action == activateAction ? EffectGlow
+                    : action == summonAction ? SummonBlue : Gold;
                 image.color = new Color(0.012f, 0.07f, 0.10f, 0.98f);
                 AddOutline(action, accent);
                 Text label = action.GetComponentInChildren<Text>(true);
@@ -426,9 +426,9 @@ namespace ArcaneArena
             if (prompt == null) return Cyan;
             switch (prompt.Message)
             {
-                case CoreMessage.SelectChain: return Red;
+                case CoreMessage.SelectChain: return EffectGlow;
                 case CoreMessage.SelectYesNo:
-                case CoreMessage.SelectEffectYesNo: return Lime;
+                case CoreMessage.SelectEffectYesNo: return EffectGlow;
                 case CoreMessage.SelectPosition: return Cyan;
                 case CoreMessage.SelectTribute: return Gold;
                 case CoreMessage.SelectSum:

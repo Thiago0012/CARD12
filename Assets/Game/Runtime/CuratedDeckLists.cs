@@ -7,7 +7,7 @@ namespace ArcaneDuel.Game
     /// Keeping these outside the presentation layer prevents a shop-only copy
     /// from drifting away from the cards that are actually validated.
     /// </summary>
-    public static class CuratedDeckLists
+    public static partial class CuratedDeckLists
     {
         public static readonly uint[] DarkMagicianMain =
         {

@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace ArcaneDuel.Tests.PlayMode
 {
@@ -120,6 +121,8 @@ namespace ArcaneDuel.Tests.PlayMode
         [UnityTest]
         public IEnumerator PhaseNavigatorClosesCardInspectorAndActions()
         {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            PlayerPrefs.Save();
             SceneManager.LoadScene(ProjectIdentity.DuelScene);
             yield return null;
             yield return null;
@@ -131,6 +134,15 @@ namespace ArcaneDuel.Tests.PlayMode
                 BindingFlags.Instance |
                 BindingFlags.Public |
                 BindingFlags.NonPublic;
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            for (int frame = 0;
+                 frame < 600 && controller.CurrentPrompt == null;
+                 frame++)
+            {
+                yield return null;
+            }
+            Assert.That(controller.CurrentPrompt, Is.Not.Null);
             arena.GetType()
                 .GetMethod("PrepareCaptureState", flags)
                 ?.Invoke(arena, new object[] { "inspector" });
@@ -146,6 +158,9 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(actions, Is.Not.Null);
             Assert.That(details, Is.Not.Null);
             Assert.That(phases, Is.Not.Null);
+            arena.GetType()
+                .GetMethod("SuppressAnnouncementBanner", flags)
+                ?.Invoke(arena, null);
             actions.SetActive(true);
             Assert.That(details.activeSelf, Is.True);
 
@@ -537,6 +552,194 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator LegalCardGlowPulsesWithSummonAndEffectColors()
+        {
+            var cardObject = new GameObject(
+                "Legal glow test",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+            System.Type cardViewType = System.AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Select(assembly => assembly.GetType("ArcaneArena.CardView"))
+                .First(type => type != null);
+            System.Type arenaType = System.AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Select(assembly =>
+                    assembly.GetType("ArcaneArena.CardArenaBootstrap"))
+                .First(type => type != null);
+            var normalSummon = new DuelChoice();
+            typeof(DuelChoice).GetProperty("Label")
+                ?.SetValue(normalSummon, "Invocar");
+            MethodInfo normalSummonClassifier = arenaType.GetMethod(
+                "IsNormalSummonChoice",
+                BindingFlags.Static |
+                BindingFlags.NonPublic);
+            Assert.That(
+                normalSummonClassifier?.Invoke(
+                    null,
+                    new object[] { normalSummon }),
+                Is.True,
+                "A Invocação-Normal deve receber o contorno azul.");
+            var specialSummon = new DuelChoice();
+            typeof(DuelChoice).GetProperty("Label")
+                ?.SetValue(specialSummon, "Invocação especial");
+            MethodInfo specialSummonClassifier = arenaType.GetMethod(
+                "IsSpecialSummonChoice",
+                BindingFlags.Static |
+                BindingFlags.NonPublic);
+            Assert.That(
+                specialSummonClassifier?.Invoke(
+                    null,
+                    new object[] { specialSummon }),
+                Is.True,
+                "A Invocação-Especial deve usar o contorno de efeito.");
+            var activation = new DuelChoice();
+            typeof(DuelChoice).GetProperty("Label")
+                ?.SetValue(activation, "Ativar efeito");
+            MethodInfo effectClassifier = arenaType.GetMethod(
+                "IsEffectActivationChoice",
+                BindingFlags.Static |
+                BindingFlags.NonPublic);
+            Assert.That(
+                effectClassifier?.Invoke(
+                    null,
+                    new object[] { null, activation }),
+                Is.True,
+                "Ativações devem receber o contorno de efeito.");
+            Component card = cardObject.AddComponent(cardViewType);
+            MethodInfo setup = cardViewType.GetMethods()
+                .First(method =>
+                    method.Name == "Setup" &&
+                    method.GetParameters().Length == 4 &&
+                    method.GetParameters()[1].ParameterType == typeof(uint));
+            setup.Invoke(card, new object[] { null, 12345678u, null, 0 });
+            cardViewType.GetMethod("SetPresentationVisible")
+                ?.Invoke(card, new object[] { true });
+            Outline outline = cardObject.GetComponent<Outline>();
+
+            MethodInfo singleGlow = cardViewType.GetMethods()
+                .First(method =>
+                    method.Name == "SetLegalActionGlow" &&
+                    method.GetParameters().Length == 2);
+            Color summonAccent = (Color)arenaType.GetField(
+                "SummonBlue",
+                BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+            Color effectAccent = (Color)arenaType.GetField(
+                "EffectGlow",
+                BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+            Assert.That(ColorUtility.ToHtmlStringRGB(summonAccent), Is.EqualTo("52C3FF"));
+            Assert.That(ColorUtility.ToHtmlStringRGB(effectAccent), Is.EqualTo("A0FF25"));
+            singleGlow.Invoke(
+                card,
+                new object[]
+                {
+                    summonAccent,
+                    true
+                });
+            yield return null;
+            Color summonColor = outline.effectColor;
+            Vector2 firstDistance = outline.effectDistance;
+            Assert.That(summonColor.b, Is.GreaterThan(summonColor.r));
+            yield return new WaitForSecondsRealtime(0.16f);
+            Assert.That(
+                outline.effectDistance,
+                Is.Not.EqualTo(firstDistance),
+                "O contorno legal deve pulsar, não ficar estático.");
+
+            singleGlow.Invoke(
+                card,
+                new object[]
+                {
+                    effectAccent,
+                    true
+                });
+            yield return null;
+            Color effectColor = outline.effectColor;
+            Assert.That(effectColor.g, Is.GreaterThan(effectColor.r));
+            Assert.That(effectColor.g, Is.GreaterThan(effectColor.b));
+
+            Object.Destroy(cardObject);
+        }
+
+        [UnityTest]
+        public IEnumerator CardSoundsFollowCardCategoryAndSummonFrame()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            object catalog = arena.GetType()
+                .GetProperty("CardCatalog")
+                ?.GetValue(arena);
+            Assert.That(catalog, Is.Not.Null);
+
+            MethodInfo summonSound = arena.GetType().GetMethod(
+                "SummonSoundFor",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo activationSound = arena.GetType().GetMethod(
+                "ActivationSoundFor",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo faceDown = arena.GetType().GetMethod(
+                "IsFaceDownPlacement",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(summonSound, Is.Not.Null);
+            Assert.That(activationSound, Is.Not.Null);
+            Assert.That(faceDown, Is.Not.Null);
+
+            AssertSoundForFrame(
+                arena,
+                catalog,
+                summonSound,
+                5,
+                ArcaneCardSound.Fusion);
+            AssertSoundForFrame(
+                arena,
+                catalog,
+                summonSound,
+                6,
+                ArcaneCardSound.Synchro);
+            AssertSoundForFrame(
+                arena,
+                catalog,
+                summonSound,
+                7,
+                ArcaneCardSound.Xyz);
+            AssertSoundForFrame(
+                arena,
+                catalog,
+                summonSound,
+                8,
+                ArcaneCardSound.None);
+            AssertSoundForCategory(
+                arena,
+                catalog,
+                activationSound,
+                2,
+                ArcaneCardSound.Magic);
+            AssertSoundForCategory(
+                arena,
+                catalog,
+                activationSound,
+                3,
+                ArcaneCardSound.Trap);
+
+            DuelEvent setCard = MoveEvent(
+                DarkMagician,
+                0,
+                (byte)DuelLocation.Hand,
+                0,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                0,
+                0x8);
+            Assert.That(
+                faceDown.Invoke(null, new object[] { setCard }),
+                Is.True);
+        }
+
+        [UnityTest]
         public IEnumerator DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt()
         {
             PlayerPrefs.SetInt("ArcaneAutoStart", 0);
@@ -594,6 +797,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(mainDeck, Is.Not.Null);
             Assert.That(extraDeck, Is.Not.Null);
             Vector3 originalDeckPosition = mainDeck.transform.position;
+            Vector3 originalDeckScale = mainDeck.transform.localScale;
 
             arena.GetType()
                 .GetMethod("PrepareTurnFlowPresentation", flags)
@@ -619,6 +823,41 @@ namespace ArcaneDuel.Tests.PlayMode
 
             Assert.That(awaiting.GetValue(arena), Is.True);
             Assert.That(locked.GetValue(arena), Is.True);
+            FieldInfo drawGhost = arena.GetType().GetField(
+                "activeDrawGhost",
+                flags);
+            Assert.That(drawGhost, Is.Not.Null);
+            float ghostDeadline = Time.realtimeSinceStartup + 2f;
+            while (drawGhost.GetValue(arena) == null &&
+                   Time.realtimeSinceStartup < ghostDeadline)
+            {
+                yield return null;
+            }
+            Assert.That(
+                drawGhost.GetValue(arena),
+                Is.Not.Null,
+                "A carta fantasma deve sair parcialmente do Deck enquanto aguarda o clique.");
+            GameObject ghost = (GameObject)drawGhost.GetValue(arena);
+            Quaternion expectedGhostRotation =
+                mainDeck.transform.rotation * Quaternion.Euler(90f, 0f, 0f);
+            Assert.That(
+                Quaternion.Angle(
+                    ghost.transform.rotation,
+                    expectedGhostRotation),
+                Is.LessThan(0.5f),
+                "A carta fantasma deve preservar a inclinação do Deck.");
+            Transform topCard =
+                mainDeck.transform.Find("Card Stack/Top Card Back");
+            Assert.That(topCard, Is.Not.Null);
+            Vector3 ghostOffset = ghost.transform.position - topCard.position;
+            Assert.That(
+                Vector3.Cross(mainDeck.transform.up, ghostOffset).magnitude,
+                Is.LessThan(0.01f),
+                "A carta fantasma deve ficar diretamente acima do Deck.");
+            Assert.That(
+                mainDeck.transform.localScale.magnitude,
+                Is.GreaterThan(originalDeckScale.magnitude * 1.20f),
+                "O Deck deve ficar maior e mais próximo da câmera durante a compra.");
             Component arena3D = Resources
                 .FindObjectsOfTypeAll<Component>()
                 .First(component =>
@@ -654,11 +893,42 @@ namespace ArcaneDuel.Tests.PlayMode
                 click.Invoke(arena, new object[] { mainDeck }),
                 Is.True);
 
+            FieldInfo revealCanFastForward = arena.GetType().GetField(
+                "drawRevealCanFastForward",
+                flags);
+            FieldInfo activeDrawCard = arena.GetType().GetField(
+                "activeDrawCard",
+                flags);
+            Assert.That(revealCanFastForward, Is.Not.Null);
+            Assert.That(activeDrawCard, Is.Not.Null);
+            float revealDeadline = Time.realtimeSinceStartup + 3f;
+            while (!(bool)revealCanFastForward.GetValue(arena) &&
+                   Time.realtimeSinceStartup < revealDeadline)
+            {
+                yield return null;
+            }
+            Assert.That(
+                revealCanFastForward.GetValue(arena),
+                Is.True,
+                "A carta comprada deve girar e permanecer revelada antes de ir para a mão.");
+            Assert.That(activeDrawCard.GetValue(arena), Is.Not.Null);
+            Canvas drawOverlay = ((GameObject)activeDrawCard.GetValue(arena))
+                .GetComponent<Canvas>();
+            Assert.That(drawOverlay, Is.Not.Null);
+            Assert.That(drawOverlay.overrideSorting, Is.True);
+            Assert.That(
+                drawOverlay.sortingOrder,
+                Is.GreaterThan(1000),
+                "A carta comprada deve sobrepor visualmente as cartas da mão.");
+            arena.GetType()
+                .GetMethod("RequestDrawRevealFastForward", flags)
+                ?.Invoke(arena, null);
+
             FieldInfo activeRequest = arena.GetType().GetField(
                 "activeDrawRequest",
                 flags);
             Assert.That(activeRequest, Is.Not.Null);
-            float drawDeadline = Time.realtimeSinceStartup + 3f;
+            float drawDeadline = Time.realtimeSinceStartup + 5f;
             while (activeRequest.GetValue(arena) != null &&
                    Time.realtimeSinceStartup < drawDeadline)
             {
@@ -680,6 +950,13 @@ namespace ArcaneDuel.Tests.PlayMode
                 deckRestored,
                 Is.True,
                 "The Deck must return exactly to its authored position.");
+            Assert.That(
+                Vector3.Distance(
+                    mainDeck.transform.localScale,
+                    originalDeckScale),
+                Is.LessThan(0.001f),
+                "The Deck scale must be restored exactly after the draw.");
+            Assert.That(drawGhost.GetValue(arena), Is.Null);
             Assert.That(finalCardAlpha, Is.EqualTo(1f).Within(0.001f));
             Assert.That(locked.GetValue(arena), Is.False);
             FieldInfo timeout = arena.GetType().GetField(
@@ -687,6 +964,11 @@ namespace ArcaneDuel.Tests.PlayMode
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(timeout, Is.Not.Null);
             Assert.That(timeout.GetRawConstantValue(), Is.EqualTo(5f));
+            FieldInfo revealHold = arena.GetType().GetField(
+                "DrawRevealHoldSeconds",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(revealHold, Is.Not.Null);
+            Assert.That(revealHold.GetRawConstantValue(), Is.EqualTo(1.8f));
         }
 
         private static MonoBehaviour FindArena()
@@ -744,6 +1026,53 @@ namespace ArcaneDuel.Tests.PlayMode
                 .GetProperty("RuntimeId")
                 ?.GetValue(key);
             Assert.That(actualRuntimeId, Is.EqualTo(runtimeId));
+        }
+
+        private static void AssertSoundForFrame(
+            MonoBehaviour arena,
+            object catalog,
+            MethodInfo resolver,
+            int frame,
+            ArcaneCardSound expected)
+        {
+            var entries = catalog.GetType().GetProperty("Entries")
+                ?.GetValue(catalog) as System.Collections.IEnumerable;
+            object entry = entries?.Cast<object>().FirstOrDefault(card =>
+                card != null && System.Convert.ToInt32(
+                    card.GetType().GetProperty("MonsterFrame")
+                        ?.GetValue(card)) == frame);
+            Assert.That(entry, Is.Not.Null, $"Catálogo sem exemplo {frame}.");
+            string officialId = entry.GetType()
+                .GetProperty("OfficialCardId")?.GetValue(entry) as string;
+            uint code = uint.Parse(officialId);
+            Assert.That(
+                resolver.Invoke(arena, new object[] { code }),
+                Is.EqualTo(expected));
+        }
+
+        private static void AssertSoundForCategory(
+            MonoBehaviour arena,
+            object catalog,
+            MethodInfo resolver,
+            int category,
+            ArcaneCardSound expected)
+        {
+            var entries = catalog.GetType().GetProperty("Entries")
+                ?.GetValue(catalog) as System.Collections.IEnumerable;
+            object entry = entries?.Cast<object>().FirstOrDefault(card =>
+                card != null && System.Convert.ToInt32(
+                    card.GetType().GetProperty("Category")
+                        ?.GetValue(card)) == category);
+            Assert.That(
+                entry,
+                Is.Not.Null,
+                $"Catálogo sem exemplo {category}.");
+            string officialId = entry.GetType()
+                .GetProperty("OfficialCardId")?.GetValue(entry) as string;
+            uint code = uint.Parse(officialId);
+            Assert.That(
+                resolver.Invoke(arena, new object[] { code }),
+                Is.EqualTo(expected));
         }
 
         private static ulong RuntimeIdOf(Component cardView)

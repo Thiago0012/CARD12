@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using ArcaneDuel.Game;
 using NUnit.Framework;
 using UnityEngine;
@@ -48,7 +49,32 @@ namespace ArcaneDuel.Tests.PlayMode
         {
             SceneManager.LoadScene(ProjectIdentity.DuelScene);
             yield return null;
-            Assert.That(Object.FindAnyObjectByType<ArcaneAudioDirector>(), Is.Not.Null);
+            yield return null;
+            ArcaneAudioDirector director =
+                Object.FindAnyObjectByType<ArcaneAudioDirector>();
+            Assert.That(director, Is.Not.Null);
+            FieldInfo cardClips = typeof(ArcaneAudioDirector).GetField(
+                "cardClips",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(cardClips, Is.Not.Null);
+            var loaded = cardClips.GetValue(director) as
+                IDictionary<ArcaneCardSound, AudioClip>;
+            Assert.That(loaded, Is.Not.Null);
+            Assert.That(loaded.Count, Is.EqualTo(8));
+            Assert.That(loaded[ArcaneCardSound.Fusion], Is.Not.Null);
+            Assert.That(loaded[ArcaneCardSound.Synchro], Is.Not.Null);
+            Assert.That(loaded[ArcaneCardSound.Xyz], Is.Not.Null);
+            Assert.That(loaded[ArcaneCardSound.Magic], Is.Not.Null);
+            Assert.That(loaded[ArcaneCardSound.Trap], Is.Not.Null);
+            Assert.That(loaded[ArcaneCardSound.PutCard], Is.Not.Null);
+            float originalVolume = ArcaneAudioPreferences.Volume;
+            director.Volume = 0.25f;
+            Assert.That(ArcaneAudioPreferences.Volume, Is.EqualTo(0.25f));
+            Assert.That(
+                director.GetComponents<AudioSource>()
+                    .All(audio => Mathf.Approximately(audio.volume, 0.25f)),
+                Is.True);
+            director.Volume = originalVolume;
         }
 
         [UnityTest]
@@ -236,7 +262,7 @@ namespace ArcaneDuel.Tests.PlayMode
         [UnityTest]
         public IEnumerator EveryCompleteBotDeckStartsABotDuel()
         {
-            for (int deckIndex = 0; deckIndex < 7; deckIndex++)
+            for (int deckIndex = 0; deckIndex < 16; deckIndex++)
             {
                 SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
                 yield return null;
@@ -276,8 +302,8 @@ namespace ArcaneDuel.Tests.PlayMode
                                 .Select(label => label.text))));
                 Assert.That(
                     deckTiles,
-                    Has.Length.EqualTo(7),
-                    "The bot selection must display all seven curated decks. " +
+                    Has.Length.EqualTo(16),
+                    "The bot selection must display all sixteen curated decks. " +
                     validationDetails);
                 Button[] deckButtons = deckTiles
                     .Select(tile => tile.GetComponent<Button>())

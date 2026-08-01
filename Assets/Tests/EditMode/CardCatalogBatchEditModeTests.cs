@@ -29,6 +29,16 @@ namespace ArcaneDuel.Tests.EditMode
         [TestCase(10)]
         [TestCase(11)]
         [TestCase(12)]
+        [TestCase(13)]
+        [TestCase(14)]
+        [TestCase(15)]
+        [TestCase(16)]
+        [TestCase(17)]
+        [TestCase(18)]
+        [TestCase(19)]
+        [TestCase(20)]
+        [TestCase(21)]
+        [TestCase(22)]
         public void ImportedBatchHasDataArtAndResolvedScripts(int batchIndex)
         {
             CardDatabase database = CardDatabase.LoadDefault();
@@ -82,10 +92,10 @@ namespace ArcaneDuel.Tests.EditMode
         {
             CardVisualCatalog visuals = CardVisualCatalog.LoadDefault();
             CardVisualData[] cards = visuals.Cards.ToArray();
-            Assert.That(visuals.Count, Is.EqualTo(319));
+            Assert.That(visuals.Count, Is.EqualTo(552));
             Assert.That(
                 cards.Select(card => card.officialCode).Distinct().Count(),
-                Is.EqualTo(319));
+                Is.EqualTo(552));
             Assert.That(
                 typeof(CardVisualData).GetMethod("ResolveEffect"),
                 Is.Null,
@@ -94,7 +104,7 @@ namespace ArcaneDuel.Tests.EditMode
                 cards.Count(card => card.riskLevel == "A") +
                 cards.Count(card => card.riskLevel == "B") +
                 cards.Count(card => card.riskLevel == "C"),
-                Is.EqualTo(319));
+                Is.EqualTo(552));
         }
 
         [Test]
@@ -155,6 +165,16 @@ namespace ArcaneDuel.Tests.EditMode
         [TestCase(10)]
         [TestCase(11)]
         [TestCase(12)]
+        [TestCase(13)]
+        [TestCase(14)]
+        [TestCase(15)]
+        [TestCase(16)]
+        [TestCase(17)]
+        [TestCase(18)]
+        [TestCase(19)]
+        [TestCase(20)]
+        [TestCase(21)]
+        [TestCase(22)]
         public void CatalogBatchSurvivesTenTurnsThroughNativeCore(
             int batchIndex)
         {
