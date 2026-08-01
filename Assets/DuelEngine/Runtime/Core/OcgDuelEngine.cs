@@ -505,6 +505,18 @@ namespace ArcaneDuel.DuelEngine.Core
             {
                 if (!owner.database.TryGet(code, out CardRecord record))
                 {
+                    // The official Eye of Timaeus script assigns this
+                    // name-only code. It is not a physical card and therefore
+                    // has no BabelCDB row, but ocgcore still asks the callback
+                    // to resolve it while applying EFFECT_ADD_CODE.
+                    if (code == 10000050)
+                    {
+                        Marshal.StructureToPtr(
+                            new OcgCardData { Code = code },
+                            data,
+                            false);
+                        return;
+                    }
                     throw new KeyNotFoundException($"ocgcore requested card {code:00000000}, outside the pinned catalog.");
                 }
                 IntPtr setcodes = IntPtr.Zero;

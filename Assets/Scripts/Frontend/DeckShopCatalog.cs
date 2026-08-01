@@ -120,46 +120,8 @@ namespace ArcaneArena.Frontend
         private static readonly IReadOnlyList<DeckShopProduct>
             AvailableProducts = new[]
             {
-                new DeckShopProduct(
-                    BlueEyesProductId,
-                    "Deck Dragão Branco",
-                    "OLHOS AZUIS",
-                    "Poder dracônico, suporte de Nível 8 e um Deck Adicional completo.",
-                    "89631139",
-                    "https://ygoprodeck.com/deck/classic-blue-eyes-dragon-genesys-99-661181",
-                    0,
-                    new[]
-                    {
-                        "89631139", "89631139", "89631139", "38517737",
-                        "30576089", "71039903", "17947697", "17947697",
-                        "17947697", "8240199", "8240199", "8240199",
-                        "54332792", "54332792", "66961194", "66961194",
-                        "24508238", "24508238", "59438930", "14558127",
-                        "14558127", "80326401", "93437091", "93437091",
-                        "17725109", "17725109", "17725109", "71143015",
-                        "38120068", "38120068", "54693926", "54693926",
-                        "24382602", "56920308", "43219114", "43219114",
-                        "62089826", "10045474", "10045474", "85442146"
-                    },
-                    new[]
-                    {
-                        "2129638", "56532353", "11443677", "40908371",
-                        "59822133", "59822133", "89604813", "89604813",
-                        "33698022", "43321985", "10515412", "16699558",
-                        "16699558", "88177324", "39030163"
-                    }),
-                new DeckShopProduct(
-                    DarkMagicianProductId,
-                    "Deck Mago Negro",
-                    "MAGIA NEGRA",
-                    "Mago Negro, Magias temáticas e quinze opções no Deck Adicional.",
-                    "46986414",
-                    "https://ygoprodeck.com/deck/yugi-mutou-dark-magician-deck-classic-350924/",
-                    2,
-                    CuratedDeckLists.AsCardIds(
-                        CuratedDeckLists.DarkMagicianMain),
-                    CuratedDeckLists.AsCardIds(
-                        CuratedDeckLists.DarkMagicianExtra)),
+                CreateBlueEyesMaxReplacementProduct(),
+                CreateDarkMagicalBlastReplacementProduct(),
                 new DeckShopProduct(
                     RedEyesProductId,
                     "Deck Dragão Negro",
@@ -235,6 +197,7 @@ namespace ArcaneArena.Frontend
                         CuratedDeckLists.MausoleumLockdownEdisonExtra))
             }
             .Concat(CreateBatchJuly2026Products())
+            .Concat(CreateBatchAugust2026Products())
             .ToArray();
 
         private static readonly HashSet<string> LegacyOwnedCardIds =

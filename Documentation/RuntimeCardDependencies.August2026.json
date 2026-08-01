@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "origin": "august-2026-runtime-dependency",
+  "reason": "Cartas solicitadas indiretamente pelos scripts Lua durante a validação headless.",
+  "unionCodes": [
+    9047461,
+    17985575,
+    27125110,
+    48228391,
+    62113340,
+    64631466,
+    70465811,
+    71625222,
+    74659583,
+    88819587
+  ]
+}

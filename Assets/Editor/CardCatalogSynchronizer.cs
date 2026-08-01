@@ -22,6 +22,8 @@ namespace ArcaneArena.Editor
             "Assets/Cards/Cards/Decks/MausoleumLockdownEdison";
         private const string BatchJuly2026ArtFolder =
             "Assets/Cards/Cards/Decks/BatchJuly2026";
+        private const string BatchAugust2026ArtFolder =
+            "Assets/Cards/Cards/Decks/BatchAugust2026";
 
         [MenuItem("Arcane Arena/Content/Sync Yugi Battle City")]
         public static void SyncYugiMutoBattleCity()
@@ -92,6 +94,38 @@ namespace ArcaneArena.Editor
                     CuratedDeckLists.Dragones2Extra,
                     CuratedDeckLists.FemaleReptileExtra,
                     CuratedDeckLists.ReturnToSenderExtra
+                }.SelectMany(cards => cards).ToArray());
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync August 2026 Deck Batch")]
+        public static void SyncBatchAugust2026()
+        {
+            SyncDeck(
+                "august-2026-nine-deck-batch",
+                BatchAugust2026ArtFolder,
+                new[]
+                {
+                    CuratedDeckLists.CrimsonPowerforceMain,
+                    CuratedDeckLists.DarkMagicalBlastMain,
+                    CuratedDeckLists.HiddenArtsOfShadowsMain,
+                    CuratedDeckLists.BlackwingsPrideMain,
+                    CuratedDeckLists.DragonmaidToOrderX3Main,
+                    CuratedDeckLists.CyberneticSuccessorMain,
+                    CuratedDeckLists.RunickMain,
+                    CuratedDeckLists.ExodiaMain,
+                    CuratedDeckLists.BlueEyesMaxModifiedMain
+                }.SelectMany(cards => cards).ToArray(),
+                new[]
+                {
+                    CuratedDeckLists.CrimsonPowerforceExtra,
+                    CuratedDeckLists.DarkMagicalBlastExtra,
+                    CuratedDeckLists.HiddenArtsOfShadowsExtra,
+                    CuratedDeckLists.BlackwingsPrideExtra,
+                    CuratedDeckLists.DragonmaidToOrderX3Extra,
+                    CuratedDeckLists.CyberneticSuccessorExtra,
+                    CuratedDeckLists.RunickExtra,
+                    CuratedDeckLists.ExodiaExtra,
+                    CuratedDeckLists.BlueEyesMaxModifiedExtra
                 }.SelectMany(cards => cards).ToArray());
         }
 

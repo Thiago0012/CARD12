@@ -115,18 +115,20 @@ namespace ArcaneDuel.Game
                 activeDeckId = "deck-dragao-branco",
                 decks = new List<DeckFile>
                 {
-                    CreatePreset(
+                    CreateCuratedPreset(
                         "deck-dragao-branco",
-                        "Deck Dragão Branco",
+                        "Deck Dragão Branco - Blue-Eyes Max",
                         "OLHOS AZUIS",
                         89631139,
-                        0),
-                    CreatePreset(
+                        CuratedDeckLists.BlueEyesMaxModifiedMain,
+                        CuratedDeckLists.BlueEyesMaxModifiedExtra),
+                    CreateCuratedPreset(
                         "deck-mago-negro",
-                        "Deck Mago Negro",
+                        "Deck Mago Negro - Explosão Mágica Negra",
                         "MAGIA NEGRA",
                         46986414,
-                        1),
+                        CuratedDeckLists.DarkMagicalBlastMain,
+                        CuratedDeckLists.DarkMagicalBlastExtra),
                     CreatePreset(
                         "deck-dragao-negro",
                         "Deck Dragão Negro",
@@ -232,6 +234,67 @@ namespace ArcaneDuel.Game
             };
         }
 
+        private static DeckFile CreateCuratedPreset(
+            string id,
+            string name,
+            string theme,
+            uint featured,
+            IEnumerable<uint> mainDeck,
+            IEnumerable<uint> extraDeck)
+        {
+            return new DeckFile
+            {
+                schemaVersion = 1,
+                id = id,
+                name = name,
+                theme = theme,
+                featuredCode = featured,
+                mainDeck = new List<uint>(mainDeck),
+                extraDeck = new List<uint>(extraDeck)
+            };
+        }
+
+        private static void RefreshReplacementDecks(DeckLibraryFile library)
+        {
+            ReplacePreset(
+                library,
+                CreateCuratedPreset(
+                    "deck-dragao-branco",
+                    "Deck Dragão Branco - Blue-Eyes Max",
+                    "OLHOS AZUIS",
+                    89631139,
+                    CuratedDeckLists.BlueEyesMaxModifiedMain,
+                    CuratedDeckLists.BlueEyesMaxModifiedExtra));
+            ReplacePreset(
+                library,
+                CreateCuratedPreset(
+                    "deck-mago-negro",
+                    "Deck Mago Negro - Explosão Mágica Negra",
+                    "MAGIA NEGRA",
+                    46986414,
+                    CuratedDeckLists.DarkMagicalBlastMain,
+                    CuratedDeckLists.DarkMagicalBlastExtra));
+        }
+
+        private static void ReplacePreset(
+            DeckLibraryFile library,
+            DeckFile replacement)
+        {
+            int index = library.decks.FindIndex(
+                deck => string.Equals(
+                    deck.id,
+                    replacement.id,
+                    StringComparison.OrdinalIgnoreCase));
+            if (index >= 0)
+            {
+                library.decks[index] = replacement;
+            }
+            else
+            {
+                library.decks.Add(replacement);
+            }
+        }
+
         private static void Normalize(DeckLibraryFile library)
         {
             if (library == null)
@@ -244,6 +307,7 @@ namespace ArcaneDuel.Game
                     $"Versão de biblioteca incompatível: {library.schemaVersion}.");
             }
             library.decks ??= new List<DeckFile>();
+            RefreshReplacementDecks(library);
             foreach (DeckFile deck in library.decks)
             {
                 deck.mainDeck ??= new List<uint>();

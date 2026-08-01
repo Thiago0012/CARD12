@@ -55,6 +55,12 @@ def type_name(card_type: int) -> str:
         return "Monstro de Fusão"
     if card_type & 0x80:
         return "Monstro de Ritual"
+    if card_type & 0x1000000:
+        return (
+            "Monstro Pêndulo Normal"
+            if card_type & 0x10 and not card_type & 0x20
+            else "Monstro Pêndulo de Efeito"
+        )
     if card_type & 0x1:
         if card_type & 0x10:
             return (
@@ -208,7 +214,7 @@ def append_visual(project: Path, codes: list[int], origin: str) -> int:
                     "art_asset": f"Assets/StreamingAssets/Ygo/Art/{code}.jpg",
                     "image_available": str(art.exists()).lower(),
                     "test_status": "pending",
-                    "notes": "Imported from the July 2026 curated deck batch.",
+                    "notes": f"Imported from {origin}.",
                     "database_name": english_name,
                     "database_alias": str(alias) if alias else "",
                 }
@@ -219,9 +225,13 @@ def append_visual(project: Path, codes: list[int], origin: str) -> int:
     return len(additions)
 
 
-def download_art(project: Path, codes: list[int]) -> int:
+def download_art(
+    project: Path,
+    codes: list[int],
+    unity_art_folder: Path,
+) -> int:
     streaming = project / "Assets/StreamingAssets/Ygo/Art"
-    deck_folder = project / "Assets/Cards/Cards/Decks/BatchJuly2026"
+    deck_folder = project / unity_art_folder
     streaming.mkdir(parents=True, exist_ok=True)
     deck_folder.mkdir(parents=True, exist_ok=True)
     downloaded = 0
@@ -242,6 +252,54 @@ def download_art(project: Path, codes: list[int]) -> int:
             time.sleep(0.05)
         shutil.copy2(target, deck_folder / target.name)
     return downloaded
+
+
+def sync_runtime_scripts(project: Path, codes: list[int]) -> int:
+    source_official = project / "ThirdParty/CardScripts/official"
+    source_custom = project / "ThirdParty/CardScripts"
+    runtime_official = (
+        project / "Assets/StreamingAssets/Ygo/Scripts/official"
+    )
+    runtime_custom = project / "Assets/StreamingAssets/Ygo/CustomScripts"
+    runtime_official.mkdir(parents=True, exist_ok=True)
+    runtime_custom.mkdir(parents=True, exist_ok=True)
+    database = sqlite3.connect(project / "ThirdParty/BabelCDB/cards.cdb")
+    copied = 0
+    try:
+        for code in codes:
+            row = database.execute(
+                "SELECT alias, type FROM datas WHERE id = ?",
+                (code,),
+            ).fetchone()
+            if row is None:
+                raise ValueError(f"Card {code} is absent from BabelCDB")
+            alias, card_type = int(row[0] or 0), int(row[1])
+            requires_script = (
+                card_type != 17 and not card_type & 0x4000
+            )
+            if not requires_script:
+                continue
+
+            direct = source_official / f"c{code}.lua"
+            custom = source_custom / f"c{code}.lua"
+            if direct.exists():
+                source = direct
+                target = runtime_official / direct.name
+            elif custom.exists():
+                source = custom
+                target = runtime_custom / custom.name
+            elif alias and (source_official / f"c{alias}.lua").exists():
+                source = source_official / f"c{alias}.lua"
+                target = runtime_custom / f"c{code}.lua"
+            else:
+                raise ValueError(f"No pinned script for effect card {code}")
+            if target.exists():
+                continue
+            shutil.copy2(source, target)
+            copied += 1
+    finally:
+        database.close()
+    return copied
 
 
 def translate_text(value: str) -> str:
@@ -332,8 +390,13 @@ def main() -> None:
     parser.add_argument("--origin", required=True)
     parser.add_argument(
         "--stage",
-        choices=("core", "translate", "visual", "art"),
+        choices=("core", "translate", "visual", "art", "scripts"),
         required=True,
+    )
+    parser.add_argument(
+        "--unity-art-folder",
+        type=Path,
+        default=Path("Assets/Cards/Cards/Decks/BatchJuly2026"),
     )
     args = parser.parse_args()
     project = args.project_root.resolve()
@@ -345,8 +408,14 @@ def main() -> None:
         changed = translate_missing(project, codes)
     elif args.stage == "visual":
         changed = append_visual(project, codes, args.origin)
+    elif args.stage == "art":
+        changed = download_art(
+            project,
+            codes,
+            args.unity_art_folder,
+        )
     else:
-        changed = download_art(project, codes)
+        changed = sync_runtime_scripts(project, codes)
     print(
         f"ARCANE_CURATED_BATCH_OK stage={args.stage} "
         f"cards={len(codes)} changed={changed}"

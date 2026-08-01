@@ -28,12 +28,12 @@ namespace ArcaneDuel.Tests.EditMode
             object[] decks = ((IEnumerable)createRoster.Invoke(null, null))
                 .Cast<object>()
                 .ToArray();
-            Assert.That(decks, Has.Length.EqualTo(16));
+            Assert.That(decks, Has.Length.EqualTo(23));
 
             string[] expectedSizes =
             {
+                "41+5",
                 "40+15",
-                "50+15",
                 "40+4",
                 "40+2",
                 "40+15",
@@ -47,7 +47,14 @@ namespace ArcaneDuel.Tests.EditMode
                 "40+15",
                 "40+1",
                 "42+8",
-                "45+0"
+                "45+0",
+                "40+8",
+                "41+14",
+                "40+5",
+                "40+8",
+                "40+5",
+                "42+9",
+                "40+12"
             };
             string[] actualSizes = decks
                 .Select(deck =>

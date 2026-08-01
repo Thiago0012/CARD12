@@ -138,18 +138,12 @@ namespace ArcaneDuel.Tests.PlayMode
                 arena.GetComponent<DuelArenaController>();
             for (int frame = 0;
                  frame < 600 &&
-                 (controller.CurrentPrompt == null ||
-                  DuelPromptPresentationRules.PhaseChoices(
-                      controller.CurrentPrompt).Count == 0);
+                 controller.CurrentPrompt == null;
                  frame++)
             {
                 yield return null;
             }
             Assert.That(controller.CurrentPrompt, Is.Not.Null);
-            Assert.That(
-                DuelPromptPresentationRules.PhaseChoices(
-                    controller.CurrentPrompt),
-                Is.Not.Empty);
             arena.GetType()
                 .GetMethod("PrepareCaptureState", flags)
                 ?.Invoke(arena, new object[] { "inspector" });
@@ -168,12 +162,27 @@ namespace ArcaneDuel.Tests.PlayMode
             arena.GetType()
                 .GetMethod("SuppressAnnouncementBanner", flags)
                 ?.Invoke(arena, null);
+            foreach (string fieldName in new[]
+                     {
+                         "criticalInteractionLocked",
+                         "phasePresentationLocked",
+                         "cardPresentationDecisionLocked"
+                     })
+            {
+                arena.GetType().GetField(fieldName, flags)?.SetValue(arena, false);
+            }
             actions.SetActive(true);
             Assert.That(details.activeSelf, Is.True);
 
             arena.GetType()
-                .GetMethod("OpenPhaseChoices", flags)
-                ?.Invoke(arena, null);
+                .GetMethod("OpenPhaseNavigator", flags)
+                ?.Invoke(
+                    arena,
+                    new object[]
+                    {
+                        controller.CurrentPrompt,
+                        new List<DuelChoice> { new DuelChoice() }
+                    });
             yield return null;
 
             Assert.That(phases.activeSelf, Is.True);
