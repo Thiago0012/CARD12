@@ -695,7 +695,10 @@ namespace ArcaneArena.Multiplayer
                 messageName,
                 target,
                 writer,
-                NetworkDelivery.ReliableSequenced);
+                // Deck lists and perspective snapshots commonly exceed the
+                // single-packet Relay payload. NGO reassembles these chunks
+                // before invoking the named-message handler.
+                NetworkDelivery.ReliableFragmentedSequenced);
         }
 
         private static bool TryRead<T>(FastBufferReader reader, out T result)
