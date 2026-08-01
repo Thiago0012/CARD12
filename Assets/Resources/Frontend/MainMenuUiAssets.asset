@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c6e9fd5b8b77db44a3d36d6af7bd335, type: 3}
+  m_Name: MainMenuUiAssets
+  m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.Frontend.MainMenuUiAssets
+  hud: {fileID: 2800000, guid: 7d96dee1ab41ee946abe35f4e4c16a32, type: 3}
+  duelButton: {fileID: 2800000, guid: 2ef78875385895047b6653266080a24d, type: 3}
+  decksButton: {fileID: 2800000, guid: 9722f461bea5fd84880e539b61a315e4, type: 3}
+  shopButton: {fileID: 2800000, guid: 2c8f933f88edbcb409d75af88d158779, type: 3}
+  multiplayerButton: {fileID: 2800000, guid: 6b2941ca5656fd14c88c14e6328c0465, type: 3}
+  settingsButton: {fileID: 2800000, guid: aae72d9725a08614192ca79033982470, type: 3}
+  interfaceClick: {fileID: 8300000, guid: 3218b3101636fbb439b3958de8124c06, type: 3}

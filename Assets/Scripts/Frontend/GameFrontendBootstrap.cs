@@ -13,7 +13,7 @@ using UnityEngine.UI;
 
 namespace ArcaneArena.Frontend
 {
-    public sealed class GameFrontendBootstrap : MonoBehaviour
+    public sealed partial class GameFrontendBootstrap : MonoBehaviour
     {
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
@@ -813,7 +813,7 @@ namespace ArcaneArena.Frontend
             EnsureEventSystem();
         }
 
-        public void ShowMainMenu()
+        private void ShowPanelMainMenuLegacy()
         {
             SetDuelPresentation(false);
             ClearScreen();
@@ -1578,7 +1578,7 @@ namespace ArcaneArena.Frontend
             BuildSharedBackground("DECK DO BOT");
             BuildHeader(
                 "ESCOLHA O DECK DO BOT",
-                ShowDuelRoom);
+                ShowMainMenu);
 
             CreateText(
                 _screenRoot,
@@ -2487,7 +2487,11 @@ namespace ArcaneArena.Frontend
                 _deckEditorDetailArtwork.gameObject.AddComponent<Button>();
             artworkButton.targetGraphic = _deckEditorDetailArtwork;
             artworkButton.transition = Selectable.Transition.ColorTint;
-            artworkButton.onClick.AddListener(OpenDeckEditorZoom);
+            artworkButton.onClick.AddListener(() =>
+            {
+                FrontendClickAudio.Play();
+                OpenDeckEditorZoom();
+            });
 
             CreateText(
                 panel.transform,
@@ -4128,7 +4132,11 @@ namespace ArcaneArena.Frontend
             colors.pressedColor = accent;
             colors.fadeDuration = 0.08f;
             button.colors = colors;
-            button.onClick.AddListener(() => action?.Invoke());
+            button.onClick.AddListener(() =>
+            {
+                FrontendClickAudio.Play();
+                action?.Invoke();
+            });
             CreateText(
                 image.transform,
                 label,
@@ -4294,7 +4302,11 @@ namespace ArcaneArena.Frontend
             colors.selectedColor = Color.Lerp(Color.white, accent, 0.28f);
             colors.fadeDuration = 0.08f;
             button.colors = colors;
-            button.onClick.AddListener(() => action?.Invoke());
+            button.onClick.AddListener(() =>
+            {
+                FrontendClickAudio.Play();
+                action?.Invoke();
+            });
 
             CreateText(
                 image.transform,
@@ -4317,7 +4329,11 @@ namespace ArcaneArena.Frontend
             colors.pressedColor = new Color(0.72f, 0.9f, 1f, 1f);
             colors.fadeDuration = 0.08f;
             button.colors = colors;
-            button.onClick.AddListener(() => action?.Invoke());
+            button.onClick.AddListener(() =>
+            {
+                FrontendClickAudio.Play();
+                action?.Invoke();
+            });
         }
 
         private static Image CreatePanel(
@@ -4413,6 +4429,7 @@ namespace ArcaneArena.Frontend
 
         private void ClearScreen()
         {
+            StopMainMenuConnectionMonitor();
             _mainDropZone = null;
             _extraDropZone = null;
             _catalogContent = null;
