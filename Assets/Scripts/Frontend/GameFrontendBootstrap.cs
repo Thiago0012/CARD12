@@ -746,6 +746,12 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            if (_repository != null && !_repository.HasPlayerProfile)
+            {
+                ShowPlayerProfileSetup();
+                return;
+            }
+
             ShowMainMenu();
         }
 
@@ -811,6 +817,222 @@ namespace ArcaneArena.Frontend
         {
             SetDuelPresentation(false);
             ClearScreen();
+            BuildSharedBackground("NEXO DE DUELO");
+
+            var selectedDeck = _repository?.SelectedDeck;
+            var duelRejection = string.Empty;
+            var canStartDuel =
+                _repository != null &&
+                _repository.TryCreateSelectedLoadout(
+                    out _,
+                    out duelRejection);
+            var navigation = CreatePanel(
+                _screenRoot,
+                "Navegação Principal",
+                new Vector2(0.025f, 0.12f),
+                new Vector2(0.235f, 0.84f),
+                new Color(0.01f, 0.025f, 0.06f, 0.94f));
+            AddOutline(
+                navigation.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.58f),
+                new Vector2(2f, -2f));
+            CreateText(
+                navigation.transform,
+                "ARCANE\nARENA",
+                47,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.08f, 0.70f),
+                new Vector2(0.92f, 0.95f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                navigation.transform,
+                "NEXO DE DUELO",
+                16,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.09f, 0.64f),
+                new Vector2(0.92f, 0.73f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                navigation.transform,
+                "DUELISTA",
+                12,
+                FontStyle.Bold,
+                Gold,
+                new Vector2(0.09f, 0.585f),
+                new Vector2(0.92f, 0.64f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                navigation.transform,
+                _repository.PlayerDisplayName.ToUpperInvariant(),
+                19,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.09f, 0.535f),
+                new Vector2(0.92f, 0.595f),
+                TextAnchor.MiddleLeft);
+            CreateMenuButton(
+                navigation.transform,
+                "DUELAR",
+                new Vector2(0.08f, 0.425f),
+                new Vector2(0.92f, 0.515f),
+                Cyan,
+                ShowDuelRoom);
+            CreateMenuButton(
+                navigation.transform,
+                "DECKS",
+                new Vector2(0.08f, 0.315f),
+                new Vector2(0.92f, 0.405f),
+                Lime,
+                OpenDeckEditorScene);
+            CreateMenuButton(
+                navigation.transform,
+                "LOJA",
+                new Vector2(0.08f, 0.205f),
+                new Vector2(0.92f, 0.295f),
+                Blue,
+                ShowDeckShop);
+            CreateButton(
+                navigation.transform,
+                "OPÇÕES",
+                new Vector2(0.08f, 0.105f),
+                new Vector2(0.92f, 0.165f),
+                Gold,
+                ShowAnimationOptions);
+            CreateButton(
+                navigation.transform,
+                "PERFIL",
+                new Vector2(0.08f, 0.04f),
+                new Vector2(0.92f, 0.09f),
+                Cyan,
+                () => ShowPlayerProfileSetup(true));
+
+            var hero = CreatePanel(
+                _screenRoot,
+                "Próximo Duelo",
+                new Vector2(0.255f, 0.12f),
+                new Vector2(0.975f, 0.84f),
+                new Color(0.015f, 0.055f, 0.105f, 0.96f));
+            AddOutline(
+                hero.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.68f),
+                new Vector2(3f, -3f));
+            var heroAccent = CreatePanel(
+                hero.transform,
+                "Pulso do Duelo",
+                new Vector2(0.035f, 0.805f),
+                new Vector2(0.965f, 0.818f),
+                new Color(Lime.r, Lime.g, Lime.b, 0.94f));
+            heroAccent.raycastTarget = false;
+            CreateText(
+                hero.transform,
+                "PRÓXIMO DUELO",
+                20,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.06f, 0.83f),
+                new Vector2(0.94f, 0.94f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                hero.transform,
+                selectedDeck?.displayName?.ToUpperInvariant() ??
+                    "SELECIONE UM DECK",
+                32,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.06f, 0.70f),
+                new Vector2(0.94f, 0.82f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                hero.transform,
+                selectedDeck == null
+                    ? "Abra seus decks para preparar a primeira partida."
+                    : $"DECK ATIVO  •  {selectedDeck.mainDeckCardIds?.Count ?? 0} PRINCIPAL  •  " +
+                      $"{selectedDeck.extraDeckCardIds?.Count ?? 0} ADICIONAL",
+                16,
+                FontStyle.Bold,
+                selectedDeck == null ? Gold : Muted,
+                new Vector2(0.06f, 0.63f),
+                new Vector2(0.94f, 0.71f),
+                TextAnchor.MiddleLeft);
+            if (selectedDeck != null)
+            {
+                var deckShowcase = CreatePanel(
+                    hero.transform,
+                    "Vitrine do Deck",
+                    new Vector2(0.16f, 0.21f),
+                    new Vector2(0.84f, 0.59f),
+                    new Color(0.005f, 0.02f, 0.045f, 0.76f));
+                AddOutline(
+                    deckShowcase.gameObject,
+                    new Color(Cyan.r, Cyan.g, Cyan.b, 0.24f),
+                    new Vector2(1f, -1f));
+                CreateDuelDeckPreview(
+                    deckShowcase.transform,
+                    selectedDeck,
+                    new Vector2(0.14f, 0.07f),
+                    new Vector2(0.86f, 0.92f));
+            }
+            else
+            {
+                CreateText(
+                    hero.transform,
+                    "SEU PRÓXIMO DECK VAI GANHAR ESPAÇO AQUI",
+                    19,
+                    FontStyle.Bold,
+                    new Color(Muted.r, Muted.g, Muted.b, 0.78f),
+                    new Vector2(0.10f, 0.30f),
+                    new Vector2(0.90f, 0.54f),
+                    TextAnchor.MiddleCenter);
+            }
+            CreateButton(
+                hero.transform,
+                canStartDuel ? "ENFRENTAR BOT" : "PREPARAR DECK",
+                new Vector2(0.32f, 0.08f),
+                new Vector2(0.68f, 0.18f),
+                canStartDuel ? Lime : Gold,
+                () =>
+                {
+                    if (canStartDuel)
+                    {
+                        StartRandomBotDuel();
+                        return;
+                    }
+
+                    ShowDuelRoom();
+                    if (_duelRoomStatus != null)
+                    {
+                        _duelRoomStatus.text =
+                            $"DECK AINDA NÃO ESTÁ PRONTO\n{duelRejection}";
+                        _duelRoomStatus.color = Gold;
+                    }
+                });
+
+            CreateText(
+                _screenRoot,
+                $"DUELISTA: {_repository.PlayerDisplayName.ToUpperInvariant()}  •  DADOS SALVOS NESTE DISPOSITIVO",
+                14,
+                FontStyle.Bold,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.75f),
+                new Vector2(0.04f, 0.035f),
+                new Vector2(0.96f, 0.085f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                _screenRoot,
+                $"v{ArcaneDuel.Game.ProjectIdentity.ProjectVersion} • CORE {ArcaneDuel.Game.ProjectIdentity.CoreApiVersion}",
+                16,
+                FontStyle.Bold,
+                new Color(1f, 1f, 1f, 0.82f),
+                new Vector2(0.90f, 0.025f),
+                new Vector2(0.975f, 0.085f),
+                TextAnchor.LowerRight);
+        }
+
+        private void ShowLegacyMainMenu()
+        {
+            SetDuelPresentation(false);
+            ClearScreen();
             BuildSharedBackground("CENTRAL DE DUELOS");
 
             var navigation = CreatePanel(
@@ -840,44 +1062,51 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.92f, 0.73f),
                 TextAnchor.MiddleLeft);
 
+            CreateText(
+                navigation.transform,
+                $"DUELISTA LOCAL  •  {_repository.PlayerDisplayName.ToUpperInvariant()}",
+                15,
+                FontStyle.Bold,
+                Gold,
+                new Vector2(0.09f, 0.58f),
+                new Vector2(0.92f, 0.65f),
+                TextAnchor.MiddleLeft);
+
             CreateMenuButton(
                 navigation.transform,
                 "DUELAR",
-                new Vector2(0.08f, 0.50f),
-                new Vector2(0.92f, 0.60f),
+                new Vector2(0.08f, 0.46f),
+                new Vector2(0.92f, 0.55f),
                 Cyan,
                 ShowDuelRoom);
             CreateMenuButton(
                 navigation.transform,
                 "DECKS",
-                new Vector2(0.08f, 0.37f),
-                new Vector2(0.92f, 0.47f),
+                new Vector2(0.08f, 0.35f),
+                new Vector2(0.92f, 0.44f),
                 Lime,
                 OpenDeckEditorScene);
             CreateMenuButton(
                 navigation.transform,
                 "LOJA",
                 new Vector2(0.08f, 0.24f),
-                new Vector2(0.92f, 0.34f),
+                new Vector2(0.92f, 0.33f),
                 Blue,
                 ShowDeckShop);
             CreateMenuButton(
                 navigation.transform,
                 "OPÇÕES",
-                new Vector2(0.08f, 0.11f),
-                new Vector2(0.92f, 0.21f),
+                new Vector2(0.08f, 0.13f),
+                new Vector2(0.92f, 0.22f),
                 Gold,
                 ShowAnimationOptions);
-
-            CreateText(
+            CreateMenuButton(
                 navigation.transform,
-                "Duele, monte e resgate decks gratuitos",
-                15,
-                FontStyle.Normal,
-                Muted,
+                "PERFIL",
                 new Vector2(0.08f, 0.025f),
-                new Vector2(0.92f, 0.115f),
-                TextAnchor.MiddleLeft);
+                new Vector2(0.92f, 0.105f),
+                Cyan,
+                () => ShowPlayerProfileSetup(true));
 
             var feature = CreatePanel(
                 _screenRoot,
@@ -937,6 +1166,109 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.90f, 0.025f),
                 new Vector2(0.975f, 0.085f),
                 TextAnchor.LowerRight);
+        }
+
+        private void ShowPlayerProfileSetup(bool canReturn = false)
+        {
+            SetDuelPresentation(false);
+            ClearScreen();
+            BuildSharedBackground("PERFIL DO DUELISTA");
+            if (canReturn)
+                BuildHeader("PERFIL", ShowMainMenu);
+
+            var panel = CreatePanel(
+                _screenRoot,
+                "Identidade Local",
+                new Vector2(0.22f, 0.17f),
+                new Vector2(0.78f, 0.80f),
+                new Color(0.015f, 0.04f, 0.075f, 0.97f));
+            AddOutline(
+                panel.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.86f),
+                new Vector2(3f, -3f));
+
+            CreateText(
+                panel.transform,
+                canReturn
+                    ? "IDENTIDADE DO DUELISTA"
+                    : "BEM-VINDO À ARENA",
+                38,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.08f, 0.72f),
+                new Vector2(0.92f, 0.91f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                panel.transform,
+                canReturn
+                    ? "Atualize como seu nome aparece neste dispositivo."
+                    : "Antes do primeiro duelo, escolha como a Arena vai chamar você.",
+                19,
+                FontStyle.Normal,
+                Muted,
+                new Vector2(0.10f, 0.62f),
+                new Vector2(0.90f, 0.73f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                panel.transform,
+                "NOME DE DUELISTA",
+                17,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.14f, 0.51f),
+                new Vector2(0.86f, 0.58f),
+                TextAnchor.MiddleLeft);
+
+            var input = CreateProfileNameField(
+                panel.transform,
+                "Ex.: Guardião Arcano",
+                new Vector2(0.14f, 0.37f),
+                new Vector2(0.86f, 0.50f));
+            input.characterLimit = DeckRepository.MaximumPlayerNameLength;
+            input.text = _repository.PlayerDisplayName;
+
+            var feedback = CreateText(
+                panel.transform,
+                "De 3 a 18 caracteres. Seus dados ficam somente neste dispositivo.",
+                15,
+                FontStyle.Normal,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.84f),
+                new Vector2(0.14f, 0.275f),
+                new Vector2(0.86f, 0.35f),
+                TextAnchor.MiddleCenter);
+
+            Action confirm = () =>
+            {
+                if (_repository.TrySetPlayerDisplayName(
+                        input.text,
+                        out var rejection))
+                {
+                    ShowMainMenu();
+                    return;
+                }
+
+                feedback.text = rejection;
+                feedback.color = Danger;
+                input.ActivateInputField();
+            };
+            input.onEndEdit.AddListener(_ => confirm());
+            CreateButton(
+                panel.transform,
+                canReturn ? "SALVAR ALTERAÇÃO" : "ENTRAR NA ARENA",
+                new Vector2(0.28f, 0.12f),
+                new Vector2(0.72f, 0.23f),
+                Lime,
+                confirm);
+
+            CreateText(
+                panel.transform,
+                "PERFIL LOCAL • SEM CADASTRO EXTERNO • ALTERÁVEL NAS OPÇÕES",
+                13,
+                FontStyle.Bold,
+                Gold,
+                new Vector2(0.08f, 0.035f),
+                new Vector2(0.92f, 0.10f),
+                TextAnchor.MiddleCenter);
         }
 
         private void ShowAnimationOptions()
@@ -1036,9 +1368,16 @@ namespace ArcaneArena.Frontend
 
             CreateButton(
                 panel.transform,
+                "PERFIL DO DUELISTA",
+                new Vector2(0.11f, 0.025f),
+                new Vector2(0.46f, 0.095f),
+                Cyan,
+                () => ShowPlayerProfileSetup(true));
+            CreateButton(
+                panel.transform,
                 "RESTAURAR PADRÃO",
-                new Vector2(0.36f, 0.025f),
-                new Vector2(0.64f, 0.095f),
+                new Vector2(0.54f, 0.025f),
+                new Vector2(0.89f, 0.095f),
                 Gold,
                 () =>
                 {
@@ -3292,6 +3631,46 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleLeft);
         }
 
+        private void CreateDuelDeckPreview(
+            Transform parent,
+            DeckRecord deck,
+            Vector2 min,
+            Vector2 max)
+        {
+            var width = max.x - min.x;
+            var height = max.y - min.y;
+            const float cardWidthFraction = 0.26f;
+            const float cardSpacingFraction = 0.30f;
+
+            for (var i = 0; i < 3; i++)
+            {
+                CardCatalogEntry entry = null;
+                if (deck.featuredCardIds != null &&
+                    i < deck.featuredCardIds.Count)
+                {
+                    entry = DeckRepository.ResolveCard(
+                        _catalog,
+                        deck.featuredCardIds[i]);
+                }
+
+                var edgeOffset = Mathf.Abs(i - 1) * height * 0.035f;
+                var cardWidth = width * cardWidthFraction;
+                var center = min.x + width *
+                    (0.5f + (i - 1) * cardSpacingFraction);
+                CreateCardArtwork(
+                    parent,
+                    entry != null ? entry.Artwork : null,
+                    new Vector2(
+                        center - cardWidth * 0.5f,
+                        min.y + edgeOffset),
+                    new Vector2(
+                        center + cardWidth * 0.5f,
+                        max.y - edgeOffset),
+                    (i - 1) * 4f,
+                    true);
+            }
+        }
+
         private void CreateFeaturedCards(
             Transform parent,
             DeckRecord deck,
@@ -3815,6 +4194,51 @@ namespace ArcaneArena.Frontend
             input.characterLimit = 80;
             input.selectionColor =
                 new Color(Cyan.r, Cyan.g, Cyan.b, 0.45f);
+            return input;
+        }
+
+        private static InputField CreateProfileNameField(
+            Transform parent,
+            string placeholder,
+            Vector2 min,
+            Vector2 max)
+        {
+            var background = CreatePanel(
+                parent,
+                "Nome de Duelista",
+                min,
+                max,
+                new Color(0.025f, 0.09f, 0.135f, 0.98f));
+            AddOutline(
+                background.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.88f),
+                new Vector2(2f, -2f));
+
+            var inputText = CreateText(
+                background.transform,
+                string.Empty,
+                24,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.06f, 0.08f),
+                new Vector2(0.94f, 0.92f),
+                TextAnchor.MiddleLeft);
+            var placeholderText = CreateText(
+                background.transform,
+                placeholder,
+                20,
+                FontStyle.Normal,
+                new Color(Muted.r, Muted.g, Muted.b, 0.78f),
+                new Vector2(0.06f, 0.08f),
+                new Vector2(0.94f, 0.92f),
+                TextAnchor.MiddleLeft);
+
+            var input = background.gameObject.AddComponent<InputField>();
+            input.targetGraphic = background;
+            input.textComponent = inputText;
+            input.placeholder = placeholderText;
+            input.lineType = InputField.LineType.SingleLine;
+            input.selectionColor = new Color(Cyan.r, Cyan.g, Cyan.b, 0.45f);
             return input;
         }
 

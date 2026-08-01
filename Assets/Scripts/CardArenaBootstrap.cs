@@ -108,6 +108,8 @@ namespace ArcaneArena
         private Outline detailCardOutline;
         private Text localLife;
         private Text opponentLife;
+        private Text localPlayerName;
+        private string localPlayerDisplayName = "DUELISTA LOCAL";
         private Text status;
         private Button phaseButton;
         private Text phaseLabel;
@@ -299,6 +301,11 @@ namespace ArcaneArena
 
             DuelDeckLoadout opponent =
                 requestedOpponent ?? player;
+            localPlayerDisplayName =
+                string.IsNullOrWhiteSpace(player.playerDisplayName)
+                    ? "DUELISTA LOCAL"
+                    : player.playerDisplayName;
+            UpdateLocalPlayerName();
             uint[] playerMain = ParseCodes(player.mainDeckCardIds);
             uint[] playerExtra = ParseCodes(player.extraDeckCardIds);
             uint[] opponentMain = ParseCodes(opponent.mainDeckCardIds);
@@ -721,6 +728,7 @@ namespace ArcaneArena
             GameObject opponentPanel = FindObject(frame, "LP do Oponente");
             localLife = FindLifeValue(localPanel);
             opponentLife = FindLifeValue(opponentPanel);
+            BindLocalPlayerName(localPanel);
 
             GameObject phasePanel = FindObject(frame, "Controle de Fases");
             if (phasePanel != null)
@@ -762,6 +770,43 @@ namespace ArcaneArena
                     new Vector2(0.69f, 0.075f),
                     TextAnchor.MiddleCenter);
             }
+        }
+
+        private void BindLocalPlayerName(GameObject localPanel)
+        {
+            if (localPanel == null)
+                return;
+
+            localPlayerName =
+                localPanel.GetComponentsInChildren<Text>(true)
+                    .FirstOrDefault(text =>
+                        string.Equals(
+                            text.text?.Trim(),
+                            "PLAYER",
+                            StringComparison.OrdinalIgnoreCase));
+            if (localPlayerName == null)
+            {
+                localPlayerName = CreateText(
+                    localPanel.transform,
+                    "Nome do Duelista",
+                    14,
+                    FontStyle.Bold,
+                    Gold,
+                    new Vector2(0.06f, 0.70f),
+                    new Vector2(0.94f, 0.96f),
+                    TextAnchor.MiddleLeft);
+            }
+
+            UpdateLocalPlayerName();
+        }
+
+        private void UpdateLocalPlayerName()
+        {
+            if (localPlayerName == null)
+                return;
+
+            localPlayerName.text =
+                $"DUELISTA • {localPlayerDisplayName.ToUpperInvariant()}";
         }
 
         private void ClearAuthoredPreviewCards()

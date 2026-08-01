@@ -6,8 +6,9 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 2;
+        public int schemaVersion = 3;
         public string localProfileId;
+        public string playerDisplayName;
         public string selectedDeckId;
         public List<DeckRecord> decks = new List<DeckRecord>();
         public List<string> unlockedDeckProductIds =
@@ -23,6 +24,7 @@ namespace ArcaneArena.Frontend
     public sealed class DuelDeckLoadout
     {
         public string profileId;
+        public string playerDisplayName;
         public string deckId;
         public string displayName;
         public List<string> mainDeckCardIds = new List<string>();
@@ -30,7 +32,8 @@ namespace ArcaneArena.Frontend
 
         public static DuelDeckLoadout Create(
             string profileId,
-            DeckRecord deck)
+            DeckRecord deck,
+            string playerDisplayName = null)
         {
             if (deck == null)
                 return null;
@@ -39,6 +42,7 @@ namespace ArcaneArena.Frontend
             return new DuelDeckLoadout
             {
                 profileId = profileId ?? string.Empty,
+                playerDisplayName = playerDisplayName ?? string.Empty,
                 deckId = deck.deckId ?? string.Empty,
                 displayName = deck.displayName ?? "Deck sem nome",
                 mainDeckCardIds = new List<string>(
