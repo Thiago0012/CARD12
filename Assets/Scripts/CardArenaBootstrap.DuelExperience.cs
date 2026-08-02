@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ArcaneDuel.DuelEngine.Protocol;
+using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -212,9 +213,14 @@ namespace ArcaneArena
                         "Escolha uma zona iluminada no campo.", Cyan);
                     break;
                 case CoreMessage.SelectChain:
-                    UpdateDecisionRibbon(prompt.Forced
-                        ? "Uma resposta é obrigatória."
-                        : "Você pode responder à corrente.", Red);
+                    string chainMessage =
+                        DuelPromptPresentationRules
+                            .ShouldAutoPassEmptyChain(prompt)
+                            ? "Nenhuma resposta legal disponível."
+                            : prompt.Forced
+                                ? "Uma resposta é obrigatória."
+                                : "Você pode responder à corrente.";
+                    UpdateDecisionRibbon(chainMessage, Red);
                     break;
                 case CoreMessage.SelectPosition:
                     UpdateDecisionRibbon(

@@ -228,6 +228,9 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(
                 DuelPromptPresentationRules.ShouldAutoPassEmptyChain(prompt),
                 Is.True);
+            Assert.That(
+                DuelPromptPresentationRules.RequiresVisibleResponseTray(prompt),
+                Is.False);
         }
 
         [Test]
@@ -259,6 +262,9 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(
                 DuelPromptPresentationRules.ShouldAutoPassEmptyChain(prompt),
                 Is.False);
+            Assert.That(
+                DuelPromptPresentationRules.RequiresVisibleResponseTray(prompt),
+                Is.True);
         }
 
         [Test]

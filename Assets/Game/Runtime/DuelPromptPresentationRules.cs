@@ -20,6 +20,20 @@ namespace ArcaneDuel.Game
                    IsNoResponseChoice(prompt.Choices[0]);
         }
 
+        public static bool RequiresVisibleResponseTray(DuelPrompt prompt)
+        {
+            if (prompt == null || prompt.Player != 0 ||
+                prompt.Choices.Count == 0 ||
+                ShouldAutoPassEmptyChain(prompt))
+            {
+                return false;
+            }
+
+            return prompt.Message == CoreMessage.SelectChain ||
+                   prompt.Message == CoreMessage.SelectEffectYesNo ||
+                   prompt.Message == CoreMessage.SelectYesNo;
+        }
+
         public static List<DuelChoice> PhaseChoices(DuelPrompt prompt)
         {
             if (prompt == null ||

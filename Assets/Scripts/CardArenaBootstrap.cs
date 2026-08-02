@@ -232,6 +232,7 @@ namespace ArcaneArena
             UpdateCardPresentationAcceleration();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
+            EnsureRequiredResponseTrayVisible();
             if (Time.unscaledTime >= nextPassiveRefreshTime)
                 RefreshEverything(false);
         }
