@@ -1111,6 +1111,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 .GetMethod("SuppressAnnouncementBanner", flags)
                 ?.Invoke(arena, null);
             yield return null;
+            controller.ConfigureNetworkReplica(0);
 
             DuelPresentationState state = controller.PresentationState;
             state.Players[0].Hand.Clear();
@@ -1139,12 +1140,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Vector3 originalDeckPosition = mainDeck.transform.position;
             Vector3 originalDeckScale = mainDeck.transform.localScale;
 
-            arena.GetType()
-                .GetMethod("PrepareTurnFlowPresentation", flags)
-                ?.Invoke(arena, new object[] { draw });
-            arena.GetType()
-                .GetMethod("QueueDrawPresentation", flags)
-                ?.Invoke(arena, new object[] { draw });
+            controller.PresentNetworkEvent(draw);
 
             FieldInfo awaiting = arena.GetType().GetField(
                 "awaitingDrawDeckClick",

@@ -230,6 +230,7 @@ namespace ArcaneArena
         {
             UpdateDuelExperienceAnimation();
             UpdateDrawRevealFastForward();
+            RecoverStalledTurnFlowPresentation();
             UpdateCardPresentationAcceleration();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
