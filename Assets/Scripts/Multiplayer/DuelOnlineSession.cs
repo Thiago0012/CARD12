@@ -98,6 +98,8 @@ namespace ArcaneArena.Multiplayer
         private bool requestJoinFocus;
         private string joinCode = string.Empty;
         private string roomCode = string.Empty;
+        private string relayRegion = string.Empty;
+        private string relayRegionDescription = string.Empty;
         private string status = string.Empty;
 
         public bool IsOnlineDuelActive =>
@@ -107,6 +109,42 @@ namespace ArcaneArena.Multiplayer
         public bool IsHost => role == SessionRole.Host;
         public string Status => status;
         public string RoomCode => roomCode;
+        public string RelayRegion => relayRegion;
+
+        /// <summary>
+        /// RTT measured by the active Unity Transport connection. This is the
+        /// round trip through Relay, not the latency of an HTTP request made
+        /// by the main menu.
+        /// </summary>
+        public int RelayRoundTripTimeMs
+        {
+            get
+            {
+                if (!IsOnlineDuelActive || transport == null)
+                    return -1;
+
+                ulong peerClientId;
+                if (role == SessionRole.Host)
+                {
+                    if (remoteClientId == ulong.MaxValue)
+                        return -1;
+                    peerClientId = remoteClientId;
+                }
+                else if (role == SessionRole.Client)
+                {
+                    peerClientId = NetworkManager.ServerClientId;
+                }
+                else
+                {
+                    return -1;
+                }
+
+                ulong roundTrip = transport.GetCurrentRtt(peerClientId);
+                return roundTrip == 0 || roundTrip > int.MaxValue
+                    ? -1
+                    : (int)roundTrip;
+            }
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void CreateOnStartup()
@@ -298,6 +336,8 @@ namespace ArcaneArena.Multiplayer
                 await InitializeServices();
                 Allocation allocation = await RelayService.Instance
                     .CreateAllocationAsync(1);
+                relayRegion = allocation.Region ?? string.Empty;
+                await ResolveRelayRegionDescription();
                 transport.SetRelayServerData(
                     AllocationUtils.ToRelayServerData(allocation, "dtls"));
                 roomCode = await RelayService.Instance
@@ -308,7 +348,8 @@ namespace ArcaneArena.Multiplayer
                         "O NetworkManager não iniciou como host.");
                 RegisterHandlers();
 
-                status = "Sala criada. Compartilhe o código e aguarde o rival.";
+                status = $"Sala criada na região Relay {GetRelayRegionLabel()}. " +
+                    "Compartilhe o código e aguarde o rival.";
                 showPanel = true;
             }
             catch (Exception exception)
@@ -344,6 +385,8 @@ namespace ArcaneArena.Multiplayer
                 await InitializeServices();
                 JoinAllocation allocation = await RelayService.Instance
                     .JoinAllocationAsync(normalizedCode);
+                relayRegion = allocation.Region ?? string.Empty;
+                await ResolveRelayRegionDescription();
                 transport.SetRelayServerData(
                     AllocationUtils.ToRelayServerData(allocation, "dtls"));
                 roomCode = normalizedCode;
@@ -804,6 +847,8 @@ namespace ArcaneArena.Multiplayer
         {
             status = failure;
             roomCode = string.Empty;
+            relayRegion = string.Empty;
+            relayRegionDescription = string.Empty;
             role = SessionRole.None;
             localLoadout = null;
             remoteLoadout = null;
@@ -878,7 +923,7 @@ namespace ArcaneArena.Multiplayer
             GUI.Label(new Rect(margin, 22f, contentWidth, 38f),
                 "MULTIPLAYER ONLINE", lobbyHeadingStyle);
             GUI.Label(new Rect(margin, 64f, contentWidth, 28f),
-                "Crie uma sala privada ou entre com o codigo do anfitriao.",
+                GetRelayLobbyInfo(),
                 lobbySubheadingStyle);
             GUI.Label(new Rect(margin, 96f, contentWidth, 38f),
                 status ?? string.Empty, lobbyStatusStyle);
@@ -965,6 +1010,57 @@ namespace ArcaneArena.Multiplayer
                 showPanel = false;
             }
             GUI.backgroundColor = Color.white;
+        }
+
+        private string GetRelayLobbyInfo()
+        {
+            if (!IsOnlineDuelActive)
+            {
+                return "O Relay escolhe automaticamente a melhor região ao criar a sala.";
+            }
+
+            int roundTrip = RelayRoundTripTimeMs;
+            string rtt = roundTrip < 0
+                ? "medindo RTT..."
+                : $"RTT real: {roundTrip} ms";
+            return $"Relay: {GetRelayRegionLabel()}  •  {rtt}";
+        }
+
+        private string GetRelayRegionLabel()
+        {
+            if (!string.IsNullOrWhiteSpace(relayRegionDescription))
+                return relayRegionDescription;
+
+            return string.IsNullOrWhiteSpace(relayRegion)
+                ? "selecionando..."
+                : relayRegion.ToUpperInvariant();
+        }
+
+        private async Task ResolveRelayRegionDescription()
+        {
+            relayRegionDescription = string.Empty;
+            if (string.IsNullOrWhiteSpace(relayRegion))
+                return;
+
+            try
+            {
+                foreach (Region region in await RelayService.Instance.ListRegionsAsync())
+                {
+                    if (string.Equals(
+                            region.Id,
+                            relayRegion,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        relayRegionDescription = region.Description ?? string.Empty;
+                        return;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // The allocation itself is valid. Keep the region identifier
+                // visible if Relay's optional display-name lookup fails.
+            }
         }
 
         private GUIStyle lobbyHeadingStyle;

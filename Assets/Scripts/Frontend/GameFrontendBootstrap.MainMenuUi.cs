@@ -17,6 +17,7 @@ namespace ArcaneArena.Frontend
         private Coroutine _connectionMonitor;
         private Image[] _connectionBars;
         private Text _connectionStatus;
+        private Text _relayRegionStatus;
         private MainMenuUiAssets _mainMenuAssets;
 
         public void ShowMainMenu()
@@ -256,6 +257,22 @@ namespace ArcaneArena.Frontend
 
         private void BuildConnectionIndicator()
         {
+            var regionCover = CreatePanel(
+                _screenRoot,
+                "Região Relay",
+                new Vector2(0.060f, 0.017f),
+                new Vector2(0.190f, 0.073f),
+                new Color(0.008f, 0.025f, 0.045f, 0.98f));
+            _relayRegionStatus = CreateText(
+                regionCover.transform,
+                "RELAY\nAUTOMÁTICO",
+                12,
+                FontStyle.Normal,
+                new Color(0.32f, 0.88f, 0.96f, 1f),
+                Vector2.zero,
+                Vector2.one,
+                TextAnchor.MiddleLeft);
+
             var barRoot = CreatePanel(
                 _screenRoot,
                 "Qualidade da Conexão",
@@ -283,7 +300,7 @@ namespace ArcaneArena.Frontend
                 new Color(0.008f, 0.025f, 0.045f, 0.98f));
             _connectionStatus = CreateText(
                 statusCover.transform,
-                "STATUS\nMEDINDO CONEXÃO...",
+                "SERVIÇOS\nVERIFICANDO...",
                 12,
                 FontStyle.Normal,
                 Gold,
@@ -291,7 +308,7 @@ namespace ArcaneArena.Frontend
                 Vector2.one,
                 TextAnchor.MiddleLeft);
 
-            SetConnectionQuality(3, Gold, "MEDINDO CONEXÃO...");
+            SetConnectionQuality(3, Gold, "VERIFICANDO...");
             if (Application.isBatchMode)
             {
                 SetConnectionQuality(
@@ -301,7 +318,7 @@ namespace ArcaneArena.Frontend
                     NetworkReachability.NotReachable
                         ? Hex("#FF3D45")
                         : Hex("#35E66B"),
-                    "TESTE LOCAL");
+                    "DISPONÍVEIS");
                 return;
             }
 
@@ -313,6 +330,7 @@ namespace ArcaneArena.Frontend
         {
             while (_connectionBars != null && _connectionStatus != null)
             {
+                RefreshRelayRegionIndicator();
                 if (Application.internetReachability ==
                     NetworkReachability.NotReachable)
                 {
@@ -333,7 +351,7 @@ namespace ArcaneArena.Frontend
                         SetConnectionQuality(
                             1,
                             Hex("#FF3D45"),
-                            "CONEXÃO MUITO RUIM");
+                            "INDISPONÍVEIS");
                     }
                     else
                     {
@@ -354,29 +372,40 @@ namespace ArcaneArena.Frontend
                 SetConnectionQuality(
                     4,
                     Hex("#35E66B"),
-                    $"CONEXÃO BOA • {latencyMs} MS");
+                    "ONLINE");
             }
             else if (latencyMs <= 180)
             {
                 SetConnectionQuality(
                     3,
                     Hex("#F1D547"),
-                    $"CONEXÃO MÉDIA • {latencyMs} MS");
+                    "ONLINE");
             }
             else if (latencyMs <= 350)
             {
                 SetConnectionQuality(
                     2,
                     Hex("#FF8B24"),
-                    $"CONEXÃO RUIM • {latencyMs} MS");
+                    "COM OSCILAÇÃO");
             }
             else
             {
                 SetConnectionQuality(
                     1,
                     Hex("#FF3D45"),
-                    $"CONEXÃO MUITO RUIM • {latencyMs} MS");
+                    "COM OSCILAÇÃO");
             }
+        }
+
+        private void RefreshRelayRegionIndicator()
+        {
+            if (_relayRegionStatus == null)
+                return;
+
+            string region = DuelOnlineSession.Instance?.RelayRegion;
+            _relayRegionStatus.text = string.IsNullOrWhiteSpace(region)
+                ? "RELAY\nAUTOMÁTICO"
+                : $"RELAY\n{region.ToUpperInvariant()}";
         }
 
         private void SetConnectionQuality(
@@ -409,6 +438,7 @@ namespace ArcaneArena.Frontend
             _connectionMonitor = null;
             _connectionBars = null;
             _connectionStatus = null;
+            _relayRegionStatus = null;
         }
     }
 }
