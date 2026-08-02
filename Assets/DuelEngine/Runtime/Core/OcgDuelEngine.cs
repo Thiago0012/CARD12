@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using ArcaneDuel.DuelEngine.Abstractions;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Content;
@@ -37,17 +38,22 @@ namespace ArcaneDuel.DuelEngine.Core
 
         public static ulong FreshSeed()
         {
+            var bytes = new byte[sizeof(ulong)];
+            using (RandomNumberGenerator random =
+                   RandomNumberGenerator.Create())
+            {
+                random.GetBytes(bytes);
+            }
+            ulong seed = BitConverter.ToUInt64(bytes, 0);
+            if (seed != 0)
+                return seed;
+
             unchecked
             {
-                ulong ticks = (ulong)DateTime.UtcNow.Ticks;
-                ulong monotonic = unchecked((uint)Environment.TickCount);
-                ulong counter = (ulong)System.Threading.Interlocked.Increment(
-                    ref runtimeSeedCounter);
-                ulong seed = ticks ^ (monotonic << 21) ^
-                             (counter * 0x9E3779B97F4A7C15UL);
-                return seed != 0
-                    ? seed
-                    : 0xA7C4D3E2198B6501UL ^ counter;
+                ulong counter = (ulong)System.Threading.Interlocked
+                    .Increment(ref runtimeSeedCounter);
+                return 0xA7C4D3E2198B6501UL ^ counter ^
+                       (ulong)DateTime.UtcNow.Ticks;
             }
         }
 
@@ -80,6 +86,40 @@ namespace ArcaneDuel.DuelEngine.Core
         }
     }
 
+    public sealed class OcgFieldCardSnapshot
+    {
+        public uint Code { get; internal set; }
+        public uint Position { get; internal set; }
+        public byte Owner { get; internal set; }
+        public int Attack { get; internal set; }
+        public int Defense { get; internal set; }
+        public uint[] OverlayCodes { get; internal set; } = Array.Empty<uint>();
+    }
+
+    public sealed class OcgDuelistFieldSnapshot
+    {
+        public OcgFieldCardSnapshot[] Deck { get; internal set; } =
+            Array.Empty<OcgFieldCardSnapshot>();
+        public OcgFieldCardSnapshot[] Hand { get; internal set; } =
+            Array.Empty<OcgFieldCardSnapshot>();
+        public OcgFieldCardSnapshot[] Monsters { get; internal set; } =
+            Array.Empty<OcgFieldCardSnapshot>();
+        public OcgFieldCardSnapshot[] Spells { get; internal set; } =
+            Array.Empty<OcgFieldCardSnapshot>();
+        public OcgFieldCardSnapshot[] Graveyard { get; internal set; } =
+            Array.Empty<OcgFieldCardSnapshot>();
+        public OcgFieldCardSnapshot[] Banished { get; internal set; } =
+            Array.Empty<OcgFieldCardSnapshot>();
+        public OcgFieldCardSnapshot[] Extra { get; internal set; } =
+            Array.Empty<OcgFieldCardSnapshot>();
+    }
+
+    public sealed class OcgFieldSnapshot
+    {
+        public OcgDuelistFieldSnapshot[] Players { get; internal set; } =
+            Array.Empty<OcgDuelistFieldSnapshot>();
+    }
+
     public sealed class OcgDuelEngine : IDuelRulesEngine
     {
         private const ulong MasterRule5 = 0x2E800UL;
@@ -87,9 +127,16 @@ namespace ArcaneDuel.DuelEngine.Core
         private const ulong TcgSegocFirstTrigger = 0x200000000UL;
         private const ulong SimpleAi = 0x40UL;
         private const uint FaceDownDefense = 0x8;
+        private const uint QueryCode = 0x1;
+        private const uint QueryPosition = 0x2;
         private const uint QueryAttack = 0x100;
         private const uint QueryDefense = 0x200;
+        private const uint QueryOverlayCard = 0x10000;
+        private const uint QueryOwner = 0x40000;
         private const uint QueryEnd = 0x80000000;
+        private const uint FieldQueryFlags = QueryCode | QueryPosition |
+            QueryAttack | QueryDefense | QueryOverlayCard | QueryOwner;
+        private const int MaximumQueryBytes = 2 * 1024 * 1024;
 
         private readonly CardDatabase database;
         private readonly ScriptRepository scripts;
@@ -255,6 +302,176 @@ namespace ArcaneDuel.DuelEngine.Core
             var buffer = new byte[(int)length];
             Marshal.Copy(result, buffer, 0, buffer.Length);
             return TryReadCombatStats(buffer, out attack, out defense);
+        }
+
+        public bool TryCaptureFieldSnapshot(out OcgFieldSnapshot snapshot)
+        {
+            snapshot = null;
+            if (disposed || !IsStarted)
+                return false;
+
+            var players = new OcgDuelistFieldSnapshot[2];
+            for (byte controller = 0; controller < players.Length; controller++)
+            {
+                if (!TryQueryLocation(controller, DuelLocation.Deck, out var deck) ||
+                    !TryQueryLocation(controller, DuelLocation.Hand, out var hand) ||
+                    !TryQueryLocation(controller, DuelLocation.MonsterZone,
+                        out var monsters) ||
+                    !TryQueryLocation(controller, DuelLocation.SpellTrapZone,
+                        out var spells) ||
+                    !TryQueryLocation(controller, DuelLocation.Graveyard,
+                        out var graveyard) ||
+                    !TryQueryLocation(controller, DuelLocation.Banished,
+                        out var banished) ||
+                    !TryQueryLocation(controller, DuelLocation.Extra, out var extra))
+                {
+                    return false;
+                }
+
+                players[controller] = new OcgDuelistFieldSnapshot
+                {
+                    Deck = deck,
+                    Hand = hand,
+                    Monsters = monsters,
+                    Spells = spells,
+                    Graveyard = graveyard,
+                    Banished = banished,
+                    Extra = extra
+                };
+            }
+            snapshot = new OcgFieldSnapshot { Players = players };
+            return true;
+        }
+
+        private bool TryQueryLocation(
+            byte controller,
+            uint location,
+            out OcgFieldCardSnapshot[] cards)
+        {
+            cards = Array.Empty<OcgFieldCardSnapshot>();
+            var info = new OcgQueryInfo
+            {
+                Flags = FieldQueryFlags,
+                Controller = controller,
+                Location = location,
+                Sequence = 0,
+                OverlaySequence = 0
+            };
+            IntPtr result = OcgCoreNative.DuelQueryLocation(
+                duel,
+                out uint length,
+                ref info);
+            if (result == IntPtr.Zero || length < sizeof(uint) ||
+                length > MaximumQueryBytes)
+            {
+                return false;
+            }
+
+            var buffer = new byte[(int)length];
+            Marshal.Copy(result, buffer, 0, buffer.Length);
+            return TryReadLocationQuery(buffer, out cards);
+        }
+
+        private static bool TryReadLocationQuery(
+            byte[] buffer,
+            out OcgFieldCardSnapshot[] cards)
+        {
+            cards = Array.Empty<OcgFieldCardSnapshot>();
+            if (buffer == null || buffer.Length < sizeof(uint) ||
+                BitConverter.ToUInt32(buffer, 0) != buffer.Length - sizeof(uint))
+            {
+                return false;
+            }
+
+            var result = new List<OcgFieldCardSnapshot>();
+            OcgFieldCardSnapshot current = null;
+            int offset = sizeof(uint);
+            while (offset < buffer.Length)
+            {
+                if (offset + sizeof(ushort) > buffer.Length)
+                    return false;
+                ushort blockLength = BitConverter.ToUInt16(buffer, offset);
+                offset += sizeof(ushort);
+                if (blockLength == 0)
+                {
+                    if (current != null)
+                        return false;
+                    result.Add(null);
+                    continue;
+                }
+                if (blockLength < sizeof(uint) ||
+                    offset + blockLength > buffer.Length)
+                {
+                    return false;
+                }
+
+                uint flag = BitConverter.ToUInt32(buffer, offset);
+                int dataOffset = offset + sizeof(uint);
+                int dataLength = blockLength - sizeof(uint);
+                if (flag == QueryEnd)
+                {
+                    if (current == null)
+                        return false;
+                    result.Add(current);
+                    current = null;
+                }
+                else
+                {
+                    current ??= new OcgFieldCardSnapshot();
+                    switch (flag)
+                    {
+                        case QueryCode when dataLength >= sizeof(uint):
+                            current.Code = BitConverter.ToUInt32(
+                                buffer,
+                                dataOffset);
+                            break;
+                        case QueryPosition when dataLength >= sizeof(uint):
+                            current.Position = BitConverter.ToUInt32(
+                                buffer,
+                                dataOffset);
+                            break;
+                        case QueryAttack when dataLength >= sizeof(int):
+                            current.Attack = BitConverter.ToInt32(
+                                buffer,
+                                dataOffset);
+                            break;
+                        case QueryDefense when dataLength >= sizeof(int):
+                            current.Defense = BitConverter.ToInt32(
+                                buffer,
+                                dataOffset);
+                            break;
+                        case QueryOwner when dataLength >= sizeof(byte):
+                            current.Owner = buffer[dataOffset];
+                            break;
+                        case QueryOverlayCard
+                            when dataLength >= sizeof(uint):
+                            uint count = BitConverter.ToUInt32(
+                                buffer,
+                                dataOffset);
+                            if (count > 256 ||
+                                dataLength != sizeof(uint) +
+                                    checked((int)count * sizeof(uint)))
+                            {
+                                return false;
+                            }
+                            current.OverlayCodes = new uint[count];
+                            for (int index = 0; index < count; index++)
+                            {
+                                current.OverlayCodes[index] =
+                                    BitConverter.ToUInt32(
+                                        buffer,
+                                        dataOffset + sizeof(uint) +
+                                        index * sizeof(uint));
+                            }
+                            break;
+                    }
+                }
+                offset += blockLength;
+            }
+            if (current != null)
+                return false;
+            cards = result.ToArray();
+            return true;
         }
 
         private static bool TryReadCombatStats(

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
@@ -14,12 +13,18 @@ namespace ArcaneDuel.Game
     public interface IDuelNetworkState
     {
         string Status { get; }
-        IReadOnlyList<DuelEvent> PresentationEvents { get; }
 
         void ApplyTo(
             DuelPresentationState state,
             CardDatabase database,
             out DuelPrompt prompt);
+
+        bool TryGetCombatStats(
+            byte controller,
+            byte location,
+            uint sequence,
+            out int attack,
+            out int defense);
     }
 
     public static class DuelOnlineBridge

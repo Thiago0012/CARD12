@@ -5,6 +5,7 @@ using System.Linq;
 using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Protocol;
+using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.UI;
@@ -679,6 +680,28 @@ namespace ArcaneArena
                 ValidatePresentationConsistency(attack, true);
                 card = attackerZone.FindPresentedCard();
             }
+            bool transientAttacker = false;
+            if (card == null && attack.Code != 0)
+            {
+                byte controller = StatePlayerForZone(attackerZone);
+                uint sequence = (uint)Mathf.Max(
+                    0,
+                    SequenceFor(attackerZone));
+                CreateWorldCard(
+                    attackerZone,
+                    new CardInstanceKey(
+                        SyntheticZoneRuntimeId(attackerZone),
+                        attack.Code,
+                        controller,
+                        controller,
+                         (byte)LocationFor(attackerZone.Kind),
+                         sequence,
+                         FaceUpAttack),
+                    SpriteFor(attack.Code),
+                    FaceUpAttack);
+                card = attackerZone.transform.Find("Carta Invocada");
+                transientAttacker = card != null;
+            }
             if (card == null)
             {
                 DuelDevelopmentLog.Write(
@@ -815,6 +838,11 @@ namespace ArcaneArena
             HideBattleHud();
             animatedBattleCard = null;
             animatedBattleTarget = null;
+            if (transientAttacker)
+            {
+                ClearWorldCard(attackerZone);
+                attackerZone.ClearPlacedCard();
+            }
             SetDuelExperienceObscured(false);
             criticalInteractionLocked = false;
             battlePresentationRoutine = null;

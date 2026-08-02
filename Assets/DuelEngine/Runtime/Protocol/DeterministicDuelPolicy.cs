@@ -56,9 +56,23 @@ namespace ArcaneDuel.DuelEngine.Protocol
             else if (prompt.Message == CoreMessage.SelectUnselectCard)
             {
                 DuelChoice finish = FindValue(prompt, -1);
+                bool hasSelectedCard = prompt.Choices.Any(choice =>
+                    choice.Label.StartsWith(
+                        "Remover",
+                        StringComparison.OrdinalIgnoreCase));
+                if (!hasSelectedCard)
+                {
+                    DuelChoice selectable = prompt.Choices.FirstOrDefault(choice =>
+                        string.Equals(
+                            choice.Label,
+                            "Selecionar",
+                            StringComparison.OrdinalIgnoreCase));
+                    if (selectable != null) return selectable;
+                }
                 if (finish != null) return finish;
             }
-            else if (prompt.Message == CoreMessage.SelectSum)
+            else if (prompt.Message == CoreMessage.SelectSum ||
+                     prompt.Message == CoreMessage.SelectTribute)
             {
                 DuelChoice selection = ChooseValidSum(prompt);
                 if (selection != null) return selection;
@@ -96,7 +110,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 .Distinct()
                 .OrderBy(index => index)
                 .ToArray();
-            int minimum = prompt.SumAtLeast
+            int minimum = prompt.SumAtLeast ||
+                          prompt.Message == CoreMessage.SelectTribute
                 ? 0
                 : checked((int)prompt.MinimumSelections);
             int maximum = prompt.SumAtLeast
