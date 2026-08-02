@@ -87,10 +87,10 @@ Shader "ArcaneArena/UI/MainMenuHudOverlay"
                 // Quatro janelas laterais e a janela de configuracoes.
                 float inLeftButtonArea =
                     InsideRange(uv.x, 0.060, 0.310) *
-                    InsideRange(uv.y, 0.462, 0.744);
+                    InsideRange(uv.y, 0.145, 0.575);
                 float inSettingsArea =
                     InsideRange(uv.x, 0.935, 0.982) *
-                    InsideRange(uv.y, 0.945, 0.997);
+                    InsideRange(uv.y, 0.915, 0.993);
 
                 float brightest = max(color.r, max(color.g, color.b));
                 float darkest = min(color.r, min(color.g, color.b));

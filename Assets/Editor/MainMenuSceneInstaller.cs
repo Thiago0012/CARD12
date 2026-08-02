@@ -52,6 +52,21 @@ namespace ArcaneArena.Editor
                     "A raiz editavel do Main Menu nao foi encontrada.");
             authoredRoot.name = "MAIN MENU EDITAVEL";
 
+            RawImage hudOverlay = FindDescendant(
+                    authoredRoot,
+                    "Moldura HUD da Tela Inicial")
+                ?.GetComponent<RawImage>();
+            Material hudOverlayMaterial =
+                MainMenuUiAssetSynchronizer.EnsureHudOverlayMaterial();
+            if (hudOverlay == null || hudOverlayMaterial == null)
+            {
+                throw new InvalidOperationException(
+                    "A moldura recortada do Main Menu nao foi configurada.");
+            }
+            hudOverlay.material = hudOverlayMaterial;
+            hudOverlay.raycastTarget = false;
+            EditorUtility.SetDirty(hudOverlay);
+
             var dynamicObject = new GameObject(
                 "CONTEUDO DINAMICO (NAO EDITAR)",
                 typeof(RectTransform));

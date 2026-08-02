@@ -11,6 +11,10 @@ namespace ArcaneArena.Editor
         private const string ResourceFolder = "Assets/Resources/Frontend";
         private const string AssetPath =
             ResourceFolder + "/MainMenuUiAssets.asset";
+        private const string HudOverlayShaderPath =
+            ResourceFolder + "/MainMenuHudOverlay.shader";
+        internal const string HudOverlayMaterialPath =
+            ResourceFolder + "/MainMenuHudOverlayMaterial.mat";
         private const string ConfirmationSoundFile =
             "ConfirmationSound.mp3";
 
@@ -25,6 +29,7 @@ namespace ArcaneArena.Editor
             ConfigureTexture(Source + "botaomultiplayer.png");
             ConfigureTexture(Source + "botaoconfig.png");
             ConfigureAudio(Source + ConfirmationSoundFile);
+            EnsureHudOverlayMaterial();
 
             var assets =
                 AssetDatabase.LoadAssetAtPath<MainMenuUiAssets>(AssetPath);
@@ -57,6 +62,39 @@ namespace ArcaneArena.Editor
             where T : Object
         {
             return AssetDatabase.LoadAssetAtPath<T>(Source + fileName);
+        }
+
+        internal static Material EnsureHudOverlayMaterial()
+        {
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(
+                HudOverlayShaderPath);
+            if (shader == null)
+            {
+                Debug.LogError(
+                    "Shader persistente da moldura do Main Menu nao foi " +
+                    "encontrado: " + HudOverlayShaderPath);
+                return null;
+            }
+
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(
+                HudOverlayMaterialPath);
+            if (material == null)
+            {
+                material = new Material(shader)
+                {
+                    name = "Main Menu HUD Overlay"
+                };
+                AssetDatabase.CreateAsset(
+                    material,
+                    HudOverlayMaterialPath);
+            }
+            else if (material.shader != shader)
+            {
+                material.shader = shader;
+                EditorUtility.SetDirty(material);
+            }
+
+            return material;
         }
 
         private static void ConfigureTexture(string path)

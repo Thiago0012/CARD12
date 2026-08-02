@@ -13,6 +13,8 @@ namespace ArcaneArena.Frontend
             "Frontend/MainMenuUiAssets";
         private const string MainMenuHudOverlayShaderPath =
             "Frontend/MainMenuHudOverlay";
+        private const string MainMenuHudOverlayMaterialPath =
+            "Frontend/MainMenuHudOverlayMaterial";
         private const string ConnectionProbeUrl =
             "https://services.api.unity.com";
 
@@ -22,6 +24,7 @@ namespace ArcaneArena.Frontend
         private Text _relayRegionStatus;
         private MainMenuUiAssets _mainMenuAssets;
         private Material _mainMenuHudOverlayMaterial;
+        private bool _ownsMainMenuHudOverlayMaterial;
         private MainMenuSceneView _mainMenuSceneView;
 
         public void ShowMainMenu()
@@ -76,6 +79,7 @@ namespace ArcaneArena.Frontend
 
             UniversalUiLayout.ConfigureCanvasScaler(
                 _canvas.GetComponent<CanvasScaler>());
+            ApplyAuthoredMainMenuHudOverlay();
             _mainMenuSceneView.Bind(this);
             EnsureEventSystem();
             return true;
@@ -283,6 +287,26 @@ namespace ArcaneArena.Frontend
 
             if (_mainMenuHudOverlayMaterial == null)
             {
+                var authoredMaterial = artwork.material;
+                if (authoredMaterial != null &&
+                    authoredMaterial.shader != null &&
+                    authoredMaterial.shader.name ==
+                    "ArcaneArena/UI/MainMenuHudOverlay")
+                {
+                    _mainMenuHudOverlayMaterial = authoredMaterial;
+                    _ownsMainMenuHudOverlayMaterial = false;
+                }
+            }
+
+            if (_mainMenuHudOverlayMaterial == null)
+            {
+                _mainMenuHudOverlayMaterial = Resources.Load<Material>(
+                    MainMenuHudOverlayMaterialPath);
+                _ownsMainMenuHudOverlayMaterial = false;
+            }
+
+            if (_mainMenuHudOverlayMaterial == null)
+            {
                 var shader = Resources.Load<Shader>(
                     MainMenuHudOverlayShaderPath);
                 if (shader == null)
@@ -293,11 +317,33 @@ namespace ArcaneArena.Frontend
                     name = "Material HUD da Tela Inicial (Runtime)",
                     hideFlags = HideFlags.DontSave
                 };
+                _ownsMainMenuHudOverlayMaterial = true;
             }
 
             artwork.material = _mainMenuHudOverlayMaterial;
             artwork.raycastTarget = false;
             return true;
+        }
+
+        private void ApplyAuthoredMainMenuHudOverlay()
+        {
+            if (_mainMenuSceneView == null)
+                return;
+
+            var images = _mainMenuSceneView.GetComponentsInChildren<RawImage>(
+                true);
+            for (var index = 0; index < images.Length; index++)
+            {
+                var image = images[index];
+                if (image == null ||
+                    image.name != "Moldura HUD da Tela Inicial")
+                {
+                    continue;
+                }
+
+                TryApplyMainMenuHudOverlay(image);
+                return;
+            }
         }
 
         private void CreateTemplateButton(
@@ -564,8 +610,10 @@ namespace ArcaneArena.Frontend
             if (_mainMenuHudOverlayMaterial == null)
                 return;
 
-            Destroy(_mainMenuHudOverlayMaterial);
+            if (_ownsMainMenuHudOverlayMaterial)
+                Destroy(_mainMenuHudOverlayMaterial);
             _mainMenuHudOverlayMaterial = null;
+            _ownsMainMenuHudOverlayMaterial = false;
         }
     }
 }
