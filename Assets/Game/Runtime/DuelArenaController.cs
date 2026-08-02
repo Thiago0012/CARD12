@@ -1437,6 +1437,9 @@ namespace ArcaneDuel.Game
                 status = string.IsNullOrWhiteSpace(networkState.Status)
                     ? "Duelo online sincronizado."
                     : networkState.Status;
+                // A snapshot is the host's acknowledgement of the previous
+                // response. It is now safe to enable the next legal choice.
+                presentationDecisionLocked = false;
                 // The authored arena caches the presentation-state reference.
                 // Notify it after replacing a replica snapshot so it rebinds
                 // without fabricating a Core event on this assembly boundary.

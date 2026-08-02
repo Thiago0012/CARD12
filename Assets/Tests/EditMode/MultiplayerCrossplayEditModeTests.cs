@@ -2,6 +2,7 @@ using System.IO;
 using ArcaneDuel.Game;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEngine;
 
 namespace ArcaneDuel.Tests.EditMode
 {
@@ -57,5 +58,6 @@ namespace ArcaneDuel.Tests.EditMode
                 compatibility,
                 Does.Contain(ProjectIdentity.BabelCdbCommit));
         }
+
     }
 }

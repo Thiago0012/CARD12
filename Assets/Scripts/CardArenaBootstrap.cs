@@ -140,7 +140,8 @@ namespace ArcaneArena
         private bool InteractionLocked =>
             criticalInteractionLocked ||
             phasePresentationLocked ||
-            cardPresentationDecisionLocked;
+            cardPresentationDecisionLocked ||
+            (core != null && core.PresentationDecisionLocked);
 
         public bool IsPrimaryDuelInterface => primaryDuelInterface;
         public CardCatalog CardCatalog => cardCatalog;

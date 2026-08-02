@@ -31,12 +31,15 @@ namespace ArcaneArena.Multiplayer
         private const string ProtocolVersion = "arcane-duel-online-v2";
         private const string HelloMessage = "arcane.duel.hello.v2";
         private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v2";
+        private const string HelloRejectedMessage = "arcane.duel.hello-rejected.v2";
         private const string StartMessage = "arcane.duel.start.v2";
         private const string StateMessage = "arcane.duel.state.v2";
         private const string ResponseMessage = "arcane.duel.response.v2";
         private const int MaxWireBytes = 96 * 1024;
         private const ushort NgoProtocolVersion = 2;
         private const uint NetworkTickRate = 20;
+        private const int MaximumHandshakeAttempts = 12;
+        private const float HandshakeRetrySeconds = 0.75f;
 
         private enum SessionRole
         {
@@ -76,6 +79,12 @@ namespace ArcaneArena.Multiplayer
             public string compatibility;
         }
 
+        [Serializable]
+        private sealed class HelloRejectedPayload
+        {
+            public string reason;
+        }
+
         public static DuelOnlineSession Instance { get; private set; }
 
         private NetworkManager networkManager;
@@ -93,6 +102,8 @@ namespace ArcaneArena.Multiplayer
         private Coroutine pendingStateBroadcast;
         private Coroutine helloRetry;
         private bool helloAccepted;
+        private bool connectionOperationInProgress;
+        private bool handlersRegistered;
         private bool showPanel;
         private bool focusJoinCode;
         private bool requestJoinFocus;
@@ -100,6 +111,7 @@ namespace ArcaneArena.Multiplayer
         private string roomCode = string.Empty;
         private string relayRegion = string.Empty;
         private string relayRegionDescription = string.Empty;
+        private string disconnectReason = string.Empty;
         private string status = string.Empty;
 
         public bool IsOnlineDuelActive =>
@@ -180,6 +192,7 @@ namespace ArcaneArena.Multiplayer
         {
             if (helloRetry != null)
                 StopCoroutine(helloRetry);
+            UnregisterHandlers();
             if (hostController != null)
                 hostController.CoreEventPresented -= OnHostCoreEvent;
             if (DuelOnlineBridge.SubmitReplicaChoice == SubmitRemoteChoice)
@@ -231,10 +244,12 @@ namespace ArcaneArena.Multiplayer
             }
 
             replicaController = controller;
-            replicaController.ConfigureNetworkReplica(1);
+            // DuelNetworkProtocol rotates the snapshot before sending it, so
+            // the local player's state is always slot P0 in this arena.
+            replicaController.ConfigureNetworkReplica(0);
             DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
                 false,
-                DuelPlayerSide.PlayerTwo);
+                DuelPlayerSide.PlayerOne);
             if (pendingReplicaState != null)
                 ApplyReplicaState(pendingReplicaState);
             status = "Conectado. Aguardando o host confirmar os decks.";
@@ -251,10 +266,16 @@ namespace ArcaneArena.Multiplayer
         {
             if (role != SessionRole.Client || networkManager == null ||
                 !networkManager.IsConnectedClient || response == null ||
-                response.Length == 0 || response.Length > 2048)
+                response.Length == 0 || response.Length > 2048 ||
+                replicaController?.PresentationDecisionLocked == true)
             {
                 return;
             }
+            // The replica keeps displaying the last confirmed prompt until
+            // the host processes this response. Lock it here so a double tap
+            // cannot submit two different answers for the same request.
+            replicaController?.SetPresentationDecisionLocked(true);
+            status = "Resposta enviada. Aguardando confirmação do anfitrião...";
             SendToServer(ResponseMessage, new ResponsePayload
             {
                 requestId = requestId,
@@ -282,9 +303,12 @@ namespace ArcaneArena.Multiplayer
             networkManager.NetworkConfig.NetworkTransport = transport;
             networkManager.NetworkConfig.ProtocolVersion =
                 NgoProtocolVersion;
-            networkManager.NetworkConfig.ConnectionApproval = true;
+            // Relay already limits this allocation to a single guest. An
+            // extra NGO approval round trip only makes mobile connections
+            // slower and can expire before the deck handshake begins.
+            networkManager.NetworkConfig.ConnectionApproval = false;
             networkManager.NetworkConfig.TickRate = NetworkTickRate;
-            networkManager.NetworkConfig.ClientConnectionBufferTimeout = 20;
+            networkManager.NetworkConfig.ClientConnectionBufferTimeout = 10;
             // Each peer deliberately opens the arena locally after the Relay
             // handshake. This card game has no spawned scene objects, so NGO
             // scene replication would only add races.
@@ -296,6 +320,8 @@ namespace ArcaneArena.Multiplayer
 
         private void RegisterHandlers()
         {
+            if (handlersRegistered)
+                return;
             if (networkManager?.CustomMessagingManager == null)
                 throw new InvalidOperationException(
                     "O canal de mensagens online ainda não foi inicializado.");
@@ -306,6 +332,9 @@ namespace ArcaneArena.Multiplayer
                 HelloAcceptedMessage,
                 OnHelloAcceptedMessage);
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
+                HelloRejectedMessage,
+                OnHelloRejectedMessage);
+            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
                 StartMessage,
                 OnStartMessage);
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
@@ -314,10 +343,40 @@ namespace ArcaneArena.Multiplayer
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
                 ResponseMessage,
                 OnResponseMessage);
+            handlersRegistered = true;
+        }
+
+        private void UnregisterHandlers()
+        {
+            if (!handlersRegistered ||
+                networkManager?.CustomMessagingManager == null)
+            {
+                handlersRegistered = false;
+                return;
+            }
+
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
+                HelloMessage);
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
+                HelloAcceptedMessage);
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
+                HelloRejectedMessage);
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
+                StartMessage);
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
+                StateMessage);
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
+                ResponseMessage);
+            handlersRegistered = false;
         }
 
         private async void BeginHosting()
         {
+            if (connectionOperationInProgress)
+            {
+                status = "Uma conexão já está sendo preparada. Aguarde.";
+                return;
+            }
             if (!TryGetLocalLoadout(out DuelDeckLoadout loadout, out string error))
             {
                 status = error;
@@ -328,7 +387,13 @@ namespace ArcaneArena.Multiplayer
                 status = "Já existe uma sessão online em andamento.";
                 return;
             }
+            if (networkManager != null && networkManager.ShutdownInProgress)
+            {
+                status = "A sessão anterior ainda está sendo encerrada. Aguarde.";
+                return;
+            }
 
+            connectionOperationInProgress = true;
             try
             {
                 status = "Autenticando na Unity e criando a sala...";
@@ -337,7 +402,7 @@ namespace ArcaneArena.Multiplayer
                 Allocation allocation = await RelayService.Instance
                     .CreateAllocationAsync(1);
                 relayRegion = allocation.Region ?? string.Empty;
-                await ResolveRelayRegionDescription();
+                _ = ResolveRelayRegionDescription(relayRegion);
                 transport.SetRelayServerData(
                     AllocationUtils.ToRelayServerData(allocation, "dtls"));
                 roomCode = await RelayService.Instance
@@ -357,10 +422,19 @@ namespace ArcaneArena.Multiplayer
                 ResetAfterFailedConnection(
                     $"Não foi possível criar a sala: {exception.GetBaseException().Message}");
             }
+            finally
+            {
+                connectionOperationInProgress = false;
+            }
         }
 
         private async void BeginJoining()
         {
+            if (connectionOperationInProgress)
+            {
+                status = "Uma conexão já está sendo preparada. Aguarde.";
+                return;
+            }
             if (!TryGetLocalLoadout(out DuelDeckLoadout loadout, out string error))
             {
                 status = error;
@@ -377,7 +451,13 @@ namespace ArcaneArena.Multiplayer
                 status = "Já existe uma sessão online em andamento.";
                 return;
             }
+            if (networkManager != null && networkManager.ShutdownInProgress)
+            {
+                status = "A sessão anterior ainda está sendo encerrada. Aguarde.";
+                return;
+            }
 
+            connectionOperationInProgress = true;
             try
             {
                 status = "Autenticando e entrando na sala...";
@@ -386,7 +466,7 @@ namespace ArcaneArena.Multiplayer
                 JoinAllocation allocation = await RelayService.Instance
                     .JoinAllocationAsync(normalizedCode);
                 relayRegion = allocation.Region ?? string.Empty;
-                await ResolveRelayRegionDescription();
+                _ = ResolveRelayRegionDescription(relayRegion);
                 transport.SetRelayServerData(
                     AllocationUtils.ToRelayServerData(allocation, "dtls"));
                 roomCode = normalizedCode;
@@ -403,11 +483,16 @@ namespace ArcaneArena.Multiplayer
                 ResetAfterFailedConnection(
                     $"Não foi possível entrar na sala: {exception.GetBaseException().Message}");
             }
+            finally
+            {
+                connectionOperationInProgress = false;
+            }
         }
 
         private static async Task InitializeServices()
         {
-            await UnityServices.InitializeAsync();
+            if (UnityServices.State == ServicesInitializationState.Uninitialized)
+                await UnityServices.InitializeAsync();
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
         }
@@ -442,10 +527,22 @@ namespace ArcaneArena.Multiplayer
                 clientId == networkManager.LocalClientId)
             {
                 status = "Conectado. Enviando o deck para validação do host...";
-                if (helloRetry != null)
-                    StopCoroutine(helloRetry);
-                helloRetry = StartCoroutine(SendHelloUntilAccepted());
+                StartClientDeckHandshake();
             }
+        }
+
+        private void StartClientDeckHandshake()
+        {
+            if (role != SessionRole.Client || networkManager == null ||
+                !networkManager.IsConnectedClient || localLoadout == null ||
+                helloAccepted)
+            {
+                return;
+            }
+
+            if (helloRetry != null)
+                StopCoroutine(helloRetry);
+            helloRetry = StartCoroutine(SendHelloUntilAccepted());
         }
 
         private IEnumerator SendHelloUntilAccepted()
@@ -457,7 +554,8 @@ namespace ArcaneArena.Multiplayer
             yield return null;
 
             int attempts = 0;
-            while (!helloAccepted && role == SessionRole.Client &&
+            while (attempts < MaximumHandshakeAttempts &&
+                   !helloAccepted && role == SessionRole.Client &&
                    networkManager != null && networkManager.IsConnectedClient &&
                    localLoadout != null)
             {
@@ -474,9 +572,14 @@ namespace ArcaneArena.Multiplayer
                 status = attempts == 1
                     ? "Lobby conectado. Enviando o deck ao anfitriao..."
                     : $"Aguardando confirmacao do anfitriao. Reenviando deck ({attempts})...";
-                yield return new WaitForSecondsRealtime(1f);
+                yield return new WaitForSecondsRealtime(HandshakeRetrySeconds);
             }
 
+            if (!helloAccepted && role == SessionRole.Client &&
+                networkManager != null && networkManager.IsConnectedClient)
+            {
+                status = "Deck enviado. Aguarde o anfitriao iniciar ou confirme que ambos usam o protocolo online v2.";
+            }
             helloRetry = null;
         }
 
@@ -501,7 +604,10 @@ namespace ArcaneArena.Multiplayer
             if (clientId == networkManager.LocalClientId && !networkManager.IsServer)
             {
                 helloAccepted = false;
-                status = "A conexão com o host foi encerrada.";
+                UnregisterHandlers();
+                status = string.IsNullOrWhiteSpace(disconnectReason)
+                    ? "A conexão com o host foi encerrada."
+                    : disconnectReason;
                 replicaController?.SetPresentationDecisionLocked(true);
             }
         }
@@ -519,7 +625,9 @@ namespace ArcaneArena.Multiplayer
             if (!ValidateHello(hello, out string rejection))
             {
                 status = rejection;
-                networkManager.DisconnectClient(senderClientId);
+                SendToClient(senderClientId, HelloRejectedMessage,
+                    new HelloRejectedPayload { reason = rejection });
+                StartCoroutine(DisconnectRejectedClient(senderClientId));
                 return;
             }
             remoteLoadout = hello.loadout;
@@ -539,9 +647,7 @@ namespace ArcaneArena.Multiplayer
             if (role != SessionRole.Client ||
                 senderClientId != NetworkManager.ServerClientId ||
                 !TryRead(reader, out HelloAcceptedPayload accepted) ||
-                accepted.protocolVersion != ProtocolVersion ||
-                accepted.compatibility !=
-                    ProjectIdentity.MultiplayerCompatibility)
+                accepted.protocolVersion != ProtocolVersion)
             {
                 return;
             }
@@ -553,6 +659,37 @@ namespace ArcaneArena.Multiplayer
                 helloRetry = null;
             }
             status = "Deck validado. Aguardando o anfitriao iniciar a partida.";
+        }
+
+        private void OnHelloRejectedMessage(
+            ulong senderClientId,
+            FastBufferReader reader)
+        {
+            if (role != SessionRole.Client ||
+                senderClientId != NetworkManager.ServerClientId ||
+                !TryRead(reader, out HelloRejectedPayload rejection))
+            {
+                return;
+            }
+
+            disconnectReason = string.IsNullOrWhiteSpace(rejection.reason)
+                ? "O anfitriao recusou o deck enviado."
+                : rejection.reason;
+            status = disconnectReason;
+            if (helloRetry != null)
+            {
+                StopCoroutine(helloRetry);
+                helloRetry = null;
+            }
+        }
+
+        private IEnumerator DisconnectRejectedClient(ulong clientId)
+        {
+            // Give the reliable rejection packet enough time to leave the
+            // host before releasing the reserved Relay slot.
+            yield return new WaitForSecondsRealtime(1f);
+            if (networkManager != null && networkManager.IsServer)
+                networkManager.DisconnectClient(clientId);
         }
 
         private void BeginHostMatch()
@@ -573,14 +710,18 @@ namespace ArcaneArena.Multiplayer
                 senderClientId != NetworkManager.ServerClientId ||
                 !TryRead(reader, out StartPayload start) ||
                 start.protocolVersion != ProtocolVersion ||
-                start.compatibility !=
-                    ProjectIdentity.MultiplayerCompatibility ||
                 matchStarted)
             {
                 return;
             }
 
             matchStarted = true;
+            helloAccepted = true;
+            if (helloRetry != null)
+            {
+                StopCoroutine(helloRetry);
+                helloRetry = null;
+            }
             status = "Decks validados. Abrindo a arena...";
             showPanel = false;
             OpenDuelArena();
@@ -727,13 +868,15 @@ namespace ArcaneArena.Multiplayer
         {
             rejection = string.Empty;
             if (hello == null || hello.loadout == null ||
-                hello.protocolVersion != ProtocolVersion ||
-                hello.compatibility !=
-                    ProjectIdentity.MultiplayerCompatibility ||
-                hello.coreApiVersion != ProjectIdentity.CoreApiVersion ||
-                hello.coreCommit != ProjectIdentity.CoreCommit)
+                hello.protocolVersion != ProtocolVersion)
             {
-                rejection = "O rival usa uma versão incompatível do jogo ou do Core.";
+                rejection = "O rival usa um protocolo online incompatível. Ambos precisam usar o protocolo v2.";
+                return false;
+            }
+            if (!string.IsNullOrWhiteSpace(hello.coreApiVersion) &&
+                hello.coreApiVersion != ProjectIdentity.CoreApiVersion)
+            {
+                rejection = "O rival usa uma API de regras incompatível com esta partida.";
                 return false;
             }
             int mainCount = hello.loadout.mainDeckCardIds?.Count ?? 0;
@@ -849,6 +992,7 @@ namespace ArcaneArena.Multiplayer
             roomCode = string.Empty;
             relayRegion = string.Empty;
             relayRegionDescription = string.Empty;
+            disconnectReason = string.Empty;
             role = SessionRole.None;
             localLoadout = null;
             remoteLoadout = null;
@@ -856,6 +1000,7 @@ namespace ArcaneArena.Multiplayer
             matchStarted = false;
             pendingStateBroadcast = null;
             helloAccepted = false;
+            UnregisterHandlers();
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
@@ -947,7 +1092,10 @@ namespace ArcaneArena.Multiplayer
                 GUI.SetNextControlName("ArcaneJoinCode");
                 requestJoinFocus = false;
             }
-            GUI.enabled = !IsOnlineDuelActive;
+            bool canStartConnection = !IsOnlineDuelActive &&
+                !connectionOperationInProgress &&
+                (networkManager == null || !networkManager.ShutdownInProgress);
+            GUI.enabled = canStartConnection;
             joinCode = GUI.TextField(
                 new Rect(margin, 204f, 412f, 42f), joinCode ?? string.Empty,
                 lobbyInputStyle).Trim().ToUpperInvariant();
@@ -957,7 +1105,7 @@ namespace ArcaneArena.Multiplayer
             GUI.backgroundColor = new Color(0.22f, 0.82f, 0.90f, 1f);
             if (GUI.Button(new Rect(464f, 204f, 138f, 42f), "CRIAR SALA", lobbyButtonStyle))
                 BeginHosting();
-            GUI.enabled = !IsOnlineDuelActive;
+            GUI.enabled = canStartConnection;
             GUI.backgroundColor = new Color(0.68f, 1f, 0.16f, 1f);
             if (GUI.Button(new Rect(464f, 254f, 138f, 42f), "ENTRAR", lobbyButtonStyle))
                 BeginJoining();
@@ -1036,11 +1184,17 @@ namespace ArcaneArena.Multiplayer
                 : relayRegion.ToUpperInvariant();
         }
 
-        private async Task ResolveRelayRegionDescription()
+        private async Task ResolveRelayRegionDescription(string allocationRegion)
         {
-            relayRegionDescription = string.Empty;
-            if (string.IsNullOrWhiteSpace(relayRegion))
+            if (string.IsNullOrWhiteSpace(allocationRegion))
                 return;
+            if (string.Equals(
+                    relayRegion,
+                    allocationRegion,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                relayRegionDescription = string.Empty;
+            }
 
             try
             {
@@ -1048,10 +1202,17 @@ namespace ArcaneArena.Multiplayer
                 {
                     if (string.Equals(
                             region.Id,
-                            relayRegion,
+                            allocationRegion,
                             StringComparison.OrdinalIgnoreCase))
                     {
-                        relayRegionDescription = region.Description ?? string.Empty;
+                        if (string.Equals(
+                                relayRegion,
+                                allocationRegion,
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            relayRegionDescription =
+                                region.Description ?? string.Empty;
+                        }
                         return;
                     }
                 }
