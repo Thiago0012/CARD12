@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using ArcaneDuel.DuelEngine.Protocol;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,23 +8,51 @@ namespace ArcaneArena
 {
     public sealed partial class CardArenaBootstrap
     {
+        private sealed class ZoneBrowserEntry
+        {
+            public uint Code { get; }
+            public uint CoreSequence { get; }
+            public IReadOnlyList<DuelChoice> LegalChoices { get; }
+
+            public ZoneBrowserEntry(
+                uint code,
+                uint coreSequence,
+                IReadOnlyList<DuelChoice> legalChoices)
+            {
+                Code = code;
+                CoreSequence = coreSequence;
+                LegalChoices = legalChoices ?? new List<DuelChoice>();
+            }
+        }
+
         private readonly List<Outline> zoneBrowserChoiceOutlines = new();
         private Button zoneBrowserConfirm;
+        private Button zoneBrowserCancel;
         private DuelPrompt zoneBrowserPrompt;
         private IReadOnlyList<DuelChoice> zoneBrowserStagedChoices;
         private Outline zoneBrowserSelectedOutline;
+        private bool zoneBrowserSummonMode;
 
         private void BuildZoneBrowserConfirmation(Transform tray)
         {
             zoneBrowserConfirm = CreateButton(
                 tray,
                 "Confirmar Carta da Zona",
-                "CONFIRMAR ESCOLHA",
-                new Vector2(0.34f, 0.025f),
-                new Vector2(0.66f, 0.145f),
+                "SELECIONAR",
+                new Vector2(0.245f, 0.025f),
+                new Vector2(0.495f, 0.145f),
                 EffectGlow,
                 ConfirmZoneBrowserSelection);
             zoneBrowserConfirm.interactable = false;
+
+            zoneBrowserCancel = CreateButton(
+                tray,
+                "Cancelar Carta da Zona",
+                "NÃO FAZER NADA",
+                new Vector2(0.505f, 0.025f),
+                new Vector2(0.755f, 0.145f),
+                Muted,
+                CancelZoneBrowserSelection);
         }
 
         private void ConfigureZoneBrowserTrayArtwork()
@@ -45,12 +74,89 @@ namespace ArcaneArena
                 1,
                 MaximumVisibleChoiceCards);
             float width = 0.22f + visible * 0.066f;
-            const float center = 0.62f;
+            width = Mathf.Min(width, 0.88f);
+            const float center = 0.5f;
             RectTransform rect =
                 zoneBrowserTray.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(center - width * 0.5f, 0.25f);
             rect.anchorMax = new Vector2(center + width * 0.5f, 0.71f);
             rect.offsetMin = rect.offsetMax = Vector2.zero;
+        }
+
+        private void ConfigureZoneBrowserActionMode(bool summonMode)
+        {
+            zoneBrowserSummonMode = summonMode;
+            if (zoneBrowserConfirm == null)
+                return;
+            Text label = zoneBrowserConfirm.GetComponentInChildren<Text>(true);
+            if (label != null)
+                label.text = summonMode ? "INVOCAR" : "SELECIONAR";
+        }
+
+        private List<ZoneBrowserEntry> BuildZoneBrowserEntries(
+            bool browsingExtraDeck,
+            IReadOnlyList<DuelChoice> legalChoices)
+        {
+            var entries = new List<ZoneBrowserEntry>();
+            if (!browsingExtraDeck)
+            {
+                if (legalChoices == null)
+                    return entries;
+                foreach (DuelChoice choice in legalChoices)
+                {
+                    if (choice == null || choice.CardCode == 0)
+                        continue;
+                    entries.Add(new ZoneBrowserEntry(
+                        choice.CardCode,
+                        choice.Sequence,
+                        new[] { choice }));
+                }
+                return entries;
+            }
+
+            uint[] extraDeck = core?.PlayerExtraDeckCards?.ToArray() ??
+                               System.Array.Empty<uint>();
+            bool coreOfferedActions = legalChoices != null &&
+                                      legalChoices.Count > 0;
+            if (!coreOfferedActions)
+            {
+                for (uint sequence = 0; sequence < extraDeck.Length; sequence++)
+                {
+                    uint code = extraDeck[sequence];
+                    if (code != 0)
+                    {
+                        entries.Add(new ZoneBrowserEntry(
+                            code,
+                            sequence,
+                            System.Array.Empty<DuelChoice>()));
+                    }
+                }
+                return entries;
+            }
+
+            // The Core already validated summon method, materials, timing and
+            // available zones. Presentation must expose only those exact
+            // choices, preserving the Core sequence instead of recomputing
+            // legality from card artwork or metadata.
+            foreach (IGrouping<uint, DuelChoice> group in legalChoices
+                         .Where(choice => choice != null)
+                         .GroupBy(choice => choice.Sequence)
+                         .OrderBy(group => group.Key))
+            {
+                DuelChoice[] groupedChoices = group.ToArray();
+                uint code = groupedChoices
+                    .Select(choice => choice.CardCode)
+                    .FirstOrDefault(value => value != 0);
+                if (code == 0 && group.Key < extraDeck.Length)
+                    code = extraDeck[group.Key];
+                if (code == 0)
+                    continue;
+                entries.Add(new ZoneBrowserEntry(
+                    code,
+                    group.Key,
+                    groupedChoices));
+            }
+            return entries;
         }
 
         private void ResetZoneBrowserSelection(
@@ -110,7 +216,9 @@ namespace ArcaneArena
             }
             zoneBrowserConfirm.interactable = true;
             SetStatus(
-                $"{CardName(code)} selecionada. Confirme para continuar.",
+                zoneBrowserSummonMode
+                    ? $"{CardName(code)} selecionada. Confirme a Invocação."
+                    : $"{CardName(code)} selecionada. Confirme para continuar.",
                 EffectGlow);
         }
 
@@ -125,6 +233,16 @@ namespace ArcaneArena
             SubmitZoneBrowserAction(
                 zoneBrowserPrompt,
                 zoneBrowserStagedChoices);
+        }
+
+        private void CancelZoneBrowserSelection()
+        {
+            CloseZoneBrowser();
+            SetStatus(
+                zoneBrowserSummonMode
+                    ? "Invocação do Deck Adicional cancelada."
+                    : "Nenhuma ação foi escolhida.",
+                Muted);
         }
     }
 }

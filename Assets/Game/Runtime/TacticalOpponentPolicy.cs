@@ -331,7 +331,13 @@ namespace ArcaneDuel.Game
         private static DuelChoice ChooseCentralLegalZone(DuelPrompt prompt)
         {
             int[] preference = { 2, 1, 3, 0, 4, 5, 6 };
-            return prompt.Choices
+            int required = Math.Max(
+                1,
+                checked((int)prompt.MaximumSelections));
+            if (required > 1)
+                return DeterministicDuelPolicy.Choose(prompt);
+
+            DuelChoice[] selected = prompt.Choices
                 .OrderBy(choice =>
                 {
                     int rank = Array.IndexOf(
@@ -340,7 +346,11 @@ namespace ArcaneDuel.Game
                     return rank < 0 ? int.MaxValue : rank;
                 })
                 .ThenBy(choice => choice.ChoiceIndex)
-                .First();
+                .Take(required)
+                .ToArray();
+            if (selected.Length == 0)
+                return null;
+            return selected[0];
         }
 
         private static DuelChoice ChooseSingleCard(

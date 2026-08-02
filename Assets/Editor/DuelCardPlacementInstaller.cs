@@ -65,6 +65,7 @@ namespace ArcaneArena.Editor
             Scene scene = EnsureDuelScene();
             RectTransform frame = FindUniversalFrame();
             DuelSceneZonePreview[] handles = FindPreviewHandles();
+            NormalizeMainMonsterPreviewSizes(handles);
             int applied = 0;
             foreach (DuelSceneZonePreview handle in handles)
             {
@@ -78,6 +79,49 @@ namespace ArcaneArena.Editor
             Debug.Log(
                 $"ARCANE_DUEL_AUTHORING_POSITIONS_APPLIED={applied}; " +
                 "identidades e regras das zonas foram preservadas.");
+        }
+
+        private static void NormalizeMainMonsterPreviewSizes(
+            IReadOnlyList<DuelSceneZonePreview> handles)
+        {
+            if (handles == null)
+                return;
+            foreach (DuelPlayerSide owner in new[]
+                     {
+                         DuelPlayerSide.PlayerOne,
+                         DuelPlayerSide.PlayerTwo
+                     })
+            {
+                DuelSceneZonePreview reference = handles.FirstOrDefault(
+                    handle =>
+                        handle != null &&
+                        handle.TargetZone != null &&
+                        handle.TargetZone.Owner == owner &&
+                        handle.TargetZone.Kind == DuelZoneKind.Monster &&
+                        handle.TargetZone.ZoneIndex == 2);
+                if (reference == null ||
+                    !(reference.transform is RectTransform referenceRect))
+                {
+                    continue;
+                }
+
+                foreach (DuelSceneZonePreview handle in handles)
+                {
+                    if (handle == null ||
+                        handle.TargetZone == null ||
+                        handle.TargetZone.Owner != owner ||
+                        handle.TargetZone.Kind != DuelZoneKind.Monster ||
+                        handle.TargetZone.ZoneIndex < 0 ||
+                        handle.TargetZone.ZoneIndex > 4 ||
+                        !(handle.transform is RectTransform rect))
+                    {
+                        continue;
+                    }
+                    rect.sizeDelta = referenceRect.sizeDelta;
+                    rect.localScale = referenceRect.localScale;
+                    EditorUtility.SetDirty(rect);
+                }
+            }
         }
 
         [MenuItem("Card Game/Duelo/Aplicar imagem escolhida a arena")]
@@ -110,7 +154,7 @@ namespace ArcaneArena.Editor
             EditorUtility.SetDirty(arena);
             DuelZone3D[] zones = arena
                 .GetComponentsInChildren<DuelZone3D>(true);
-            RestoreSnapshots(zones, snapshots);
+            RestoreSnapshots(frame, zones, snapshots);
             PrepareScenePreview(frame, zones, texture);
             RefreshRegistry();
             Save(scene);
@@ -190,6 +234,30 @@ namespace ArcaneArena.Editor
             Vector2 size = IsPile(zone.Kind)
                 ? new Vector2(88f, 126f)
                 : new Vector2(76f, 110f);
+            float authoredAngle = -anchor.eulerAngles.y;
+            DuelAuthoredZoneLayout authoredLayout =
+                parent.GetComponentInParent<DuelAuthoredZoneLayout>(true);
+            if (authoredLayout != null &&
+                authoredLayout.TryGet(
+                    zone.StableId,
+                    out DuelAuthoredZoneLayout.Entry authored))
+            {
+                normalized = authored.ViewportCenter;
+                RectTransform frame = authoredLayout.transform as RectTransform;
+                if (frame != null)
+                {
+                    Vector2 rightPixels = new Vector2(
+                        authored.ViewportRightHalfAxis.x * frame.rect.width,
+                        authored.ViewportRightHalfAxis.y * frame.rect.height);
+                    Vector2 upPixels = new Vector2(
+                        authored.ViewportUpHalfAxis.x * frame.rect.width,
+                        authored.ViewportUpHalfAxis.y * frame.rect.height);
+                    size = new Vector2(
+                        rightPixels.magnitude * 2f,
+                        upPixels.magnitude * 2f);
+                }
+                authoredAngle = authored.ScreenAngle;
+            }
 
             var item = new GameObject(
                 $"{SideName(zone.Owner)} - {KindName(zone.Kind)} " +
@@ -204,11 +272,11 @@ namespace ArcaneArena.Editor
             rect.anchorMin = rect.anchorMax = normalized;
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = Vector2.zero;
-            rect.sizeDelta = size * Mathf.Max(0.1f, anchor.localScale.y);
+            rect.sizeDelta = size;
             rect.localEulerAngles = new Vector3(
                 0f,
                 0f,
-                -anchor.eulerAngles.y);
+                authoredAngle);
 
             bool representativeMonster =
                 zone.Kind == DuelZoneKind.Monster &&
@@ -394,17 +462,28 @@ namespace ArcaneArena.Editor
                 {
                     continue;
                 }
+                if (!DuelSceneZonePreview.TryCaptureLayout(
+                        frame,
+                        rect,
+                        out Vector2 center,
+                        out Vector2 rightHalfAxis,
+                        out Vector2 upHalfAxis,
+                        out float angle))
+                {
+                    continue;
+                }
                 result.Add(new HandleSnapshot(
                     handle.TargetZone.StableId,
-                    NormalizedCenter(frame, rect),
-                    rect.localEulerAngles.z,
-                    rect.rect.height /
-                    Mathf.Max(1f, handle.ReferenceCardSize.y)));
+                    center,
+                    rightHalfAxis,
+                    upHalfAxis,
+                    angle));
             }
             return result;
         }
 
         private static void RestoreSnapshots(
+            RectTransform frame,
             DuelZone3D[] zones,
             List<HandleSnapshot> snapshots)
         {
@@ -413,64 +492,29 @@ namespace ArcaneArena.Editor
                                !string.IsNullOrWhiteSpace(zone.StableId))
                 .GroupBy(zone => zone.StableId)
                 .ToDictionary(group => group.Key, group => group.First());
+            DuelAuthoredZoneLayout layout =
+                frame.GetComponent<DuelAuthoredZoneLayout>();
+            if (layout == null)
+                layout = frame.gameObject.AddComponent<DuelAuthoredZoneLayout>();
             foreach (HandleSnapshot snapshot in snapshots)
             {
                 if (!byId.TryGetValue(snapshot.StableId, out DuelZone3D zone))
                     continue;
-                ApplyPresentation(
+                Transform pile = zone.transform.Find("Card Stack");
+                Transform surface = zone.transform.Find("Card Inset");
+                BoxCollider collider = zone.GetComponent<BoxCollider>();
+                layout.Upsert(
                     zone,
-                    snapshot.Normalized,
+                    snapshot.Center,
+                    snapshot.RightHalfAxis,
+                    snapshot.UpHalfAxis,
                     snapshot.Angle,
-                    snapshot.Scale);
+                    pile != null ? pile.localScale : Vector3.zero,
+                    surface != null ? surface.localScale : Vector3.zero,
+                    collider != null ? collider.size : Vector3.zero);
+                layout.ApplyOne(zone);
             }
-        }
-
-        private static void ApplyPresentation(
-            DuelZone3D zone,
-            Vector2 normalized,
-            float angle,
-            float scale)
-        {
-            Transform pile = zone.transform.Find("Card Stack");
-            Vector3 pileReferenceScale = pile != null
-                ? pile.localScale
-                : Vector3.zero;
-            Transform dropSurface = zone.transform.Find("Card Inset");
-            Vector3 dropSurfaceReferenceScale = dropSurface != null
-                ? dropSurface.localScale
-                : Vector3.zero;
-            BoxCollider collider = zone.GetComponent<BoxCollider>();
-            Vector3 colliderReferenceSize = collider != null
-                ? collider.size
-                : Vector3.zero;
-            DuelSceneZonePreview.ApplyPresentationToZone(
-                zone,
-                normalized,
-                angle,
-                scale,
-                pileReferenceScale,
-                dropSurfaceReferenceScale,
-                colliderReferenceSize);
-            EditorUtility.SetDirty(zone.CardPresentationAnchor);
-            if (pile != null)
-                EditorUtility.SetDirty(pile);
-            if (dropSurface != null)
-                EditorUtility.SetDirty(dropSurface);
-            if (collider != null)
-                EditorUtility.SetDirty(collider);
-            EditorUtility.SetDirty(zone.transform);
-            EditorUtility.SetDirty(zone);
-        }
-
-        private static Vector2 NormalizedCenter(
-            RectTransform frame,
-            RectTransform rect)
-        {
-            Vector3 world = rect.TransformPoint(rect.rect.center);
-            Vector3 local = frame.InverseTransformPoint(world);
-            return new Vector2(
-                Mathf.InverseLerp(frame.rect.xMin, frame.rect.xMax, local.x),
-                Mathf.InverseLerp(frame.rect.yMin, frame.rect.yMax, local.y));
+            EditorUtility.SetDirty(layout);
         }
 
         private static Scene EnsureDuelScene()
@@ -667,20 +711,23 @@ namespace ArcaneArena.Editor
         private readonly struct HandleSnapshot
         {
             public readonly string StableId;
-            public readonly Vector2 Normalized;
+            public readonly Vector2 Center;
+            public readonly Vector2 RightHalfAxis;
+            public readonly Vector2 UpHalfAxis;
             public readonly float Angle;
-            public readonly float Scale;
 
             public HandleSnapshot(
                 string stableId,
-                Vector2 normalized,
-                float angle,
-                float scale)
+                Vector2 center,
+                Vector2 rightHalfAxis,
+                Vector2 upHalfAxis,
+                float angle)
             {
                 StableId = stableId;
-                Normalized = normalized;
+                Center = center;
+                RightHalfAxis = rightHalfAxis;
+                UpHalfAxis = upHalfAxis;
                 Angle = angle;
-                Scale = scale;
             }
         }
     }

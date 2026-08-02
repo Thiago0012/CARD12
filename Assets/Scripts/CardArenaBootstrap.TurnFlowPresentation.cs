@@ -27,6 +27,7 @@ namespace ArcaneArena
         private const float DrawClickTimeoutSeconds = 5f;
         private const float DrawRevealHoldSeconds = 1.8f;
         private const float DrawRevealFastForwardSeconds = 0.18f;
+        private const float TurnFlowWatchdogSeconds = 20f;
         private readonly Queue<DuelEvent> deferredBattlePresentations = new();
 
         private bool phasePresentationLocked;
@@ -46,6 +47,7 @@ namespace ArcaneArena
         private Vector3 activeDrawStartPosition;
         private bool drawRevealCanFastForward;
         private bool drawRevealFastForwardRequested;
+        private float turnFlowPresentationStartedAt;
 
         private void PrepareTurnFlowPresentation(DuelEvent duelEvent)
         {
@@ -80,6 +82,7 @@ namespace ArcaneArena
                 return;
 
             phasePresentationLocked = true;
+            turnFlowPresentationStartedAt = Time.realtimeSinceStartup;
             if (automaticPromptRoutine != null)
             {
                 StopCoroutine(automaticPromptRoutine);
@@ -182,10 +185,11 @@ namespace ArcaneArena
             {
                 CreateDrawGhost(deck);
                 float elapsed = 0f;
+                float waitStartedAt = Time.realtimeSinceStartup;
                 while (!drawDeckClickRequested &&
                        elapsed < DrawClickTimeoutSeconds)
                 {
-                    elapsed += Time.unscaledDeltaTime;
+                    elapsed = Time.realtimeSinceStartup - waitStartedAt;
                     UpdateDrawGhost(deck, elapsed);
                     int remaining = Mathf.Max(
                         1,
@@ -482,18 +486,19 @@ namespace ArcaneArena
                 "CARTA COMPRADA · clique para acelerar",
                 Cyan);
             float holdElapsed = 0f;
+            float holdStartedAt = Time.realtimeSinceStartup;
             while (holdElapsed < DrawRevealHoldSeconds)
             {
                 if (cardObject == null)
                     yield break;
                 if (drawRevealFastForwardRequested && holdElapsed > 0.10f)
                 {
-                    holdElapsed = Mathf.Max(
-                        holdElapsed,
-                        DrawRevealHoldSeconds -
-                        DrawRevealFastForwardSeconds);
+                    holdStartedAt = Time.realtimeSinceStartup -
+                        (DrawRevealHoldSeconds -
+                         DrawRevealFastForwardSeconds);
+                    drawRevealFastForwardRequested = false;
                 }
-                holdElapsed += Time.unscaledDeltaTime;
+                holdElapsed = Time.realtimeSinceStartup - holdStartedAt;
                 float pulse = 1f + 0.018f * Mathf.Sin(
                     holdElapsed * 5.6f);
                 cardObject.transform.localScale = revealScale * pulse;
@@ -591,16 +596,17 @@ namespace ArcaneArena
             drawRevealCanFastForward = true;
             SetStatus("CARTA COMPRADA · clique para acelerar", Cyan);
             float holdElapsed = 0f;
+            float holdStartedAt = Time.realtimeSinceStartup;
             while (holdElapsed < DrawRevealHoldSeconds)
             {
                 if (drawRevealFastForwardRequested && holdElapsed > 0.10f)
                 {
-                    holdElapsed = Mathf.Max(
-                        holdElapsed,
-                        DrawRevealHoldSeconds -
-                        DrawRevealFastForwardSeconds);
+                    holdStartedAt = Time.realtimeSinceStartup -
+                        (DrawRevealHoldSeconds -
+                         DrawRevealFastForwardSeconds);
+                    drawRevealFastForwardRequested = false;
                 }
-                holdElapsed += Time.unscaledDeltaTime;
+                holdElapsed = Time.realtimeSinceStartup - holdStartedAt;
                 float pulse = 1f + 0.018f *
                               Mathf.Sin(holdElapsed * 5.6f);
                 SetDrawUiPose(
@@ -758,9 +764,34 @@ namespace ArcaneArena
             ReplayDeferredBattlePresentations();
         }
 
+        private void RecoverStalledTurnFlowPresentation()
+        {
+            if (!phasePresentationLocked ||
+                turnFlowPresentationStartedAt <= 0f ||
+                Time.realtimeSinceStartup - turnFlowPresentationStartedAt <
+                    TurnFlowWatchdogSeconds)
+            {
+                return;
+            }
+
+            Debug.LogError(
+                "[Arcane Duel] A apresentação de fase excedeu 20 segundos; " +
+                "liberando a réplica sem alterar o estado do Core.");
+            announcementQueue.Clear();
+            if (announcementRoutine != null)
+            {
+                StopCoroutine(announcementRoutine);
+                announcementRoutine = null;
+            }
+            ResetTurnFlowPresentation(true);
+            observedPrompt = null;
+            RefreshEverything(true);
+        }
+
         private void ResetTurnFlowPresentation(bool restoreDeck)
         {
             phasePresentationLocked = false;
+            turnFlowPresentationStartedAt = 0f;
             presentationPhaseOverride = null;
             awaitingDrawDeckClick = false;
             drawDeckClickRequested = false;

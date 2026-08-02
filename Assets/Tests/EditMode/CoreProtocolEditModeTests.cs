@@ -181,6 +181,100 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void MultiplePlacesAreReturnedInOneCompleteCoreResponse()
+        {
+            var payload = new List<byte> { 0, 2 };
+            uint unavailable = uint.MaxValue &
+                ~(1u << 2) &
+                ~(1u << 9);
+            UInt32(payload, unavailable);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectPlace,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt.Forced, Is.True);
+            Assert.That(prompt.MinimumSelections, Is.EqualTo(2));
+            Assert.That(prompt.MaximumSelections, Is.EqualTo(2));
+            Assert.That(prompt.Choices, Has.Count.EqualTo(2));
+            Assert.That(
+                prompt.Choices.Select(choice => choice.ChoiceIndex),
+                Is.EqualTo(new[] { 0, 1 }));
+
+            byte[] expected =
+            {
+                0,
+                (byte)DuelLocation.MonsterZone,
+                2,
+                0,
+                (byte)DuelLocation.SpellTrapZone,
+                1
+            };
+            byte[] response = CoreMessageDecoder.PlaceSelectionResponse(
+                prompt.Choices);
+            Assert.That(response, Is.EqualTo(expected));
+            Assert.That(
+                CoreMessageDecoder.IsValidPlaceSelectionResponse(
+                    prompt,
+                    response),
+                Is.True);
+
+            DuelChoice deterministic =
+                DeterministicDuelPolicy.Choose(prompt);
+            Assert.That(deterministic.Response, Is.EqualTo(expected));
+            Assert.That(
+                CoreCardActionBinding.BelongsToRequest(
+                    prompt,
+                    deterministic),
+                Is.True);
+
+            DuelChoice tactical =
+                TacticalOpponentPolicy.Choose(prompt, null, null);
+            Assert.That(tactical.Response.Length, Is.EqualTo(6));
+            Assert.That(
+                CoreMessageDecoder.IsValidPlaceSelectionResponse(
+                    prompt,
+                    tactical.Response),
+                Is.True);
+        }
+
+        [Test]
+        public void MultiplePlaceResponseRejectsDuplicateOrPartialZones()
+        {
+            var payload = new List<byte> { 0, 2 };
+            uint unavailable = uint.MaxValue &
+                ~(1u << 1) &
+                ~(1u << 3);
+            UInt32(payload, unavailable);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectDisableField,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+            byte[] oneZone = prompt.Choices[0].Response;
+            byte[] duplicate = CoreMessageDecoder.PlaceSelectionResponse(
+                new[] { prompt.Choices[0], prompt.Choices[0] });
+
+            Assert.That(
+                CoreMessageDecoder.IsValidPlaceSelectionResponse(
+                    prompt,
+                    oneZone),
+                Is.False);
+            Assert.That(
+                CoreMessageDecoder.IsValidPlaceSelectionResponse(
+                    prompt,
+                    duplicate),
+                Is.False);
+        }
+
+        [Test]
         public void OpponentPlaceMaskMapsToTheAbsoluteOpponentField()
         {
             var payload = new List<byte> { 1, 1 };
@@ -265,6 +359,82 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(
                 DuelPromptPresentationRules.RequiresVisibleResponseTray(prompt),
                 Is.True);
+            Assert.That(
+                DuelPromptPresentationRules.ShouldUseCompactResponseBar(prompt),
+                Is.True);
+            Assert.That(
+                DuelPromptPresentationRules.ActionableResponseChoices(prompt),
+                Has.Count.EqualTo(1));
+            Assert.That(
+                DuelPromptPresentationRules.DeclineChoice(prompt)?.Label,
+                Does.Contain("responder"));
+        }
+
+        [Test]
+        public void ForcedChainStillOpensTheCompleteResponseTray()
+        {
+            var payload = new List<byte> { 0, 0, 1 };
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            UInt32(payload, 1);
+            UInt32(payload, 89631139);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.SpellTrapZone,
+                0,
+                8);
+            UInt64(payload, 0);
+            payload.Add(0);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectChain,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt.Forced, Is.True);
+            Assert.That(
+                DuelPromptPresentationRules.ShouldUseCompactResponseBar(prompt),
+                Is.False);
+            Assert.That(
+                DuelPromptPresentationRules.DeclineChoice(prompt),
+                Is.Null);
+        }
+
+        [Test]
+        public void EffectQuestionUsesCompactRespondOrPassControls()
+        {
+            var payload = new List<byte> { 0 };
+            UInt32(payload, 97268402);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.Hand,
+                2,
+                1);
+            UInt64(payload, 0);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectEffectYesNo,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(
+                DuelPromptPresentationRules.ShouldUseCompactResponseBar(prompt),
+                Is.True);
+            Assert.That(
+                DuelPromptPresentationRules.ActionableResponseChoices(prompt)
+                    .Single().Label,
+                Does.Contain("Ativar"));
+            Assert.That(
+                DuelPromptPresentationRules.DeclineChoice(prompt)?.Label,
+                Does.Contain("ativar"));
         }
 
         [Test]
@@ -302,6 +472,40 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(
                 prompt.Choices[1].Response,
                 Is.EqualTo(CoreMessageDecoder.IntResponse(-1)));
+            Assert.That(
+                DeterministicDuelPolicy.Choose(prompt),
+                Is.SameAs(prompt.Choices[0]),
+                "A política deve selecionar ao menos uma carta antes de concluir.");
+        }
+
+        [Test]
+        public void UnselectPolicyFinishesAfterASelectedCardExists()
+        {
+            var payload = new List<byte> { 0, 1, 0 };
+            UInt32(payload, 1);
+            UInt32(payload, 2);
+            UInt32(payload, 0);
+            UInt32(payload, 1);
+            UInt32(payload, 89631139);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.Hand,
+                3,
+                1);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectUnselectCard,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(
+                DeterministicDuelPolicy.Choose(prompt),
+                Is.SameAs(prompt.Choices[1]),
+                "A política deve concluir depois que já existe uma carta selecionada.");
         }
 
         [Test]

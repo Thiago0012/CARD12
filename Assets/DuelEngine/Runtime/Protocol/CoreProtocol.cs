@@ -1307,6 +1307,10 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 message == CoreMessage.SelectDisableField
                     ? "Escolha uma zona para desabilitar"
                     : "Escolha uma zona");
+            prompt.Forced = true;
+            prompt.MinimumSelections = count;
+            prompt.MaximumSelections = count;
+            int choiceIndex = 0;
             for (byte relativeController = 0;
                  relativeController < 2;
                  relativeController++)
@@ -1335,14 +1339,15 @@ namespace ArcaneDuel.DuelEngine.Protocol
                                 new[] { controller, location, sequence },
                                 controller,
                                 location,
-                                sequence));
+                                sequence,
+                                choiceIndex++));
                         }
                     }
                 }
             }
             if (count > 1)
             {
-                prompt.DetailTitle($"Escolha {count} zonas (primeira escolha disponível nesta fatia)");
+                prompt.DetailTitle($"Escolha {count} zonas");
             }
             return prompt;
         }
@@ -1478,6 +1483,70 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 WriteUInt32(response, 8 + (i * 4), indexes[i]);
             }
             return response;
+        }
+
+        public static byte[] PlaceSelectionResponse(
+            IEnumerable<DuelChoice> choices)
+        {
+            DuelChoice[] selected = choices?.ToArray() ??
+                Array.Empty<DuelChoice>();
+            if (selected.Length == 0)
+            {
+                throw new ArgumentException(
+                    "At least one field zone must be selected.",
+                    nameof(choices));
+            }
+
+            byte[] response = new byte[selected.Length * 3];
+            for (int index = 0; index < selected.Length; index++)
+            {
+                byte[] zone = selected[index]?.Response;
+                if (zone == null || zone.Length != 3)
+                {
+                    throw new ArgumentException(
+                        "Every selected field zone must contain a three-byte response.",
+                        nameof(choices));
+                }
+                Buffer.BlockCopy(zone, 0, response, index * 3, 3);
+            }
+            return response;
+        }
+
+        public static bool IsValidPlaceSelectionResponse(
+            DuelPrompt prompt,
+            byte[] response)
+        {
+            if (prompt == null || response == null ||
+                (prompt.Message != CoreMessage.SelectPlace &&
+                 prompt.Message != CoreMessage.SelectDisableField))
+            {
+                return false;
+            }
+
+            int required = checked((int)prompt.MaximumSelections);
+            if (required <= 0 || response.Length != required * 3)
+                return false;
+
+            var selectedZones = new HashSet<string>(
+                StringComparer.Ordinal);
+            for (int offset = 0; offset < response.Length; offset += 3)
+            {
+                string zoneKey = string.Concat(
+                    response[offset], ":",
+                    response[offset + 1], ":",
+                    response[offset + 2]);
+                if (!selectedZones.Add(zoneKey) ||
+                    !prompt.Choices.Any(choice =>
+                        choice.Response != null &&
+                        choice.Response.Length == 3 &&
+                        choice.Response[0] == response[offset] &&
+                        choice.Response[1] == response[offset + 1] &&
+                        choice.Response[2] == response[offset + 2]))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public static bool IsValidSelection(
