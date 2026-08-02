@@ -208,6 +208,20 @@ namespace ArcaneDuel.Game
                     opponentDeck.mainDeck,
                     opponentDeck.extraDeck);
 
+                audioDirector = GetComponent<ArcaneAudioDirector>() ??
+                                gameObject.AddComponent<ArcaneAudioDirector>();
+                if (externalPresentation &&
+                    DuelOnlineBridge.OnlineArenaTransitionPending)
+                {
+                    status =
+                        "Arena online pronta. Aguardando a autoridade da sala.";
+                    Debug.Log(
+                        "[MP] stage=local-core-deferred scene=" +
+                        SceneManager.GetActiveScene().name,
+                        this);
+                    return;
+                }
+
                 DuelConfiguration configuration =
                     DuelConfiguration.VerticalSlice(DuelConfiguration.FreshSeed());
                 configuration.PlayerDeck = playerDeck.mainDeck.ToArray();
@@ -216,8 +230,6 @@ namespace ArcaneDuel.Game
                 configuration.OpponentExtraDeck = opponentDeck.extraDeck.ToArray();
                 configuration.SimpleOpponentAi = !externalPresentation;
                 engine = OcgDuelEngine.CreateDefault(configuration);
-                audioDirector = GetComponent<ArcaneAudioDirector>() ??
-                                gameObject.AddComponent<ArcaneAudioDirector>();
                 engine.EventReceived += OnCoreEvent;
                 engine.Start();
                 status = tutorialMode

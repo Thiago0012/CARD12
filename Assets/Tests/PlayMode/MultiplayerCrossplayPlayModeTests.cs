@@ -18,6 +18,47 @@ namespace ArcaneDuel.Tests.PlayMode
     public sealed class MultiplayerCrossplayPlayModeTests
     {
         [UnityTest]
+        public IEnumerator OnlineArenaDoesNotStartASecondLocalDuel()
+        {
+            DuelOnlineBridge.BeginOnlineArenaTransition();
+            SceneManager.LoadScene("DuelArena");
+            yield return null;
+            yield return null;
+            yield return null;
+
+            try
+            {
+                MonoBehaviour arena = Resources
+                    .FindObjectsOfTypeAll<MonoBehaviour>()
+                    .First(component =>
+                        component != null &&
+                        component.gameObject.activeInHierarchy &&
+                        component.GetType().Name == "CardArenaBootstrap");
+                DuelArenaController controller =
+                    arena.GetComponent<DuelArenaController>();
+
+                Assert.That(controller, Is.Not.Null);
+                Assert.That(controller.PresentationState, Is.Not.Null);
+                Assert.That(controller.CurrentPrompt, Is.Null);
+                Assert.That(
+                    controller.PresentationState.Players[0].Hand,
+                    Is.Empty,
+                    "The online arena must not deal a temporary local hand.");
+                Assert.That(
+                    controller.PresentationState.Players[1].Hand,
+                    Is.Empty,
+                    "Only the Relay authority may deal the opening hands.");
+
+                controller.ConfigureNetworkReplica(0);
+                Assert.That(controller.IsNetworkReplica, Is.True);
+            }
+            finally
+            {
+                DuelOnlineBridge.CompleteOnlineArenaTransition();
+            }
+        }
+
+        [UnityTest]
         public IEnumerator OptionsExposeAllFiveGraphicsLevels()
         {
             SceneManager.LoadScene(ProjectIdentity.MainMenuScene);

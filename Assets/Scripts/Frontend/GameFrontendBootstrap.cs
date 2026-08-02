@@ -3405,10 +3405,10 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(true);
 
             var online = DuelOnlineSession.Instance;
-            if (online != null &&
-                online.IsOnlineDuelActive)
+            if (DuelOnlineBridge.OnlineArenaTransitionPending ||
+                online != null && online.IsOnlineDuelActive)
             {
-                online.AttachOnlineArena(_duelArena);
+                online?.AttachOnlineArena(_duelArena);
                 yield break;
             }
 

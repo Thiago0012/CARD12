@@ -494,6 +494,7 @@ namespace ArcaneArena.Multiplayer
 
         private void OnDestroy()
         {
+            DuelOnlineBridge.CompleteOnlineArenaTransition();
             SceneManager.sceneLoaded -= OnDuelSceneLoaded;
             if (arenaAttachRetry != null)
                 StopCoroutine(arenaAttachRetry);
@@ -572,6 +573,7 @@ namespace ArcaneArena.Multiplayer
                     false,
                     DuelPlayerSide.PlayerOne);
                 TryStartHostDuel();
+                DuelOnlineBridge.CompleteOnlineArenaTransition();
                 Debug.Log(
                     $"[MP] stage=arena-attached role=host " +
                     $"scene={arena.gameObject.scene.name} " +
@@ -587,6 +589,7 @@ namespace ArcaneArena.Multiplayer
                 // so the local player's state is always slot P0 in this arena.
                 replicaController.ConfigureNetworkReplica(0);
             }
+            DuelOnlineBridge.CompleteOnlineArenaTransition();
             DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
                 false,
                 DuelPlayerSide.PlayerOne);
@@ -3287,7 +3290,10 @@ namespace ArcaneArena.Multiplayer
         private void OpenDuelArena()
         {
             if (SceneManager.GetActiveScene().name != DuelArenaScene)
+            {
+                DuelOnlineBridge.BeginOnlineArenaTransition();
                 SceneManager.LoadScene(DuelArenaScene);
+            }
         }
 
         private void StopConnectionCoroutines()
@@ -3336,6 +3342,7 @@ namespace ArcaneArena.Multiplayer
 
         private void ResetMatchState(bool clearLocalLoadout)
         {
+            DuelOnlineBridge.CompleteOnlineArenaTransition();
             StopConnectionCoroutines();
             if (hostController != null)
                 hostController.CoreEventPresented -= OnHostCoreEvent;
