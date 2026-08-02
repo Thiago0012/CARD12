@@ -417,6 +417,7 @@ namespace ArcaneArena
                     return;
                 core.SubmitChoice(stagedSingleChoice);
             }
+            CloseChoiceModal();
             RefreshEverything(true);
         }
 
