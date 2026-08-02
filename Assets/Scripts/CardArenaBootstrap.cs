@@ -1404,8 +1404,13 @@ namespace ArcaneArena
             if (prompt.Player == 1)
             {
                 ClearHandSelection();
+                bool online =
+                    Multiplayer.DuelOnlineSession.Instance
+                        ?.IsOnlineDuelActive == true;
                 SetStatus(
-                    "TURNO DA IA · o adversário está analisando uma ação válida.",
+                    online
+                        ? "TURNO DO OPONENTE · aguardando a decisão do outro jogador."
+                        : "TURNO DA IA · o adversário está analisando uma ação válida.",
                     Gold);
                 return true;
             }
@@ -1727,7 +1732,7 @@ namespace ArcaneArena
             bool occupied)
         {
             Transform card = zone?.FindPresentedCard();
-            if (!occupied || code == 0)
+            if (!occupied)
                 return card == null;
             if (card == null || !card.gameObject.activeInHierarchy)
                 return false;
@@ -1735,6 +1740,15 @@ namespace ArcaneArena
                 card.GetComponent<WorldCardInstanceView>();
             if (view == null || !view.IsVisuallyReady)
                 return false;
+            // A identidade adversária com a face para baixo é opaca (código
+            // 0), mas o verso ainda precisa existir no campo.
+            if (code == 0)
+            {
+                return view.InstanceKey.DefinitionCode == 0 &&
+                       (!key.IsValid ||
+                        !view.InstanceKey.IsValid ||
+                        view.InstanceKey.RuntimeId == key.RuntimeId);
+            }
             return view.InstanceKey.DefinitionCode == code &&
                    (!key.IsValid ||
                     !view.InstanceKey.IsValid ||
@@ -3166,6 +3180,9 @@ namespace ArcaneArena
             if (runtimeSprites.TryGetValue(code, out Sprite cached))
                 return cached;
             string official = code.ToString("00000000");
+            CardCatalogEntry entry =
+                cardCatalog?.FindByOfficialId(official) ??
+                cardCatalog?.FindByOfficialId(code.ToString());
             try
             {
                 visualCatalog ??= CardVisualCatalog.LoadDefault();
@@ -3190,13 +3207,13 @@ namespace ArcaneArena
             }
             catch (Exception exception)
             {
-                Debug.LogWarning(
-                    $"Arte {official} não carregada: {exception.Message}");
+                if (entry?.Artwork == null)
+                {
+                    Debug.LogWarning(
+                        $"Arte {official} não carregada: {exception.Message}");
+                }
             }
 
-            CardCatalogEntry entry =
-                cardCatalog?.FindByOfficialId(official) ??
-                cardCatalog?.FindByOfficialId(code.ToString());
             if (entry?.Artwork != null)
             {
                 runtimeSprites[code] = entry.Artwork;

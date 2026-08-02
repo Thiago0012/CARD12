@@ -557,72 +557,93 @@ namespace ArcaneArena
 
         private IEnumerator PlayAnnouncementQueue()
         {
-            while (announcementQueue.Count > 0)
+            bool completed = false;
+            try
             {
-                ArenaAnnouncement item = announcementQueue.Dequeue();
-                if (item.TurnFlow)
+                while (announcementQueue.Count > 0)
                 {
-                    presentationPhaseOverride = item.DisplayPhase;
-                    UpdateLifeAndPhase();
-                }
-                if (item.Draw != null)
-                {
-                    yield return PlayDrawPresentation(item.Draw);
-                    continue;
-                }
-                announcementRoot.SetActive(true);
-                announcementRoot.transform.SetAsLastSibling();
-                announcementTitle.text = item.Title;
-                announcementSubtitle.text = item.Subtitle;
-                announcementSubtitle.color = item.Accent;
-                announcementAccent.color = item.Accent;
-                Outline outline =
-                    announcementRoot.GetComponent<Outline>();
-                if (outline != null)
-                    outline.effectColor = item.Accent;
+                    ArenaAnnouncement item = announcementQueue.Dequeue();
+                    if (item.TurnFlow)
+                    {
+                        presentationPhaseOverride = item.DisplayPhase;
+                        UpdateLifeAndPhase();
+                    }
+                    if (item.Draw != null)
+                    {
+                        yield return PlayDrawPresentation(item.Draw);
+                        continue;
+                    }
+                    announcementRoot.SetActive(true);
+                    announcementRoot.transform.SetAsLastSibling();
+                    announcementTitle.text = item.Title;
+                    announcementSubtitle.text = item.Subtitle;
+                    announcementSubtitle.color = item.Accent;
+                    announcementAccent.color = item.Accent;
+                    Outline outline =
+                        announcementRoot.GetComponent<Outline>();
+                    if (outline != null)
+                        outline.effectColor = item.Accent;
 
-                RectTransform rect =
-                    announcementRoot.GetComponent<RectTransform>();
-                Vector3 startScale = new Vector3(0.82f, 0.92f, 1f);
-                float enter =
-                    DuelAnimationPreferences.Duration(0.18f);
-                for (float elapsed = 0f;
-                     elapsed < enter;
-                     elapsed += Time.unscaledDeltaTime)
-                {
-                    float t = Mathf.SmoothStep(
-                        0f,
-                        1f,
-                        Mathf.Clamp01(elapsed / enter));
-                    announcementGroup.alpha = t;
-                    rect.localScale =
-                        Vector3.Lerp(startScale, Vector3.one, t);
-                    yield return null;
+                    RectTransform rect =
+                        announcementRoot.GetComponent<RectTransform>();
+                    Vector3 startScale = new Vector3(0.82f, 0.92f, 1f);
+                    float enter =
+                        DuelAnimationPreferences.Duration(0.18f);
+                    float enterStartedAt = Time.realtimeSinceStartup;
+                    while (Time.realtimeSinceStartup - enterStartedAt < enter)
+                    {
+                        float elapsed =
+                            Time.realtimeSinceStartup - enterStartedAt;
+                        float t = Mathf.SmoothStep(
+                            0f,
+                            1f,
+                            Mathf.Clamp01(elapsed / enter));
+                        announcementGroup.alpha = t;
+                        rect.localScale =
+                            Vector3.Lerp(startScale, Vector3.one, t);
+                        yield return null;
+                    }
+                    announcementGroup.alpha = 1f;
+                    rect.localScale = Vector3.one;
+                    yield return new WaitForSecondsRealtime(
+                        DuelAnimationPreferences.Duration(item.Hold));
+                    float exit =
+                        DuelAnimationPreferences.Duration(0.16f);
+                    float exitStartedAt = Time.realtimeSinceStartup;
+                    while (Time.realtimeSinceStartup - exitStartedAt < exit)
+                    {
+                        float elapsed =
+                            Time.realtimeSinceStartup - exitStartedAt;
+                        float t = Mathf.Clamp01(elapsed / exit);
+                        announcementGroup.alpha = 1f - t;
+                        rect.localScale =
+                            Vector3.Lerp(
+                                Vector3.one,
+                                new Vector3(1.10f, 0.94f, 1f),
+                                t);
+                        yield return null;
+                    }
+                    announcementGroup.alpha = 0f;
+                    announcementRoot.SetActive(false);
                 }
-                announcementGroup.alpha = 1f;
-                rect.localScale = Vector3.one;
-                yield return new WaitForSecondsRealtime(
-                    DuelAnimationPreferences.Duration(item.Hold));
-                float exit =
-                    DuelAnimationPreferences.Duration(0.16f);
-                for (float elapsed = 0f;
-                     elapsed < exit;
-                     elapsed += Time.unscaledDeltaTime)
-                {
-                    float t = Mathf.Clamp01(elapsed / exit);
-                    announcementGroup.alpha = 1f - t;
-                    rect.localScale =
-                        Vector3.Lerp(
-                            Vector3.one,
-                            new Vector3(1.10f, 0.94f, 1f),
-                            t);
-                    yield return null;
-                }
-                announcementGroup.alpha = 0f;
-                announcementRoot.SetActive(false);
+                completed = true;
             }
-            announcementRoutine = null;
-            CompleteTurnFlowPresentation();
+            finally
+            {
+                announcementRoutine = null;
+                if (completed)
+                {
+                    CompleteTurnFlowPresentation();
+                }
+                else
+                {
+                    announcementQueue.Clear();
+                    ResetTurnFlowPresentation(true);
+                    observedPrompt = null;
+                    if (presentationReady)
+                        RefreshEverything(true);
+                }
+            }
         }
 
         private void StartBattlePresentation(DuelEvent attack)

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
+using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
 using NUnit.Framework;
@@ -302,6 +303,53 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [Test]
+        public void DrawPresentationKeepsTheAuthoritativeDrawPhase()
+        {
+            var state = new DuelPresentationState(null);
+            state.Apply(PresentationEvent(CoreMessage.NewTurn, 1));
+            state.Apply(PresentationEvent(
+                CoreMessage.NewPhase,
+                value: 0x001U));
+            DuelEvent draw = PresentationEvent(
+                CoreMessage.Draw,
+                1,
+                codes: new[] { 97268402U });
+
+            Type protocolType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelNetworkProtocol");
+            MethodInfo create = protocolType.GetMethods(
+                    BindingFlags.Public | BindingFlags.Static)
+                .Single(method =>
+                    method.Name == "CreatePresentationEvent" &&
+                    method.GetParameters().Length == 6);
+            object wire = create.Invoke(
+                null,
+                new object[]
+                {
+                    draw,
+                    state,
+                    (byte)1,
+                    7,
+                    12,
+                    "draw-phase-test"
+                });
+            state.Apply(PresentationEvent(
+                CoreMessage.NewPhase,
+                value: 0x004U));
+            DuelEvent replay = (DuelEvent)protocolType.GetMethod(
+                    "ToPresentationEvent",
+                    BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, new[] { wire });
+
+            Assert.That(
+                Field<uint>(wire, "presentationPhase"),
+                Is.EqualTo(0x001U));
+            Assert.That(replay.PresentationPhase, Is.EqualTo(0x001U));
+            Assert.That(replay.Player, Is.EqualTo(0));
+            Assert.That(replay.Codes, Is.EqualTo(new[] { 97268402U }));
+        }
+
+        [Test]
         public void V4HandshakeRejectsDifferentCardContentRevision()
         {
             Type sessionType = TypeByName(
@@ -495,6 +543,27 @@ namespace ArcaneDuel.Tests.PlayMode
         private static T Field<T>(object instance, string name)
         {
             return (T)instance.GetType().GetField(name)?.GetValue(instance);
+        }
+
+        private static DuelEvent PresentationEvent(
+            CoreMessage message,
+            byte player = 0,
+            uint value = 0,
+            uint[] codes = null)
+        {
+            var duelEvent = new DuelEvent();
+            BindingFlags properties = BindingFlags.Instance |
+                                      BindingFlags.Public |
+                                      BindingFlags.NonPublic;
+            typeof(DuelEvent).GetProperty("Message", properties)
+                ?.SetValue(duelEvent, message);
+            typeof(DuelEvent).GetProperty("Player", properties)
+                ?.SetValue(duelEvent, player);
+            typeof(DuelEvent).GetProperty("Value", properties)
+                ?.SetValue(duelEvent, value);
+            typeof(DuelEvent).GetProperty("Codes", properties)
+                ?.SetValue(duelEvent, codes);
+            return duelEvent;
         }
 
         private static int VisibleHandCount(MonoBehaviour arena)

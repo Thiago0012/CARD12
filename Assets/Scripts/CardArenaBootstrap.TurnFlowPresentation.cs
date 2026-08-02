@@ -300,10 +300,10 @@ namespace ArcaneArena
                 yield break;
             }
 
-            for (float elapsed = 0f;
-                 elapsed < duration;
-                 elapsed += Time.unscaledDeltaTime)
+            float startedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - startedAt < duration)
             {
+                float elapsed = Time.realtimeSinceStartup - startedAt;
                 float t = Mathf.SmoothStep(
                     0f,
                     1f,
@@ -437,10 +437,11 @@ namespace ArcaneArena
             Vector3 revealScale = Vector3.one * (4.85f / height);
             float duration = DuelAnimationPreferences.Duration(0.58f);
             bool frontVisible = false;
-            for (float elapsed = 0f;
-                 elapsed < duration;
-                 elapsed += Time.unscaledDeltaTime)
+            float travelStartedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - travelStartedAt < duration)
             {
+                float elapsed =
+                    Time.realtimeSinceStartup - travelStartedAt;
                 if (cardObject == null)
                     yield break;
                 float t = Mathf.SmoothStep(
@@ -568,9 +569,11 @@ namespace ArcaneArena
             Sprite front = SpriteFor(code);
             float travel = DuelAnimationPreferences.Duration(0.58f);
             bool frontVisible = false;
-            for (float elapsed = 0f; elapsed < travel;
-                 elapsed += Time.unscaledDeltaTime)
+            float travelStartedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - travelStartedAt < travel)
             {
+                float elapsed =
+                    Time.realtimeSinceStartup - travelStartedAt;
                 float t = Mathf.SmoothStep(
                     0f,
                     1f,
@@ -621,9 +624,12 @@ namespace ArcaneArena
             Vector2 handViewport = new Vector2(0.5f, 0.10f);
             float handHeight = Mathf.Clamp(Screen.height * 0.16f, 120f, 180f);
             float returnDuration = DuelAnimationPreferences.Duration(0.28f);
-            for (float elapsed = 0f; elapsed < returnDuration;
-                 elapsed += Time.unscaledDeltaTime)
+            float returnStartedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - returnStartedAt <
+                   returnDuration)
             {
+                float elapsed =
+                    Time.realtimeSinceStartup - returnStartedAt;
                 float t = Mathf.SmoothStep(
                     0f,
                     1f,
@@ -673,10 +679,10 @@ namespace ArcaneArena
                 }
                 yield break;
             }
-            for (float elapsed = 0f;
-                 elapsed < duration;
-                 elapsed += Time.unscaledDeltaTime)
+            float startedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - startedAt < duration)
             {
+                float elapsed = Time.realtimeSinceStartup - startedAt;
                 if (card == null)
                     yield break;
                 float t = Mathf.SmoothStep(
