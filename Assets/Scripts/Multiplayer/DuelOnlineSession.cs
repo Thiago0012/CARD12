@@ -48,10 +48,14 @@ namespace ArcaneArena.Multiplayer
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
         private const ushort NgoProtocolVersion = 4;
         private const uint NetworkTickRate = 20;
+        private const int TransportHeartbeatMilliseconds = 1000;
+        private const int TransportDisconnectTimeoutMilliseconds = 120000;
         private const int MaximumHandshakeAttempts = 40;
         private const int MaximumStartAttempts = 80;
         private const float HandshakeRetrySeconds = 0.75f;
         private const float StartRetrySeconds = 0.75f;
+        private const float ArenaAttachTimeoutSeconds = 12f;
+        private const float ArenaReadyRetrySeconds = 1f;
         private const float StateHeartbeatSeconds = 2f;
         private const float ResponseRetrySeconds = 0.75f;
         private const float WireRetrySeconds = 0.35f;
@@ -300,6 +304,7 @@ namespace ArcaneArena.Multiplayer
         private bool matchStarted;
         private bool hostCoreStarted;
         private Coroutine pendingStateBroadcast;
+        private Coroutine arenaAttachRetry;
         private Coroutine helloRetry;
         private Coroutine helloRequestRetry;
         private Coroutine startRetry;
@@ -308,6 +313,7 @@ namespace ArcaneArena.Multiplayer
         private bool clientDeckReady;
         private bool clientReceivedStart;
         private bool clientArenaReady;
+        private float nextClientArenaReadyRetryTime;
         private string hostPlayerDisplayName = string.Empty;
         private string hostDeckDisplayName = string.Empty;
         private readonly Dictionary<WireTransferKey, OutboundWireTransfer>
@@ -348,6 +354,49 @@ namespace ArcaneArena.Multiplayer
         public string Status => status;
         public string RoomCode => roomCode;
         public string RelayRegion => relayRegion;
+
+        // Narrow diagnostics surface used by the opt-in two-process smoke
+        // runner. Normal players never call these members and the regular
+        // lobby/UI flow remains unchanged.
+        internal bool DiagnosticConnectionInProgress =>
+            connectionOperationInProgress;
+        internal bool DiagnosticMatchStarted => matchStarted;
+        internal bool DiagnosticCanBeginMatch =>
+            IsHost && remoteClientId != ulong.MaxValue &&
+            remoteLoadout != null && clientDeckReady && !matchStarted;
+        internal bool DiagnosticArenaSynchronized => IsHost
+            ? hostCoreStarted && hostController != null &&
+              clientArenaReady && !hostAwaitingStateAckUnlock &&
+              !clientSynchronizing
+            : role == SessionRole.Client && replicaController != null &&
+              lastReplicaStateVersion > 0;
+        internal ulong DiagnosticStateVersion => IsHost
+            ? authoritativeStateVersion
+            : lastReplicaStateVersion;
+        internal uint DiagnosticAcceptedRemoteCommands =>
+            lastAcceptedClientSequence;
+        internal bool DiagnosticLocalCommandAcknowledged =>
+            role == SessionRole.Client && nextClientSequence > 0 &&
+            pendingResponseRequestId == 0;
+        internal DuelArenaController DiagnosticController => IsHost
+            ? hostController
+            : replicaController;
+
+        internal void BeginHostingForDiagnostics()
+        {
+            BeginHosting();
+        }
+
+        internal void BeginJoiningForDiagnostics(string code)
+        {
+            joinCode = (code ?? string.Empty).Trim().ToUpperInvariant();
+            BeginJoining();
+        }
+
+        internal void BeginMatchForDiagnostics()
+        {
+            BeginHostMatch();
+        }
 
         /// <summary>
         /// RTT measured by the active Unity Transport connection. This is the
@@ -410,6 +459,7 @@ namespace ArcaneArena.Multiplayer
             DontDestroyOnLoad(gameObject);
             Application.runInBackground = true;
             EnsureNetworkManager();
+            SceneManager.sceneLoaded += OnDuelSceneLoaded;
             DuelOnlineBridge.SubmitReplicaChoice = SubmitRemoteChoice;
             DuelOnlineBridge.SubmitReplicaResponse = SubmitRemoteResponse;
             persistedReconnectCoroutine = StartCoroutine(
@@ -444,6 +494,9 @@ namespace ArcaneArena.Multiplayer
 
         private void OnDestroy()
         {
+            SceneManager.sceneLoaded -= OnDuelSceneLoaded;
+            if (arenaAttachRetry != null)
+                StopCoroutine(arenaAttachRetry);
             if (helloRetry != null)
                 StopCoroutine(helloRetry);
             if (helloRequestRetry != null)
@@ -507,23 +560,33 @@ namespace ArcaneArena.Multiplayer
 
             if (IsHost)
             {
-                if (hostController != null && hostController != controller)
+                bool firstAttachment = hostController != controller;
+                if (hostController != null && firstAttachment)
                     hostController.CoreEventPresented -= OnHostCoreEvent;
                 hostController = controller;
-                hostController.ConfigureRemotePlayerOneAuthority(true);
+                if (firstAttachment)
+                    hostController.ConfigureRemotePlayerOneAuthority(true);
                 hostController.CoreEventPresented -= OnHostCoreEvent;
                 hostController.CoreEventPresented += OnHostCoreEvent;
                 DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
                     false,
                     DuelPlayerSide.PlayerOne);
                 TryStartHostDuel();
+                Debug.Log(
+                    $"[MP] stage=arena-attached role=host " +
+                    $"scene={arena.gameObject.scene.name} " +
+                    $"coreStarted={hostCoreStarted}");
                 return;
             }
 
+            bool firstReplicaAttachment = replicaController != controller;
             replicaController = controller;
-            // DuelNetworkProtocol rotates the snapshot before sending it, so
-            // the local player's state is always slot P0 in this arena.
-            replicaController.ConfigureNetworkReplica(0);
+            if (firstReplicaAttachment)
+            {
+                // DuelNetworkProtocol rotates the snapshot before sending it,
+                // so the local player's state is always slot P0 in this arena.
+                replicaController.ConfigureNetworkReplica(0);
+            }
             DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
                 false,
                 DuelPlayerSide.PlayerOne);
@@ -532,12 +595,105 @@ namespace ArcaneArena.Multiplayer
             if (matchStarted)
             {
                 SendClientReady(true, true);
+                nextClientArenaReadyRetryTime =
+                    Time.realtimeSinceStartup + ArenaReadyRetrySeconds;
                 status = "Arena pronta. Sincronizando o campo com o host...";
             }
             else
             {
                 status = "Conectado. Aguardando o host confirmar os decks.";
             }
+            Debug.Log(
+                $"[MP] stage=arena-attached role=client " +
+                $"scene={arena.gameObject.scene.name} " +
+                $"hasSnapshot={pendingReplicaState != null}");
+        }
+
+        private void OnDuelSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (!IsOnlineDuelActive ||
+                !string.Equals(
+                    scene.name,
+                    DuelArenaScene,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (arenaAttachRetry != null)
+                StopCoroutine(arenaAttachRetry);
+            arenaAttachRetry = StartCoroutine(
+                AttachArenaAfterSceneInitialization(scene.handle));
+            Debug.Log(
+                $"[MP] stage=arena-scene-loaded handle={scene.handle} " +
+                $"role={role}");
+        }
+
+        private IEnumerator AttachArenaAfterSceneInitialization(
+            SceneHandle sceneHandle)
+        {
+            // The authored arena builds its controller and presentation over
+            // the first frames. This mirrors the proven project and also
+            // tolerates slower Android scene activation.
+            yield return null;
+            yield return null;
+            yield return null;
+
+            float deadline =
+                Time.realtimeSinceStartup + ArenaAttachTimeoutSeconds;
+            while (IsOnlineDuelActive &&
+                   Time.realtimeSinceStartup < deadline)
+            {
+                Scene activeScene = SceneManager.GetActiveScene();
+                if (activeScene.handle != sceneHandle ||
+                    !string.Equals(
+                        activeScene.name,
+                        DuelArenaScene,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+
+                CardArenaBootstrap arena = FindOnlineArena(activeScene);
+                if (arena != null)
+                {
+                    AttachOnlineArena(arena);
+                    arenaAttachRetry = null;
+                    yield break;
+                }
+                yield return null;
+            }
+
+            if (IsOnlineDuelActive)
+            {
+                status =
+                    "A arena foi aberta, mas o campo ainda não ficou pronto. " +
+                    "Tentando manter a conexão com o rival.";
+                Debug.LogWarning(
+                    "[MP] stage=arena-attach-timeout scene=" +
+                    SceneManager.GetActiveScene().name);
+            }
+            arenaAttachRetry = null;
+        }
+
+        private static CardArenaBootstrap FindOnlineArena(Scene scene)
+        {
+            CardArenaBootstrap fallback = null;
+            CardArenaBootstrap[] arenas =
+                FindObjectsByType<CardArenaBootstrap>(
+                    FindObjectsInactive.Include);
+            foreach (CardArenaBootstrap arena in arenas)
+            {
+                if (arena == null || arena.gameObject.scene != scene ||
+                    !arena.gameObject.activeInHierarchy)
+                    continue;
+                fallback ??= arena;
+                if (arena.IsPrimaryDuelInterface)
+                {
+                    return arena;
+                }
+            }
+            return fallback;
         }
 
         public void SubmitRemoteChoice(DuelChoice choice)
@@ -579,6 +735,13 @@ namespace ArcaneArena.Multiplayer
 
             transport = GetComponent<UnityTransport>() ??
                         gameObject.AddComponent<UnityTransport>();
+            // Android can temporarily stop pumping frames while loading the
+            // arena and card assets. The UTP default drops a silent peer
+            // after 30 seconds, which incorrectly starts the reconnect grace
+            // while both players are still loading the duel scene.
+            transport.HeartbeatTimeoutMS = TransportHeartbeatMilliseconds;
+            transport.DisconnectTimeoutMS =
+                TransportDisconnectTimeoutMilliseconds;
             networkManager = GetComponent<NetworkManager>() ??
                              NetworkManager.Singleton ??
                              gameObject.AddComponent<NetworkManager>();
@@ -768,9 +931,38 @@ namespace ArcaneArena.Multiplayer
         private static async Task InitializeServices()
         {
             if (UnityServices.State == ServicesInitializationState.Uninitialized)
-                await UnityServices.InitializeAsync();
+            {
+                string authenticationProfile = CommandLineValue(
+                    "-arcaneAuthProfile");
+                if (string.IsNullOrWhiteSpace(authenticationProfile))
+                {
+                    await UnityServices.InitializeAsync();
+                }
+                else
+                {
+                    var options = new InitializationOptions();
+                    options.SetProfile(authenticationProfile.Trim());
+                    await UnityServices.InitializeAsync(options);
+                }
+            }
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        }
+
+        private static string CommandLineValue(string name)
+        {
+            string[] arguments = Environment.GetCommandLineArgs();
+            for (int index = 0; index + 1 < arguments.Length; index++)
+            {
+                if (string.Equals(
+                        arguments[index],
+                        name,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return arguments[index + 1];
+                }
+            }
+            return string.Empty;
         }
 
         private void ConfigureConnectionIdentity()
@@ -1162,6 +1354,10 @@ namespace ArcaneArena.Multiplayer
 
         private void OnClientDisconnected(ulong clientId)
         {
+            Debug.LogWarning(
+                $"[MP] stage=peer-disconnected client={clientId} " +
+                $"role={role} scene={SceneManager.GetActiveScene().name} " +
+                $"reason={networkManager?.DisconnectReason ?? "none"}");
             if (networkManager == null ||
                 clientId != networkManager.LocalClientId &&
                 clientId != remoteClientId)
@@ -2520,6 +2716,7 @@ namespace ArcaneArena.Multiplayer
         private void Update()
         {
             float now = Time.realtimeSinceStartup;
+            MaintainArenaReadyHandshake(now);
             TryProcessPendingHostResponse();
             TrySendPendingPresentationEvents();
             if (pendingResponseRequestId != 0 &&
@@ -2558,6 +2755,26 @@ namespace ArcaneArena.Multiplayer
                     now,
                     Math.Min(WirePacketsPerTransferPump, remainingBudget));
             }
+        }
+
+        private void MaintainArenaReadyHandshake(float now)
+        {
+            if (role != SessionRole.Client || !matchStarted ||
+                replicaController == null || pendingReplicaState != null ||
+                networkManager == null ||
+                !networkManager.IsConnectedClient ||
+                now < nextClientArenaReadyRetryTime)
+            {
+                return;
+            }
+
+            // Reliable delivery protects each individual message. Repeating
+            // the readiness acknowledgement also covers scene races and a
+            // host that registered its handler just after the first send.
+            SendClientReady(true, true);
+            nextClientArenaReadyRetryTime = now + ArenaReadyRetrySeconds;
+            status = "Arena pronta. Aguardando o primeiro estado do host...";
+            Debug.Log("[MP] stage=arena-ready-retry");
         }
 
         private int PumpOutboundWireTransfer(
@@ -3075,6 +3292,11 @@ namespace ArcaneArena.Multiplayer
 
         private void StopConnectionCoroutines()
         {
+            if (arenaAttachRetry != null)
+            {
+                StopCoroutine(arenaAttachRetry);
+                arenaAttachRetry = null;
+            }
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
@@ -3165,6 +3387,7 @@ namespace ArcaneArena.Multiplayer
             clientDeckReady = false;
             clientReceivedStart = false;
             clientArenaReady = false;
+            nextClientArenaReadyRetryTime = 0f;
             hostPlayerDisplayName = string.Empty;
             hostDeckDisplayName = string.Empty;
             outboundWireTransfers.Clear();
