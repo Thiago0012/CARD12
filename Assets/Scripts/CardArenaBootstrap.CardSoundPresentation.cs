@@ -149,22 +149,29 @@ namespace ArcaneArena
 
         private IEnumerator PlayCardSoundPresentationQueue()
         {
-            while (cardSoundPresentationQueue.Count > 0)
+            try
             {
-                CardSoundPresentationRequest request =
-                    cardSoundPresentationQueue.Dequeue();
-                yield return ShowCardPresentation(
-                    request.Code,
-                    request.Heading,
-                    request.Accent,
-                    request.Sound,
-                    request.HideIdentity,
-                    request.ExtraDeckSummon);
+                while (cardSoundPresentationQueue.Count > 0)
+                {
+                    CardSoundPresentationRequest request =
+                        cardSoundPresentationQueue.Dequeue();
+                    yield return ShowCardPresentation(
+                        request.Code,
+                        request.Heading,
+                        request.Accent,
+                        request.Sound,
+                        request.HideIdentity,
+                        request.ExtraDeckSummon);
+                }
             }
-            cardSoundPresentationRoutine = null;
-            SetCardPresentationDecisionLock(false);
-            observedPrompt = null;
-            RefreshEverything(true);
+            finally
+            {
+                cardSoundPresentationRoutine = null;
+                SetCardPresentationDecisionLock(false);
+                observedPrompt = null;
+                if (presentationReady)
+                    RefreshEverything(true);
+            }
         }
 
         private void UpdateCardPresentationAcceleration()
