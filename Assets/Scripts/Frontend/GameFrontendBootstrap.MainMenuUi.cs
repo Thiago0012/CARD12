@@ -11,6 +11,8 @@ namespace ArcaneArena.Frontend
     {
         private const string MainMenuAssetsPath =
             "Frontend/MainMenuUiAssets";
+        private const string MainMenuHudOverlayShaderPath =
+            "Frontend/MainMenuHudOverlay";
         private const string ConnectionProbeUrl =
             "https://services.api.unity.com";
 
@@ -19,12 +21,100 @@ namespace ArcaneArena.Frontend
         private Text _connectionStatus;
         private Text _relayRegionStatus;
         private MainMenuUiAssets _mainMenuAssets;
+        private Material _mainMenuHudOverlayMaterial;
+        private MainMenuSceneView _mainMenuSceneView;
 
         public void ShowMainMenu()
         {
             SetDuelPresentation(false);
             ClearScreen();
+            if (_mainMenuSceneView != null)
+            {
+                _mainMenuSceneView.Bind(this);
+                _mainMenuSceneView.SetMainMenuVisible(true);
+                return;
+            }
             BuildTemplateMainMenu();
+        }
+
+        private bool TryAttachAuthoredMainMenu()
+        {
+            if (!string.Equals(
+                    UnityEngine.SceneManagement.SceneManager
+                        .GetActiveScene().name,
+                    MainMenuSceneName,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            _mainMenuSceneView =
+                FindAnyObjectByType<MainMenuSceneView>(
+                    FindObjectsInactive.Include);
+            if (_mainMenuSceneView == null ||
+                !_mainMenuSceneView.IsConfigured)
+            {
+                _mainMenuSceneView = null;
+                return false;
+            }
+
+            _font = Resources.GetBuiltinResource<Font>(
+                "LegacyRuntime.ttf");
+            _canvas = _mainMenuSceneView.SceneCanvas;
+            _canvasRect = _canvas != null
+                ? _canvas.GetComponent<RectTransform>()
+                : null;
+            _screenRoot = _mainMenuSceneView.DynamicRoot;
+            if (_canvas == null || _screenRoot == null)
+            {
+                _mainMenuSceneView = null;
+                _canvas = null;
+                _canvasRect = null;
+                _screenRoot = null;
+                return false;
+            }
+
+            UniversalUiLayout.ConfigureCanvasScaler(
+                _canvas.GetComponent<CanvasScaler>());
+            _mainMenuSceneView.Bind(this);
+            EnsureEventSystem();
+            return true;
+        }
+
+        public void MainMenuDuel()
+        {
+            FrontendClickAudio.Play();
+            OpenBotDuelSelectionFromMainMenu();
+        }
+
+        public void MainMenuDecks()
+        {
+            FrontendClickAudio.Play();
+            OpenDeckEditorScene();
+        }
+
+        public void MainMenuShop()
+        {
+            FrontendClickAudio.Play();
+            ShowDeckShop();
+        }
+
+        public void MainMenuMultiplayer()
+        {
+            FrontendClickAudio.Play();
+            ShowMultiplayerRoom();
+        }
+
+        public void MainMenuSettings()
+        {
+            FrontendClickAudio.Play();
+            ShowAnimationOptions();
+        }
+
+        public void MainMenuProfile()
+        {
+            FrontendClickAudio.Play();
+            ShowPlayerProfileSetup(true);
         }
 
         private void BuildTemplateMainMenu()
@@ -38,12 +128,6 @@ namespace ArcaneArena.Frontend
                 ShowPanelMainMenuLegacy();
                 return;
             }
-
-            CreateFullCanvasArtwork(
-                "HUD da Tela Inicial",
-                _mainMenuAssets.hud);
-            BuildConnectionIndicator();
-            BuildVersionOverlay();
 
             CreateTemplateButton(
                 "DUELAR",
@@ -81,6 +165,20 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.793f, 0.919f),
                 new Vector2(0.827f, 0.988f),
                 () => ShowPlayerProfileSetup(true));
+
+            // A moldura vem depois das artes: os botoes aparecem atraves
+            // dos recortes transparentes do shader e nunca sobre a HUD.
+            var hudOverlay = CreateFullCanvasArtwork(
+                "Moldura HUD da Tela Inicial",
+                _mainMenuAssets.hud);
+            if (!TryApplyMainMenuHudOverlay(hudOverlay))
+            {
+                // Se o shader estiver ausente, preserva a navegacao e o
+                // comportamento visual anterior em vez de ocultar botoes.
+                hudOverlay.transform.SetAsFirstSibling();
+            }
+
+            BuildVersionOverlay();
         }
 
         private void OpenBotDuelSelectionFromMainMenu()
@@ -176,6 +274,30 @@ namespace ArcaneArena.Frontend
             artwork.color = Color.white;
             artwork.raycastTarget = false;
             return artwork;
+        }
+
+        private bool TryApplyMainMenuHudOverlay(RawImage artwork)
+        {
+            if (artwork == null)
+                return false;
+
+            if (_mainMenuHudOverlayMaterial == null)
+            {
+                var shader = Resources.Load<Shader>(
+                    MainMenuHudOverlayShaderPath);
+                if (shader == null)
+                    return false;
+
+                _mainMenuHudOverlayMaterial = new Material(shader)
+                {
+                    name = "Material HUD da Tela Inicial (Runtime)",
+                    hideFlags = HideFlags.DontSave
+                };
+            }
+
+            artwork.material = _mainMenuHudOverlayMaterial;
+            artwork.raycastTarget = false;
+            return true;
         }
 
         private void CreateTemplateButton(
@@ -439,6 +561,15 @@ namespace ArcaneArena.Frontend
             _connectionBars = null;
             _connectionStatus = null;
             _relayRegionStatus = null;
+        }
+
+        private void ReleaseMainMenuHudOverlayMaterial()
+        {
+            if (_mainMenuHudOverlayMaterial == null)
+                return;
+
+            Destroy(_mainMenuHudOverlayMaterial);
+            _mainMenuHudOverlayMaterial = null;
         }
     }
 }

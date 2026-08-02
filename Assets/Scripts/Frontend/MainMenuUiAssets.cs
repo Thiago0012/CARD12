@@ -18,13 +18,16 @@ namespace ArcaneArena.Frontend
         [Header("Áudio")]
         public AudioClip interfaceClick;
 
+        // A apresentacao visual continua disponivel mesmo se o efeito
+        // sonoro opcional for renomeado ou ainda nao tiver sido importado.
         public bool IsReady =>
             hud != null &&
             duelButton != null &&
             decksButton != null &&
             shopButton != null &&
             multiplayerButton != null &&
-            settingsButton != null &&
-            interfaceClick != null;
+            settingsButton != null;
+
+        public bool HasConfirmationSound => interfaceClick != null;
     }
 }

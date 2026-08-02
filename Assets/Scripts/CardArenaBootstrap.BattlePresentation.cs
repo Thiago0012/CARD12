@@ -674,11 +674,11 @@ namespace ArcaneArena
                 attack.DirectAttack ? Red : Gold);
 
             Transform card =
-                attackerZone.transform.Find("Carta Invocada");
+                attackerZone.FindPresentedCard();
             if (card == null)
             {
                 ValidatePresentationConsistency(attack, true);
-                card = attackerZone.transform.Find("Carta Invocada");
+                card = attackerZone.FindPresentedCard();
             }
             bool transientAttacker = false;
             if (card == null && attack.Code != 0)

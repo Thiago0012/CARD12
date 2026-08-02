@@ -79,6 +79,7 @@ namespace ArcaneArena
         private Canvas arenaCanvas;
         private RectTransform frame;
         private RectTransform handRoot;
+        private DuelHandLayoutAnchor handLayoutAnchor;
         private CanvasGroup handInteractionGroup;
         private Vector2 handRestPosition;
         private Vector3 handRestScale = Vector3.one;
@@ -232,6 +233,7 @@ namespace ArcaneArena
             UpdateCardPresentationAcceleration();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
+            EnsureRequiredResponseTrayVisible();
             if (Time.unscaledTime >= nextPassiveRefreshTime)
                 RefreshEverything(false);
         }
@@ -556,12 +558,13 @@ namespace ArcaneArena
             if (frame == null)
                 frame = UniversalUiLayout.CreateFrame(canvasTransform, true);
 
-            handRoot = FindRect(frame, "Mão do Jogador");
+            handRoot = FindRect(frame, "POSICAO DA MAO DO JOGADOR") ??
+                FindRect(frame, "Mão do Jogador");
             if (handRoot == null)
             {
                 handRoot = CreateRect(
                     frame,
-                    "Mão do Jogador",
+                    "POSICAO DA MAO DO JOGADOR",
                     new Vector2(0.5f, 0f),
                     new Vector2(0.5f, 0f),
                     new Vector2(1000f, 330f));
@@ -571,6 +574,16 @@ namespace ArcaneArena
             handRoot.anchorMin = new Vector2(0.5f, 0f);
             handRoot.anchorMax = new Vector2(0.5f, 0f);
             handRoot.pivot = new Vector2(0.5f, 0f);
+            handLayoutAnchor =
+                handRoot.GetComponent<DuelHandLayoutAnchor>();
+            if (handLayoutAnchor == null)
+            {
+                handLayoutAnchor =
+                    handRoot.gameObject.AddComponent<DuelHandLayoutAnchor>();
+                handLayoutAnchor.ConfigureOwner(
+                    DuelHandLayoutAnchor.HandOwner.LocalPlayer);
+            }
+            handRestPosition = handRoot.anchoredPosition;
             handRestScale = handRoot.localScale;
             ApplyResponsiveHandLayout(true);
             handInteractionGroup = handRoot.GetComponent<CanvasGroup>();
@@ -948,7 +961,9 @@ namespace ArcaneArena
                 typeof(CardView));
             root.transform.SetParent(handRoot, false);
             RectTransform rect = root.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(178f, 258f);
+            rect.sizeDelta = handLayoutAnchor != null
+                ? handLayoutAnchor.CardSize
+                : new Vector2(178f, 258f);
             rect.pivot = new Vector2(0.5f, 0f);
             Image image = root.GetComponent<Image>();
             image.sprite = SpriteFor(code);
@@ -956,6 +971,15 @@ namespace ArcaneArena
             image.raycastTarget = true;
             CardView view = root.GetComponent<CardView>();
             view.Setup(this, instanceKey, image.sprite, index);
+            if (handLayoutAnchor != null)
+            {
+                view.ConfigureHandMotion(
+                    handLayoutAnchor.SelectedLift,
+                    handLayoutAnchor.HoverLift,
+                    handLayoutAnchor.SelectedScale,
+                    handLayoutAnchor.HoverScale,
+                    handLayoutAnchor.AnimationDuration);
+            }
             return view;
         }
 
@@ -1052,10 +1076,15 @@ namespace ArcaneArena
                 : hoveredCard != null
                     ? handViews.IndexOf(hoveredCard)
                     : -1;
-            float baseSpan =
-                count <= 1 ? 0f : Mathf.Min(96f * (count - 1), 720f);
-            float separation =
-                Mathf.Clamp(430f - baseSpan * 0.5f, 70f, 132f);
+            float separation = handLayoutAnchor != null
+                ? handLayoutAnchor.FocusSeparationFor(count)
+                : Mathf.Clamp(
+                    430f -
+                    (count <= 1
+                        ? 0f
+                        : Mathf.Min(96f * (count - 1), 720f)) * 0.5f,
+                    70f,
+                    132f);
             for (int index = 0; index < count; index++)
             {
                 Vector2 position = HandPosition(index, count);
@@ -1071,8 +1100,10 @@ namespace ArcaneArena
             selectedCard?.transform.SetAsLastSibling();
         }
 
-        private static Vector2 HandPosition(int index, int count)
+        private Vector2 HandPosition(int index, int count)
         {
+            if (handLayoutAnchor != null)
+                return handLayoutAnchor.PositionFor(index, count);
             float center = (count - 1) * 0.5f;
             float spacing = count <= 1
                 ? 0f
@@ -1080,8 +1111,10 @@ namespace ArcaneArena
             return new Vector2((index - center) * spacing, 0f);
         }
 
-        private static float HandAngle(int index, int count)
+        private float HandAngle(int index, int count)
         {
+            if (handLayoutAnchor != null)
+                return handLayoutAnchor.AngleFor(index, count);
             if (count <= 1) return 0f;
             float center = (count - 1) * 0.5f;
             return ((index - center) / Mathf.Max(1f, center)) * -6f;
@@ -1183,16 +1216,25 @@ namespace ArcaneArena
             }
 
             lastHandViewportSize = viewportSize;
-            handRestPosition = new Vector2(
-                0f,
-                CalculateHandRestY(viewportSize.y));
+            if (handLayoutAnchor == null)
+            {
+                handRestPosition = new Vector2(
+                    0f,
+                    CalculateHandRestY(viewportSize.y));
+            }
             handRoot.anchoredPosition =
                 handRestPosition +
                 (handPlacementMode
-                    ? new Vector2(0f, -136f)
+                    ? handLayoutAnchor != null
+                        ? handLayoutAnchor.PlacementModeOffset
+                        : new Vector2(0f, -136f)
                     : Vector2.zero);
             handRoot.localScale =
-                handRestScale * (handPlacementMode ? 0.70f : 1f);
+                handRestScale * (handPlacementMode
+                    ? handLayoutAnchor != null
+                        ? handLayoutAnchor.PlacementModeScale
+                        : 0.70f
+                    : 1f);
         }
 
         private void SetHandPlacementMode(bool placement)
@@ -1203,7 +1245,11 @@ namespace ArcaneArena
             if (handRoot != null)
             {
                 handRoot.localScale =
-                    handRestScale * (placement ? 0.70f : 1f);
+                    handRestScale * (placement
+                        ? handLayoutAnchor != null
+                            ? handLayoutAnchor.PlacementModeScale
+                            : 0.70f
+                        : 1f);
             }
             if (handInteractionGroup != null)
             {
@@ -1655,8 +1701,8 @@ namespace ArcaneArena
             uint code,
             bool occupied)
         {
-            Transform card = zone?.transform.Find("Carta Invocada");
-            if (!occupied)
+            Transform card = zone?.FindPresentedCard();
+            if (!occupied || code == 0)
                 return card == null;
             if (card == null || !card.gameObject.activeInHierarchy)
                 return false;
@@ -1739,8 +1785,10 @@ namespace ArcaneArena
                 typeof(Canvas),
                 typeof(GraphicRaycaster),
                 typeof(WorldCardInstanceView));
-            canvasObject.transform.SetParent(zone.transform, false);
-            canvasObject.transform.localPosition = new Vector3(0f, 0.12f, 0f);
+            canvasObject.transform.SetParent(
+                zone.CardPresentationAnchor,
+                false);
+            canvasObject.transform.localPosition = Vector3.zero;
             canvasObject.transform.localRotation =
                 CardRotation(monster, position);
             Vector3 finalScale = Vector3.one * 0.00745f;
@@ -1797,8 +1845,8 @@ namespace ArcaneArena
                 typeof(RectTransform),
                 typeof(Canvas),
                 typeof(CameraFacingCardLabel));
-            root.transform.SetParent(zone.transform, false);
-            root.transform.localPosition = new Vector3(0f, 0.42f, -1.18f);
+            root.transform.SetParent(zone.CombatLabelAnchor, false);
+            root.transform.localPosition = Vector3.zero;
             root.transform.localScale = Vector3.one * 0.0055f;
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
@@ -1847,7 +1895,7 @@ namespace ArcaneArena
             uint code,
             uint position)
         {
-            Transform card = zone.transform.Find("Carta Invocada");
+            Transform card = zone.FindPresentedCard();
             if (card == null) return;
             card.localRotation = CardRotation(
                 zone.Kind == DuelZoneKind.Monster,
@@ -1871,7 +1919,7 @@ namespace ArcaneArena
             uint position,
             bool faceUp)
         {
-            Transform root = zone.transform.Find("Indicador de ATK");
+            Transform root = zone.FindCombatLabel();
             if (root == null)
             {
                 if (faceUp && IsMonster(code))
@@ -1942,10 +1990,13 @@ namespace ArcaneArena
 
         private void ClearWorldCard(DuelZone3D zone)
         {
-            foreach (string childName in
-                     new[] { "Carta Invocada", "Indicador de ATK" })
+            foreach (Transform child in
+                     new[]
+                     {
+                         zone.FindPresentedCard(),
+                         zone.FindCombatLabel()
+                     })
             {
-                Transform child = zone.transform.Find(childName);
                 if (child == null) continue;
                 child.gameObject.SetActive(false);
                 child.SetParent(null, false);
@@ -2958,7 +3009,7 @@ namespace ArcaneArena
             DuelChoice attack = ChoicesForCard(
                     core.CurrentPrompt,
                     CodeAt(attacker),
-                    (byte)attacker.Owner,
+                    StatePlayerForZone(attacker),
                     (byte)DuelLocation.MonsterZone,
                     attacker.ZoneIndex)
                 .FirstOrDefault(choice => Contains(choice.Label, "Atacar"));
@@ -3242,6 +3293,16 @@ namespace ArcaneArena
                           core.NetworkLocalPlayer == 1;
             byte physical = (byte)zone.Owner;
             return invert ? (byte)(1 - physical) : physical;
+        }
+
+        private DuelPlayerSide PhysicalSideForStatePlayer(byte player)
+        {
+            bool invert = core != null && core.IsNetworkReplica &&
+                          core.NetworkLocalPlayer == 1;
+            byte physical = invert ? (byte)(1 - player) : player;
+            return physical == 0
+                ? DuelPlayerSide.PlayerOne
+                : DuelPlayerSide.PlayerTwo;
         }
 
         private bool IsLocalZone(DuelZone3D zone)

@@ -19,6 +19,9 @@ namespace ArcaneArena.Multiplayer
         [SerializeField] private Camera duelCamera;
         [SerializeField] private Vector3 playerOneCameraPosition = new Vector3(0f, 16.2f, -15.2f);
         [SerializeField] private Vector3 playerOneCameraEuler = new Vector3(46.5f, 0f, 0f);
+        [SerializeField] private bool useStaticFieldCamera;
+        [SerializeField, Min(1f)] private float staticFieldOrthographicSize =
+            MasterDuelArena3D.StaticFieldDepth * 0.5f;
         [SerializeField, Min(0.05f)] private float transitionDuration = 0.65f;
 
         [Header("Configuração do editor")]
@@ -28,6 +31,7 @@ namespace ArcaneArena.Multiplayer
         private Transform _playerOne;
         private Transform _playerTwo;
         private DuelFieldRegistry _fieldRegistry;
+        private float _lastStaticFieldAspect = -1f;
 
         public event Action<DuelPlayerSide> PerspectiveChanged;
         public DuelPlayerSide LocalClientSide => localClientSide;
@@ -57,6 +61,12 @@ namespace ArcaneArena.Multiplayer
 
         private void Update()
         {
+            if (useStaticFieldCamera && duelCamera != null &&
+                !Mathf.Approximately(_lastStaticFieldAspect, duelCamera.aspect))
+            {
+                ApplyProjectionMode();
+            }
+
             if (!Application.isPlaying || !allowSwitchingClients || Keyboard.current == null)
                 return;
 
@@ -118,6 +128,7 @@ namespace ArcaneArena.Multiplayer
             var notifyImmediately = true;
             if (duelCamera != null)
             {
+                ApplyProjectionMode();
                 GetCameraPose(side, out var targetPosition, out var targetRotation);
                 if (_cameraTransition != null)
                     StopCoroutine(_cameraTransition);
@@ -149,6 +160,39 @@ namespace ArcaneArena.Multiplayer
 
             playerOneCameraPosition = duelCamera.transform.position;
             playerOneCameraEuler = duelCamera.transform.eulerAngles;
+        }
+
+        public void ConfigureStaticFieldCamera(bool enabled)
+        {
+            useStaticFieldCamera = enabled;
+            if (enabled)
+            {
+                playerOneCameraPosition = new Vector3(0f, 12f, 0f);
+                playerOneCameraEuler = new Vector3(90f, 0f, 0f);
+                staticFieldOrthographicSize =
+                    MasterDuelArena3D.StaticFieldDepth * 0.5f;
+            }
+            ResolveReferences();
+            ApplyProjectionMode();
+            ApplyPerspective(localClientSide, true);
+        }
+
+        private void ApplyProjectionMode()
+        {
+            if (duelCamera == null)
+                return;
+            duelCamera.orthographic = useStaticFieldCamera;
+            if (!useStaticFieldCamera)
+                return;
+            float aspect = Mathf.Max(0.1f, duelCamera.aspect);
+            float sizeRequiredByWidth =
+                MasterDuelArena3D.StaticFieldWidth * 0.5f / aspect;
+            duelCamera.orthographicSize = Mathf.Max(
+                staticFieldOrthographicSize,
+                sizeRequiredByWidth);
+            duelCamera.nearClipPlane = 0.1f;
+            duelCamera.farClipPlane = 100f;
+            _lastStaticFieldAspect = aspect;
         }
 
         public void MarkEditorSetupComplete(int version)
@@ -237,8 +281,8 @@ namespace ArcaneArena.Multiplayer
             var center = (count - 1) * 0.5f;
             var localZ =
                 owner == DuelPlayerSide.PlayerOne
-                    ? -7.15f
-                    : 7.15f;
+                    ? (useStaticFieldCamera ? -4.62f : -7.15f)
+                    : (useStaticFieldCamera ? 4.62f : 7.15f);
             var rotation =
                 owner == DuelPlayerSide.PlayerOne
                     ? Quaternion.identity

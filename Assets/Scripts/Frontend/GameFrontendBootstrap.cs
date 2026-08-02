@@ -21,6 +21,7 @@ namespace ArcaneArena.Frontend
         private const int ExtraDeckMaximum = 15;
         private const int CopyLimit = 3;
         private const string MainMenuSceneName = "MainMenu";
+        private const string LoginSceneName = "Login";
         private const string DeckEditorSceneName = "DeckEditor";
         private const string DuelArenaSceneName = "DuelArena";
         public const int CurrentEditorPreviewVersion = 3;
@@ -140,6 +141,14 @@ namespace ArcaneArena.Frontend
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureFrontendExists()
         {
+            if (string.Equals(
+                    SceneManager.GetActiveScene().name,
+                    LoginSceneName,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             if (FindAnyObjectByType<GameFrontendBootstrap>(
                     FindObjectsInactive.Include) != null)
                 return;
@@ -162,11 +171,15 @@ namespace ArcaneArena.Frontend
             Instance = this;
             ResolveProjectReferences();
             CaptureEditorLayoutOverrides();
-            ClearGeneratedFrontend();
-            ResolveProjectReferences();
+            bool usesAuthoredMainMenu = TryAttachAuthoredMainMenu();
+            if (!usesAuthoredMainMenu)
+            {
+                ClearGeneratedFrontend();
+                ResolveProjectReferences();
+                BuildCanvas();
+            }
             _repository = new DeckRepository();
             _repository.Load(_catalog);
-            BuildCanvas();
             InitializeScenePresentation();
             if (!IsActiveScene(DuelArenaSceneName) &&
                 !HasCommandArgument("-arcaneSkipTitle"))
@@ -379,7 +392,6 @@ namespace ArcaneArena.Frontend
                 _screenRoot,
                 "Tela Atual#0",
                 false);
-            Stretch(_screenRoot);
 
             if (_deckEditorDetailName != null)
             {
@@ -394,14 +406,12 @@ namespace ArcaneArena.Frontend
                     _editorStatus.transform,
                     EditorCatalogResultsRole,
                     true);
-                ApplyCatalogResultsLayoutCorrection();
             }
 
             var selectedEntry =
                 DeckRepository.ResolveCard(
                     _catalog,
                     _deckEditorSelectedCardId);
-            ApplyCardHeaderAlignmentCorrection();
             ApplyDeckEditorCardTheme(selectedEntry);
         }
 
@@ -555,74 +565,6 @@ namespace ArcaneArena.Frontend
                    (_editorStatus != null &&
                     current ==
                     _editorStatus.transform);
-        }
-
-        private void ApplyCatalogResultsLayoutCorrection()
-        {
-            if (_editorStatus == null)
-                return;
-            var rect =
-                _editorStatus.rectTransform;
-            rect.anchorMin =
-                new Vector2(0.05f, 0.765f);
-            rect.anchorMax =
-                new Vector2(0.95f, 0.815f);
-            rect.anchoredPosition = Vector2.zero;
-            rect.sizeDelta = Vector2.zero;
-            _editorStatus.alignment =
-                TextAnchor.MiddleCenter;
-            _editorStatus.resizeTextForBestFit = true;
-            _editorStatus.resizeTextMinSize = 9;
-            _editorStatus.resizeTextMaxSize = 14;
-        }
-
-        private void ApplyCardHeaderAlignmentCorrection()
-        {
-            if (_deckEditorCardHeader != null)
-            {
-                var headerRect =
-                    _deckEditorCardHeader.rectTransform;
-                headerRect.anchorMin =
-                    new Vector2(
-                        0.035f,
-                        headerRect.anchorMin.y);
-                headerRect.anchorMax =
-                    new Vector2(
-                        0.965f,
-                        headerRect.anchorMax.y);
-                headerRect.anchoredPosition =
-                    new Vector2(
-                        0f,
-                        headerRect.anchoredPosition.y);
-                headerRect.sizeDelta =
-                    new Vector2(
-                        0f,
-                        headerRect.sizeDelta.y);
-            }
-
-            if (_deckEditorDetailName != null)
-            {
-                var nameRect =
-                    _deckEditorDetailName.rectTransform;
-                nameRect.anchorMin =
-                    new Vector2(
-                        0.035f,
-                        nameRect.anchorMin.y);
-                nameRect.anchorMax =
-                    new Vector2(
-                        0.965f,
-                        nameRect.anchorMax.y);
-                nameRect.anchoredPosition =
-                    new Vector2(
-                        0f,
-                        nameRect.anchoredPosition.y);
-                nameRect.sizeDelta =
-                    new Vector2(
-                        0f,
-                        nameRect.sizeDelta.y);
-                _deckEditorDetailName.alignment =
-                    TextAnchor.MiddleCenter;
-            }
         }
 
         private static Transform FindDescendantByName(
@@ -4489,6 +4431,8 @@ namespace ArcaneArena.Frontend
         private void ClearScreen()
         {
             StopMainMenuConnectionMonitor();
+            if (_mainMenuSceneView != null)
+                _mainMenuSceneView.SetMainMenuVisible(false);
             _mainDropZone = null;
             _extraDropZone = null;
             _catalogContent = null;
@@ -4649,6 +4593,7 @@ namespace ArcaneArena.Frontend
 
         private void OnDestroy()
         {
+            ReleaseMainMenuHudOverlayMaterial();
             if (Instance == this)
                 Instance = null;
         }

@@ -329,6 +329,8 @@ namespace ArcaneArena.Multiplayer
         private float nextWireCleanupTime;
         private bool connectionOperationInProgress;
         private bool handlersRegistered;
+        private readonly List<DuelNetworkPresentationEvent>
+            pendingPresentationEvents = new();
         private bool showPanel;
         private bool focusJoinCode;
         private bool requestJoinFocus;
@@ -513,20 +515,17 @@ namespace ArcaneArena.Multiplayer
                 hostController.ConfigureRemotePlayerOneAuthority(true);
                 hostController.CoreEventPresented -= OnHostCoreEvent;
                 hostController.CoreEventPresented += OnHostCoreEvent;
-                DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
-                    false,
-                    DuelPlayerSide.PlayerOne);
+                ConfigureArenaPerspective(DuelPlayerSide.PlayerOne);
                 TryStartHostDuel();
                 return;
             }
 
             replicaController = controller;
-            // DuelNetworkProtocol rotates the snapshot before sending it, so
-            // the local player's state is always slot P0 in this arena.
-            replicaController.ConfigureNetworkReplica(0);
-            DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
-                false,
-                DuelPlayerSide.PlayerOne);
+            // The wire snapshot keeps the joining player's data in logical
+            // slot P0. Physically that player occupies the opposite P2 half
+            // of the authored table, so the presentation boundary maps it.
+            replicaController.ConfigureNetworkReplica(1);
+            ConfigureArenaPerspective(DuelPlayerSide.PlayerTwo);
             if (pendingReplicaState != null)
                 ApplyReplicaState(pendingReplicaState);
             if (matchStarted)
@@ -1172,10 +1171,13 @@ namespace ArcaneArena.Multiplayer
             if (clientId == remoteClientId && IsHost)
             {
                 remoteClientId = ulong.MaxValue;
+                remoteLoadout = null;
+                pendingPresentationEvents.Clear();
                 hostAwaitingReconnect = true;
                 clientSynchronizing = true;
                 reconnectDeadline =
                     Time.realtimeSinceStartup + ReconnectGraceSeconds;
+                status = "O rival perdeu a conexão. Aguardando reconexão por 45 segundos...";
                 hostController?.SetPresentationDecisionLocked(true);
                 status = "O rival perdeu a conexão. Aguardando reconexão por 45 segundos...";
                 if (hostReconnectGraceCoroutine != null)
@@ -1938,21 +1940,26 @@ namespace ArcaneArena.Multiplayer
 
         private void OnHostCoreEvent(DuelEvent duelEvent)
         {
-            if (duelEvent != null && IsHost && matchStarted &&
-                remoteClientId != ulong.MaxValue)
+            if (!matchStarted)
+                return;
+
+            DuelNetworkPresentationEvent presentationEvent =
+                DuelNetworkProtocol.CreatePresentationEvent(
+                    duelEvent,
+                    hostController?.PresentationState?.Phase ?? 0u,
+                    1);
+            if (presentationEvent != null)
+                pendingPresentationEvents.Add(presentationEvent);
+
+            if (DuelNetworkProtocol.IsTurnFlowPresentationEvent(duelEvent))
             {
-                DuelNetworkPresentationEvent presentationEvent =
-                    DuelNetworkProtocol.CreatePresentationEvent(
-                        duelEvent,
-                        hostController?.PresentationState,
-                        1,
-                        ++nextPresentationEventSequence,
-                        nextStateSequence + 1,
-                        currentMatchId);
-                outgoingPresentationEvents.Enqueue(presentationEvent);
-                TrySendPendingPresentationEvents();
+                // Phase and draw snapshots must leave the host immediately.
+                // Waiting until the end of the frame can collapse Draw,
+                // Standby and Main into one visual state on the client.
+                BroadcastState();
+                return;
             }
-            if (!matchStarted || pendingStateBroadcast != null)
+            if (pendingStateBroadcast != null)
                 return;
             pendingStateBroadcast = StartCoroutine(
                 BroadcastLatestStateAtEndOfFrame());
@@ -1984,6 +1991,8 @@ namespace ArcaneArena.Multiplayer
                 1,
                 ++nextStateSequence,
                 status);
+            state.presentationEvents = pendingPresentationEvents.ToArray();
+            pendingPresentationEvents.Clear();
             DuelNetworkProtocol.PopulateCombatStats(
                 state,
                 hostController,
@@ -3075,6 +3084,20 @@ namespace ArcaneArena.Multiplayer
 
         private void StopConnectionCoroutines()
         {
+            status = failure;
+            roomCode = string.Empty;
+            relayRegion = string.Empty;
+            relayRegionDescription = string.Empty;
+            disconnectReason = string.Empty;
+            role = SessionRole.None;
+            localLoadout = null;
+            remoteLoadout = null;
+            remoteClientId = ulong.MaxValue;
+            matchStarted = false;
+            pendingStateBroadcast = null;
+            pendingPresentationEvents.Clear();
+            helloAccepted = false;
+            UnregisterHandlers();
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
@@ -3199,6 +3222,15 @@ namespace ArcaneArena.Multiplayer
                 // manually. MPS-owned sessions stop NGO through LeaveAsync.
                 networkManager.Shutdown();
             }
+        }
+
+        private static void ConfigureArenaPerspective(DuelPlayerSide side)
+        {
+            DuelTestPerspectiveController perspective =
+                DuelTestPerspectiveController.Instance ??
+                FindAnyObjectByType<DuelTestPerspectiveController>(
+                    FindObjectsInactive.Include);
+            perspective?.ConfigureClientSwitching(false, side);
         }
 
         private static string DescribeJoinFailure(Exception exception)

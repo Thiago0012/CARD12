@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ArcaneDuel.DuelEngine.Protocol;
+using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,6 +27,7 @@ namespace ArcaneArena
         private Scrollbar choiceScrollbar;
         private DuelPrompt stagedChoicePrompt;
         private DuelChoice stagedSingleChoice;
+        private DuelPrompt recoveredResponsePrompt;
 
         private void BuildChoiceModal()
         {
@@ -158,6 +160,31 @@ namespace ArcaneArena
             choiceConfirm.interactable = false;
             UpdateChoiceConfirmLabel(prompt);
             SetDuelExperienceObscured(true);
+        }
+
+        private void EnsureRequiredResponseTrayVisible()
+        {
+            DuelPrompt prompt = core?.CurrentPrompt;
+            if (!DuelPromptPresentationRules.RequiresVisibleResponseTray(
+                    prompt) ||
+                InteractionLocked || choiceModal == null ||
+                choiceModal.activeInHierarchy)
+            {
+                return;
+            }
+
+            if (!ReferenceEquals(recoveredResponsePrompt, prompt))
+            {
+                recoveredResponsePrompt = prompt;
+                Debug.LogWarning(
+                    $"ARCANE_DUEL_RESPONSE_TRAY_RECOVERED " +
+                    $"request={prompt.RequestId}; " +
+                    $"message={prompt.Message}; " +
+                    $"choices={prompt.Choices.Count}.");
+            }
+
+            observedPrompt = null;
+            RefreshEverything(false);
         }
 
         private void CreateChoiceTrayCard(

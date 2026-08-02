@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Protocol;
+using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -30,6 +32,7 @@ namespace ArcaneArena
         private GameObject opponentHandFan;
         private RectTransform opponentHandContent;
         private Text opponentHandCount;
+        private DuelHandLayoutAnchor opponentHandLayoutAnchor;
         private int renderedOpponentHandCount = -1;
         private GameObject recentActionsPanel;
         private CanvasGroup recentActionsGroup;
@@ -82,17 +85,61 @@ namespace ArcaneArena
 
         private void BuildOpponentHandFan()
         {
-            opponentHandFan = CreatePanel(frame, "Mão do Oponente",
-                new Vector2(0.365f, 0.865f), new Vector2(0.635f, 0.995f),
-                Color.clear);
-            opponentHandFan.GetComponent<Image>().raycastTarget = false;
-            opponentHandContent = CreateRect(opponentHandFan.transform,
-                "Cartas Ocultas do Oponente", Vector2.zero, Vector2.one,
-                Vector2.zero);
-            opponentHandCount = CreateText(opponentHandFan.transform,
-                "0 CARTAS", 10, FontStyle.Bold, Muted,
-                new Vector2(0.72f, 0.72f), new Vector2(1f, 0.98f),
-                TextAnchor.MiddleRight);
+            opponentHandFan = FindObject(
+                frame,
+                "POSICAO DA MAO DO OPONENTE");
+            if (opponentHandFan == null)
+            {
+                opponentHandFan = CreatePanel(
+                    frame,
+                    "POSICAO DA MAO DO OPONENTE",
+                    new Vector2(0.365f, 0.865f),
+                    new Vector2(0.635f, 0.995f),
+                    Color.clear);
+            }
+            Image opponentHandBackground =
+                opponentHandFan.GetComponent<Image>() ??
+                opponentHandFan.AddComponent<Image>();
+            opponentHandBackground.color = Color.clear;
+            opponentHandBackground.raycastTarget = false;
+            opponentHandLayoutAnchor = opponentHandFan
+                .GetComponent<DuelHandLayoutAnchor>();
+            if (opponentHandLayoutAnchor == null)
+            {
+                opponentHandLayoutAnchor = opponentHandFan
+                    .AddComponent<DuelHandLayoutAnchor>();
+                opponentHandLayoutAnchor.ConfigureOwner(
+                    DuelHandLayoutAnchor.HandOwner.Opponent);
+            }
+            opponentHandContent = FindRect(
+                opponentHandFan.transform,
+                "Cartas Ocultas do Oponente");
+            if (opponentHandContent == null)
+            {
+                opponentHandContent = CreateRect(
+                    opponentHandFan.transform,
+                    "Cartas Ocultas do Oponente",
+                    Vector2.zero,
+                    Vector2.one,
+                    Vector2.zero);
+            }
+            opponentHandCount = FindTransform(
+                    opponentHandFan.transform,
+                    "QUANTIDADE DE CARTAS")
+                ?.GetComponent<Text>();
+            if (opponentHandCount == null)
+            {
+                opponentHandCount = CreateText(
+                    opponentHandFan.transform,
+                    "0 CARTAS",
+                    10,
+                    FontStyle.Bold,
+                    Muted,
+                    new Vector2(0.72f, 0.72f),
+                    new Vector2(1f, 0.98f),
+                    TextAnchor.MiddleRight);
+                opponentHandCount.gameObject.name = "QUANTIDADE DE CARTAS";
+            }
             opponentHandCount.raycastTarget = false;
         }
 
@@ -171,12 +218,20 @@ namespace ArcaneArena
                     $"Carta Oculta {index + 1}", new Vector2(0.5f, 0.5f),
                     new Vector2(0.5f, 0.5f), Color.white);
                 RectTransform rect = card.rectTransform;
-                rect.sizeDelta = new Vector2(42f, 61f);
-                float center = (visible - 1) * 0.5f;
-                rect.anchoredPosition = new Vector2((index - center) * 29f,
-                    4f - Mathf.Abs(index - center) * 2f);
-                rect.localEulerAngles =
-                    new Vector3(0f, 0f, (index - center) * -3.2f);
+                rect.sizeDelta = opponentHandLayoutAnchor != null
+                    ? opponentHandLayoutAnchor.CardSize
+                    : new Vector2(42f, 61f);
+                Vector2 position = opponentHandLayoutAnchor != null
+                    ? opponentHandLayoutAnchor.PositionFor(index, visible)
+                    : new Vector2(
+                        (index - (visible - 1) * 0.5f) * 29f,
+                        4f - Mathf.Abs(
+                            index - (visible - 1) * 0.5f) * 2f);
+                float angle = opponentHandLayoutAnchor != null
+                    ? opponentHandLayoutAnchor.AngleFor(index, visible)
+                    : (index - (visible - 1) * 0.5f) * -3.2f;
+                rect.anchoredPosition = position;
+                rect.localEulerAngles = new Vector3(0f, 0f, angle);
                 card.sprite = cardBackSprite;
                 card.preserveAspect = true;
                 card.raycastTarget = false;
@@ -212,9 +267,14 @@ namespace ArcaneArena
                         "Escolha uma zona iluminada no campo.", Cyan);
                     break;
                 case CoreMessage.SelectChain:
-                    UpdateDecisionRibbon(prompt.Forced
-                        ? "Uma resposta é obrigatória."
-                        : "Você pode responder à corrente.", Red);
+                    string chainMessage =
+                        DuelPromptPresentationRules
+                            .ShouldAutoPassEmptyChain(prompt)
+                            ? "Nenhuma resposta legal disponível."
+                            : prompt.Forced
+                                ? "Uma resposta é obrigatória."
+                                : "Você pode responder à corrente.";
+                    UpdateDecisionRibbon(chainMessage, Red);
                     break;
                 case CoreMessage.SelectPosition:
                     UpdateDecisionRibbon(

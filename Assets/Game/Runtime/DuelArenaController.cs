@@ -79,6 +79,8 @@ namespace ArcaneDuel.Game
         private Vector2 actionScroll;
         private bool externalPresentation;
         private bool presentationDecisionLocked;
+        private byte[] deferredCoreResponse;
+        private ulong deferredCoreResponseRequestId;
         private bool networkReplica;
         private bool remotePlayerOneAuthority;
         private byte networkLocalPlayer;
@@ -233,6 +235,7 @@ namespace ArcaneDuel.Game
 
         private void Update()
         {
+            TrySubmitDeferredCoreResponse();
             animationQueue.Tick(Time.unscaledDeltaTime);
             if (ArcaneInput.EscapePressedThisFrame)
             {
@@ -1428,6 +1431,8 @@ namespace ArcaneDuel.Game
             replicaPrompt = null;
             replicaNetworkState = null;
             presentationDecisionLocked = false;
+            deferredCoreResponse = null;
+            deferredCoreResponseRequestId = 0;
             if (engine != null)
             {
                 engine.EventReceived -= OnCoreEvent;
@@ -1493,6 +1498,16 @@ namespace ArcaneDuel.Game
                 // Notify it after replacing a replica snapshot so it rebinds
                 // without fabricating a Core event on this assembly boundary.
                 PresentationStateChanged?.Invoke();
+                IReadOnlyList<DuelEvent> presentationEvents =
+                    networkState.PresentationEvents;
+                if (presentationEvents != null)
+                {
+                    foreach (DuelEvent duelEvent in presentationEvents)
+                    {
+                        if (duelEvent != null)
+                            CoreEventPresented?.Invoke(duelEvent);
+                    }
+                }
             }
             catch (Exception exception)
             {
@@ -1563,7 +1578,42 @@ namespace ArcaneDuel.Game
                     this);
                 return false;
             }
-            return SubmitRaw(response);
+            if (presentationDecisionLocked)
+            {
+                deferredCoreResponse = response?.ToArray();
+                deferredCoreResponseRequestId = requestId;
+                status =
+                    "Resposta recebida. Aguardando a animação terminar.";
+                DuelDevelopmentLog.Write(
+                    DuelLogCategory.Animation,
+                    $"Deferred online response request={requestId} during presentation.",
+                    this);
+                return;
+            }
+            SubmitRaw(response);
+        }
+
+        private void TrySubmitDeferredCoreResponse()
+        {
+            if (presentationDecisionLocked || deferredCoreResponse == null)
+                return;
+
+            byte[] response = deferredCoreResponse;
+            ulong requestId = deferredCoreResponseRequestId;
+            deferredCoreResponse = null;
+            deferredCoreResponseRequestId = 0;
+            DuelPrompt prompt = engine?.CurrentPrompt;
+            if (requestId != 0 &&
+                (prompt == null || prompt.RequestId != requestId))
+            {
+                DuelDevelopmentLog.Write(
+                    DuelLogCategory.Error,
+                    $"Discarded deferred stale response request={requestId}; " +
+                    $"current={prompt?.RequestId ?? 0}.",
+                    this);
+                return;
+            }
+            SubmitRaw(response);
         }
 
         private static bool ChoiceBelongsToCurrentPrompt(
@@ -1590,6 +1640,8 @@ namespace ArcaneDuel.Game
             uint[] opponentExtra)
         {
             presentationDecisionLocked = false;
+            deferredCoreResponse = null;
+            deferredCoreResponseRequestId = 0;
             if (!externalPresentation || database == null)
                 return;
             if (playerMain == null || playerMain.Length < 40)

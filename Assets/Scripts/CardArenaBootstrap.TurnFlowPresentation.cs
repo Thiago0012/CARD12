@@ -62,13 +62,16 @@ namespace ArcaneArena
 
         private bool IsTurnDrawEvent(DuelEvent duelEvent)
         {
+            uint eventPhase = duelEvent?.PresentationPhase ?? 0u;
+            if (eventPhase == 0u)
+                eventPhase = state?.Phase ?? 0u;
             return duelEvent != null &&
                    duelEvent.Message == CoreMessage.Draw &&
                    duelEvent.Codes != null &&
                    duelEvent.Codes.Length > 0 &&
                    state != null &&
                    state.TurnNumber > 0 &&
-                   (state.Phase & 0x001U) != 0;
+                   (eventPhase & 0x001U) != 0;
         }
 
         private void BeginTurnFlowPresentation()
@@ -138,9 +141,7 @@ namespace ArcaneArena
 
             MasterDuelArena3D arena3D =
                 FindAnyObjectByType<MasterDuelArena3D>();
-            DuelPlayerSide side = request.Player == 0
-                ? DuelPlayerSide.PlayerOne
-                : DuelPlayerSide.PlayerTwo;
+            DuelPlayerSide side = PhysicalSideForStatePlayer(request.Player);
             Transform deck = arena3D?.GetMainDeckTransform(side);
             if (deck == null)
             {

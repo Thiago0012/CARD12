@@ -6,9 +6,18 @@ namespace ArcaneArena
 {
     public sealed class MasterDuelArena3D : MonoBehaviour
     {
-        public const int CurrentLayoutVersion = 12;
+        public const int CurrentLayoutVersion = 13;
+        public const float StaticFieldWidth = 18.8f;
+        public const float StaticFieldDepth = 10.586f;
+        private const float SourceFieldWidth = 1672f;
+        private const float SourceFieldHeight = 941f;
+
         [SerializeField] private int layoutVersion;
         [SerializeField] private Texture2D cardBackTexture;
+        [Header("Campo estatico por jogador")]
+        [SerializeField] private bool useStaticPngField = true;
+        [SerializeField] private Texture2D playerOneFieldTexture;
+        [SerializeField] private Texture2D playerTwoFieldTexture;
         private Material _stone;
         private Material _darkStone;
         private Material _monsterGlow;
@@ -20,6 +29,9 @@ namespace ArcaneArena
         private Material _extraBack;
         private Material _paperEdges;
         private Material _pageLines;
+        private Material _playerOneField;
+        private Material _playerTwoField;
+        private Material _invisibleZone;
         private Transform _playerOneMainDeck;
         private Transform _playerTwoMainDeck;
         private Transform _playerOneExtraDeck;
@@ -68,11 +80,14 @@ namespace ArcaneArena
             CreateBorder();
             CreateLighting();
             OptimizeStaticGeometry();
-            RestorePlayerDeckLayout(
-                mainDeckSnapshot,
-                extraDeckSnapshot,
-                mainDeckStackSnapshot,
-                extraDeckStackSnapshot);
+            if (!UseStaticField)
+            {
+                RestorePlayerDeckLayout(
+                    mainDeckSnapshot,
+                    extraDeckSnapshot,
+                    mainDeckStackSnapshot,
+                    extraDeckStackSnapshot);
+            }
             RefreshRegistry();
         }
 
@@ -83,8 +98,25 @@ namespace ArcaneArena
             cardBackTexture = texture;
         }
 
+        public void ConfigureStaticField(
+            Texture2D playerOneTexture,
+            Texture2D playerTwoTexture = null)
+        {
+            useStaticPngField = true;
+            playerOneFieldTexture = playerOneTexture;
+            playerTwoFieldTexture = playerTwoTexture != null
+                ? playerTwoTexture
+                : playerOneTexture;
+        }
+
         private void CreateFoundation()
         {
+            if (UseStaticField)
+            {
+                CreateStaticFieldFoundation();
+                return;
+            }
+
             var environment = CreateGroup(transform, "Environment");
             var foundation = CreateGroup(environment, "Foundation");
             var joints = CreateGroup(environment, "Floor Joints");
@@ -105,8 +137,79 @@ namespace ArcaneArena
             }
         }
 
+        private bool UseStaticField =>
+            useStaticPngField && playerOneFieldTexture != null;
+
+        private void CreateStaticFieldFoundation()
+        {
+            Transform environment = CreateGroup(transform, "Campo PNG Estatico");
+            CreateFieldHalf(
+                environment,
+                "Campo do Jogador 1",
+                _playerOneField,
+                false);
+            CreateFieldHalf(
+                environment,
+                "Campo do Jogador 2",
+                _playerTwoField != null ? _playerTwoField : _playerOneField,
+                true);
+        }
+
+        private static void CreateFieldHalf(
+            Transform parent,
+            string name,
+            Material material,
+            bool upperHalf)
+        {
+            var fieldObject = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            fieldObject.name = name;
+            fieldObject.isStatic = true;
+            fieldObject.transform.SetParent(parent, false);
+            float halfDepth = StaticFieldDepth * 0.5f;
+            fieldObject.transform.localPosition = new Vector3(
+                0f,
+                -0.01f,
+                upperHalf ? halfDepth * 0.5f : -halfDepth * 0.5f);
+            fieldObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            fieldObject.transform.localScale = new Vector3(
+                StaticFieldWidth,
+                halfDepth,
+                1f);
+            fieldObject.GetComponent<MeshRenderer>().sharedMaterial = material;
+            if (material != null)
+            {
+                var scale = new Vector2(1f, 0.5f);
+                var offset = new Vector2(0f, upperHalf ? 0.5f : 0f);
+                material.mainTextureScale = scale;
+                material.mainTextureOffset = offset;
+                if (material.HasProperty("_BaseMap"))
+                {
+                    material.SetTextureScale("_BaseMap", scale);
+                    material.SetTextureOffset("_BaseMap", offset);
+                }
+            }
+            RemoveCollider(fieldObject);
+        }
+
+        private static Vector3 FieldPixel(
+            float pixelX,
+            float pixelY,
+            float elevation)
+        {
+            return new Vector3(
+                (pixelX / SourceFieldWidth - 0.5f) * StaticFieldWidth,
+                elevation,
+                (0.5f - pixelY / SourceFieldHeight) * StaticFieldDepth);
+        }
+
         private void CreatePlayerHalf(Transform players, bool opponent)
         {
+            if (UseStaticField)
+            {
+                CreateStaticPlayerHalf(players, opponent);
+                return;
+            }
+
             var sideName = opponent ? "PLAYER_2" : "PLAYER_1";
             var owner = opponent ? DuelPlayerSide.PlayerTwo : DuelPlayerSide.PlayerOne;
             var side = new GameObject(sideName);
@@ -180,6 +283,102 @@ namespace ArcaneArena
                 CreateOpponentHand(side.transform);
         }
 
+        private void CreateStaticPlayerHalf(Transform players, bool opponent)
+        {
+            var sideName = opponent ? "PLAYER_2" : "PLAYER_1";
+            var owner = opponent ? DuelPlayerSide.PlayerTwo : DuelPlayerSide.PlayerOne;
+            var side = new GameObject(sideName);
+            side.transform.SetParent(players, false);
+
+            var rotation = opponent ? Quaternion.Euler(0, 180, 0) : Quaternion.identity;
+            float[] zoneColumns = opponent
+                ? new[] { 1128f, 986f, 844f, 702f, 560f }
+                : new[] { 523f, 665f, 807f, 949f, 1091f };
+            float monsterRow = opponent ? 284f : 595f;
+            float spellTrapRow = opponent ? 165f : 749f;
+
+            var monsterGroup = CreateGroup(side.transform, "MonsterZones");
+            var spellGroup = CreateGroup(side.transform, "SpellTrapZones");
+            for (var i = 0; i < 5; i++)
+            {
+                CreateCardZone(monsterGroup, $"MonsterZone_{i + 1}",
+                    FieldPixel(zoneColumns[i], monsterRow, 0.12f),
+                    rotation, _monsterGlow, owner, DuelZoneKind.Monster, i, !opponent);
+                CreateCardZone(spellGroup, $"SpellTrapZone_{i + 1}",
+                    FieldPixel(zoneColumns[i], spellTrapRow, 0.11f),
+                    rotation, _spellGlow, owner, DuelZoneKind.SpellTrap, i, false);
+            }
+
+            var extraMonsterGroup =
+                CreateGroup(side.transform, "ExtraMonsterZones");
+            float[] extraMonsterColumns = opponent
+                ? new[] { 989f, 687f }
+                : new[] { 687f, 989f };
+            for (var i = 0; i < 2; i++)
+            {
+                CreateExtraMonsterZone(
+                    extraMonsterGroup,
+                    $"MonsterZone_{i + 6}",
+                    FieldPixel(extraMonsterColumns[i], 437f, 0.13f),
+                    rotation,
+                    owner,
+                    i + 5,
+                    opponent);
+            }
+
+            var specials = CreateGroup(side.transform, "SpecialZones");
+            Vector3 extraDeckPosition = opponent
+                ? FieldPixel(1295f, 63f, 0.12f)
+                : FieldPixel(310f, 850f, 0.12f);
+            Vector3 mainDeckPosition = opponent
+                ? FieldPixel(393f, 70f, 0.12f)
+                : FieldPixel(1374f, 845f, 0.12f);
+            Vector3 fieldZonePosition = opponent
+                ? FieldPixel(1255f, 282f, 0.11f)
+                : FieldPixel(385f, 604f, 0.11f);
+            Vector3 graveyardPosition = opponent
+                ? FieldPixel(365f, 298f, 0.11f)
+                : FieldPixel(1307f, 646f, 0.11f);
+            Vector3 banishmentPosition = opponent
+                ? FieldPixel(365f, 401f, 0.11f)
+                : FieldPixel(1307f, 530f, 0.11f);
+
+            var extraDeck = CreateDeckPedestal(specials, "ExtraDeck", extraDeckPosition,
+                rotation, _extraBack, false, owner, DuelZoneKind.ExtraDeck);
+            var mainDeck = CreateDeckPedestal(specials, "MainDeck", mainDeckPosition,
+                rotation, _cardBack, true, owner, DuelZoneKind.MainDeck);
+            if (!opponent)
+            {
+                _playerOneMainDeck = mainDeck;
+                _playerOneExtraDeck = extraDeck;
+            }
+            else
+            {
+                _playerTwoMainDeck = mainDeck;
+                _playerTwoExtraDeck = extraDeck;
+            }
+            CreateWell(specials, "Graveyard", graveyardPosition,
+                _blueWell, owner, DuelZoneKind.Graveyard);
+            CreateWell(specials, "Banishment", banishmentPosition,
+                _violetWell, owner, DuelZoneKind.Banishment);
+            CreateCardZone(
+                specials,
+                "FieldZone",
+                fieldZonePosition,
+                rotation,
+                _spellGlow,
+                owner,
+                DuelZoneKind.Field,
+                0,
+                false);
+
+            // No campo estatico, a mao do oponente e apresentada pelo HUD autorado
+            // da cena (DuelHandLayoutAnchor). Manter esta copia 3D legada criaria
+            // uma segunda mao com posicoes fixas e sobrescreveria visualmente o
+            // layout ajustado pelo artista. O estado e as regras da mao continuam
+            // pertencendo ao Core; somente a representacao duplicada e omitida.
+        }
+
         private void CreateCardZone(Transform parent, string name, Vector3 position, Quaternion rotation,
             Material material, DuelPlayerSide owner, DuelZoneKind kind, int zoneIndex, bool interactive)
         {
@@ -187,8 +386,22 @@ namespace ArcaneArena
             root.transform.SetParent(parent, false);
             root.transform.localPosition = position;
             root.transform.localRotation = rotation;
-            root.AddComponent<BoxCollider>().size = new Vector3(2f, 0.45f, 2.55f);
+            root.AddComponent<BoxCollider>().size = UseStaticField
+                ? new Vector3(1.58f, 0.45f, 1.86f)
+                : new Vector3(2f, 0.45f, 2.55f);
             root.AddComponent<DuelZone3D>().Setup(owner, kind, zoneIndex, interactive);
+
+            if (UseStaticField)
+            {
+                CreateBlock(
+                    root.transform,
+                    "Card Inset",
+                    new Vector3(0f, 0.025f, 0f),
+                    new Vector3(1.46f, 0.025f, 1.78f),
+                    _invisibleZone,
+                    false);
+                return;
+            }
 
             var pedestal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             pedestal.name = "Octagonal Pedestal";
@@ -220,8 +433,9 @@ namespace ArcaneArena
             root.transform.SetParent(parent, false);
             root.transform.localPosition = position;
             root.transform.localRotation = rotation;
-            root.AddComponent<BoxCollider>().size =
-                new Vector3(2f, 0.45f, 2.55f);
+            root.AddComponent<BoxCollider>().size = UseStaticField
+                ? new Vector3(1.58f, 0.45f, 1.86f)
+                : new Vector3(2f, 0.45f, 2.55f);
             DuelZone3D zone = root.AddComponent<DuelZone3D>();
             zone.Setup(
                 owner,
@@ -230,7 +444,7 @@ namespace ArcaneArena
                 owner == DuelPlayerSide.PlayerOne,
                 sharedVisualProxy);
 
-            if (!sharedVisualProxy)
+            if (!sharedVisualProxy && !UseStaticField)
             {
                 var pedestal =
                     GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -248,10 +462,14 @@ namespace ArcaneArena
             inset.transform.SetParent(root.transform, false);
             inset.transform.localPosition = new Vector3(
                 0f,
-                sharedVisualProxy ? 0.089f : 0.085f,
+                UseStaticField ? 0.025f : sharedVisualProxy ? 0.089f : 0.085f,
                 0f);
-            inset.transform.localScale = new Vector3(1.43f, 0.035f, 1.96f);
-            inset.GetComponent<Renderer>().sharedMaterial = _darkStone;
+            inset.transform.localScale = UseStaticField
+                ? new Vector3(1.46f, 0.025f, 1.78f)
+                : new Vector3(1.43f, 0.035f, 1.96f);
+            inset.GetComponent<Renderer>().sharedMaterial = UseStaticField
+                ? _invisibleZone
+                : _darkStone;
             RemoveCollider(inset);
             zone.ClearPlacedCard();
         }
@@ -264,12 +482,28 @@ namespace ArcaneArena
             root.transform.localPosition = position;
             root.transform.localRotation = rotation;
             root.AddComponent<DuelZone3D>().Setup(owner, kind, 0, false);
+            if (UseStaticField)
+            {
+                root.AddComponent<BoxCollider>().size =
+                    new Vector3(1.58f, 0.55f, 1.86f);
+            }
 
-            CreateBlock(root.transform, "Pedestal", Vector3.zero, new Vector3(2.05f, 0.32f, 2.65f), _darkStone);
-            CreateBlock(root.transform, "Gold Trim", new Vector3(0, 0.2f, 0), new Vector3(1.82f, 0.08f, 2.38f), _gold);
+            if (!UseStaticField)
+            {
+                CreateBlock(root.transform, "Pedestal", Vector3.zero, new Vector3(2.05f, 0.32f, 2.65f), _darkStone);
+                CreateBlock(root.transform, "Gold Trim", new Vector3(0, 0.2f, 0), new Vector3(1.82f, 0.08f, 2.38f), _gold);
+            }
             var stack = new GameObject("Card Stack");
             stack.transform.SetParent(root.transform, false);
-            stack.transform.localPosition = new Vector3(0, mainDeck ? 0.42f : 0.34f, 0);
+            // The static field markings are intentionally more compact than the
+            // old 3D pedestals. Keep the visual pile inside its printed zone;
+            // the root collider and stable zone identity remain unchanged.
+            stack.transform.localScale = UseStaticField
+                ? new Vector3(0.84f, 1f, 0.84f)
+                : Vector3.one;
+            stack.transform.localPosition = UseStaticField
+                ? new Vector3(0f, mainDeck ? 0.20f : 0.15f, 0f)
+                : new Vector3(0, mainDeck ? 0.42f : 0.34f, 0);
             var paperHeight = mainDeck ? 0.34f : 0.18f;
             CreateBlock(stack.transform, "Paper Edges", Vector3.zero,
                 new Vector3(1.42f, paperHeight, 1.94f), _paperEdges, false);
@@ -302,8 +536,8 @@ namespace ArcaneArena
                 return deck.position + deck.up * 0.65f;
 
             return side == DuelPlayerSide.PlayerOne
-                ? new Vector3(7f, 0.8f, -5.7f)
-                : new Vector3(-7f, 0.8f, 5.7f);
+                ? FieldPixel(1374f, 845f, 0.8f)
+                : FieldPixel(393f, 70f, 0.8f);
         }
 
         public Transform GetMainDeckTransform(DuelPlayerSide side)
@@ -363,6 +597,20 @@ namespace ArcaneArena
             root.transform.localPosition = position;
             root.AddComponent<DuelZone3D>().Setup(owner, kind, 0, false);
 
+            if (UseStaticField)
+            {
+                root.AddComponent<BoxCollider>().size =
+                    new Vector3(1.42f, 0.45f, 1.62f);
+                CreateBlock(
+                    root.transform,
+                    "Card Inset",
+                    new Vector3(0f, 0.025f, 0f),
+                    new Vector3(1.3f, 0.025f, 1.5f),
+                    _invisibleZone,
+                    false);
+                return;
+            }
+
             var rim = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             rim.name = "Stone Ring";
             rim.transform.SetParent(root.transform, false);
@@ -385,8 +633,9 @@ namespace ArcaneArena
             for (var i = 0; i < 5; i++)
             {
                 var card = CreateBlock(hand, $"HiddenCard_{i + 1}",
-                    new Vector3((i - 2) * 1.18f, 0.5f, 7.15f),
-                    new Vector3(1.04f, 0.055f, 1.48f), _cardBack);
+                    new Vector3((i - 2) * 1.02f, 0.42f,
+                        UseStaticField ? 4.62f : 7.15f),
+                    new Vector3(0.92f, 0.055f, 1.32f), _cardBack);
                 card.transform.localRotation = Quaternion.Euler(0, 180, 0);
             }
         }
@@ -487,6 +736,9 @@ namespace ArcaneArena
 
         private void CreateBorder()
         {
+            if (UseStaticField)
+                return;
+
             var border = CreateGroup(transform, "Arena Border");
             var horizontal = CreateGroup(border, "Horizontal Stones");
             var vertical = CreateGroup(border, "Vertical Stones");
@@ -521,6 +773,9 @@ namespace ArcaneArena
                 ? LightShadows.None
                 : LightShadows.Soft;
 
+            if (UseStaticField)
+                return;
+
             CreatePointLight(lighting, "Blue Graveyard Light", new Vector3(7.05f, 1.4f, -3.1f), new Color(0.12f, 0.5f, 1f));
             CreatePointLight(lighting, "Violet Banish Light", new Vector3(7.05f, 1.2f, -0.62f), new Color(0.6f, 0.18f, 1f));
             CreatePointLight(lighting, "Opponent Blue Graveyard Light", new Vector3(7.05f, 1.4f, 3.1f), new Color(0.12f, 0.5f, 1f));
@@ -535,6 +790,8 @@ namespace ArcaneArena
                 return;
             }
             Transform environment = transform.Find("Environment");
+            if (environment == null)
+                environment = transform.Find("Campo PNG Estatico");
             Transform border = transform.Find("Arena Border");
             if (environment != null)
                 StaticBatchingUtility.Combine(environment.gameObject);
@@ -557,7 +814,17 @@ namespace ArcaneArena
         private void CreateMaterials()
         {
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            _stone = MaterialWithTexture(shader, "Mossy Stone", GenerateStoneTexture(), new Color(0.58f, 0.65f, 0.46f));
+            _stone = UseStaticField
+                ? NewMaterial(
+                    shader,
+                    "Pedra de apoio",
+                    new Color(0.42f, 0.46f, 0.39f, 1f),
+                    false)
+                : MaterialWithTexture(
+                    shader,
+                    "Mossy Stone",
+                    GenerateStoneTexture(),
+                    new Color(0.58f, 0.65f, 0.46f));
             _darkStone = NewMaterial(shader, "Dark Stone", new Color(0.055f, 0.075f, 0.065f, 1f), false);
             _monsterGlow = NewMaterial(shader, "Monster Zone", new Color(0.08f, 0.75f, 0.68f, 0.62f), true);
             _spellGlow = NewMaterial(shader, "Spell Trap Zone", new Color(0.92f, 0.63f, 0.18f, 0.52f), true);
@@ -571,6 +838,31 @@ namespace ArcaneArena
                 : GenerateCardBack(new Color(0.48f, 0.09f, 0.02f));
             _cardBack = MaterialWithTexture(shader, "Main Deck Back", sharedBack, Color.white);
             _extraBack = MaterialWithTexture(shader, "Extra Deck Back", sharedBack, Color.white);
+
+            Shader unlit = Shader.Find("Universal Render Pipeline/Unlit") ??
+                           Shader.Find("Unlit/Texture") ??
+                           shader;
+            if (playerOneFieldTexture != null)
+            {
+                _playerOneField = MaterialWithTexture(
+                    unlit,
+                    "Campo PNG - Jogador 1",
+                    playerOneFieldTexture,
+                    Color.white);
+                Texture2D secondTexture = playerTwoFieldTexture != null
+                    ? playerTwoFieldTexture
+                    : playerOneFieldTexture;
+                _playerTwoField = MaterialWithTexture(
+                    unlit,
+                    "Campo PNG - Jogador 2",
+                    secondTexture,
+                    Color.white);
+            }
+            _invisibleZone = NewMaterial(
+                unlit,
+                "Zona invisivel interativa",
+                new Color(0f, 0f, 0f, 0f),
+                true);
         }
 
         private static Material NewMaterial(Shader shader, string name, Color color, bool transparent)
@@ -582,6 +874,14 @@ namespace ArcaneArena
             {
                 material.SetFloat("_Surface", 1f);
                 material.SetFloat("_ZWrite", 0f);
+                material.SetOverrideTag("RenderType", "Transparent");
+                material.SetInt(
+                    "_SrcBlend",
+                    (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                material.SetInt(
+                    "_DstBlend",
+                    (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
                 material.renderQueue = 3000;
             }
             if (material.HasProperty("_Smoothness"))
@@ -593,6 +893,10 @@ namespace ArcaneArena
         {
             var material = NewMaterial(shader, name, tint, false);
             material.mainTexture = texture;
+            if (material.HasProperty("_BaseMap"))
+                material.SetTexture("_BaseMap", texture);
+            if (material.HasProperty("_BaseColor"))
+                material.SetColor("_BaseColor", tint);
             return material;
         }
 
