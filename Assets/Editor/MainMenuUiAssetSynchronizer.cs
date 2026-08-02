@@ -11,6 +11,8 @@ namespace ArcaneArena.Editor
         private const string ResourceFolder = "Assets/Resources/Frontend";
         private const string AssetPath =
             ResourceFolder + "/MainMenuUiAssets.asset";
+        private const string ConfirmationSoundFile =
+            "ConfirmationSound.mp3";
 
         [MenuItem("Arcane Arena/Sincronizar UI da Tela Inicial")]
         public static void Sync()
@@ -22,9 +24,7 @@ namespace ArcaneArena.Editor
             ConfigureTexture(Source + "botaoloja.png");
             ConfigureTexture(Source + "botaomultiplayer.png");
             ConfigureTexture(Source + "botaoconfig.png");
-            ConfigureAudio(
-                Source +
-                "WhatsApp Audio 2026-08-01 at 15.50.52.mpeg.mp3");
+            ConfigureAudio(Source + ConfirmationSoundFile);
 
             var assets =
                 AssetDatabase.LoadAssetAtPath<MainMenuUiAssets>(AssetPath);
@@ -42,8 +42,7 @@ namespace ArcaneArena.Editor
                 Load<Texture2D>("botaomultiplayer.png");
             assets.settingsButton = Load<Texture2D>("botaoconfig.png");
             assets.interfaceClick =
-                Load<AudioClip>(
-                    "WhatsApp Audio 2026-08-01 at 15.50.52.mpeg.mp3");
+                Load<AudioClip>(ConfirmationSoundFile);
 
             EditorUtility.SetDirty(assets);
             AssetDatabase.SaveAssets();
