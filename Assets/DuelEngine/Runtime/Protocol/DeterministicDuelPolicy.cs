@@ -47,6 +47,30 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 DuelChoice attack = FindValue(prompt, 1);
                 if (attack != null) return attack;
             }
+            else if (prompt.Message == CoreMessage.SelectPlace ||
+                     prompt.Message == CoreMessage.SelectDisableField)
+            {
+                DuelChoice placement = ChooseRequiredPlaces(prompt);
+                if (placement != null) return placement;
+            }
+            else if (prompt.Message == CoreMessage.SelectUnselectCard)
+            {
+                DuelChoice finish = FindValue(prompt, -1);
+                bool hasSelectedCard = prompt.Choices.Any(choice =>
+                    choice.Label.StartsWith(
+                        "Remover",
+                        StringComparison.OrdinalIgnoreCase));
+                if (!hasSelectedCard)
+                {
+                    DuelChoice selectable = prompt.Choices.FirstOrDefault(choice =>
+                        string.Equals(
+                            choice.Label,
+                            "Selecionar",
+                            StringComparison.OrdinalIgnoreCase));
+                    if (selectable != null) return selectable;
+                }
+                if (finish != null) return finish;
+            }
             else if (prompt.Message == CoreMessage.SelectSum ||
                      prompt.Message == CoreMessage.SelectTribute)
             {
@@ -54,6 +78,28 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 if (selection != null) return selection;
             }
             return prompt.Choices[0];
+        }
+
+        private static DuelChoice ChooseRequiredPlaces(DuelPrompt prompt)
+        {
+            int required = checked((int)prompt.MaximumSelections);
+            if (required <= 1)
+                return prompt.Choices[0];
+
+            DuelChoice[] selected = prompt.Choices
+                .Where(choice => choice.Response?.Length == 3)
+                .OrderBy(choice => choice.ChoiceIndex)
+                .Take(required)
+                .ToArray();
+            if (selected.Length != required)
+                return null;
+
+            return new DuelChoice
+            {
+                RequestId = prompt.RequestId,
+                Label = $"Selecionar {required} zonas",
+                Response = CoreMessageDecoder.PlaceSelectionResponse(selected)
+            };
         }
 
         private static DuelChoice ChooseValidSum(DuelPrompt prompt)

@@ -52,6 +52,83 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator OptionalResponseUsesOneCompactBarPerRequest()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            BindingFlags flags = BindingFlags.Instance |
+                                 BindingFlags.NonPublic;
+            arena.GetType()
+                .GetMethod("SuppressAnnouncementBanner", flags)
+                ?.Invoke(arena, null);
+            yield return null;
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            controller.ConfigureNetworkReplica(0);
+            FieldInfo replicaPrompt = typeof(DuelArenaController).GetField(
+                "replicaPrompt",
+                flags);
+            DuelPrompt first = EffectQuestionPrompt(7001);
+            replicaPrompt?.SetValue(controller, first);
+            arena.GetType()
+                .GetMethod("ResetPromptPresentationIdentity", flags)
+                ?.Invoke(arena, null);
+            arena.GetType()
+                .GetMethod("RefreshEverything", flags)
+                ?.Invoke(arena, new object[] { true });
+
+            GameObject compact = arena.GetType()
+                .GetField("compactResponseBar", flags)
+                ?.GetValue(arena) as GameObject;
+            GameObject modal = arena.GetType()
+                .GetField("choiceModal", flags)
+                ?.GetValue(arena) as GameObject;
+            Assert.That(compact, Is.Not.Null);
+            Assert.That(compact.activeSelf, Is.True);
+            Assert.That(modal?.activeSelf, Is.False);
+
+            DuelPrompt repeatedSnapshot = EffectQuestionPrompt(7001);
+            replicaPrompt?.SetValue(controller, repeatedSnapshot);
+            arena.GetType()
+                .GetMethod("RefreshEverything", flags)
+                ?.Invoke(arena, new object[] { true });
+            DuelPrompt stillPresented = arena.GetType()
+                .GetField("compactResponsePrompt", flags)
+                ?.GetValue(arena) as DuelPrompt;
+            Assert.That(
+                stillPresented,
+                Is.SameAs(first),
+                "Um snapshot online do mesmo RequestId não pode reabrir a bandeja.");
+
+            DuelChoice submitted = null;
+            System.Action<DuelChoice> previousSubmit =
+                DuelOnlineBridge.SubmitReplicaChoice;
+            DuelOnlineBridge.SubmitReplicaChoice =
+                choice => submitted = choice;
+            try
+            {
+                Button pass = compact
+                    .GetComponentsInChildren<Button>(true)
+                    .First(button => button.name == "Passar");
+                pass.onClick.Invoke();
+                Assert.That(submitted, Is.Not.Null);
+                Assert.That(submitted.Label, Does.Contain("ativar"));
+                Assert.That(compact.activeSelf, Is.False);
+            }
+            finally
+            {
+                DuelOnlineBridge.SubmitReplicaChoice = previousSubmit;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator AuthoredArenaBuildsSevenMonsterZonesPerPlayer()
         {
             SceneManager.LoadScene(ProjectIdentity.DuelScene);
@@ -1453,6 +1530,32 @@ namespace ArcaneDuel.Tests.PlayMode
                     CoreMessage.SelectIdleCommand,
                     payload)
                 .Prompt;
+        }
+
+        private static DuelPrompt EffectQuestionPrompt(ulong requestId)
+        {
+            var payload = new List<byte> { 0 };
+            UInt32(payload, EffectVeiler);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.Hand,
+                0,
+                1);
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            DuelPrompt prompt = Decode(
+                    CoreMessage.SelectEffectYesNo,
+                    payload)
+                .Prompt;
+            typeof(DuelPrompt)
+                .GetProperty(
+                    "RequestId",
+                    BindingFlags.Instance |
+                    BindingFlags.Public |
+                    BindingFlags.NonPublic)
+                ?.SetValue(prompt, requestId);
+            return prompt;
         }
 
         private static void CommandCard(

@@ -351,6 +351,7 @@ namespace ArcaneArena
                     opponentExtra);
                 state = core.PresentationState;
                 observedPrompt = null;
+                ResetPromptPresentationIdentity();
                 observedHandSignature = 0UL;
                 observedFieldSignature = 0UL;
                 RefreshEverything(true);
@@ -520,15 +521,16 @@ namespace ArcaneArena
 
             UpdateLifeAndPhase();
             DuelPrompt prompt = core.CurrentPrompt;
-            // A network heartbeat replaces the field snapshot, but the
-            // controller deliberately preserves the prompt object while the
-            // same RequestId is awaiting a response. Do not erase a player's
-            // in-progress multi-card selection on that heartbeat.
-            if (!ReferenceEquals(prompt, observedPrompt))
+            // Snapshots received from the network may recreate the prompt
+            // object while preserving its RequestId. Use the semantic prompt
+            // identity so a heartbeat cannot reopen the response tray or
+            // discard an in-progress multi-card selection.
+            observedPrompt = prompt;
+            if (!IsPromptPresentationCurrent(prompt))
             {
-                observedPrompt = prompt;
                 selectedPromptIndexes.Clear();
-                RefreshPrompt(prompt);
+                if (RefreshPrompt(prompt))
+                    MarkPromptPresented(prompt);
             }
             RefreshDuelExperienceState();
         }
@@ -1273,7 +1275,7 @@ namespace ArcaneArena
             string message)
         {
             if (prompt == null || choice == null ||
-                ReferenceEquals(scheduledAutomaticPrompt, prompt))
+                SamePromptIdentity(scheduledAutomaticPrompt, prompt))
             {
                 return;
             }
@@ -1293,12 +1295,12 @@ namespace ArcaneArena
             yield return null;
             while (InteractionLocked &&
                    core != null &&
-                   ReferenceEquals(core.CurrentPrompt, prompt))
+                   SamePromptIdentity(core.CurrentPrompt, prompt))
             {
                 yield return null;
             }
             if (core != null &&
-                ReferenceEquals(core.CurrentPrompt, prompt))
+                SamePromptIdentity(core.CurrentPrompt, prompt))
             {
                 core.SubmitChoice(choice);
                 observedPrompt = null;
@@ -1365,9 +1367,10 @@ namespace ArcaneArena
                     prompt.Message == CoreMessage.SelectYesNo);
         }
 
-        private void RefreshPrompt(DuelPrompt prompt)
+        private bool RefreshPrompt(DuelPrompt prompt)
         {
             ClearZoneHighlights();
+            HideCompactResponseBar();
             CloseChoiceModal();
             CloseZoneBrowser();
             ClosePhaseNavigator();
@@ -1380,7 +1383,7 @@ namespace ArcaneArena
                 SetStatus(
                     "Aguarde a apresentação da fase atual.",
                     PhaseAccent(presentationPhaseOverride ?? state.Phase));
-                return;
+                return false;
             }
             UpdateDuelExperienceForPrompt(prompt);
             bool placementPrompt =
@@ -1394,7 +1397,7 @@ namespace ArcaneArena
             if (prompt == null)
             {
                 SetStatus("Aguardando o ygopro-core...", Muted);
-                return;
+                return true;
             }
 
             if (prompt.Player == 1)
@@ -1403,7 +1406,7 @@ namespace ArcaneArena
                 SetStatus(
                     "TURNO DA IA · o adversário está analisando uma ação válida.",
                     Gold);
-                return;
+                return true;
             }
 
             if (prompt.Player == 0 &&
@@ -1413,7 +1416,7 @@ namespace ArcaneArena
                     prompt,
                     prompt.Choices[0],
                     "Nenhuma resposta disponível · continuando automaticamente.");
-                return;
+                return true;
             }
 
             switch (prompt.Message)
@@ -1447,7 +1450,9 @@ namespace ArcaneArena
                 case CoreMessage.SelectDisableField:
                     HighlightPromptZones(prompt);
                     SetStatus(
-                        "Escolha uma zona iluminada · as cartas da mão foram recolhidas para liberar o campo.",
+                        prompt.MaximumSelections > 1
+                            ? $"Escolha {prompt.MaximumSelections} zonas iluminadas · 0/{prompt.MaximumSelections}."
+                            : "Escolha uma zona iluminada · as cartas da mão foram recolhidas para liberar o campo.",
                         Cyan);
                     break;
                 case CoreMessage.SelectCard:
@@ -1455,21 +1460,35 @@ namespace ArcaneArena
                 case CoreMessage.SelectSum:
                 case CoreMessage.SelectUnselectCard:
                     HighlightPromptZones(prompt);
-                    if (HasOffFieldChoices(prompt))
+                    if (HasOffFieldChoices(prompt) ||
+                        IsMultiChoicePrompt(prompt))
                         OpenChoiceModal(prompt, prompt.Choices);
                     SetStatus(prompt.Title, Gold);
                     break;
                 case CoreMessage.SelectChain:
                 case CoreMessage.SelectEffectYesNo:
+                case CoreMessage.SelectYesNo:
                     HighlightPromptZones(prompt);
-                    OpenChoiceModal(prompt, prompt.Choices);
-                    SetStatus(prompt.Title, EffectGlow);
+                    if (DuelPromptPresentationRules
+                        .ShouldUseCompactResponseBar(prompt))
+                    {
+                        ShowCompactResponseBar(prompt);
+                        SetStatus(
+                            "VOCÊ PODE RESPONDER · escolha RESPONDER ou PASSAR.",
+                            EffectGlow);
+                    }
+                    else
+                    {
+                        OpenChoiceModal(prompt, prompt.Choices);
+                        SetStatus(prompt.Title, EffectGlow);
+                    }
                     break;
                 default:
                     OpenChoiceModal(prompt, prompt.Choices);
                     SetStatus(prompt.Title, Gold);
                     break;
             }
+            return true;
         }
 
         public void HandleZoneClick(DuelZone3D zone, int clickCount)
@@ -1508,11 +1527,14 @@ namespace ArcaneArena
                 choice.Sequence == sequence);
             if (direct != null)
             {
-                if (IsDirectSelectionPrompt(prompt))
+                if (IsMultiPlacePrompt(prompt))
+                    StagePlaceChoice(prompt, direct);
+                else if (IsDirectSelectionPrompt(prompt))
                     SubmitSelectionChoice(direct);
                 else
                     core.SubmitChoice(direct);
-                RefreshEverything(true);
+                if (!IsMultiPlacePrompt(prompt))
+                    RefreshEverything(true);
                 return;
             }
 
@@ -1580,6 +1602,8 @@ namespace ArcaneArena
                 if (zone == null)
                     continue;
                 bool effectAccent =
+                    (IsMultiPlacePrompt(prompt) &&
+                     selectedPromptIndexes.Contains(choice.ChoiceIndex)) ||
                     (choice.Location & DuelLocation.Graveyard) != 0 ||
                     (choice.Location & DuelLocation.Extra) != 0 ||
                     IsEffectActivationChoice(prompt, choice);
