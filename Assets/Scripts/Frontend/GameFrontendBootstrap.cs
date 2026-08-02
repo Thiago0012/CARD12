@@ -4578,6 +4578,7 @@ namespace ArcaneArena.Frontend
 
         private void OnDestroy()
         {
+            ReleaseMainMenuHudOverlayMaterial();
             if (Instance == this)
                 Instance = null;
         }
