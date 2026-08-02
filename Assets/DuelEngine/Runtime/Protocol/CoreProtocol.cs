@@ -153,6 +153,9 @@ namespace ArcaneDuel.DuelEngine.Protocol
         public CoreMessage Message { get; internal set; }
         public byte RawMessage { get; internal set; }
         public byte Player { get; internal set; }
+        // Filled by a remote presentation mirror when the authoritative
+        // snapshot may already have advanced beyond the event being replayed.
+        public uint PresentationPhase { get; internal set; }
         public uint Value { get; internal set; }
         public uint Code { get; internal set; }
         public uint[] Codes { get; internal set; }

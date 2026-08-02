@@ -20,8 +20,11 @@ namespace ArcaneArena.Multiplayer
         public string status;
         public DuelNetworkSnapshot snapshot;
         public DuelNetworkPrompt prompt;
+        public DuelNetworkPresentationEvent[] presentationEvents;
 
         string IDuelNetworkState.Status => status;
+        IReadOnlyList<DuelEvent> IDuelNetworkState.PresentationEvents =>
+            DuelNetworkProtocol.ToPresentationEvents(presentationEvents);
 
         void IDuelNetworkState.ApplyTo(
             DuelPresentationState state,
@@ -30,6 +33,16 @@ namespace ArcaneArena.Multiplayer
         {
             DuelNetworkProtocol.Apply(this, state, database, out currentPrompt);
         }
+    }
+
+    [Serializable]
+    public sealed class DuelNetworkPresentationEvent
+    {
+        public byte message;
+        public byte player;
+        public uint value;
+        public uint presentationPhase;
+        public uint[] codes;
     }
 
     [Serializable]
@@ -98,8 +111,64 @@ namespace ArcaneArena.Multiplayer
     /// </summary>
     public static class DuelNetworkProtocol
     {
+        public const uint HiddenCardCode = uint.MaxValue;
         private const uint FaceDownAttack = 0x2;
         private const uint FaceDownDefense = 0x8;
+
+        public static bool IsTurnFlowPresentationEvent(DuelEvent duelEvent)
+        {
+            return duelEvent != null &&
+                   (duelEvent.Message == CoreMessage.NewTurn ||
+                    duelEvent.Message == CoreMessage.NewPhase ||
+                    duelEvent.Message == CoreMessage.Draw);
+        }
+
+        public static DuelNetworkPresentationEvent CreatePresentationEvent(
+            DuelEvent source,
+            uint phase,
+            byte recipient)
+        {
+            if (!IsTurnFlowPresentationEvent(source))
+                return null;
+            if (recipient > 1)
+                throw new ArgumentOutOfRangeException(nameof(recipient));
+
+            uint[] codes = source.Codes?.ToArray() ?? Array.Empty<uint>();
+            if (source.Message == CoreMessage.Draw &&
+                source.Player != recipient)
+            {
+                codes = new uint[codes.Length];
+            }
+
+            return new DuelNetworkPresentationEvent
+            {
+                message = (byte)source.Message,
+                player = ToPerspective(source.Player, recipient),
+                value = source.Value,
+                presentationPhase = phase,
+                codes = codes
+            };
+        }
+
+        public static IReadOnlyList<DuelEvent> ToPresentationEvents(
+            DuelNetworkPresentationEvent[] source)
+        {
+            if (source == null || source.Length == 0)
+                return Array.Empty<DuelEvent>();
+
+            return source
+                .Where(item => item != null)
+                .Select(item => new DuelEvent
+                {
+                    Message = (CoreMessage)item.message,
+                    RawMessage = item.message,
+                    Player = item.player,
+                    Value = item.value,
+                    PresentationPhase = item.presentationPhase,
+                    Codes = item.codes?.ToArray() ?? Array.Empty<uint>()
+                })
+                .ToArray();
+        }
 
         public static DuelNetworkState CreateState(
             DuelPresentationState state,
@@ -133,11 +202,12 @@ namespace ArcaneArena.Multiplayer
                         ? ToPerspective(snapshot.Winner.Value, recipient)
                         : (byte)0
                 },
-                // Only the player whose turn it is receives a prompt. The
-                // other client only sees that the opponent is considering.
+                // Only the player addressed by this prompt receives its
+                // legal response bytes. The other peer sees public state.
                 prompt = currentPrompt != null && currentPrompt.Player == recipient
                     ? CopyPrompt(currentPrompt, state, recipient)
-                    : null
+                    : null,
+                presentationEvents = Array.Empty<DuelNetworkPresentationEvent>()
             };
         }
 
@@ -383,8 +453,14 @@ namespace ArcaneArena.Multiplayer
                 uint position = positions != null && index < positions.Length
                     ? positions[index]
                     : 0;
-                if ((position & (FaceDownAttack | FaceDownDefense)) != 0)
-                    cards[index] = 0;
+                if (cards[index] != 0 &&
+                    (position & (FaceDownAttack | FaceDownDefense)) != 0)
+                {
+                    // Zero means an empty zone to DuelPresentationState.
+                    // Keep a nonzero opaque marker so the client renders the
+                    // card back without learning the real card identifier.
+                    cards[index] = HiddenCardCode;
+                }
             }
         }
 

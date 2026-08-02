@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using ArcaneArena;
@@ -104,6 +105,8 @@ namespace ArcaneArena.Multiplayer
         private bool helloAccepted;
         private bool connectionOperationInProgress;
         private bool handlersRegistered;
+        private readonly List<DuelNetworkPresentationEvent>
+            pendingPresentationEvents = new();
         private bool showPanel;
         private bool focusJoinCode;
         private bool requestJoinFocus;
@@ -236,20 +239,17 @@ namespace ArcaneArena.Multiplayer
                 hostController.ConfigureRemotePlayerOneAuthority(true);
                 hostController.CoreEventPresented -= OnHostCoreEvent;
                 hostController.CoreEventPresented += OnHostCoreEvent;
-                DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
-                    false,
-                    DuelPlayerSide.PlayerOne);
+                ConfigureArenaPerspective(DuelPlayerSide.PlayerOne);
                 TryStartHostDuel();
                 return;
             }
 
             replicaController = controller;
-            // DuelNetworkProtocol rotates the snapshot before sending it, so
-            // the local player's state is always slot P0 in this arena.
-            replicaController.ConfigureNetworkReplica(0);
-            DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
-                false,
-                DuelPlayerSide.PlayerOne);
+            // The wire snapshot keeps the joining player's data in logical
+            // slot P0. Physically that player occupies the opposite P2 half
+            // of the authored table, so the presentation boundary maps it.
+            replicaController.ConfigureNetworkReplica(1);
+            ConfigureArenaPerspective(DuelPlayerSide.PlayerTwo);
             if (pendingReplicaState != null)
                 ApplyReplicaState(pendingReplicaState);
             status = "Conectado. Aguardando o host confirmar os decks.";
@@ -597,6 +597,7 @@ namespace ArcaneArena.Multiplayer
             {
                 remoteClientId = ulong.MaxValue;
                 remoteLoadout = null;
+                pendingPresentationEvents.Clear();
                 status = "O rival desconectou. O duelo online foi interrompido.";
                 hostController?.SetPresentationDecisionLocked(true);
                 return;
@@ -802,7 +803,26 @@ namespace ArcaneArena.Multiplayer
 
         private void OnHostCoreEvent(DuelEvent duelEvent)
         {
-            if (!matchStarted || pendingStateBroadcast != null)
+            if (!matchStarted)
+                return;
+
+            DuelNetworkPresentationEvent presentationEvent =
+                DuelNetworkProtocol.CreatePresentationEvent(
+                    duelEvent,
+                    hostController?.PresentationState?.Phase ?? 0u,
+                    1);
+            if (presentationEvent != null)
+                pendingPresentationEvents.Add(presentationEvent);
+
+            if (DuelNetworkProtocol.IsTurnFlowPresentationEvent(duelEvent))
+            {
+                // Phase and draw snapshots must leave the host immediately.
+                // Waiting until the end of the frame can collapse Draw,
+                // Standby and Main into one visual state on the client.
+                BroadcastState();
+                return;
+            }
+            if (pendingStateBroadcast != null)
                 return;
             pendingStateBroadcast = StartCoroutine(
                 BroadcastLatestStateAtEndOfFrame());
@@ -828,6 +848,8 @@ namespace ArcaneArena.Multiplayer
                 1,
                 ++nextStateSequence,
                 status);
+            state.presentationEvents = pendingPresentationEvents.ToArray();
+            pendingPresentationEvents.Clear();
             SendToClient(remoteClientId, StateMessage, state);
         }
 
@@ -1000,6 +1022,7 @@ namespace ArcaneArena.Multiplayer
             remoteClientId = ulong.MaxValue;
             matchStarted = false;
             pendingStateBroadcast = null;
+            pendingPresentationEvents.Clear();
             helloAccepted = false;
             UnregisterHandlers();
             if (helloRetry != null)
@@ -1012,6 +1035,15 @@ namespace ArcaneArena.Multiplayer
             {
                 networkManager.Shutdown();
             }
+        }
+
+        private static void ConfigureArenaPerspective(DuelPlayerSide side)
+        {
+            DuelTestPerspectiveController perspective =
+                DuelTestPerspectiveController.Instance ??
+                FindAnyObjectByType<DuelTestPerspectiveController>(
+                    FindObjectsInactive.Include);
+            perspective?.ConfigureClientSwitching(false, side);
         }
 
         private static string DescribeJoinFailure(Exception exception)
