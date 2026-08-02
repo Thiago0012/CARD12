@@ -83,6 +83,12 @@ namespace ArcaneArena
 
             phasePresentationLocked = true;
             turnFlowPresentationStartedAt = Time.realtimeSinceStartup;
+            // A network snapshot can publish the next Core prompt before its
+            // presentation event reaches this replica. The phase animation
+            // closes that prompt, so it must be considered unpresented until
+            // the animation finishes and the player can actually answer it.
+            ResetPromptPresentationIdentity();
+            observedPrompt = null;
             if (automaticPromptRoutine != null)
             {
                 StopCoroutine(automaticPromptRoutine);
@@ -90,6 +96,7 @@ namespace ArcaneArena
                 scheduledAutomaticPrompt = null;
             }
             ClearZoneHighlights();
+            HideCompactResponseBar();
             CloseChoiceModal();
             CloseZoneBrowser();
             ClosePhaseNavigator();
@@ -765,6 +772,7 @@ namespace ArcaneArena
                 return;
 
             ResetTurnFlowPresentation(true);
+            ResetPromptPresentationIdentity();
             observedPrompt = null;
             RefreshEverything(true);
             ReplayDeferredBattlePresentations();
@@ -790,6 +798,7 @@ namespace ArcaneArena
                 announcementRoutine = null;
             }
             ResetTurnFlowPresentation(true);
+            ResetPromptPresentationIdentity();
             observedPrompt = null;
             RefreshEverything(true);
         }

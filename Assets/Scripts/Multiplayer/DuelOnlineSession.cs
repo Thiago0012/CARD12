@@ -562,12 +562,29 @@ namespace ArcaneArena.Multiplayer
 
         public void ShowPanel(bool join = false)
         {
+            if (matchStarted &&
+                SceneManager.GetActiveScene().name == DuelArenaScene)
+            {
+                showPanel = false;
+                return;
+            }
             showPanel = true;
             focusJoinCode = join;
             requestJoinFocus = join;
             status = IsOnlineDuelActive
                 ? status
                 : "Escolha um deck válido e conecte-se por Relay.";
+        }
+
+        public void LeaveRoom()
+        {
+            if (connectionOperationInProgress)
+            {
+                status = "A operacao online atual ainda esta terminando.";
+                return;
+            }
+            connectionOperationInProgress = true;
+            _ = LeaveRoomAsync();
         }
 
         public void AttachOnlineArena(CardArenaBootstrap arena)
@@ -1745,6 +1762,7 @@ namespace ArcaneArena.Multiplayer
                 }
                 TryStartHostDuel();
                 status = "Duelo online ativo. As duas arenas estao sincronizadas.";
+                showPanel = false;
                 BroadcastState();
             }
             else if (clientReceivedStart)
@@ -2142,6 +2160,8 @@ namespace ArcaneArena.Multiplayer
                 status = clientArenaReady
                     ? "Duelo online ativo. As duas arenas estao sincronizadas."
                     : "Arena do host pronta. Aguardando a arena do cliente...";
+                if (clientArenaReady)
+                    showPanel = false;
                 _ = sessionCoordinator.SetHostMatchStateAsync(
                     "in-match",
                     currentMatchId,
@@ -3575,6 +3595,67 @@ namespace ArcaneArena.Multiplayer
             matchRewardFinalized = false;
         }
 
+        private async Task LeaveRoomAsync()
+        {
+            bool reopenPanel = showPanel;
+            ClearReconnectTicket();
+            status = "Saindo da sala e liberando o Relay...";
+            roomCode = string.Empty;
+            relayRegion = string.Empty;
+            relayRegionDescription = string.Empty;
+            disconnectReason = string.Empty;
+            role = SessionRole.None;
+            ResetMatchState(true);
+            UnregisterHandlers();
+            try
+            {
+                await sessionCoordinator.LeaveAsync();
+                bool transportStopped =
+                    await EnsureNetworkStoppedAfterLeaveAsync();
+                status = transportStopped
+                    ? "Sala encerrada. Voce ja pode criar ou entrar em outra sala."
+                    : "Sala encerrada. O transporte ainda esta finalizando; aguarde um instante.";
+            }
+            catch (Exception exception)
+            {
+                status = "A sala foi limpa localmente, mas o servico respondeu: " +
+                    exception.GetBaseException().Message;
+                Debug.LogWarning("[MP] stage=explicit-leave result=" +
+                    exception.GetBaseException().Message);
+            }
+            finally
+            {
+                connectionOperationInProgress = false;
+                focusJoinCode = false;
+                requestJoinFocus = false;
+                joinCode = string.Empty;
+                showPanel = reopenPanel &&
+                    SceneManager.GetActiveScene().name != DuelArenaScene;
+            }
+        }
+
+        private async Task<bool> EnsureNetworkStoppedAfterLeaveAsync()
+        {
+            if (networkManager == null)
+                return true;
+            if ((networkManager.IsClient || networkManager.IsServer) &&
+                !networkManager.ShutdownInProgress)
+            {
+                networkManager.Shutdown();
+            }
+
+            for (int attempt = 0; attempt < 120; attempt++)
+            {
+                if (!networkManager.IsClient && !networkManager.IsServer &&
+                    !networkManager.ShutdownInProgress)
+                {
+                    return true;
+                }
+                await Task.Delay(25);
+            }
+            return !networkManager.IsClient && !networkManager.IsServer;
+        }
+
         private async void ResetAfterFailedConnection(string failure)
         {
             ClearReconnectTicket();
@@ -3598,6 +3679,7 @@ namespace ArcaneArena.Multiplayer
                 // manually. MPS-owned sessions stop NGO through LeaveAsync.
                 networkManager.Shutdown();
             }
+            await EnsureNetworkStoppedAfterLeaveAsync();
         }
 
         private static string DescribeJoinFailure(Exception exception)
@@ -3616,6 +3698,11 @@ namespace ArcaneArena.Multiplayer
 
         private void OnGUI()
         {
+            if (matchStarted &&
+                SceneManager.GetActiveScene().name == DuelArenaScene)
+            {
+                showPanel = false;
+            }
             if (!showPanel)
                 return;
             const float width = 640f;
@@ -3674,7 +3761,8 @@ namespace ArcaneArena.Multiplayer
             GUI.Label(new Rect(margin, 96f, contentWidth, 38f),
                 status ?? string.Empty, lobbyStatusStyle);
 
-            string code = IsOnlineDuelActive ? roomCode : string.Empty;
+            bool roomActive = IsOnlineDuelActive;
+            string code = roomActive ? roomCode : string.Empty;
             GUI.Label(new Rect(margin, 140f, contentWidth, 34f),
                 $"CODIGO DA SALA  •  {(string.IsNullOrWhiteSpace(code) ? "—" : code)}",
                 lobbyCodeStyle);
@@ -3686,31 +3774,45 @@ namespace ArcaneArena.Multiplayer
                     GUIUtility.systemCopyBuffer = code;
             }
 
-            GUI.Label(new Rect(margin, 180f, 260f, 22f),
-                "CODIGO PARA ENTRAR", lobbySmallLabelStyle);
-            if (requestJoinFocus)
+            if (!roomActive)
             {
-                GUI.SetNextControlName("ArcaneJoinCode");
-                requestJoinFocus = false;
-            }
-            bool canStartConnection = !IsOnlineDuelActive &&
-                !connectionOperationInProgress &&
-                (networkManager == null || !networkManager.ShutdownInProgress);
-            GUI.enabled = canStartConnection;
-            joinCode = GUI.TextField(
-                new Rect(margin, 204f, 412f, 42f), joinCode ?? string.Empty,
-                lobbyInputStyle).Trim().ToUpperInvariant();
-            if (focusJoinCode)
-                GUI.FocusControl("ArcaneJoinCode");
+                GUI.Label(new Rect(margin, 180f, 260f, 22f),
+                    "CODIGO PARA ENTRAR", lobbySmallLabelStyle);
+                if (requestJoinFocus)
+                {
+                    GUI.SetNextControlName("ArcaneJoinCode");
+                    requestJoinFocus = false;
+                }
+                bool canStartConnection = !connectionOperationInProgress &&
+                    (networkManager == null ||
+                     !networkManager.ShutdownInProgress);
+                GUI.enabled = canStartConnection;
+                joinCode = GUI.TextField(
+                    new Rect(margin, 204f, 412f, 42f),
+                    joinCode ?? string.Empty,
+                    lobbyInputStyle).Trim().ToUpperInvariant();
+                if (focusJoinCode)
+                    GUI.FocusControl("ArcaneJoinCode");
 
-            GUI.backgroundColor = new Color(0.22f, 0.82f, 0.90f, 1f);
-            if (GUI.Button(new Rect(464f, 204f, 138f, 42f), "CRIAR SALA", lobbyButtonStyle))
-                BeginHosting();
-            GUI.enabled = canStartConnection;
-            GUI.backgroundColor = new Color(0.68f, 1f, 0.16f, 1f);
-            if (GUI.Button(new Rect(464f, 254f, 138f, 42f), "ENTRAR", lobbyButtonStyle))
-                BeginJoining();
-            GUI.enabled = true;
+                GUI.backgroundColor =
+                    new Color(0.22f, 0.82f, 0.90f, 1f);
+                if (GUI.Button(
+                        new Rect(464f, 204f, 138f, 42f),
+                        "CRIAR SALA",
+                        lobbyButtonStyle))
+                {
+                    BeginHosting();
+                }
+                GUI.backgroundColor = new Color(0.68f, 1f, 0.16f, 1f);
+                if (GUI.Button(
+                        new Rect(464f, 254f, 138f, 42f),
+                        "ENTRAR",
+                        lobbyButtonStyle))
+                {
+                    BeginJoining();
+                }
+                GUI.enabled = true;
+            }
 
             GUI.backgroundColor = new Color(0.035f, 0.12f, 0.21f, 1f);
             GUI.Box(new Rect(margin, 264f, 412f, 92f), GUIContent.none);
@@ -3745,39 +3847,45 @@ namespace ArcaneArena.Multiplayer
 
             bool canStartMatch = IsHost && peerConnected &&
                 remoteLoadout != null && clientDeckReady && !matchStarted;
+            string matchButtonLabel = matchStarted
+                ? "DUELO ONLINE EM ANDAMENTO"
+                : canStartMatch
+                    ? "INICIAR DUELO ONLINE"
+                    : roomActive
+                        ? "AGUARDANDO JOGADORES E DECKS"
+                        : "CRIE OU ENTRE EM UMA SALA";
             GUI.enabled = canStartMatch;
             GUI.backgroundColor = GUI.enabled
                 ? new Color(0.78f, 0.56f, 0.08f, 1f)
                 : new Color(0.22f, 0.20f, 0.14f, 1f);
             if (GUI.Button(new Rect(margin, 366f, contentWidth, 42f),
-                    canStartMatch
-                        ? "INICIAR DUELO ONLINE"
-                        : "AGUARDANDO JOGADORES E DECKS", lobbyButtonStyle))
+                    matchButtonLabel, lobbyButtonStyle))
             {
                 BeginHostMatch();
             }
             GUI.enabled = true;
 
-            if (IsOnlineDuelActive && !matchStarted)
+            if (roomActive)
             {
                 GUI.backgroundColor = new Color(0.95f, 0.25f, 0.35f, 1f);
                 if (GUI.Button(new Rect(margin, 420f, 220f, 34f),
-                        "SAIR DA SALA", lobbyButtonStyle))
+                        matchStarted ? "ENCERRAR PARTIDA" : "SAIR DA SALA",
+                        lobbyButtonStyle))
                 {
-                    ResetAfterFailedConnection("Sala cancelada.");
-                    showPanel = false;
+                    LeaveRoom();
                 }
             }
             GUI.backgroundColor = new Color(0.22f, 0.52f, 1f, 1f);
             if (GUI.Button(new Rect(398f, 420f, 204f, 34f),
                     "FECHAR PAINEL", lobbyButtonStyle))
             {
-                // Closing the window must not destroy a Relay allocation.
-                // The explicit SAIR DA SALA action above is the only way to
-                // release the room before the duel begins.
-                if (IsOnlineDuelActive && !matchStarted)
+                // Closing only hides this window. Leaving the Relay room is
+                // always explicit through the red action beside it.
+                if (roomActive)
                 {
-                    status = IsHost
+                    status = matchStarted
+                        ? "A partida continua ativa. Use ENCERRAR PARTIDA para sair."
+                        : IsHost
                         ? "Sala continua ativa. Reabra o painel para copiar o código ou iniciar o duelo."
                         : "Conexão continua ativa. Aguarde o anfitrião iniciar o duelo.";
                 }

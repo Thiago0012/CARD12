@@ -1168,6 +1168,27 @@ namespace ArcaneDuel.Tests.PlayMode
             yield return null;
             controller.ConfigureNetworkReplica(0);
 
+            DuelPrompt responsePrompt = EffectQuestionPrompt(8123);
+            FieldInfo replicaPrompt = typeof(DuelArenaController).GetField(
+                "replicaPrompt",
+                flags);
+            Assert.That(replicaPrompt, Is.Not.Null);
+            replicaPrompt.SetValue(controller, responsePrompt);
+            arena.GetType()
+                .GetMethod("ResetPromptPresentationIdentity", flags)
+                ?.Invoke(arena, null);
+            arena.GetType()
+                .GetMethod("RefreshEverything", flags)
+                ?.Invoke(arena, new object[] { true });
+            GameObject compactResponse = arena.GetType()
+                .GetField("compactResponseBar", flags)
+                ?.GetValue(arena) as GameObject;
+            Assert.That(compactResponse, Is.Not.Null);
+            Assert.That(
+                compactResponse.activeSelf,
+                Is.True,
+                "The snapshot prompt is presented before the delayed Draw event.");
+
             DuelPresentationState state = controller.PresentationState;
             state.Players[0].Hand.Clear();
             state.Players[0].HandInstances.Clear();
@@ -1214,6 +1235,18 @@ namespace ArcaneDuel.Tests.PlayMode
 
             Assert.That(awaiting.GetValue(arena), Is.True);
             Assert.That(locked.GetValue(arena), Is.True);
+            Assert.That(
+                compactResponse.activeSelf,
+                Is.False,
+                "The Draw presentation must temporarily close the response tray.");
+            CanvasGroup handInteraction = arena.GetType()
+                .GetField("handInteractionGroup", flags)
+                ?.GetValue(arena) as CanvasGroup;
+            Assert.That(handInteraction, Is.Not.Null);
+            Assert.That(
+                handInteraction.alpha,
+                Is.LessThan(1f),
+                "The hand is dimmed only while the Draw presentation owns input.");
             FieldInfo drawGhost = arena.GetType().GetField(
                 "activeDrawGhost",
                 flags);
@@ -1325,6 +1358,12 @@ namespace ArcaneDuel.Tests.PlayMode
             {
                 yield return null;
             }
+            while (((bool)locked.GetValue(arena) ||
+                    !compactResponse.activeSelf) &&
+                   Time.realtimeSinceStartup < drawDeadline)
+            {
+                yield return null;
+            }
 
             bool drawCompleted = activeRequest.GetValue(arena) == null;
             bool deckRestored = Vector3.Distance(
@@ -1350,6 +1389,14 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(drawGhost.GetValue(arena), Is.Null);
             Assert.That(finalCardAlpha, Is.EqualTo(1f).Within(0.001f));
             Assert.That(locked.GetValue(arena), Is.False);
+            Assert.That(
+                compactResponse.activeSelf,
+                Is.True,
+                "The same Core prompt must reopen after the Draw animation.");
+            Assert.That(
+                handInteraction.alpha,
+                Is.EqualTo(1f).Within(0.001f),
+                "The local hand must become fully opaque and interactive again.");
             FieldInfo timeout = arena.GetType().GetField(
                 "DrawClickTimeoutSeconds",
                 BindingFlags.Static | BindingFlags.NonPublic);

@@ -18,6 +18,69 @@ namespace ArcaneDuel.Tests.PlayMode
     public sealed class MultiplayerCrossplayPlayModeTests
     {
         [UnityTest]
+        public IEnumerator ExplicitLobbyExitClearsStateAndCanRunAgain()
+        {
+            Type sessionType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelOnlineSession");
+            object session = sessionType.GetMethod(
+                    "EnsureInstance",
+                    BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, null);
+            Assert.That(session, Is.Not.Null);
+
+            BindingFlags fields = BindingFlags.Instance |
+                                  BindingFlags.NonPublic;
+            sessionType.GetField("roomCode", fields)
+                ?.SetValue(session, "ABC123");
+            sessionType.GetField("currentMatchId", fields)
+                ?.SetValue(session, "stale-match");
+            sessionType.GetField("matchStarted", fields)
+                ?.SetValue(session, true);
+            FieldInfo role = sessionType.GetField("role", fields);
+            role?.SetValue(
+                session,
+                Enum.Parse(role.FieldType, "Host"));
+
+            MethodInfo leave = sessionType.GetMethod(
+                "LeaveRoom",
+                BindingFlags.Instance | BindingFlags.Public);
+            Assert.That(leave, Is.Not.Null);
+            leave.Invoke(session, null);
+            for (int frame = 0; frame < 120 &&
+                 (bool)sessionType.GetField(
+                         "connectionOperationInProgress",
+                         fields)
+                     .GetValue(session);
+                 frame++)
+            {
+                yield return null;
+            }
+
+            Assert.That(role.GetValue(session).ToString(), Is.EqualTo("None"));
+            Assert.That(
+                sessionType.GetField("roomCode", fields)?.GetValue(session),
+                Is.EqualTo(string.Empty));
+            Assert.That(
+                sessionType.GetField("currentMatchId", fields)?.GetValue(session),
+                Is.EqualTo(string.Empty));
+            Assert.That(
+                sessionType.GetField("matchStarted", fields)?.GetValue(session),
+                Is.False);
+            Assert.That(
+                sessionType.GetField("connectionOperationInProgress", fields)
+                    ?.GetValue(session),
+                Is.False);
+
+            leave.Invoke(session, null);
+            yield return null;
+            Assert.That(
+                sessionType.GetField("connectionOperationInProgress", fields)
+                    ?.GetValue(session),
+                Is.False,
+                "Leaving an already cleared room must remain idempotent.");
+        }
+
+        [UnityTest]
         public IEnumerator OnlineArenaDoesNotStartASecondLocalDuel()
         {
             DuelOnlineBridge.BeginOnlineArenaTransition();
