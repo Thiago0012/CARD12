@@ -1444,6 +1444,16 @@ namespace ArcaneDuel.Game
                 // Notify it after replacing a replica snapshot so it rebinds
                 // without fabricating a Core event on this assembly boundary.
                 PresentationStateChanged?.Invoke();
+                IReadOnlyList<DuelEvent> presentationEvents =
+                    networkState.PresentationEvents;
+                if (presentationEvents != null)
+                {
+                    foreach (DuelEvent duelEvent in presentationEvents)
+                    {
+                        if (duelEvent != null)
+                            CoreEventPresented?.Invoke(duelEvent);
+                    }
+                }
             }
             catch (Exception exception)
             {

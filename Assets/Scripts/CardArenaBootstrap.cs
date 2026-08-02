@@ -2950,7 +2950,7 @@ namespace ArcaneArena
             DuelChoice attack = ChoicesForCard(
                     core.CurrentPrompt,
                     CodeAt(attacker),
-                    (byte)attacker.Owner,
+                    StatePlayerForZone(attacker),
                     (byte)DuelLocation.MonsterZone,
                     attacker.ZoneIndex)
                 .FirstOrDefault(choice => Contains(choice.Label, "Atacar"));
@@ -3234,6 +3234,16 @@ namespace ArcaneArena
                           core.NetworkLocalPlayer == 1;
             byte physical = (byte)zone.Owner;
             return invert ? (byte)(1 - physical) : physical;
+        }
+
+        private DuelPlayerSide PhysicalSideForStatePlayer(byte player)
+        {
+            bool invert = core != null && core.IsNetworkReplica &&
+                          core.NetworkLocalPlayer == 1;
+            byte physical = invert ? (byte)(1 - player) : player;
+            return physical == 0
+                ? DuelPlayerSide.PlayerOne
+                : DuelPlayerSide.PlayerTwo;
         }
 
         private bool IsLocalZone(DuelZone3D zone)
