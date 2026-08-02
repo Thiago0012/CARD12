@@ -34,6 +34,33 @@ namespace ArcaneDuel.Game
                    prompt.Message == CoreMessage.SelectYesNo;
         }
 
+        public static bool ShouldUseCompactResponseBar(DuelPrompt prompt)
+        {
+            return RequiresVisibleResponseTray(prompt) &&
+                   !prompt.Forced &&
+                   DeclineChoice(prompt) != null &&
+                   ActionableResponseChoices(prompt).Count == 1;
+        }
+
+        public static DuelChoice DeclineChoice(DuelPrompt prompt)
+        {
+            if (prompt == null)
+                return null;
+            return prompt.Choices.FirstOrDefault(choice =>
+                IsNoResponseChoice(choice) ||
+                (prompt.Message == CoreMessage.SelectYesNo &&
+                 Contains(choice?.Label, "Não")));
+        }
+
+        public static List<DuelChoice> ActionableResponseChoices(
+            DuelPrompt prompt)
+        {
+            DuelChoice decline = DeclineChoice(prompt);
+            return prompt?.Choices
+                .Where(choice => choice != null && choice != decline)
+                .ToList() ?? new List<DuelChoice>();
+        }
+
         public static List<DuelChoice> PhaseChoices(DuelPrompt prompt)
         {
             if (prompt == null ||
@@ -52,7 +79,7 @@ namespace ArcaneDuel.Game
 
         private static bool IsNoResponseChoice(DuelChoice choice)
         {
-            if (choice == null || choice.CardCode != 0)
+            if (choice == null)
                 return false;
             return Contains(choice.Label, "Não responder") ||
                    Contains(choice.Label, "Nao responder") ||

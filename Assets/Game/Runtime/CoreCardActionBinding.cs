@@ -58,7 +58,10 @@ namespace ArcaneDuel.Game
                 ReferenceEquals(candidate, choice) ||
                 (candidate.Response != null &&
                  choice.Response != null &&
-                 candidate.Response.SequenceEqual(choice.Response)));
+                 candidate.Response.SequenceEqual(choice.Response))) ||
+                CoreMessageDecoder.IsValidPlaceSelectionResponse(
+                    prompt,
+                    choice.Response);
         }
     }
 }
