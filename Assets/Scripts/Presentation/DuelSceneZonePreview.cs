@@ -3,21 +3,21 @@ using UnityEngine;
 namespace ArcaneArena.Presentation
 {
     /// <summary>
-    /// Links a Scene-view handle to the presentation anchor of one stable duel
-    /// zone. It does not identify cards or participate in duel rules.
+    /// Links one editable Scene-view card to the presentation of one stable
+    /// duel zone. Card identity, rules and authoritative state are untouched.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
     public sealed class DuelSceneZonePreview : MonoBehaviour
     {
-        private const float FieldWidth = 18.8f;
-        private const float FieldDepth = 10.586f;
-
         [SerializeField] private DuelZone3D targetZone;
-        [SerializeField] private Vector2 referenceCardSize = new(76f, 110f);
+        [SerializeField] private Vector2 referenceCardSize =
+            new Vector2(76f, 110f);
         [SerializeField, HideInInspector] private Vector3 referencePileScale;
-        [SerializeField, HideInInspector] private Vector3 referenceDropSurfaceScale;
+        [SerializeField, HideInInspector]
+        private Vector3 referenceDropSurfaceScale;
         [SerializeField, HideInInspector] private Vector3 referenceColliderSize;
+
         private bool synchronizing;
         private Vector3 lastLocalPosition;
         private Vector3 lastLocalScale;
@@ -39,8 +39,8 @@ namespace ArcaneArena.Presentation
         }
 
         /// <summary>
-        /// Copies this editor handle to the real presentation transform used by
-        /// Play Mode. Stable zone identity and duel state are never changed.
+        /// Saves exactly what is visible in the editable frame and applies it
+        /// to the same presentation anchors used by Play Mode.
         /// </summary>
         public bool SyncNow()
         {
@@ -52,7 +52,14 @@ namespace ArcaneArena.Presentation
 
             RectTransform frame = FindUniversalFrame();
             if (frame == null || frame.rect.width <= 1f ||
-                frame.rect.height <= 1f)
+                frame.rect.height <= 1f ||
+                !TryCaptureLayout(
+                    frame,
+                    rect,
+                    out Vector2 center,
+                    out Vector2 rightHalfAxis,
+                    out Vector2 upHalfAxis,
+                    out float angle))
             {
                 return false;
             }
@@ -63,38 +70,37 @@ namespace ArcaneArena.Presentation
                 if (referencePileScale.sqrMagnitude < 0.0001f)
                     referencePileScale = CapturePileScale(targetZone);
                 if (referenceDropSurfaceScale.sqrMagnitude < 0.0001f)
+                {
                     referenceDropSurfaceScale =
                         CaptureDropSurfaceScale(targetZone);
+                }
                 if (referenceColliderSize.sqrMagnitude < 0.0001f)
                     referenceColliderSize = CaptureColliderSize(targetZone);
 
-                Vector3 world = rect.TransformPoint(rect.rect.center);
-                Vector3 local = frame.InverseTransformPoint(world);
-                Vector2 normalized = new(
-                    Mathf.InverseLerp(
-                        frame.rect.xMin,
-                        frame.rect.xMax,
-                        local.x),
-                    Mathf.InverseLerp(
-                        frame.rect.yMin,
-                        frame.rect.yMax,
-                        local.y));
-                float scale = rect.rect.height /
-                    Mathf.Max(1f, referenceCardSize.y);
-                bool changed = ApplyPresentationToZone(
+                DuelAuthoredZoneLayout layout =
+                    frame.GetComponent<DuelAuthoredZoneLayout>();
+                if (layout == null)
+                    layout = frame.gameObject.AddComponent<DuelAuthoredZoneLayout>();
+                layout.Upsert(
                     targetZone,
-                    normalized,
-                    rect.localEulerAngles.z,
-                    scale,
+                    center,
+                    rightHalfAxis,
+                    upHalfAxis,
+                    angle,
                     referencePileScale,
                     referenceDropSurfaceScale,
                     referenceColliderSize);
+                bool changed = layout.ApplyOne(targetZone);
                 CaptureSnapshot();
+
 #if UNITY_EDITOR
+                UnityEditor.EditorUtility.SetDirty(layout);
                 if (changed)
                 {
                     UnityEditor.EditorUtility.SetDirty(targetZone);
                     UnityEditor.EditorUtility.SetDirty(targetZone.transform);
+                    UnityEditor.EditorUtility.SetDirty(
+                        targetZone.CardPresentationAnchor);
                     UnityEditor.SceneManagement.EditorSceneManager
                         .MarkSceneDirty(gameObject.scene);
                 }
@@ -107,106 +113,52 @@ namespace ArcaneArena.Presentation
             }
         }
 
-        public static bool ApplyPresentationToZone(
-            DuelZone3D zone,
-            Vector2 normalized,
-            float angle,
-            float scale,
-            Vector3 pileReferenceScale,
-            Vector3 dropSurfaceReferenceScale,
-            Vector3 colliderReferenceSize)
+        public static bool TryCaptureLayout(
+            RectTransform frame,
+            RectTransform rect,
+            out Vector2 center,
+            out Vector2 rightHalfAxis,
+            out Vector2 upHalfAxis,
+            out float angle)
         {
-            if (zone == null)
+            center = default;
+            rightHalfAxis = default;
+            upHalfAxis = default;
+            angle = 0f;
+            if (frame == null || rect == null ||
+                frame.rect.width <= 1f || frame.rect.height <= 1f)
+            {
                 return false;
-
-            zone.EnsurePresentationAnchors();
-            Transform zoneRoot = zone.transform;
-            MasterDuelArena3D arena =
-                zone.GetComponentInParent<MasterDuelArena3D>(true);
-            Transform fieldRoot = arena != null ? arena.transform : null;
-            Vector3 local = fieldRoot != null
-                ? fieldRoot.InverseTransformPoint(zoneRoot.position)
-                : zoneRoot.position;
-            local.x = (normalized.x - 0.5f) * FieldWidth;
-            local.z = (normalized.y - 0.5f) * FieldDepth;
-            Vector3 desiredPosition = fieldRoot != null
-                ? fieldRoot.TransformPoint(local)
-                : local;
-            Quaternion desiredRotation =
-                (fieldRoot != null ? fieldRoot.rotation : Quaternion.identity) *
-                Quaternion.Euler(0f, -NormalizeAngle(angle), 0f);
-            bool changed =
-                (zoneRoot.position - desiredPosition).sqrMagnitude > 0.000001f ||
-                Quaternion.Angle(zoneRoot.rotation, desiredRotation) > 0.001f;
-            zoneRoot.SetPositionAndRotation(desiredPosition, desiredRotation);
-
-            Transform anchor = zone.CardPresentationAnchor;
-            Vector3 anchorPosition = anchor.localPosition;
-            Vector3 desiredAnchorPosition =
-                new(0f, anchorPosition.y, 0f);
-            Vector3 desiredAnchorScale =
-                Vector3.one * Mathf.Max(0.1f, scale);
-            changed |=
-                (anchor.localPosition - desiredAnchorPosition).sqrMagnitude >
-                    0.000001f ||
-                Quaternion.Angle(anchor.localRotation, Quaternion.identity) >
-                    0.001f ||
-                (anchor.localScale - desiredAnchorScale).sqrMagnitude >
-                    0.000001f;
-            anchor.localPosition = desiredAnchorPosition;
-            anchor.localRotation = Quaternion.identity;
-            anchor.localScale = desiredAnchorScale;
-
-            Transform pile = zoneRoot.Find("Card Stack");
-            if (pile != null)
-            {
-                Vector3 baseScale = pileReferenceScale.sqrMagnitude > 0.0001f
-                    ? pileReferenceScale
-                    : pile.localScale;
-                Vector3 desiredPileScale = baseScale * Mathf.Max(0.1f, scale);
-                changed |=
-                    (pile.localScale - desiredPileScale).sqrMagnitude >
-                    0.000001f;
-                pile.localScale = desiredPileScale;
             }
 
-            // O brilho de selecao e a area de clique fazem parte somente da
-            // apresentacao da zona. Eles acompanham o mesmo tamanho editado para
-            // a carta sem alterar StableId, tipo, dono ou qualquer regra do Core.
-            Transform dropSurface = zoneRoot.Find("Card Inset");
-            if (dropSurface != null)
+            var worldCorners = new Vector3[4];
+            rect.GetWorldCorners(worldCorners);
+            var corners = new Vector2[4];
+            for (int index = 0; index < corners.Length; index++)
             {
-                Vector3 baseScale =
-                    dropSurfaceReferenceScale.sqrMagnitude > 0.0001f
-                        ? dropSurfaceReferenceScale
-                        : dropSurface.localScale;
-                Vector3 desiredSurfaceScale = new(
-                    baseScale.x * Mathf.Max(0.1f, scale),
-                    baseScale.y,
-                    baseScale.z * Mathf.Max(0.1f, scale));
-                changed |=
-                    (dropSurface.localScale - desiredSurfaceScale).sqrMagnitude >
-                    0.000001f;
-                dropSurface.localScale = desiredSurfaceScale;
+                Vector3 local = frame.InverseTransformPoint(
+                    worldCorners[index]);
+                corners[index] = new Vector2(local.x, local.y);
             }
 
-            BoxCollider collider = zoneRoot.GetComponent<BoxCollider>();
-            if (collider != null)
-            {
-                Vector3 baseSize = colliderReferenceSize.sqrMagnitude > 0.0001f
-                    ? colliderReferenceSize
-                    : collider.size;
-                Vector3 desiredColliderSize = new(
-                    baseSize.x * Mathf.Max(0.1f, scale),
-                    baseSize.y,
-                    baseSize.z * Mathf.Max(0.1f, scale));
-                changed |=
-                    (collider.size - desiredColliderSize).sqrMagnitude >
-                    0.000001f;
-                collider.size = desiredColliderSize;
-            }
-
-            return changed;
+            Vector2 localCenter =
+                (corners[0] + corners[1] + corners[2] + corners[3]) *
+                0.25f;
+            Vector2 localRight =
+                (corners[2] + corners[3]) * 0.5f - localCenter;
+            Vector2 localUp =
+                (corners[1] + corners[2]) * 0.5f - localCenter;
+            center = ToViewportPoint(frame, localCenter);
+            rightHalfAxis = new Vector2(
+                localRight.x / frame.rect.width,
+                localRight.y / frame.rect.height);
+            upHalfAxis = new Vector2(
+                localUp.x / frame.rect.width,
+                localUp.y / frame.rect.height);
+            angle = Mathf.Atan2(localRight.y, localRight.x) *
+                    Mathf.Rad2Deg;
+            return rightHalfAxis.sqrMagnitude > 0.0000001f &&
+                   upHalfAxis.sqrMagnitude > 0.0000001f;
         }
 
         private void OnEnable()
@@ -230,7 +182,8 @@ namespace ArcaneArena.Presentation
                 return false;
             return (rect.localPosition - lastLocalPosition).sqrMagnitude >
                        0.0001f ||
-                   (rect.localScale - lastLocalScale).sqrMagnitude > 0.0001f ||
+                   (rect.localScale - lastLocalScale).sqrMagnitude >
+                       0.0001f ||
                    (rect.localEulerAngles - lastLocalEulerAngles).sqrMagnitude >
                        0.0001f ||
                    (rect.rect.size - lastSize).sqrMagnitude > 0.01f;
@@ -260,9 +213,20 @@ namespace ArcaneArena.Presentation
             return null;
         }
 
+        private static Vector2 ToViewportPoint(
+            RectTransform frame,
+            Vector2 local)
+        {
+            return new Vector2(
+                Mathf.InverseLerp(frame.rect.xMin, frame.rect.xMax, local.x),
+                Mathf.InverseLerp(frame.rect.yMin, frame.rect.yMax, local.y));
+        }
+
         private static Vector3 CapturePileScale(DuelZone3D zone)
         {
-            Transform pile = zone != null ? zone.transform.Find("Card Stack") : null;
+            Transform pile = zone != null
+                ? zone.transform.Find("Card Stack")
+                : null;
             return pile != null ? pile.localScale : Vector3.zero;
         }
 
@@ -280,12 +244,6 @@ namespace ArcaneArena.Presentation
                 ? zone.GetComponent<BoxCollider>()
                 : null;
             return collider != null ? collider.size : Vector3.zero;
-        }
-
-        private static float NormalizeAngle(float angle)
-        {
-            angle %= 360f;
-            return angle > 180f ? angle - 360f : angle;
         }
     }
 }

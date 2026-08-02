@@ -2808,55 +2808,44 @@ namespace ArcaneArena
                 .ToList() ?? new List<DuelChoice>();
             bool browsingExtraDeck =
                 zone.Kind == DuelZoneKind.ExtraDeck &&
-                IsLocalZone(zone) &&
-                !core.IsNetworkReplica;
-            List<uint> cards = browsingExtraDeck
-                ? core.PlayerExtraDeckCards.ToList()
-                : choices.Select(choice => choice.CardCode)
-                    .Where(code => code != 0)
-                    .ToList();
+                IsLocalZone(zone);
+            List<ZoneBrowserEntry> entries = BuildZoneBrowserEntries(
+                browsingExtraDeck,
+                choices);
+            bool summonMode =
+                browsingExtraDeck &&
+                prompt != null &&
+                prompt == core.CurrentPrompt &&
+                prompt.Message == CoreMessage.SelectIdleCommand &&
+                choices.Count > 0;
             if (!browsingExtraDeck && choices.Count == 0)
             {
                 InspectZone(zone);
                 return;
             }
-            if (cards.Count == 0 && choices.Count > 0)
-            {
-                cards.AddRange(choices
-                    .Select(choice => choice.CardCode)
-                    .Where(code => code != 0));
-            }
-            ResizeZoneBrowserTray(cards.Count);
+            ResizeZoneBrowserTray(entries.Count);
             ResetZoneBrowserSelection(prompt);
+            ConfigureZoneBrowserActionMode(summonMode);
             CloseChoiceModal();
             ClearChildren(zoneBrowserContent);
-            int legalCardCount = choices
-                .Select(choice => choice.Sequence)
-                .Distinct()
-                .Count();
+            int legalCardCount = entries.Count(entry =>
+                entry.LegalChoices.Count > 0);
             zoneBrowserTitle.text = browsingExtraDeck
                 ? legalCardCount > 0
-                    ? $"DECK ADICIONAL · {cards.Count} CARTA(S) · {legalCardCount} DISPONÍVEL(IS)"
-                    : $"DECK ADICIONAL · {cards.Count} CARTA(S) · SOMENTE CONSULTA"
+                    ? $"DECK ADICIONAL · {legalCardCount} INVOCÁVEL(IS) AGORA"
+                    : $"DECK ADICIONAL · {entries.Count} CARTA(S) · SOMENTE CONSULTA"
                 : PileLabel(zone).ToUpperInvariant();
 
-            for (int index = 0; index < cards.Count; index++)
+            for (int index = 0; index < entries.Count; index++)
             {
-                uint code = cards[index];
-                List<DuelChoice> legalChoices = browsingExtraDeck
-                    ? choices.Where(choice =>
-                            choice.Sequence == (uint)index &&
-                            (choice.CardCode == 0 ||
-                             choice.CardCode == code))
-                        .ToList()
-                    : new List<DuelChoice> { choices[index] };
+                ZoneBrowserEntry entry = entries[index];
                 CreateZoneBrowserCard(
-                    code,
+                    entry.Code,
                     index,
                     prompt,
-                    legalChoices);
+                    entry.LegalChoices);
             }
-            if (cards.Count == 0)
+            if (entries.Count == 0)
             {
                 CreateText(
                     zoneBrowserContent,

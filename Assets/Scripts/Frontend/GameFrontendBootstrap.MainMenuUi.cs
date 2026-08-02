@@ -136,23 +136,23 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.2976f, 0.5654f),
                 OpenBotDuelSelectionFromMainMenu);
             CreateTemplateButton(
-                "DECKS",
-                _mainMenuAssets.decksButton,
+                "MULTIPLAYER",
+                _mainMenuAssets.multiplayerButton,
                 new Vector2(0.0730f, 0.3624f),
                 new Vector2(0.2988f, 0.4586f),
+                ShowMultiplayerRoom);
+            CreateTemplateButton(
+                "DECKS",
+                _mainMenuAssets.decksButton,
+                new Vector2(0.0736f, 0.2582f),
+                new Vector2(0.2994f, 0.3545f),
                 OpenDeckEditorScene);
             CreateTemplateButton(
                 "LOJA",
                 _mainMenuAssets.shopButton,
-                new Vector2(0.0736f, 0.2582f),
-                new Vector2(0.2994f, 0.3545f),
-                ShowDeckShop);
-            CreateTemplateButton(
-                "MULTIPLAYER",
-                _mainMenuAssets.multiplayerButton,
                 new Vector2(0.0733f, 0.1557f),
                 new Vector2(0.2991f, 0.2519f),
-                ShowMultiplayerRoom);
+                ShowDeckShop);
             CreateTemplateButton(
                 "CONFIGURAÇÕES",
                 _mainMenuAssets.settingsButton,
@@ -307,7 +307,7 @@ namespace ArcaneArena.Frontend
             Vector2 max,
             System.Action action)
         {
-            var artwork = CreateFullCanvasArtwork(
+            CreateFullCanvasArtwork(
                 $"Arte Botão {label}",
                 texture);
             var hitArea = CreatePanel(
@@ -319,14 +319,10 @@ namespace ArcaneArena.Frontend
             hitArea.raycastTarget = true;
 
             var button = hitArea.gameObject.AddComponent<Button>();
-            button.targetGraphic = artwork;
-            var colors = button.colors;
-            colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(1.12f, 1.12f, 1.12f, 1f);
-            colors.pressedColor = new Color(0.72f, 0.86f, 0.92f, 1f);
-            colors.selectedColor = Color.white;
-            colors.fadeDuration = 0.08f;
-            button.colors = colors;
+            // Keep the imported template untouched. A transparent hit area
+            // receives input without tinting or outlining the artwork.
+            button.targetGraphic = hitArea;
+            button.transition = Selectable.Transition.None;
             button.onClick.AddListener(() =>
             {
                 FrontendClickAudio.Play();

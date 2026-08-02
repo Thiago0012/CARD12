@@ -131,10 +131,22 @@ namespace ArcaneArena
         private static bool IsFaceDownPlacement(DuelEvent duelEvent)
         {
             if (duelEvent == null ||
-                (duelEvent.Message != CoreMessage.Move &&
-                 duelEvent.Message != CoreMessage.PositionChange) ||
+                duelEvent.Message != CoreMessage.Move ||
                 duelEvent.Current == null)
             {
+                return false;
+            }
+            bool wasAlreadyOnField =
+                duelEvent.Previous != null &&
+                ((duelEvent.Previous.Location &
+                  DuelLocation.MonsterZone) != 0 ||
+                 (duelEvent.Previous.Location &
+                  DuelLocation.SpellTrapZone) != 0);
+            if (wasAlreadyOnField)
+            {
+                // A card flipped face-down by an effect stayed on the field;
+                // it was not Set from hand/deck, so do not replay the Set
+                // placement sound.
                 return false;
             }
             uint location = duelEvent.Current.Location;
