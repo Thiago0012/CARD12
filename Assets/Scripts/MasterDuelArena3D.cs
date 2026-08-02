@@ -372,8 +372,11 @@ namespace ArcaneArena
                 0,
                 false);
 
-            if (opponent)
-                CreateOpponentHand(side.transform);
+            // No campo estatico, a mao do oponente e apresentada pelo HUD autorado
+            // da cena (DuelHandLayoutAnchor). Manter esta copia 3D legada criaria
+            // uma segunda mao com posicoes fixas e sobrescreveria visualmente o
+            // layout ajustado pelo artista. O estado e as regras da mao continuam
+            // pertencendo ao Core; somente a representacao duplicada e omitida.
         }
 
         private void CreateCardZone(Transform parent, string name, Vector3 position, Quaternion rotation,

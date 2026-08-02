@@ -60,6 +60,13 @@ namespace ArcaneArena.Presentation
             }
         }
 
+        public void ConfigureCardSize(Vector2 value)
+        {
+            cardSize = new Vector2(
+                Mathf.Max(8f, value.x),
+                Mathf.Max(12f, value.y));
+        }
+
         public Vector2 PositionFor(int index, int count)
         {
             if (count <= 1)
