@@ -392,6 +392,56 @@ namespace ArcaneDuel.Tests.EditMode
             AssertCoreNormalSummon(51632798, 0, 1400, 1000);
         }
 
+        [Test]
+        public void AuthoritativeFieldSnapshotReadsEveryCoreLocation()
+        {
+            uint[] deck = Enumerable
+                .Repeat(BlueEyesWhiteDragon, 40)
+                .ToArray();
+            var configuration = new DuelConfiguration
+            {
+                StartingHand = 0,
+                Seed = 0xA11CE5EEDUL,
+                ShuffleMainDecks = false,
+                SimpleOpponentAi = false,
+                PlayerDeck = (uint[])deck.Clone(),
+                OpponentDeck = (uint[])deck.Clone(),
+                PlayerExtraDeck = new[] { EbonIllusionMagician },
+                OpponentExtraDeck = new[] { EbonIllusionMagician }
+            };
+            string root = Path.Combine(
+                Application.streamingAssetsPath,
+                "Ygo");
+            using (var engine = new OcgDuelEngine(
+                       CardDatabase.LoadDefault(),
+                       root,
+                       configuration))
+            {
+                engine.AddCardAt(
+                    0,
+                    EffectVeiler,
+                    DuelLocation.MonsterZone,
+                    0,
+                    FaceUpAttack);
+                engine.Start();
+
+                Assert.That(
+                    engine.TryCaptureFieldSnapshot(out OcgFieldSnapshot field),
+                    Is.True);
+                Assert.That(field?.Players, Has.Length.EqualTo(2));
+                Assert.That(field.Players[0].Deck, Has.Length.EqualTo(40));
+                Assert.That(field.Players[0].Extra, Has.Length.EqualTo(1));
+                Assert.That(field.Players[0].Extra[0]?.Code,
+                    Is.EqualTo(EbonIllusionMagician));
+                Assert.That(field.Players[0].Monsters.Length,
+                    Is.GreaterThanOrEqualTo(7));
+                Assert.That(field.Players[0].Monsters[0]?.Code,
+                    Is.EqualTo(EffectVeiler));
+                Assert.That(field.Players[0].Monsters[0]?.Position,
+                    Is.EqualTo(FaceUpAttack));
+            }
+        }
+
         private static DuelPresentationState NewState()
         {
             return new DuelPresentationState(CardDatabase.LoadDefault());

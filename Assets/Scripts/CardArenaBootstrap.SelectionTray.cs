@@ -348,8 +348,7 @@ namespace ArcaneArena
             return prompt != null &&
                    (prompt.Message == CoreMessage.SelectCard ||
                     prompt.Message == CoreMessage.SelectTribute ||
-                    prompt.Message == CoreMessage.SelectSum ||
-                    prompt.Message == CoreMessage.SelectUnselectCard) &&
+                    prompt.Message == CoreMessage.SelectSum) &&
                    prompt.MaximumSelections > 1;
         }
 

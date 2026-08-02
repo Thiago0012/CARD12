@@ -18,6 +18,13 @@ namespace ArcaneDuel.Game
             DuelPresentationState state,
             CardDatabase database,
             out DuelPrompt prompt);
+
+        bool TryGetCombatStats(
+            byte controller,
+            byte location,
+            uint sequence,
+            out int attack,
+            out int defense);
     }
 
     public static class DuelOnlineBridge

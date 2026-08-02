@@ -1,5 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading.Tasks;
 using ArcaneArena;
@@ -9,9 +12,9 @@ using ArcaneDuel.Game;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
-using Unity.Networking.Transport.Relay;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
+using Unity.Services.Multiplayer;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
@@ -28,24 +31,76 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelOnlineSession : MonoBehaviour
     {
         private const string DuelArenaScene = "DuelArena";
-        private const string ProtocolVersion = "arcane-duel-online-v2";
-        private const string HelloMessage = "arcane.duel.hello.v2";
-        private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v2";
-        private const string HelloRejectedMessage = "arcane.duel.hello-rejected.v2";
-        private const string StartMessage = "arcane.duel.start.v2";
-        private const string StateMessage = "arcane.duel.state.v2";
-        private const string ResponseMessage = "arcane.duel.response.v2";
-        private const int MaxWireBytes = 96 * 1024;
-        private const ushort NgoProtocolVersion = 2;
+        private const string ProtocolVersion = "arcane-duel-online-v4";
+        private const string HelloMessage = "arcane.duel.hello.v4";
+        private const string HelloRequestMessage = "arcane.duel.hello-request.v4";
+        private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v4";
+        private const string HelloRejectedMessage = "arcane.duel.hello-rejected.v4";
+        private const string StartMessage = "arcane.duel.start.v4";
+        private const string ClientReadyMessage = "arcane.duel.client-ready.v4";
+        private const string StateMessage = "arcane.duel.state.v4";
+        private const string ResponseMessage = "arcane.duel.response.v4";
+        private const string StateAckMessage = "arcane.duel.state-ack.v4";
+        private const string ResyncRequestMessage = "arcane.duel.resync.v4";
+        private const string PresentationEventMessage =
+            "arcane.duel.presentation-event.v4";
+        private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
+        private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
+        private const ushort NgoProtocolVersion = 4;
         private const uint NetworkTickRate = 20;
-        private const int MaximumHandshakeAttempts = 12;
+        private const int MaximumHandshakeAttempts = 40;
+        private const int MaximumStartAttempts = 80;
         private const float HandshakeRetrySeconds = 0.75f;
+        private const float StartRetrySeconds = 0.75f;
+        private const float StateHeartbeatSeconds = 2f;
+        private const float ResponseRetrySeconds = 0.75f;
+        private const float WireRetrySeconds = 0.35f;
+        private const float WirePumpSeconds = 0.02f;
+        private const float WireAssemblyTimeoutSeconds = 20f;
+        private const float WireReceiptLifetimeSeconds = 120f;
+        private const int WirePacketsPerTransferPump = 8;
+        private const int WirePacketsPerFrame = 24;
+        private const int MaximumConcurrentWireTransfers = 128;
+        private const int CompressionThresholdBytes = 512;
+        private const int CommandSchemaVersion = 1;
+        private const float ReconnectGraceSeconds = 45f;
+        private const float CommandRatePerSecond = 10f;
+        private const float CommandBurstCapacity = 20f;
+        private const float ResyncCooldownSeconds = 3f;
+        private const string ReconnectSessionKey =
+            "Arcane.Multiplayer.SessionId";
+        private const string ReconnectRoomKey =
+            "Arcane.Multiplayer.RoomCode";
+        private const string ReconnectMatchKey =
+            "Arcane.Multiplayer.MatchId";
+        private const string ReconnectProtocolKey =
+            "Arcane.Multiplayer.Protocol";
+        private const string ReconnectStateVersionKey =
+            "Arcane.Multiplayer.StateVersion";
+        private const string ReconnectTimestampKey =
+            "Arcane.Multiplayer.Timestamp";
 
         private enum SessionRole
         {
             None,
             Host,
             Client
+        }
+
+        private enum LogicalMessage : byte
+        {
+            Unknown = 0,
+            Hello = 1,
+            HelloRequest = 2,
+            HelloAccepted = 3,
+            HelloRejected = 4,
+            Start = 5,
+            ClientReady = 6,
+            State = 7,
+            Response = 8,
+            PresentationEvent = 9,
+            StateAck = 10,
+            ResyncRequest = 11
         }
 
         [Serializable]
@@ -61,8 +116,41 @@ namespace ArcaneArena.Multiplayer
         [Serializable]
         private sealed class ResponsePayload
         {
+            public int schemaVersion;
+            public string matchId;
+            public string commandType;
+            public ulong commandId;
+            public uint clientSequence;
+            public ulong expectedStateVersion;
             public ulong requestId;
             public string responseBase64;
+        }
+
+        [Serializable]
+        private sealed class StateAckPayload
+        {
+            public string protocolVersion;
+            public string matchId;
+            public ulong stateVersion;
+            public ulong publicStateHash;
+            public uint lastAcceptedClientSequence;
+        }
+
+        [Serializable]
+        private sealed class ResyncRequestPayload
+        {
+            public string protocolVersion;
+            public string matchId;
+            public ulong lastStateVersion;
+            public string reason;
+        }
+
+        [Serializable]
+        private sealed class ApprovalPayload
+        {
+            public string p;
+            public string v;
+            public string c;
         }
 
         [Serializable]
@@ -70,6 +158,24 @@ namespace ArcaneArena.Multiplayer
         {
             public string protocolVersion;
             public string compatibility;
+            public string matchId;
+        }
+
+        [Serializable]
+        private sealed class ProtocolPayload
+        {
+            public string protocolVersion;
+        }
+
+        [Serializable]
+        private sealed class ClientReadyPayload
+        {
+            public string protocolVersion;
+            public string compatibility;
+            public string matchId;
+            public bool deckReady;
+            public bool startReceived;
+            public bool arenaReady;
         }
 
         [Serializable]
@@ -77,6 +183,8 @@ namespace ArcaneArena.Multiplayer
         {
             public string protocolVersion;
             public string compatibility;
+            public string hostPlayerDisplayName;
+            public string hostDeckDisplayName;
         }
 
         [Serializable]
@@ -85,10 +193,66 @@ namespace ArcaneArena.Multiplayer
             public string reason;
         }
 
+        private readonly struct WireTransferKey : IEquatable<WireTransferKey>
+        {
+            public readonly ulong PeerId;
+            public readonly Guid TransferId;
+
+            public WireTransferKey(ulong peerId, Guid transferId)
+            {
+                PeerId = peerId;
+                TransferId = transferId;
+            }
+
+            public bool Equals(WireTransferKey other)
+            {
+                return PeerId == other.PeerId && TransferId == other.TransferId;
+            }
+
+            public override bool Equals(object value)
+            {
+                return value is WireTransferKey other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return ((int)PeerId * 397) ^ TransferId.GetHashCode();
+                }
+            }
+        }
+
+        private sealed class OutboundWireTransfer
+        {
+            public ulong Target;
+            public LogicalMessage LogicalMessage;
+            public DuelWireTransfer Transfer;
+            public DuelWireAckTracker AckTracker;
+            public int MissingCursor;
+            public int SendRounds;
+            public float NextSendTime;
+        }
+
+        private sealed class InboundWireTransfer
+        {
+            public readonly DuelWireReassembler Reassembler =
+                new DuelWireReassembler();
+            public float LastActivityTime;
+        }
+
+        private sealed class CompletedWireTransfer
+        {
+            public DuelWirePacket TransferAck;
+            public float CompletedTime;
+        }
+
         public static DuelOnlineSession Instance { get; private set; }
 
         private NetworkManager networkManager;
         private UnityTransport transport;
+        private readonly MultiplayerSessionCoordinator sessionCoordinator =
+            new MultiplayerSessionCoordinator();
         private SessionRole role;
         private DuelDeckLoadout localLoadout;
         private DuelDeckLoadout remoteLoadout;
@@ -98,10 +262,71 @@ namespace ArcaneArena.Multiplayer
         private ulong remoteClientId = ulong.MaxValue;
         private int nextStateSequence;
         private int lastReplicaSequence;
+        private int nextPresentationEventSequence;
+        private int lastPresentationEventSequence;
+        private ulong pendingResponseRequestId;
+        private byte[] pendingResponseBytes;
+        private ulong pendingCommandId;
+        private uint pendingClientSequence;
+        private ulong pendingExpectedStateVersion;
+        private ulong nextClientCommandId;
+        private uint nextClientSequence;
+        private float nextResponseRetryTime;
+        private ulong pendingHostResponseRequestId;
+        private byte[] pendingHostResponseBytes;
+        private ulong pendingHostCommandId;
+        private uint pendingHostClientSequence;
+        private ulong lastAcknowledgedResponseRequestId;
+        private ulong lastAcknowledgedCommandId;
+        private uint lastAcceptedClientSequence;
+        private ulong lastAcceptedCommandPayloadHash;
+        private ulong authoritativeStateVersion;
+        private ulong authoritativePublicStateHash;
+        private ulong lastReplicaStateVersion;
+        private ulong lastReplicaPublicStateHash;
+        private ulong lastStateAckVersion;
+        private bool clientSynchronizing;
+        private float commandTokens = CommandBurstCapacity;
+        private float lastCommandTokenTime;
+        private float nextClientResyncTime;
+        private float nextHostResyncTime;
+        private bool reconnecting;
+        private bool hostAwaitingReconnect;
+        private bool hostAwaitingStateAckUnlock;
+        private float reconnectDeadline;
+        private Coroutine reconnectCoroutine;
+        private Coroutine hostReconnectGraceCoroutine;
+        private Coroutine persistedReconnectCoroutine;
         private bool matchStarted;
+        private bool hostCoreStarted;
         private Coroutine pendingStateBroadcast;
         private Coroutine helloRetry;
+        private Coroutine helloRequestRetry;
+        private Coroutine startRetry;
+        private Coroutine stateHeartbeat;
         private bool helloAccepted;
+        private bool clientDeckReady;
+        private bool clientReceivedStart;
+        private bool clientArenaReady;
+        private string hostPlayerDisplayName = string.Empty;
+        private string hostDeckDisplayName = string.Empty;
+        private readonly Dictionary<WireTransferKey, OutboundWireTransfer>
+            outboundWireTransfers =
+                new Dictionary<WireTransferKey, OutboundWireTransfer>();
+        private readonly Dictionary<WireTransferKey, InboundWireTransfer>
+            inboundWireTransfers =
+                new Dictionary<WireTransferKey, InboundWireTransfer>();
+        private readonly Dictionary<WireTransferKey, CompletedWireTransfer>
+            completedWireTransfers =
+                new Dictionary<WireTransferKey, CompletedWireTransfer>();
+        private readonly SortedDictionary<int, DuelNetworkPresentationEvent>
+            pendingPresentationEvents =
+                new SortedDictionary<int, DuelNetworkPresentationEvent>();
+        private readonly Queue<DuelNetworkPresentationEvent>
+            outgoingPresentationEvents =
+                new Queue<DuelNetworkPresentationEvent>();
+        private float nextWirePumpTime;
+        private float nextWireCleanupTime;
         private bool connectionOperationInProgress;
         private bool handlersRegistered;
         private bool showPanel;
@@ -109,6 +334,7 @@ namespace ArcaneArena.Multiplayer
         private bool requestJoinFocus;
         private string joinCode = string.Empty;
         private string roomCode = string.Empty;
+        private string currentMatchId = string.Empty;
         private string relayRegion = string.Empty;
         private string relayRegionDescription = string.Empty;
         private string disconnectReason = string.Empty;
@@ -186,12 +412,54 @@ namespace ArcaneArena.Multiplayer
             EnsureNetworkManager();
             DuelOnlineBridge.SubmitReplicaChoice = SubmitRemoteChoice;
             DuelOnlineBridge.SubmitReplicaResponse = SubmitRemoteResponse;
+            persistedReconnectCoroutine = StartCoroutine(
+                TryRestorePersistedClientSession());
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (role == SessionRole.None || !sessionCoordinator.HasSession)
+                return;
+
+            PersistReconnectTicket();
+            _ = sessionCoordinator.SetPlayerStateAsync(
+                paused ? "paused" : "connected",
+                localLoadout != null);
+            if (!paused && role == SessionRole.Client &&
+                (networkManager == null || !networkManager.IsConnectedClient))
+            {
+                StartClientReconnect();
+            }
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (focused && role == SessionRole.Client &&
+                sessionCoordinator.HasSession &&
+                (networkManager == null || !networkManager.IsConnectedClient))
+            {
+                StartClientReconnect();
+            }
         }
 
         private void OnDestroy()
         {
             if (helloRetry != null)
                 StopCoroutine(helloRetry);
+            if (helloRequestRetry != null)
+                StopCoroutine(helloRequestRetry);
+            if (startRetry != null)
+                StopCoroutine(startRetry);
+            if (stateHeartbeat != null)
+                StopCoroutine(stateHeartbeat);
+            if (pendingStateBroadcast != null)
+                StopCoroutine(pendingStateBroadcast);
+            if (reconnectCoroutine != null)
+                StopCoroutine(reconnectCoroutine);
+            if (hostReconnectGraceCoroutine != null)
+                StopCoroutine(hostReconnectGraceCoroutine);
+            if (persistedReconnectCoroutine != null)
+                StopCoroutine(persistedReconnectCoroutine);
             UnregisterHandlers();
             if (hostController != null)
                 hostController.CoreEventPresented -= OnHostCoreEvent;
@@ -203,7 +471,16 @@ namespace ArcaneArena.Multiplayer
             {
                 networkManager.OnClientConnectedCallback -= OnClientConnected;
                 networkManager.OnClientDisconnectCallback -= OnClientDisconnected;
+                if (networkManager.ConnectionApprovalCallback ==
+                    ApproveConnection)
+                {
+                    networkManager.ConnectionApprovalCallback = null;
+                }
             }
+            outboundWireTransfers.Clear();
+            inboundWireTransfers.Clear();
+            completedWireTransfers.Clear();
+            pendingPresentationEvents.Clear();
             if (Instance == this)
                 Instance = null;
         }
@@ -252,7 +529,15 @@ namespace ArcaneArena.Multiplayer
                 DuelPlayerSide.PlayerOne);
             if (pendingReplicaState != null)
                 ApplyReplicaState(pendingReplicaState);
-            status = "Conectado. Aguardando o host confirmar os decks.";
+            if (matchStarted)
+            {
+                SendClientReady(true, true);
+                status = "Arena pronta. Sincronizando o campo com o host...";
+            }
+            else
+            {
+                status = "Conectado. Aguardando o host confirmar os decks.";
+            }
         }
 
         public void SubmitRemoteChoice(DuelChoice choice)
@@ -267,6 +552,8 @@ namespace ArcaneArena.Multiplayer
             if (role != SessionRole.Client || networkManager == null ||
                 !networkManager.IsConnectedClient || response == null ||
                 response.Length == 0 || response.Length > 2048 ||
+                requestId == 0 ||
+                clientSynchronizing || lastReplicaStateVersion == 0 ||
                 replicaController?.PresentationDecisionLocked == true)
             {
                 return;
@@ -275,12 +562,14 @@ namespace ArcaneArena.Multiplayer
             // the host processes this response. Lock it here so a double tap
             // cannot submit two different answers for the same request.
             replicaController?.SetPresentationDecisionLocked(true);
+            pendingResponseRequestId = requestId;
+            pendingResponseBytes = (byte[])response.Clone();
+            pendingCommandId = ++nextClientCommandId;
+            pendingClientSequence = ++nextClientSequence;
+            pendingExpectedStateVersion = lastReplicaStateVersion;
+            nextResponseRetryTime = 0f;
             status = "Resposta enviada. Aguardando confirmação do anfitrião...";
-            SendToServer(ResponseMessage, new ResponsePayload
-            {
-                requestId = requestId,
-                responseBase64 = Convert.ToBase64String(response)
-            });
+            SendPendingClientResponse();
         }
 
         private void EnsureNetworkManager()
@@ -303,17 +592,19 @@ namespace ArcaneArena.Multiplayer
             networkManager.NetworkConfig.NetworkTransport = transport;
             networkManager.NetworkConfig.ProtocolVersion =
                 NgoProtocolVersion;
-            // Relay already limits this allocation to a single guest. An
-            // extra NGO approval round trip only makes mobile connections
-            // slower and can expire before the deck handshake begins.
-            networkManager.NetworkConfig.ConnectionApproval = false;
+            networkManager.NetworkConfig.ConnectionApproval = true;
+            networkManager.ConnectionApprovalCallback = ApproveConnection;
+            // No NetworkObject or network prefab is spawned by this duel.
+            // Keeping prefab hashes out of the NGO connection gate allows
+            // editor, PC and mobile builds with the same wire protocol to
+            // reach the explicit deck compatibility handshake below.
+            networkManager.NetworkConfig.ForceSamePrefabs = false;
             networkManager.NetworkConfig.TickRate = NetworkTickRate;
-            networkManager.NetworkConfig.ClientConnectionBufferTimeout = 10;
+            networkManager.NetworkConfig.ClientConnectionBufferTimeout = 30;
             // Each peer deliberately opens the arena locally after the Relay
             // handshake. This card game has no spawned scene objects, so NGO
             // scene replication would only add races.
             networkManager.NetworkConfig.EnableSceneManagement = false;
-            networkManager.ConnectionApprovalCallback = ApproveConnection;
             networkManager.OnClientConnectedCallback += OnClientConnected;
             networkManager.OnClientDisconnectCallback += OnClientDisconnected;
         }
@@ -326,23 +617,8 @@ namespace ArcaneArena.Multiplayer
                 throw new InvalidOperationException(
                     "O canal de mensagens online ainda não foi inicializado.");
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
-                HelloMessage,
-                OnHelloMessage);
-            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
-                HelloAcceptedMessage,
-                OnHelloAcceptedMessage);
-            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
-                HelloRejectedMessage,
-                OnHelloRejectedMessage);
-            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
-                StartMessage,
-                OnStartMessage);
-            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
-                StateMessage,
-                OnStateMessage);
-            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
-                ResponseMessage,
-                OnResponseMessage);
+                WirePacketMessage,
+                OnWirePacketMessage);
             handlersRegistered = true;
         }
 
@@ -356,17 +632,7 @@ namespace ArcaneArena.Multiplayer
             }
 
             networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
-                HelloMessage);
-            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
-                HelloAcceptedMessage);
-            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
-                HelloRejectedMessage);
-            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
-                StartMessage);
-            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
-                StateMessage);
-            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
-                ResponseMessage);
+                WirePacketMessage);
             handlersRegistered = false;
         }
 
@@ -396,22 +662,24 @@ namespace ArcaneArena.Multiplayer
             connectionOperationInProgress = true;
             try
             {
+                ResetMatchState(true);
+                ClearReconnectTicket();
+                roomCode = string.Empty;
+                disconnectReason = string.Empty;
                 status = "Autenticando na Unity e criando a sala...";
                 localLoadout = loadout;
                 await InitializeServices();
-                Allocation allocation = await RelayService.Instance
-                    .CreateAllocationAsync(1);
-                relayRegion = allocation.Region ?? string.Empty;
-                _ = ResolveRelayRegionDescription(relayRegion);
-                transport.SetRelayServerData(
-                    AllocationUtils.ToRelayServerData(allocation, "dtls"));
-                roomCode = await RelayService.Instance
-                    .GetJoinCodeAsync(allocation.AllocationId);
+                ConfigureConnectionIdentity();
                 role = SessionRole.Host;
-                if (!networkManager.StartHost())
-                    throw new InvalidOperationException(
-                        "O NetworkManager não iniciou como host.");
+                IHostSession session = await sessionCoordinator.CreateAsync(
+                    localLoadout,
+                    ProtocolVersion);
+                roomCode = session.Code;
+                relayRegion = "QoS automatico";
+                relayRegionDescription =
+                    "melhor regiao escolhida automaticamente";
                 RegisterHandlers();
+                await sessionCoordinator.SetPlayerStateAsync("connected", true);
 
                 status = $"Sala criada na região Relay {GetRelayRegionLabel()}. " +
                     "Compartilhe o código e aguarde o rival.";
@@ -460,23 +728,31 @@ namespace ArcaneArena.Multiplayer
             connectionOperationInProgress = true;
             try
             {
+                ResetMatchState(true);
+                ClearReconnectTicket();
+                roomCode = string.Empty;
+                disconnectReason = string.Empty;
                 status = "Autenticando e entrando na sala...";
                 localLoadout = loadout;
                 await InitializeServices();
-                JoinAllocation allocation = await RelayService.Instance
-                    .JoinAllocationAsync(normalizedCode);
-                relayRegion = allocation.Region ?? string.Empty;
-                _ = ResolveRelayRegionDescription(relayRegion);
-                transport.SetRelayServerData(
-                    AllocationUtils.ToRelayServerData(allocation, "dtls"));
+                ConfigureConnectionIdentity();
                 roomCode = normalizedCode;
                 role = SessionRole.Client;
                 helloAccepted = false;
-                if (!networkManager.StartClient())
-                    throw new InvalidOperationException(
-                        "O NetworkManager não iniciou como cliente.");
+                ISession session = await sessionCoordinator.JoinByCodeAsync(
+                    normalizedCode,
+                    localLoadout,
+                    ProtocolVersion);
+                roomCode = session.Code;
+                relayRegion = "QoS automatico";
+                relayRegionDescription =
+                    "regiao Relay definida pelo anfitriao";
                 RegisterHandlers();
                 status = "Conectando ao host...";
+                await sessionCoordinator.SetPlayerStateAsync("connected", false);
+                PersistReconnectTicket();
+                if (networkManager.IsConnectedClient)
+                    StartClientDeckHandshake();
             }
             catch (Exception exception)
             {
@@ -497,17 +773,203 @@ namespace ArcaneArena.Multiplayer
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
         }
 
+        private void ConfigureConnectionIdentity()
+        {
+            var approval = new ApprovalPayload
+            {
+                p = AuthenticationService.Instance.PlayerId ?? string.Empty,
+                v = ProtocolVersion,
+                c = MultiplayerSessionCoordinator.ComputeCompatibilityHash()
+            };
+            byte[] payload = Encoding.UTF8.GetBytes(JsonUtility.ToJson(approval));
+            if (payload.Length > 192)
+            {
+                throw new InvalidOperationException(
+                    "Identidade de conexão excedeu o limite seguro do NGO.");
+            }
+            networkManager.NetworkConfig.ConnectionData = payload;
+        }
+
         private void ApproveConnection(
             NetworkManager.ConnectionApprovalRequest request,
             NetworkManager.ConnectionApprovalResponse response)
         {
-            bool hasVacancy = networkManager != null &&
-                              networkManager.ConnectedClientsIds.Count < 2;
-            response.Approved = hasVacancy;
-            response.CreatePlayerObject = false;
             response.Pending = false;
-            if (!hasVacancy)
-                response.Reason = "Esta sala privada já possui dois duelistas.";
+            response.CreatePlayerObject = false;
+
+            if (request.ClientNetworkId == NetworkManager.ServerClientId)
+            {
+                response.Approved = true;
+                return;
+            }
+
+            try
+            {
+                string json = Encoding.UTF8.GetString(
+                    request.Payload ?? Array.Empty<byte>());
+                ApprovalPayload approval =
+                    JsonUtility.FromJson<ApprovalPayload>(json);
+                bool compatible = approval != null &&
+                    approval.v == ProtocolVersion &&
+                    approval.c ==
+                        MultiplayerSessionCoordinator.ComputeCompatibilityHash();
+                bool sessionMember = approval != null &&
+                    sessionCoordinator.HasMember(approval.p);
+                bool capacityAvailable = networkManager != null &&
+                    networkManager.ConnectedClientsIds.Count < 2;
+
+                response.Approved = compatible && sessionMember &&
+                    capacityAvailable && (!matchStarted ||
+                        hostAwaitingReconnect);
+                response.Reason = response.Approved
+                    ? string.Empty
+                    : "Sala cheia, partida iniciada ou versão incompatível.";
+                Debug.Log("[MP] stage=connection-approval approved=" +
+                    response.Approved + " member=" + sessionMember +
+                    " compatible=" + compatible);
+            }
+            catch (Exception exception)
+            {
+                response.Approved = false;
+                response.Reason = "Identidade de conexão inválida.";
+                Debug.LogWarning(
+                    "[MP] stage=connection-approval approved=false error=" +
+                    exception.GetType().Name);
+            }
+        }
+
+        private IEnumerator TryRestorePersistedClientSession()
+        {
+            yield return null;
+            string sessionId = PlayerPrefs.GetString(
+                ReconnectSessionKey,
+                string.Empty);
+            string persistedProtocol = PlayerPrefs.GetString(
+                ReconnectProtocolKey,
+                string.Empty);
+            if (string.IsNullOrWhiteSpace(sessionId) ||
+                persistedProtocol != ProtocolVersion)
+            {
+                persistedReconnectCoroutine = null;
+                yield break;
+            }
+
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            long.TryParse(
+                PlayerPrefs.GetString(ReconnectTimestampKey, "0"),
+                out long timestamp);
+            if (timestamp <= 0 || now - timestamp >
+                ReconnectGraceSeconds + 15f)
+            {
+                ClearReconnectTicket();
+                persistedReconnectCoroutine = null;
+                yield break;
+            }
+
+            DuelDeckLoadout restoredLoadout = null;
+            string loadoutError = string.Empty;
+            float loadoutDeadline = Time.realtimeSinceStartup + 5f;
+            while (Time.realtimeSinceStartup < loadoutDeadline &&
+                   !TryGetLocalLoadout(out restoredLoadout, out loadoutError))
+            {
+                yield return null;
+            }
+            if (restoredLoadout == null)
+            {
+                ClearReconnectTicket();
+                persistedReconnectCoroutine = null;
+                yield break;
+            }
+
+            connectionOperationInProgress = true;
+            localLoadout = restoredLoadout;
+            role = SessionRole.Client;
+            roomCode = PlayerPrefs.GetString(ReconnectRoomKey, string.Empty);
+            currentMatchId = PlayerPrefs.GetString(
+                ReconnectMatchKey,
+                string.Empty);
+            matchStarted = !string.IsNullOrWhiteSpace(currentMatchId);
+            ulong.TryParse(
+                PlayerPrefs.GetString(ReconnectStateVersionKey, "0"),
+                out lastReplicaStateVersion);
+            clientSynchronizing = true;
+            status = "Restaurando a sessão online anterior...";
+
+            Task servicesTask = InitializeServices();
+            while (!servicesTask.IsCompleted)
+                yield return null;
+            if (servicesTask.IsFaulted)
+            {
+                ResetAfterFailedConnection(
+                    "Não foi possível restaurar a autenticação online.");
+                connectionOperationInProgress = false;
+                persistedReconnectCoroutine = null;
+                yield break;
+            }
+
+            ConfigureConnectionIdentity();
+            Task<ISession> reconnectTask =
+                sessionCoordinator.ReconnectAsync(sessionId);
+            while (!reconnectTask.IsCompleted)
+                yield return null;
+            if (reconnectTask.Status != TaskStatus.RanToCompletion ||
+                reconnectTask.Result == null || networkManager == null ||
+                !networkManager.IsConnectedClient)
+            {
+                ResetAfterFailedConnection(
+                    "A sessão anterior não está mais disponível para reconexão.");
+                connectionOperationInProgress = false;
+                persistedReconnectCoroutine = null;
+                yield break;
+            }
+
+            handlersRegistered = false;
+            RegisterHandlers();
+            relayRegion = "QoS automatico";
+            relayRegionDescription = "regiao Relay definida pelo anfitriao";
+            connectionOperationInProgress = false;
+            persistedReconnectCoroutine = null;
+            status = "Sessão restaurada. Ressincronizando a partida...";
+            PersistReconnectTicket();
+            _ = sessionCoordinator.SetPlayerStateAsync("connected", true);
+            if (matchStarted)
+                OpenDuelArena();
+        }
+
+        private void PersistReconnectTicket()
+        {
+            if (role != SessionRole.Client ||
+                string.IsNullOrWhiteSpace(sessionCoordinator.SessionId))
+            {
+                return;
+            }
+
+            PlayerPrefs.SetString(
+                ReconnectSessionKey,
+                sessionCoordinator.SessionId);
+            PlayerPrefs.SetString(ReconnectRoomKey, roomCode ?? string.Empty);
+            PlayerPrefs.SetString(
+                ReconnectMatchKey,
+                currentMatchId ?? string.Empty);
+            PlayerPrefs.SetString(ReconnectProtocolKey, ProtocolVersion);
+            PlayerPrefs.SetString(
+                ReconnectStateVersionKey,
+                lastReplicaStateVersion.ToString());
+            PlayerPrefs.SetString(
+                ReconnectTimestampKey,
+                DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+            PlayerPrefs.Save();
+        }
+
+        private static void ClearReconnectTicket()
+        {
+            PlayerPrefs.DeleteKey(ReconnectSessionKey);
+            PlayerPrefs.DeleteKey(ReconnectRoomKey);
+            PlayerPrefs.DeleteKey(ReconnectMatchKey);
+            PlayerPrefs.DeleteKey(ReconnectProtocolKey);
+            PlayerPrefs.DeleteKey(ReconnectStateVersionKey);
+            PlayerPrefs.DeleteKey(ReconnectTimestampKey);
+            PlayerPrefs.Save();
         }
 
         private void OnClientConnected(ulong clientId)
@@ -518,16 +980,54 @@ namespace ArcaneArena.Multiplayer
             {
                 if (clientId == NetworkManager.ServerClientId)
                     return;
+                bool resumedMatch = hostAwaitingReconnect && matchStarted &&
+                    remoteLoadout != null;
                 remoteClientId = clientId;
-                status = "Rival conectado. Validando o deck recebido...";
+                hostAwaitingReconnect = false;
+                clientSynchronizing = resumedMatch;
+                commandTokens = CommandBurstCapacity;
+                lastCommandTokenTime = Time.realtimeSinceStartup;
+                if (hostReconnectGraceCoroutine != null)
+                {
+                    StopCoroutine(hostReconnectGraceCoroutine);
+                    hostReconnectGraceCoroutine = null;
+                }
+                if (!resumedMatch)
+                {
+                    remoteLoadout = null;
+                    clientDeckReady = false;
+                }
+                clientReceivedStart = false;
+                clientArenaReady = false;
+                if (resumedMatch)
+                {
+                    hostAwaitingStateAckUnlock = true;
+                    status = "Rival reconectado. Restaurando o estado da partida...";
+                    StartHostStartHandshake();
+                }
+                else
+                {
+                    status = "Rival conectado. Validando o deck recebido...";
+                    StartHostDeckRequest();
+                }
                 return;
             }
 
             if (role == SessionRole.Client &&
                 clientId == networkManager.LocalClientId)
             {
+                reconnecting = false;
                 status = "Conectado. Enviando o deck para validação do host...";
-                StartClientDeckHandshake();
+                if (matchStarted && helloAccepted)
+                {
+                    bool arenaReady = replicaController != null &&
+                        SceneManager.GetActiveScene().name == DuelArenaScene;
+                    SendClientReady(true, arenaReady);
+                }
+                else
+                {
+                    StartClientDeckHandshake();
+                }
             }
         }
 
@@ -540,9 +1040,92 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
-            if (helloRetry != null)
-                StopCoroutine(helloRetry);
-            helloRetry = StartCoroutine(SendHelloUntilAccepted());
+            if (helloRetry == null)
+                helloRetry = StartCoroutine(SendHelloUntilAccepted());
+        }
+
+        private void StartHostDeckRequest()
+        {
+            if (!IsHost || remoteClientId == ulong.MaxValue ||
+                remoteLoadout != null)
+            {
+                return;
+            }
+
+            if (helloRequestRetry != null)
+                StopCoroutine(helloRequestRetry);
+            helloRequestRetry = StartCoroutine(RequestHelloUntilReceived());
+        }
+
+        private IEnumerator RequestHelloUntilReceived()
+        {
+            yield return null;
+
+            int attempts = 0;
+            while (attempts < MaximumHandshakeAttempts &&
+                   IsHost && remoteLoadout == null &&
+                   remoteClientId != ulong.MaxValue &&
+                   networkManager != null && networkManager.IsServer)
+            {
+                attempts++;
+                SendToClient(remoteClientId, HelloRequestMessage,
+                    new ProtocolPayload { protocolVersion = ProtocolVersion },
+                    NetworkDelivery.ReliableSequenced);
+
+                if (attempts > 1)
+                {
+                    status = $"Rival conectado. Solicitando o deck novamente ({attempts})...";
+                }
+                yield return new WaitForSecondsRealtime(HandshakeRetrySeconds);
+            }
+
+            if (remoteLoadout == null && IsHost &&
+                remoteClientId != ulong.MaxValue)
+            {
+                status = "O rival conectou, mas o deck nao chegou. " +
+                    "A conexao continua aberta para uma nova tentativa.";
+            }
+            helloRequestRetry = null;
+        }
+
+        private void ProcessHelloRequestMessage(
+            ulong senderClientId,
+            ProtocolPayload request)
+        {
+            if (role != SessionRole.Client ||
+                senderClientId != NetworkManager.ServerClientId ||
+                request == null ||
+                helloAccepted)
+            {
+                return;
+            }
+            if (request.protocolVersion != ProtocolVersion)
+            {
+                RejectIncompatibleHost();
+                return;
+            }
+
+            SendClientHello();
+            StartClientDeckHandshake();
+        }
+
+        private void SendClientHello()
+        {
+            if (role != SessionRole.Client || networkManager == null ||
+                !networkManager.IsConnectedClient || localLoadout == null ||
+                helloAccepted)
+            {
+                return;
+            }
+
+            SendToServer(HelloMessage, new HelloPayload
+            {
+                protocolVersion = ProtocolVersion,
+                compatibility = ProjectIdentity.MultiplayerCompatibility,
+                coreApiVersion = ProjectIdentity.CoreApiVersion,
+                coreCommit = ProjectIdentity.CoreCommit,
+                loadout = localLoadout
+            });
         }
 
         private IEnumerator SendHelloUntilAccepted()
@@ -560,14 +1143,7 @@ namespace ArcaneArena.Multiplayer
                    localLoadout != null)
             {
                 attempts++;
-                SendToServer(HelloMessage, new HelloPayload
-                {
-                    protocolVersion = ProtocolVersion,
-                    compatibility = ProjectIdentity.MultiplayerCompatibility,
-                    coreApiVersion = ProjectIdentity.CoreApiVersion,
-                    coreCommit = ProjectIdentity.CoreCommit,
-                    loadout = localLoadout
-                });
+                SendClientHello();
 
                 status = attempts == 1
                     ? "Lobby conectado. Enviando o deck ao anfitriao..."
@@ -596,29 +1172,129 @@ namespace ArcaneArena.Multiplayer
             if (clientId == remoteClientId && IsHost)
             {
                 remoteClientId = ulong.MaxValue;
-                remoteLoadout = null;
-                status = "O rival desconectou. O duelo online foi interrompido.";
+                hostAwaitingReconnect = true;
+                clientSynchronizing = true;
+                reconnectDeadline =
+                    Time.realtimeSinceStartup + ReconnectGraceSeconds;
                 hostController?.SetPresentationDecisionLocked(true);
+                status = "O rival perdeu a conexão. Aguardando reconexão por 45 segundos...";
+                if (hostReconnectGraceCoroutine != null)
+                    StopCoroutine(hostReconnectGraceCoroutine);
+                hostReconnectGraceCoroutine = StartCoroutine(
+                    WaitForRemoteReconnect());
                 return;
             }
 
-            if (clientId == networkManager.LocalClientId && !networkManager.IsServer)
+            if (clientId == networkManager.LocalClientId &&
+                !networkManager.IsServer && role == SessionRole.Client)
             {
-                helloAccepted = false;
-                UnregisterHandlers();
-                status = string.IsNullOrWhiteSpace(disconnectReason)
-                    ? "A conexão com o host foi encerrada."
-                    : disconnectReason;
                 replicaController?.SetPresentationDecisionLocked(true);
+                UnregisterHandlers();
+                clientSynchronizing = true;
+                status = "Conexão interrompida. Tentando reconectar à partida...";
+                StartClientReconnect();
             }
         }
 
-        private void OnHelloMessage(
+        private IEnumerator WaitForRemoteReconnect()
+        {
+            while (hostAwaitingReconnect &&
+                   Time.realtimeSinceStartup < reconnectDeadline)
+            {
+                yield return new WaitForSecondsRealtime(0.25f);
+            }
+
+            hostReconnectGraceCoroutine = null;
+            if (!hostAwaitingReconnect)
+                yield break;
+
+            bool duelWasRunning = matchStarted || hostCoreStarted ||
+                SceneManager.GetActiveScene().name == DuelArenaScene;
+            ResetAfterFailedConnection(
+                "O rival não reconectou em 45 segundos. A partida foi encerrada.");
+            if (duelWasRunning)
+                yield return ReturnToMainMenuAfterDisconnect();
+        }
+
+        private void StartClientReconnect()
+        {
+            if (reconnecting || role != SessionRole.Client ||
+                !sessionCoordinator.HasSession)
+            {
+                return;
+            }
+            reconnecting = true;
+            reconnectDeadline =
+                Time.realtimeSinceStartup + ReconnectGraceSeconds;
+            if (reconnectCoroutine != null)
+                StopCoroutine(reconnectCoroutine);
+            reconnectCoroutine = StartCoroutine(ReconnectClientWithBackoff());
+        }
+
+        private IEnumerator ReconnectClientWithBackoff()
+        {
+            float[] delays = { 0.5f, 1f, 2f, 4f, 5f };
+            int attempt = 0;
+            while (role == SessionRole.Client &&
+                   Time.realtimeSinceStartup < reconnectDeadline)
+            {
+                float delay = delays[Math.Min(attempt, delays.Length - 1)];
+                delay += UnityEngine.Random.Range(0f, 0.25f);
+                yield return new WaitForSecondsRealtime(delay);
+                if (role != SessionRole.Client)
+                    break;
+
+                attempt++;
+                status = $"Reconectando ao host (tentativa {attempt})...";
+                Task<ISession> reconnectTask = sessionCoordinator.ReconnectAsync();
+                while (!reconnectTask.IsCompleted)
+                    yield return null;
+
+                if (reconnectTask.Status == TaskStatus.RanToCompletion &&
+                    reconnectTask.Result != null &&
+                    networkManager != null && networkManager.IsConnectedClient)
+                {
+                    handlersRegistered = false;
+                    RegisterHandlers();
+                    reconnecting = false;
+                    reconnectCoroutine = null;
+                    status = "Reconectado. Ressincronizando o campo...";
+                    bool arenaReady = replicaController != null &&
+                        SceneManager.GetActiveScene().name == DuelArenaScene;
+                    SendClientReady(matchStarted, arenaReady);
+                    yield break;
+                }
+
+                string error = reconnectTask.Exception?.GetBaseException()
+                    .GetType().Name ?? "indisponivel";
+                Debug.LogWarning("[MP] stage=reconnect-retry attempt=" +
+                    attempt + " error=" + error);
+            }
+
+            reconnecting = false;
+            reconnectCoroutine = null;
+            bool duelWasRunning = matchStarted ||
+                SceneManager.GetActiveScene().name == DuelArenaScene;
+            ResetAfterFailedConnection(
+                "Não foi possível reconectar ao host em 45 segundos.");
+            if (duelWasRunning)
+                yield return ReturnToMainMenuAfterDisconnect();
+        }
+
+        private IEnumerator ReturnToMainMenuAfterDisconnect()
+        {
+            yield return null;
+            showPanel = true;
+            if (SceneManager.GetActiveScene().name != ProjectIdentity.MainMenuScene)
+                SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+        }
+
+        private void ProcessHelloMessage(
             ulong senderClientId,
-            FastBufferReader reader)
+            HelloPayload hello)
         {
             if (!IsHost || senderClientId != remoteClientId ||
-                !TryRead(reader, out HelloPayload hello))
+                hello == null)
             {
                 return;
             }
@@ -632,43 +1308,62 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
             remoteLoadout = hello.loadout;
-            status = "Rival conectado e deck validado. O anfitriao pode iniciar a partida.";
+            if (helloRequestRetry != null)
+            {
+                StopCoroutine(helloRequestRetry);
+                helloRequestRetry = null;
+            }
+            status = "Deck do rival validado. Confirmando o lobby com o cliente...";
             SendToClient(senderClientId, HelloAcceptedMessage,
                 new HelloAcceptedPayload
                 {
                     protocolVersion = ProtocolVersion,
-                    compatibility = ProjectIdentity.MultiplayerCompatibility
-                });
+                    compatibility = ProjectIdentity.MultiplayerCompatibility,
+                    hostPlayerDisplayName = localLoadout?.playerDisplayName ??
+                        string.Empty,
+                    hostDeckDisplayName = localLoadout?.displayName ?? string.Empty
+                },
+                NetworkDelivery.ReliableSequenced);
         }
 
-        private void OnHelloAcceptedMessage(
+        private void ProcessHelloAcceptedMessage(
             ulong senderClientId,
-            FastBufferReader reader)
+            HelloAcceptedPayload accepted)
         {
             if (role != SessionRole.Client ||
                 senderClientId != NetworkManager.ServerClientId ||
-                !TryRead(reader, out HelloAcceptedPayload accepted) ||
-                accepted.protocolVersion != ProtocolVersion)
+                accepted == null)
             {
+                return;
+            }
+            if (accepted.protocolVersion != ProtocolVersion ||
+                accepted.compatibility !=
+                    ProjectIdentity.MultiplayerCompatibility)
+            {
+                RejectIncompatibleHost();
                 return;
             }
 
             helloAccepted = true;
+            hostPlayerDisplayName = accepted.hostPlayerDisplayName ?? string.Empty;
+            hostDeckDisplayName = accepted.hostDeckDisplayName ?? string.Empty;
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
                 helloRetry = null;
             }
-            status = "Deck validado. Aguardando o anfitriao iniciar a partida.";
+            SendClientReady(false, false);
+            _ = sessionCoordinator.SetPlayerStateAsync("connected", true);
+            status = "Deck validado e lobby confirmado. Aguardando o anfitriao iniciar.";
         }
 
-        private void OnHelloRejectedMessage(
+        private void ProcessHelloRejectedMessage(
             ulong senderClientId,
-            FastBufferReader reader)
+            HelloRejectedPayload rejection)
         {
             if (role != SessionRole.Client ||
                 senderClientId != NetworkManager.ServerClientId ||
-                !TryRead(reader, out HelloRejectedPayload rejection))
+                rejection == null)
             {
                 return;
             }
@@ -695,72 +1390,510 @@ namespace ArcaneArena.Multiplayer
 
         private void BeginHostMatch()
         {
-            if (!IsHost || matchStarted || remoteLoadout == null)
+            if (!IsHost || matchStarted || remoteLoadout == null ||
+                !clientDeckReady || remoteClientId == ulong.MaxValue)
+            {
+                status = "Aguardando o cliente confirmar os dois decks.";
                 return;
+            }
 
-            status = "Abrindo a arena para os dois duelistas...";
+            uint[] localMain = ParseCardCodes(localLoadout?.mainDeckCardIds);
+            uint[] remoteMain = ParseCardCodes(remoteLoadout.mainDeckCardIds);
+            if (localMain.Length < 40 || remoteMain.Length < 40)
+            {
+                status = "Um dos decks nao possui 40 cartas validas. " +
+                    "Escolha novamente o deck antes de iniciar.";
+                return;
+            }
+
+            currentMatchId = Guid.NewGuid().ToString("N");
+            matchStarted = true;
+            clientSynchronizing = true;
+            hostCoreStarted = false;
+            clientReceivedStart = false;
+            clientArenaReady = false;
+            nextStateSequence = 0;
+            authoritativeStateVersion = 0;
+            authoritativePublicStateHash = 0;
+            status = "Avisando o cliente e abrindo as duas arenas...";
+            _ = sessionCoordinator.SetHostMatchStateAsync(
+                "starting",
+                currentMatchId,
+                false);
             showPanel = false;
+            StartHostStartHandshake();
             OpenDuelArena();
         }
 
-        private void OnStartMessage(
+        private void ProcessStartMessage(
             ulong senderClientId,
-            FastBufferReader reader)
+            StartPayload start)
         {
             if (role != SessionRole.Client ||
                 senderClientId != NetworkManager.ServerClientId ||
-                !TryRead(reader, out StartPayload start) ||
-                start.protocolVersion != ProtocolVersion ||
-                matchStarted)
+                start == null)
+            {
+                return;
+            }
+            if (start.protocolVersion != ProtocolVersion ||
+                start.compatibility !=
+                    ProjectIdentity.MultiplayerCompatibility)
+            {
+                RejectIncompatibleHost();
+                return;
+            }
+
+            if (matchStarted &&
+                !MatchIdsAreCompatible(currentMatchId, start.matchId))
             {
                 return;
             }
 
-            matchStarted = true;
             helloAccepted = true;
+            clientSynchronizing = true;
+            if (string.IsNullOrWhiteSpace(currentMatchId))
+                currentMatchId = start.matchId ?? string.Empty;
+            PersistReconnectTicket();
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
                 helloRetry = null;
             }
+            bool arenaIsReady = replicaController != null &&
+                                SceneManager.GetActiveScene().name == DuelArenaScene;
+            SendClientReady(true, arenaIsReady);
+            if (matchStarted)
+                return;
+
+            matchStarted = true;
             status = "Decks validados. Abrindo a arena...";
             showPanel = false;
             OpenDuelArena();
         }
 
-        private void OnStateMessage(
+        private void SendClientReady(bool startReceived, bool arenaReady)
+        {
+            if (role != SessionRole.Client || networkManager == null ||
+                !networkManager.IsConnectedClient)
+            {
+                return;
+            }
+
+            SendToServer(ClientReadyMessage, new ClientReadyPayload
+            {
+                protocolVersion = ProtocolVersion,
+                compatibility = ProjectIdentity.MultiplayerCompatibility,
+                matchId = currentMatchId,
+                deckReady = helloAccepted,
+                startReceived = startReceived,
+                arenaReady = arenaReady
+            }, NetworkDelivery.ReliableSequenced);
+        }
+
+        private void ProcessClientReadyMessage(
             ulong senderClientId,
-            FastBufferReader reader)
+            ClientReadyPayload ready)
+        {
+            if (!IsHost || senderClientId != remoteClientId ||
+                ready == null ||
+                ready.protocolVersion != ProtocolVersion ||
+                ready.compatibility !=
+                    ProjectIdentity.MultiplayerCompatibility ||
+                !MatchIdsAreCompatible(currentMatchId, ready.matchId))
+            {
+                return;
+            }
+
+            clientDeckReady |= ready.deckReady;
+            clientReceivedStart |= ready.startReceived;
+            clientArenaReady |= ready.arenaReady;
+
+            if (!matchStarted && clientDeckReady)
+            {
+                status = "Os dois decks foram confirmados. O anfitriao pode iniciar.";
+                return;
+            }
+            if (!matchStarted)
+                return;
+
+            if (clientArenaReady)
+            {
+                if (startRetry != null)
+                {
+                    StopCoroutine(startRetry);
+                    startRetry = null;
+                }
+                TryStartHostDuel();
+                status = "Duelo online ativo. As duas arenas estao sincronizadas.";
+                BroadcastState();
+            }
+            else if (clientReceivedStart)
+            {
+                status = "Cliente confirmou o inicio. Aguardando a arena dele carregar...";
+            }
+        }
+
+        private static bool MatchIdsAreCompatible(string expected, string received)
+        {
+            // If the remote host is an immediately previous v2 build, both
+            // ids remain empty. Once this build announces a match id, packets
+            // without that exact id are stale and must not enter a new duel.
+            return string.IsNullOrWhiteSpace(expected) ||
+                   !string.IsNullOrWhiteSpace(received) &&
+                   string.Equals(expected, received, StringComparison.Ordinal);
+        }
+
+        private void RejectIncompatibleHost()
+        {
+            const string reason =
+                "A sala usa conteúdo incompatível. Instale a mesma versão " +
+                "ONLINE v4 no PC e no celular e crie um novo código.";
+            ResetAfterFailedConnection(reason);
+            showPanel = true;
+        }
+
+        private void StartHostStartHandshake()
+        {
+            if (!IsHost || !matchStarted || remoteClientId == ulong.MaxValue)
+                return;
+
+            if (startRetry != null)
+                StopCoroutine(startRetry);
+            startRetry = StartCoroutine(SendStartUntilClientArenaReady());
+        }
+
+        private IEnumerator SendStartUntilClientArenaReady()
+        {
+            int attempts = 0;
+            while (attempts < MaximumStartAttempts && IsHost &&
+                   matchStarted && !clientArenaReady &&
+                   remoteClientId != ulong.MaxValue &&
+                   networkManager != null && networkManager.IsServer)
+            {
+                attempts++;
+                SendToClient(remoteClientId, StartMessage, new StartPayload
+                {
+                    protocolVersion = ProtocolVersion,
+                    compatibility = ProjectIdentity.MultiplayerCompatibility,
+                    matchId = currentMatchId
+                }, NetworkDelivery.ReliableSequenced);
+
+                if (clientReceivedStart)
+                {
+                    status = "Cliente recebeu o inicio. Aguardando a arena dele carregar...";
+                }
+                else if (attempts > 1)
+                {
+                    status = $"Confirmando o inicio com o cliente ({attempts})...";
+                }
+                yield return new WaitForSecondsRealtime(StartRetrySeconds);
+            }
+
+            if (!clientArenaReady && IsHost && matchStarted &&
+                remoteClientId != ulong.MaxValue)
+            {
+                status = "A arena do cliente ainda nao confirmou. " +
+                    "A conexao permanece aberta aguardando a confirmacao.";
+            }
+            startRetry = null;
+        }
+
+        private void ProcessStateMessage(
+            ulong senderClientId,
+            DuelNetworkState networkState)
+        {
+            ulong computedHash = DuelNetworkProtocol
+                .ComputePublicProjectionHash(networkState);
+            if (role != SessionRole.Client ||
+                senderClientId != NetworkManager.ServerClientId ||
+                networkState == null ||
+                !MatchIdsAreCompatible(currentMatchId, networkState.matchId) ||
+                networkState.sequence <= lastReplicaSequence ||
+                networkState.stateVersion == 0)
+            {
+                return;
+            }
+            if (computedHash == 0 ||
+                computedHash != networkState.publicStateHash)
+            {
+                RequestResync("public-hash-mismatch");
+                return;
+            }
+            if (networkState.stateVersion < lastReplicaStateVersion ||
+                networkState.stateVersion == lastReplicaStateVersion &&
+                lastReplicaPublicStateHash != 0 &&
+                lastReplicaPublicStateHash != networkState.publicStateHash)
+            {
+                RequestResync("state-version-rollback");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(currentMatchId) &&
+                !string.IsNullOrWhiteSpace(networkState.matchId))
+            {
+                currentMatchId = networkState.matchId;
+            }
+            lastReplicaSequence = networkState.sequence;
+            lastReplicaStateVersion = networkState.stateVersion;
+            lastReplicaPublicStateHash = networkState.publicStateHash;
+            nextClientSequence = Math.Max(
+                nextClientSequence,
+                networkState.lastAcceptedClientSequence);
+            nextClientCommandId = Math.Max(
+                nextClientCommandId,
+                networkState.acknowledgedCommandId);
+            clientSynchronizing = false;
+            PersistReconnectTicket();
+            pendingReplicaState = networkState;
+            ApplyReplicaState(networkState);
+            SendStateAck(networkState);
+        }
+
+        private void SendStateAck(DuelNetworkState state)
+        {
+            if (role != SessionRole.Client || state == null ||
+                !networkManager.IsConnectedClient)
+            {
+                return;
+            }
+            lastStateAckVersion = state.stateVersion;
+            SendToServer(StateAckMessage, new StateAckPayload
+            {
+                protocolVersion = ProtocolVersion,
+                matchId = currentMatchId,
+                stateVersion = state.stateVersion,
+                publicStateHash = state.publicStateHash,
+                lastAcceptedClientSequence =
+                    state.lastAcceptedClientSequence
+            });
+        }
+
+        private void ProcessStateAckMessage(
+            ulong senderClientId,
+            StateAckPayload acknowledgement)
+        {
+            if (!IsHost || senderClientId != remoteClientId ||
+                acknowledgement == null ||
+                acknowledgement.protocolVersion != ProtocolVersion ||
+                acknowledgement.matchId != currentMatchId ||
+                acknowledgement.stateVersion != authoritativeStateVersion ||
+                acknowledgement.publicStateHash !=
+                    authoritativePublicStateHash ||
+                acknowledgement.lastAcceptedClientSequence !=
+                    lastAcceptedClientSequence)
+            {
+                return;
+            }
+
+            clientSynchronizing = false;
+            if (hostAwaitingStateAckUnlock)
+            {
+                hostAwaitingStateAckUnlock = false;
+                hostController?.SetPresentationDecisionLocked(false);
+            }
+            Debug.Log("[MP] stage=state-ack version=" +
+                acknowledgement.stateVersion);
+        }
+
+        private void RequestResync(string reason)
+        {
+            if (role != SessionRole.Client || networkManager == null ||
+                !networkManager.IsConnectedClient ||
+                Time.realtimeSinceStartup < nextClientResyncTime)
+            {
+                return;
+            }
+
+            nextClientResyncTime =
+                Time.realtimeSinceStartup + ResyncCooldownSeconds;
+            clientSynchronizing = true;
+            replicaController?.SetPresentationDecisionLocked(true);
+            SendToServer(ResyncRequestMessage, new ResyncRequestPayload
+            {
+                protocolVersion = ProtocolVersion,
+                matchId = currentMatchId,
+                lastStateVersion = lastReplicaStateVersion,
+                reason = reason ?? "client-request"
+            });
+            Debug.LogWarning("[MP] stage=resync-request reason=" + reason);
+        }
+
+        private void ProcessResyncRequestMessage(
+            ulong senderClientId,
+            ResyncRequestPayload request)
+        {
+            if (!IsHost || senderClientId != remoteClientId ||
+                request == null || request.protocolVersion != ProtocolVersion ||
+                request.matchId != currentMatchId ||
+                Time.realtimeSinceStartup < nextHostResyncTime)
+            {
+                return;
+            }
+
+            nextHostResyncTime =
+                Time.realtimeSinceStartup + ResyncCooldownSeconds;
+            clientSynchronizing = true;
+            Debug.LogWarning("[MP] stage=resync-send reason=" + request.reason);
+            BroadcastState();
+        }
+
+        private void SendAuthoritativeResync(string reason)
+        {
+            if (!IsHost || Time.realtimeSinceStartup < nextHostResyncTime)
+                return;
+            nextHostResyncTime =
+                Time.realtimeSinceStartup + ResyncCooldownSeconds;
+            clientSynchronizing = true;
+            Debug.LogWarning("[MP] stage=resync-send reason=" + reason);
+            BroadcastState();
+        }
+
+        private void ProcessResponseMessage(
+            ulong senderClientId,
+            ResponsePayload response)
+        {
+            if (!IsHost || senderClientId != remoteClientId || response == null)
+            {
+                return;
+            }
+            if (!ConsumeCommandToken())
+            {
+                Debug.LogWarning("[MP] stage=command-rejected reason=rate-limit");
+                return;
+            }
+            if (!TryDecodeResponseBytes(response, out byte[] bytes))
+                return;
+
+            ulong payloadHash = DuelWireProtocol.ComputePayloadChecksum(bytes);
+            if (response.commandId == lastAcknowledgedCommandId &&
+                response.clientSequence == lastAcceptedClientSequence)
+            {
+                if (response.requestId == lastAcknowledgedResponseRequestId &&
+                    payloadHash == lastAcceptedCommandPayloadHash)
+                {
+                    // Exact retry after a lost state ACK: return the current
+                    // authoritative snapshot without applying the command.
+                    BroadcastState();
+                }
+                else
+                {
+                    DisconnectProtocolViolation(
+                        "command-id-reused-with-different-payload");
+                }
+                return;
+            }
+            if (response.commandId == pendingHostCommandId &&
+                response.clientSequence == pendingHostClientSequence)
+            {
+                return;
+            }
+            if (!ValidateCommandEnvelope(response))
+            {
+                SendAuthoritativeResync("invalid-command-envelope");
+                return;
+            }
+            if (!TryValidateRemoteResponse(response, bytes))
+            {
+                SendAuthoritativeResync("prompt-validation-failed");
+                return;
+            }
+            if (hostController.PresentationDecisionLocked)
+            {
+                pendingHostResponseRequestId = response.requestId;
+                pendingHostResponseBytes = bytes;
+                pendingHostCommandId = response.commandId;
+                pendingHostClientSequence = response.clientSequence;
+                status = "Resposta do rival recebida. Aguardando a apresentação terminar...";
+                return;
+            }
+            CommitHostResponse(response, bytes);
+        }
+
+        private void CommitHostResponse(
+            ResponsePayload command,
+            byte[] response)
+        {
+            if (hostController == null || response == null ||
+                response.Length == 0 ||
+                command == null ||
+                !hostController.SubmitCoreResponse(response, command.requestId))
+            {
+                SendAuthoritativeResync("core-rejected-command");
+                return;
+            }
+
+            pendingHostResponseRequestId = 0;
+            pendingHostResponseBytes = null;
+            pendingHostCommandId = 0;
+            pendingHostClientSequence = 0;
+            lastAcknowledgedResponseRequestId = command.requestId;
+            lastAcknowledgedCommandId = command.commandId;
+            lastAcceptedClientSequence = command.clientSequence;
+            lastAcceptedCommandPayloadHash =
+                DuelWireProtocol.ComputePayloadChecksum(response);
+            BroadcastState();
+        }
+
+        private void TryProcessPendingHostResponse()
+        {
+            if (!IsHost || pendingHostResponseRequestId == 0 ||
+                pendingHostResponseBytes == null || hostController == null ||
+                hostController.PresentationDecisionLocked)
+            {
+                return;
+            }
+
+            DuelPrompt prompt = hostController.CurrentPrompt;
+            if (prompt == null || prompt.Player != 1 ||
+                prompt.RequestId != pendingHostResponseRequestId)
+            {
+                // The authoritative Core already moved past this request.
+                // A delayed duplicate must never be applied to a new prompt.
+                pendingHostResponseRequestId = 0;
+                pendingHostResponseBytes = null;
+                pendingHostCommandId = 0;
+                pendingHostClientSequence = 0;
+                return;
+            }
+
+            CommitHostResponse(new ResponsePayload
+            {
+                schemaVersion = CommandSchemaVersion,
+                matchId = currentMatchId,
+                commandType = "prompt-response",
+                commandId = pendingHostCommandId,
+                clientSequence = pendingHostClientSequence,
+                expectedStateVersion = authoritativeStateVersion,
+                requestId = pendingHostResponseRequestId
+            }, pendingHostResponseBytes);
+        }
+
+        private void ProcessPresentationEventMessage(
+            ulong senderClientId,
+            DuelNetworkPresentationEvent presentationEvent)
         {
             if (role != SessionRole.Client ||
                 senderClientId != NetworkManager.ServerClientId ||
-                !TryRead(reader, out DuelNetworkState networkState) ||
-                networkState.sequence <= lastReplicaSequence)
+                presentationEvent == null ||
+                !MatchIdsAreCompatible(
+                    currentMatchId,
+                    presentationEvent.matchId) ||
+                presentationEvent.eventSequence <=
+                    lastPresentationEventSequence)
             {
                 return;
             }
-            lastReplicaSequence = networkState.sequence;
-            pendingReplicaState = networkState;
-            ApplyReplicaState(networkState);
-        }
 
-        private void OnResponseMessage(
-            ulong senderClientId,
-            FastBufferReader reader)
-        {
-            if (!IsHost || senderClientId != remoteClientId ||
-                !TryRead(reader, out ResponsePayload response) ||
-                !TryValidateRemoteResponse(response, out byte[] bytes))
-            {
-                return;
-            }
-            hostController.SubmitCoreResponse(bytes, response.requestId);
+            pendingPresentationEvents[
+                presentationEvent.eventSequence] = presentationEvent;
+            DrainPresentationEvents();
         }
 
         private void TryStartHostDuel()
         {
-            if (!IsHost || matchStarted || hostController == null ||
-                localLoadout == null || remoteLoadout == null)
+            if (!IsHost || !matchStarted || hostCoreStarted ||
+                hostController == null ||
+                localLoadout == null || remoteLoadout == null ||
+                !clientDeckReady || !clientArenaReady)
             {
                 return;
             }
@@ -783,15 +1916,18 @@ namespace ArcaneArena.Multiplayer
                     localExtra,
                     remoteMain,
                     remoteExtra);
-                matchStarted = true;
-                status = "Duelo online ativo. O host valida todas as jogadas.";
-                SendToClient(remoteClientId, StartMessage, new StartPayload
-                {
-                    protocolVersion = ProtocolVersion,
-                    compatibility =
-                        ProjectIdentity.MultiplayerCompatibility
-                });
+                hostCoreStarted = true;
+                hostAwaitingStateAckUnlock = true;
+                hostController.SetPresentationDecisionLocked(true);
+                status = clientArenaReady
+                    ? "Duelo online ativo. As duas arenas estao sincronizadas."
+                    : "Arena do host pronta. Aguardando a arena do cliente...";
+                _ = sessionCoordinator.SetHostMatchStateAsync(
+                    "in-match",
+                    currentMatchId,
+                    false);
                 BroadcastState();
+                StartStateHeartbeat();
             }
             catch (Exception exception)
             {
@@ -802,6 +1938,20 @@ namespace ArcaneArena.Multiplayer
 
         private void OnHostCoreEvent(DuelEvent duelEvent)
         {
+            if (duelEvent != null && IsHost && matchStarted &&
+                remoteClientId != ulong.MaxValue)
+            {
+                DuelNetworkPresentationEvent presentationEvent =
+                    DuelNetworkProtocol.CreatePresentationEvent(
+                        duelEvent,
+                        hostController?.PresentationState,
+                        1,
+                        ++nextPresentationEventSequence,
+                        nextStateSequence + 1,
+                        currentMatchId);
+                outgoingPresentationEvents.Enqueue(presentationEvent);
+                TrySendPendingPresentationEvents();
+            }
             if (!matchStarted || pendingStateBroadcast != null)
                 return;
             pendingStateBroadcast = StartCoroutine(
@@ -817,10 +1967,16 @@ namespace ArcaneArena.Multiplayer
 
         private void BroadcastState()
         {
-            if (!IsHost || hostController == null ||
+            if (!IsHost || hostController == null || !hostCoreStarted ||
                 remoteClientId == ulong.MaxValue || !matchStarted)
             {
                 return;
+            }
+            if (!hostController.ReconcilePresentationFromCore())
+            {
+                Debug.LogWarning(
+                    "[Arcane Duel Online] O snapshot autoritativo do Core " +
+                    "não pôde ser consultado nesta atualização.");
             }
             DuelNetworkState state = DuelNetworkProtocol.CreateState(
                 hostController.PresentationState,
@@ -828,34 +1984,155 @@ namespace ArcaneArena.Multiplayer
                 1,
                 ++nextStateSequence,
                 status);
+            DuelNetworkProtocol.PopulateCombatStats(
+                state,
+                hostController,
+                1);
+            state.matchId = currentMatchId;
+            ulong publicHash = DuelNetworkProtocol
+                .ComputePublicProjectionHash(state);
+            if (authoritativeStateVersion == 0 ||
+                publicHash != authoritativePublicStateHash)
+            {
+                authoritativeStateVersion++;
+                authoritativePublicStateHash = publicHash;
+            }
+            state.stateVersion = authoritativeStateVersion;
+            state.publicStateHash = authoritativePublicStateHash;
+            state.lastAcceptedClientSequence = lastAcceptedClientSequence;
+            state.acknowledgedCommandId = lastAcknowledgedCommandId;
+            state.acknowledgedResponseRequestId =
+                lastAcknowledgedResponseRequestId;
             SendToClient(remoteClientId, StateMessage, state);
+        }
+
+        private void StartStateHeartbeat()
+        {
+            if (stateHeartbeat != null)
+                StopCoroutine(stateHeartbeat);
+            stateHeartbeat = StartCoroutine(BroadcastStateHeartbeat());
+        }
+
+        private IEnumerator BroadcastStateHeartbeat()
+        {
+            while (IsHost && matchStarted && hostCoreStarted &&
+                   remoteClientId != ulong.MaxValue)
+            {
+                yield return new WaitForSecondsRealtime(StateHeartbeatSeconds);
+                BroadcastState();
+            }
+            stateHeartbeat = null;
         }
 
         private void ApplyReplicaState(DuelNetworkState state)
         {
-            if (replicaController != null)
-                replicaController.ApplyNetworkState(state);
+            if (replicaController == null)
+                return;
+            replicaController.ApplyNetworkState(state);
+            DrainPresentationEvents();
+            bool hostAdvancedPrompt = state.prompt == null ||
+                state.prompt.requestId != pendingResponseRequestId;
+            if (pendingResponseRequestId != 0 &&
+                (state.acknowledgedCommandId != pendingCommandId ||
+                 state.acknowledgedResponseRequestId != pendingResponseRequestId ||
+                 !hostAdvancedPrompt))
+            {
+                replicaController.SetPresentationDecisionLocked(true);
+                status = "Resposta entregue ao Relay. Aguardando o host processar...";
+                return;
+            }
+            if (pendingResponseRequestId != 0)
+            {
+                pendingResponseRequestId = 0;
+                pendingResponseBytes = null;
+                pendingCommandId = 0;
+                pendingClientSequence = 0;
+                pendingExpectedStateVersion = 0;
+                nextResponseRetryTime = 0f;
+            }
+            replicaController.SetPresentationDecisionLocked(false);
+        }
+
+        private void SendPendingClientResponse()
+        {
+            if (role != SessionRole.Client || networkManager == null ||
+                !networkManager.IsConnectedClient ||
+                pendingResponseRequestId == 0 ||
+                pendingResponseBytes == null ||
+                pendingResponseBytes.Length == 0)
+            {
+                return;
+            }
+
+            SendToServer(ResponseMessage, new ResponsePayload
+            {
+                schemaVersion = CommandSchemaVersion,
+                matchId = currentMatchId,
+                commandType = "prompt-response",
+                commandId = pendingCommandId,
+                clientSequence = pendingClientSequence,
+                expectedStateVersion = pendingExpectedStateVersion,
+                requestId = pendingResponseRequestId,
+                responseBase64 = Convert.ToBase64String(pendingResponseBytes)
+            });
+            nextResponseRetryTime =
+                Time.realtimeSinceStartup + ResponseRetrySeconds;
+        }
+
+        private void TrySendPendingPresentationEvents()
+        {
+            if (!IsHost || remoteClientId == ulong.MaxValue ||
+                networkManager == null || !networkManager.IsServer)
+            {
+                return;
+            }
+
+            while (outgoingPresentationEvents.Count > 0)
+            {
+                DuelNetworkPresentationEvent next =
+                    outgoingPresentationEvents.Peek();
+                if (!SendToClient(
+                        remoteClientId,
+                        PresentationEventMessage,
+                        next))
+                {
+                    return;
+                }
+                outgoingPresentationEvents.Dequeue();
+            }
+        }
+
+        private void DrainPresentationEvents()
+        {
+            if (replicaController == null)
+                return;
+            while (pendingPresentationEvents.TryGetValue(
+                       lastPresentationEventSequence + 1,
+                       out DuelNetworkPresentationEvent presentationEvent))
+            {
+                if (lastReplicaSequence <
+                    presentationEvent.requiredStateSequence)
+                {
+                    return;
+                }
+                pendingPresentationEvents.Remove(
+                    presentationEvent.eventSequence);
+                lastPresentationEventSequence =
+                    presentationEvent.eventSequence;
+                replicaController.PresentNetworkEvent(
+                    DuelNetworkProtocol.ToPresentationEvent(
+                        presentationEvent));
+            }
         }
 
         private bool TryValidateRemoteResponse(
             ResponsePayload response,
-            out byte[] bytes)
+            byte[] bytes)
         {
-            bytes = null;
             DuelPrompt prompt = hostController?.CurrentPrompt;
             if (prompt == null || prompt.Player != 1 ||
                 prompt.RequestId == 0 || prompt.RequestId != response.requestId ||
-                string.IsNullOrWhiteSpace(response.responseBase64))
-            {
-                return false;
-            }
-            try
-            {
-                bytes = Convert.FromBase64String(response.responseBase64);
-                if (bytes.Length == 0 || bytes.Length > 2048)
-                    return false;
-            }
-            catch (FormatException)
+                bytes == null || bytes.Length == 0 || bytes.Length > 2048)
             {
                 return false;
             }
@@ -865,13 +2142,80 @@ namespace ArcaneArena.Multiplayer
             return true;
         }
 
+        private static bool TryDecodeResponseBytes(
+            ResponsePayload response,
+            out byte[] bytes)
+        {
+            bytes = null;
+            if (response == null ||
+                string.IsNullOrWhiteSpace(response.responseBase64))
+            {
+                return false;
+            }
+            try
+            {
+                bytes = Convert.FromBase64String(response.responseBase64);
+                return bytes.Length > 0 && bytes.Length <= 2048;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+
+        private bool ValidateCommandEnvelope(ResponsePayload response)
+        {
+            return response != null &&
+                response.schemaVersion == CommandSchemaVersion &&
+                response.commandType == "prompt-response" &&
+                response.commandId != 0 &&
+                response.clientSequence == lastAcceptedClientSequence + 1 &&
+                response.expectedStateVersion == authoritativeStateVersion &&
+                response.matchId == currentMatchId &&
+                !clientSynchronizing;
+        }
+
+        private bool ConsumeCommandToken()
+        {
+            float now = Time.realtimeSinceStartup;
+            float elapsed = Mathf.Max(0f, now - lastCommandTokenTime);
+            lastCommandTokenTime = now;
+            commandTokens = Mathf.Min(
+                CommandBurstCapacity,
+                commandTokens + elapsed * CommandRatePerSecond);
+            if (commandTokens < 1f)
+                return false;
+            commandTokens -= 1f;
+            return true;
+        }
+
+        private void DisconnectProtocolViolation(string reason)
+        {
+            Debug.LogWarning("[MP] stage=protocol-violation reason=" + reason);
+            status = "O rival enviou uma sequência de comandos inválida.";
+            if (networkManager != null && networkManager.IsServer &&
+                remoteClientId != ulong.MaxValue)
+            {
+                networkManager.DisconnectClient(remoteClientId, reason);
+            }
+        }
+
         private static bool ValidateHello(HelloPayload hello, out string rejection)
         {
             rejection = string.Empty;
             if (hello == null || hello.loadout == null ||
                 hello.protocolVersion != ProtocolVersion)
             {
-                rejection = "O rival usa um protocolo online incompatível. Ambos precisam usar o protocolo v2.";
+                rejection = "O rival usa um protocolo online incompatível. " +
+                    "Ambos precisam instalar a versão ONLINE v4.";
+                return false;
+            }
+            if (hello.compatibility !=
+                ProjectIdentity.MultiplayerCompatibility)
+            {
+                rejection = "O conteúdo do jogo é diferente entre os dois " +
+                    "dispositivos. Instale a mesma versão ONLINE v4 no PC " +
+                    "e no celular para usar todos os decks corretamente.";
                 return false;
             }
             if (!string.IsNullOrWhiteSpace(hello.coreApiVersion) &&
@@ -882,9 +2226,23 @@ namespace ArcaneArena.Multiplayer
             }
             int mainCount = hello.loadout.mainDeckCardIds?.Count ?? 0;
             int extraCount = hello.loadout.extraDeckCardIds?.Count ?? 0;
+            if ((hello.loadout.playerDisplayName?.Length ?? 0) > 128 ||
+                (hello.loadout.displayName?.Length ?? 0) > 128 ||
+                (hello.loadout.profileId?.Length ?? 0) > 128 ||
+                (hello.loadout.deckId?.Length ?? 0) > 128)
+            {
+                rejection = "O deck remoto possui metadados maiores que o limite online.";
+                return false;
+            }
             if (mainCount < 40 || mainCount > 60 || extraCount > 15)
             {
                 rejection = "O deck remoto não respeita os limites de 40–60 e 15 cartas.";
+                return false;
+            }
+            if (ParseCardCodes(hello.loadout.mainDeckCardIds).Length != mainCount ||
+                ParseCardCodes(hello.loadout.extraDeckCardIds).Length != extraCount)
+            {
+                rejection = "O deck remoto possui identificadores de carta inválidos.";
                 return false;
             }
             return true;
@@ -922,63 +2280,791 @@ namespace ArcaneArena.Multiplayer
             return true;
         }
 
-        private void SendToServer<T>(string messageName, T payload)
+        private bool SendToServer<T>(
+            string messageName,
+            T payload,
+            NetworkDelivery delivery = NetworkDelivery.Unreliable)
         {
-            Send(NetworkManager.ServerClientId, messageName, payload);
+            return Send(
+                NetworkManager.ServerClientId,
+                messageName,
+                payload,
+                delivery);
         }
 
-        private void SendToClient<T>(ulong clientId, string messageName, T payload)
+        private bool SendToClient<T>(
+            ulong clientId,
+            string messageName,
+            T payload,
+            NetworkDelivery delivery = NetworkDelivery.Unreliable)
         {
-            Send(clientId, messageName, payload);
+            return Send(clientId, messageName, payload, delivery);
         }
 
-        private void Send<T>(ulong target, string messageName, T payload)
+        private bool Send<T>(
+            ulong target,
+            string messageName,
+            T payload,
+            NetworkDelivery delivery)
         {
+            // v4 deliberately ignores the requested NGO delivery mode. Every
+            // logical message travels as small Unreliable packets with its
+            // own chunk ACK, final checksum ACK and selective retry. This
+            // avoids both UTF-16 string inflation and NGO/UTP fragmentation.
+            _ = delivery;
             if (networkManager == null ||
                 networkManager.CustomMessagingManager == null)
             {
-                return;
-            }
-            string json = JsonUtility.ToJson(payload);
-            int bytes = Encoding.UTF8.GetByteCount(json);
-            if (bytes <= 0 || bytes > MaxWireBytes)
-            {
-                Debug.LogError($"[Arcane Duel Online] Mensagem '{messageName}' fora do limite: {bytes} bytes.");
-                return;
-            }
-            using var writer = new FastBufferWriter(
-                Math.Min(1024, bytes + 16),
-                Allocator.Temp,
-                MaxWireBytes);
-            writer.WriteValueSafe(json);
-            networkManager.CustomMessagingManager.SendNamedMessage(
-                messageName,
-                target,
-                writer,
-                // Deck lists and perspective snapshots commonly exceed the
-                // single-packet Relay payload. NGO reassembles these chunks
-                // before invoking the named-message handler.
-                NetworkDelivery.ReliableFragmentedSequenced);
-        }
-
-        private static bool TryRead<T>(FastBufferReader reader, out T result)
-        {
-            result = default;
-            try
-            {
-                reader.ReadValueSafe(out string json);
-                if (string.IsNullOrWhiteSpace(json) ||
-                    Encoding.UTF8.GetByteCount(json) > MaxWireBytes)
-                {
-                    return false;
-                }
-                result = JsonUtility.FromJson<T>(json);
-                return !ReferenceEquals(result, null);
-            }
-            catch (Exception)
-            {
                 return false;
             }
+
+            if (!TryResolveLogicalMessage(
+                    messageName,
+                    out LogicalMessage logicalMessage,
+                    out DuelWireKind wireKind))
+            {
+                Debug.LogError(
+                    $"[Arcane Duel Online] Tipo de mensagem desconhecido: '{messageName}'.");
+                return false;
+            }
+
+            byte[] jsonBytes;
+            try
+            {
+                string json = JsonUtility.ToJson(payload);
+                jsonBytes = Encoding.UTF8.GetBytes(json);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(
+                    $"[Arcane Duel Online] Nao foi possivel serializar " +
+                    $"'{messageName}': {exception.GetBaseException().Message}");
+                return false;
+            }
+
+            if (jsonBytes.Length <= 0 || jsonBytes.Length > MaxWireBytes)
+            {
+                Debug.LogError(
+                    $"[Arcane Duel Online] Mensagem '{messageName}' fora do " +
+                    $"limite v4: {jsonBytes.Length} bytes UTF-8.");
+                return false;
+            }
+
+            byte[] wirePayload;
+            try
+            {
+                wirePayload = EncodeLogicalPayload(logicalMessage, jsonBytes);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(
+                    $"[Arcane Duel Online] Falha ao comprimir '{messageName}': " +
+                    exception.GetBaseException().Message);
+                return false;
+            }
+            if (wirePayload.Length > MaxWireBytes)
+            {
+                Debug.LogError(
+                    $"[Arcane Duel Online] Mensagem '{messageName}' excedeu " +
+                    $"o limite comprimido v4: {wirePayload.Length} bytes.");
+                return false;
+            }
+            ulong checksum = DuelWireProtocol.ComputePayloadChecksum(wirePayload);
+            foreach (OutboundWireTransfer existing in outboundWireTransfers.Values)
+            {
+                if (existing.Target == target &&
+                    existing.LogicalMessage == logicalMessage &&
+                    existing.Transfer.TotalLength == wirePayload.Length &&
+                    existing.Transfer.PayloadChecksum == checksum)
+                {
+                    existing.NextSendTime = 0f;
+                    return true;
+                }
+            }
+
+            if (logicalMessage == LogicalMessage.State)
+                RemoveSupersededStateTransfers(target);
+            if (outboundWireTransfers.Count >= MaximumConcurrentWireTransfers)
+            {
+                Debug.LogError(
+                    "[Arcane Duel Online] Limite de transferencias pendentes " +
+                    "atingido. A conexao sera mantida para recuperar os ACKs.");
+                return false;
+            }
+
+            DuelWireTransfer transfer;
+            try
+            {
+                transfer = DuelWireProtocol.CreateTransfer(
+                    wireKind,
+                    wirePayload);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(
+                    $"[Arcane Duel Online] Falha ao preparar '{messageName}': " +
+                    exception.GetBaseException().Message);
+                return false;
+            }
+
+            var pending = new OutboundWireTransfer
+            {
+                Target = target,
+                LogicalMessage = logicalMessage,
+                Transfer = transfer,
+                AckTracker = new DuelWireAckTracker(transfer),
+                NextSendTime = 0f
+            };
+            outboundWireTransfers.Add(
+                new WireTransferKey(target, transfer.TransferId),
+                pending);
+            return true;
+        }
+
+        private static byte[] EncodeLogicalPayload(
+            LogicalMessage logicalMessage,
+            byte[] jsonBytes)
+        {
+            bool compress = jsonBytes.Length >= CompressionThresholdBytes;
+            byte[] body = jsonBytes;
+            if (compress)
+            {
+                using var output = new MemoryStream();
+                using (var gzip = new GZipStream(
+                           output,
+                           System.IO.Compression.CompressionLevel.Fastest,
+                           true))
+                {
+                    gzip.Write(jsonBytes, 0, jsonBytes.Length);
+                }
+                body = output.ToArray();
+                if (body.Length >= jsonBytes.Length)
+                {
+                    compress = false;
+                    body = jsonBytes;
+                }
+            }
+
+            var encoded = new byte[body.Length + 2];
+            encoded[0] = (byte)logicalMessage;
+            encoded[1] = compress ? (byte)1 : (byte)0;
+            Buffer.BlockCopy(body, 0, encoded, 2, body.Length);
+            return encoded;
+        }
+
+        private static bool TryDecodeLogicalJson(
+            byte[] payload,
+            out LogicalMessage logicalMessage,
+            out string json,
+            out string error)
+        {
+            logicalMessage = LogicalMessage.Unknown;
+            json = string.Empty;
+            error = string.Empty;
+            if (payload == null || payload.Length < 3)
+            {
+                error = "Payload lógico v4 incompleto.";
+                return false;
+            }
+
+            logicalMessage = (LogicalMessage)payload[0];
+            byte codec = payload[1];
+            var body = new byte[payload.Length - 2];
+            Buffer.BlockCopy(payload, 2, body, 0, body.Length);
+
+            byte[] jsonBytes;
+            if (codec == 0)
+            {
+                jsonBytes = body;
+            }
+            else if (codec == 1)
+            {
+                try
+                {
+                    using var input = new MemoryStream(body, false);
+                    using var gzip = new GZipStream(
+                        input,
+                        CompressionMode.Decompress);
+                    using var output = new MemoryStream();
+                    var buffer = new byte[4096];
+                    int read;
+                    while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        if (output.Length + read > MaxWireBytes)
+                        {
+                            error = "Payload descomprimido excede o limite v4.";
+                            return false;
+                        }
+                        output.Write(buffer, 0, read);
+                    }
+                    jsonBytes = output.ToArray();
+                }
+                catch (Exception)
+                {
+                    error = "Payload GZip v4 inválido.";
+                    return false;
+                }
+            }
+            else
+            {
+                error = "Codec lógico v4 desconhecido.";
+                return false;
+            }
+
+            return DuelWireProtocol.TryDecodeUtf8(
+                jsonBytes,
+                out json,
+                out error);
+        }
+
+        private void Update()
+        {
+            float now = Time.realtimeSinceStartup;
+            TryProcessPendingHostResponse();
+            TrySendPendingPresentationEvents();
+            if (pendingResponseRequestId != 0 &&
+                pendingResponseBytes != null &&
+                now >= nextResponseRetryTime)
+            {
+                SendPendingClientResponse();
+            }
+            if (now < nextWirePumpTime)
+                return;
+            nextWirePumpTime = now + WirePumpSeconds;
+            if (now >= nextWireCleanupTime)
+            {
+                nextWireCleanupTime = now + 1f;
+                CleanupWireTransfers(now);
+            }
+            if (outboundWireTransfers.Count == 0)
+                return;
+
+            int remainingBudget = WirePacketsPerFrame;
+            var keys = new List<WireTransferKey>(outboundWireTransfers.Keys);
+            foreach (WireTransferKey key in keys)
+            {
+                if (remainingBudget <= 0)
+                    break;
+                if (!outboundWireTransfers.TryGetValue(
+                        key,
+                        out OutboundWireTransfer pending) ||
+                    pending.NextSendTime > now)
+                {
+                    continue;
+                }
+
+                remainingBudget -= PumpOutboundWireTransfer(
+                    pending,
+                    now,
+                    Math.Min(WirePacketsPerTransferPump, remainingBudget));
+            }
+        }
+
+        private int PumpOutboundWireTransfer(
+            OutboundWireTransfer pending,
+            float now,
+            int packetBudget)
+        {
+            if (pending == null || packetBudget <= 0 ||
+                pending.AckTracker.TransferAcknowledged)
+            {
+                return 0;
+            }
+
+            if (pending.AckTracker.AllChunksAcknowledged)
+            {
+                // Every chunk reached the peer, but its final ACK may have
+                // been lost. A completed peer repeats that ACK as soon as it
+                // sees the first duplicate. If its completed-transfer cache
+                // was also lost or expired, walking the whole transfer here
+                // lets it reconstruct the payload again instead of leaving
+                // both peers permanently waiting on the final confirmation.
+                int sentWhileAwaitingFinalAck = 0;
+                int chunkCount = pending.Transfer.ChunkCount;
+                while (sentWhileAwaitingFinalAck < packetBudget &&
+                       pending.MissingCursor < chunkCount)
+                {
+                    SendWirePacket(
+                        pending.Target,
+                        pending.Transfer.GetPacket(pending.MissingCursor++));
+                    sentWhileAwaitingFinalAck++;
+                }
+
+                if (pending.MissingCursor >= chunkCount)
+                {
+                    pending.MissingCursor = 0;
+                    pending.SendRounds++;
+                    pending.NextSendTime = now + WireRetrySeconds;
+                }
+                else
+                {
+                    pending.NextSendTime = now + WirePumpSeconds;
+                }
+                return sentWhileAwaitingFinalAck;
+            }
+
+            int sent = 0;
+            int inspected = 0;
+            int transferChunkCount = pending.Transfer.ChunkCount;
+            bool completedScan = false;
+            while (sent < packetBudget && inspected < transferChunkCount)
+            {
+                int packetIndex = pending.MissingCursor;
+                pending.MissingCursor =
+                    (pending.MissingCursor + 1) % transferChunkCount;
+                inspected++;
+                if (pending.MissingCursor == 0)
+                    completedScan = true;
+                if (pending.AckTracker.IsChunkAcknowledged(packetIndex))
+                    continue;
+                SendWirePacket(
+                    pending.Target,
+                    pending.Transfer.GetPacket(packetIndex));
+                sent++;
+            }
+
+            if (completedScan)
+            {
+                pending.SendRounds++;
+                pending.NextSendTime = now + WireRetrySeconds;
+            }
+            else
+            {
+                pending.NextSendTime = now + WirePumpSeconds;
+            }
+            return sent;
+        }
+
+        private void SendWirePacket(ulong target, DuelWirePacket packet)
+        {
+            if (packet == null || networkManager?.CustomMessagingManager == null)
+                return;
+
+            var writer = new FastBufferWriter(
+                DuelWireProtocol.MaximumWriterPacketBytes,
+                Allocator.Temp,
+                DuelWireProtocol.MaximumWriterPacketBytes);
+            try
+            {
+                if (!DuelWireProtocol.TryWritePacket(
+                        ref writer,
+                        packet,
+                        out string error))
+                {
+                    Debug.LogWarning(
+                        $"[Arcane Duel Online] Pacote v3 nao foi codificado: {error}");
+                    return;
+                }
+
+                networkManager.CustomMessagingManager.SendNamedMessage(
+                    WirePacketMessage,
+                    target,
+                    writer,
+                    NetworkDelivery.Unreliable);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Arcane Duel Online] Falha temporaria ao enviar pacote " +
+                    $"{packet.TransferId}: {exception.GetBaseException().Message}");
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
+        private void OnWirePacketMessage(
+            ulong senderClientId,
+            FastBufferReader reader)
+        {
+            if (!IsExpectedWirePeer(senderClientId))
+                return;
+            if (!DuelWireProtocol.TryReadPacket(
+                    ref reader,
+                    out DuelWirePacket packet,
+                    out string error))
+            {
+                Debug.LogWarning(
+                    $"[Arcane Duel Online] Pacote v3 invalido de " +
+                    $"{senderClientId}: {error}");
+                return;
+            }
+
+            if (packet.IsData)
+                ProcessWireData(senderClientId, packet);
+            else
+                ProcessWireAck(senderClientId, packet);
+        }
+
+        private bool IsExpectedWirePeer(ulong senderClientId)
+        {
+            if (IsHost)
+                return remoteClientId != ulong.MaxValue &&
+                       senderClientId == remoteClientId;
+            return role == SessionRole.Client &&
+                   senderClientId == NetworkManager.ServerClientId;
+        }
+
+        private void ProcessWireData(
+            ulong senderClientId,
+            DuelWirePacket packet)
+        {
+            var key = new WireTransferKey(
+                senderClientId,
+                packet.TransferId);
+            if (completedWireTransfers.TryGetValue(
+                    key,
+                    out CompletedWireTransfer completed))
+            {
+                if (WireMetadataMatches(completed.TransferAck, packet))
+                    SendWirePacket(senderClientId, completed.TransferAck);
+                return;
+            }
+
+            if (!inboundWireTransfers.TryGetValue(
+                    key,
+                    out InboundWireTransfer incoming))
+            {
+                if (inboundWireTransfers.Count >=
+                    MaximumConcurrentWireTransfers)
+                {
+                    RemoveOldestInboundWireTransfer();
+                }
+                incoming = new InboundWireTransfer();
+                inboundWireTransfers.Add(key, incoming);
+            }
+            incoming.LastActivityTime = Time.realtimeSinceStartup;
+
+            DuelWireAcceptResult result = incoming.Reassembler.Accept(
+                packet,
+                out byte[] payload,
+                out string error);
+            if (result == DuelWireAcceptResult.Rejected)
+            {
+                Debug.LogWarning(
+                    $"[Arcane Duel Online] Bloco v3 rejeitado " +
+                    $"({packet.TransferId}): {error}");
+                inboundWireTransfers.Remove(key);
+                return;
+            }
+
+            SendWirePacket(
+                senderClientId,
+                DuelWireProtocol.CreateChunkAck(packet));
+            if (IsHost && packet.Kind == DuelWireKind.Deck &&
+                remoteLoadout == null)
+            {
+                status = $"Recebendo deck do rival: " +
+                    $"{incoming.Reassembler.ReceivedChunkCount} / " +
+                    $"{incoming.Reassembler.ChunkCount} blocos confirmados...";
+            }
+            if (result != DuelWireAcceptResult.Completed)
+                return;
+
+            DuelWirePacket transferAck =
+                DuelWireProtocol.CreateTransferAck(incoming.Reassembler);
+            inboundWireTransfers.Remove(key);
+            completedWireTransfers[key] = new CompletedWireTransfer
+            {
+                TransferAck = transferAck,
+                CompletedTime = Time.realtimeSinceStartup
+            };
+            SendWirePacket(senderClientId, transferAck);
+            DispatchWirePayload(senderClientId, packet.Kind, payload);
+        }
+
+        private void ProcessWireAck(
+            ulong senderClientId,
+            DuelWirePacket packet)
+        {
+            var key = new WireTransferKey(
+                senderClientId,
+                packet.TransferId);
+            if (!outboundWireTransfers.TryGetValue(
+                    key,
+                    out OutboundWireTransfer pending))
+            {
+                return;
+            }
+
+            DuelWireAckResult result = pending.AckTracker.Accept(
+                packet,
+                out string error);
+            if (result == DuelWireAckResult.Rejected)
+            {
+                Debug.LogWarning(
+                    $"[Arcane Duel Online] ACK v3 rejeitado " +
+                    $"({packet.TransferId}): {error}");
+                return;
+            }
+            if (pending.AckTracker.TransferAcknowledged)
+            {
+                outboundWireTransfers.Remove(key);
+                return;
+            }
+
+            pending.NextSendTime = Math.Min(
+                pending.NextSendTime,
+                Time.realtimeSinceStartup + WirePumpSeconds);
+        }
+
+        private void DispatchWirePayload(
+            ulong senderClientId,
+            DuelWireKind kind,
+            byte[] payload)
+        {
+            if (!TryDecodeLogicalJson(
+                    payload,
+                    out LogicalMessage logicalMessage,
+                    out string json,
+                    out string decodeError))
+            {
+                Debug.LogWarning(
+                    "[Arcane Duel Online] Payload lógico v4 inválido: " +
+                    decodeError);
+                return;
+            }
+
+            if (!LogicalKindMatches(logicalMessage, kind))
+            {
+                Debug.LogWarning(
+                    $"[Arcane Duel Online] Tipo logico {logicalMessage} nao " +
+                    $"corresponde ao envelope {kind}.");
+                return;
+            }
+
+            try
+            {
+                switch (logicalMessage)
+                {
+                    case LogicalMessage.Hello:
+                        ProcessHelloMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<HelloPayload>(json));
+                        break;
+                    case LogicalMessage.HelloRequest:
+                        ProcessHelloRequestMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<ProtocolPayload>(json));
+                        break;
+                    case LogicalMessage.HelloAccepted:
+                        ProcessHelloAcceptedMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<HelloAcceptedPayload>(json));
+                        break;
+                    case LogicalMessage.HelloRejected:
+                        ProcessHelloRejectedMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<HelloRejectedPayload>(json));
+                        break;
+                    case LogicalMessage.Start:
+                        ProcessStartMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<StartPayload>(json));
+                        break;
+                    case LogicalMessage.ClientReady:
+                        ProcessClientReadyMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<ClientReadyPayload>(json));
+                        break;
+                    case LogicalMessage.State:
+                        ProcessStateMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<DuelNetworkState>(json));
+                        break;
+                    case LogicalMessage.Response:
+                        ProcessResponseMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<ResponsePayload>(json));
+                        break;
+                    case LogicalMessage.PresentationEvent:
+                        ProcessPresentationEventMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<DuelNetworkPresentationEvent>(json));
+                        break;
+                    case LogicalMessage.StateAck:
+                        ProcessStateAckMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<StateAckPayload>(json));
+                        break;
+                    case LogicalMessage.ResyncRequest:
+                        ProcessResyncRequestMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<ResyncRequestPayload>(json));
+                        break;
+                    default:
+                        throw new InvalidOperationException(
+                            $"Mensagem logica v3 desconhecida: {logicalMessage}.");
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"[Arcane Duel Online] Falha ao aplicar {logicalMessage}: " +
+                    exception.GetBaseException().Message);
+            }
+        }
+
+        private static bool TryResolveLogicalMessage(
+            string messageName,
+            out LogicalMessage logicalMessage,
+            out DuelWireKind kind)
+        {
+            logicalMessage = LogicalMessage.Unknown;
+            kind = DuelWireKind.Unknown;
+            switch (messageName)
+            {
+                case HelloMessage:
+                    logicalMessage = LogicalMessage.Hello;
+                    kind = DuelWireKind.Deck;
+                    return true;
+                case HelloRequestMessage:
+                    logicalMessage = LogicalMessage.HelloRequest;
+                    kind = DuelWireKind.Control;
+                    return true;
+                case HelloAcceptedMessage:
+                    logicalMessage = LogicalMessage.HelloAccepted;
+                    kind = DuelWireKind.Control;
+                    return true;
+                case HelloRejectedMessage:
+                    logicalMessage = LogicalMessage.HelloRejected;
+                    kind = DuelWireKind.Control;
+                    return true;
+                case StartMessage:
+                    logicalMessage = LogicalMessage.Start;
+                    kind = DuelWireKind.Start;
+                    return true;
+                case ClientReadyMessage:
+                    logicalMessage = LogicalMessage.ClientReady;
+                    kind = DuelWireKind.Control;
+                    return true;
+                case StateMessage:
+                    logicalMessage = LogicalMessage.State;
+                    kind = DuelWireKind.State;
+                    return true;
+                case ResponseMessage:
+                    logicalMessage = LogicalMessage.Response;
+                    kind = DuelWireKind.Response;
+                    return true;
+                case PresentationEventMessage:
+                    logicalMessage = LogicalMessage.PresentationEvent;
+                    kind = DuelWireKind.State;
+                    return true;
+                case StateAckMessage:
+                    logicalMessage = LogicalMessage.StateAck;
+                    kind = DuelWireKind.Control;
+                    return true;
+                case ResyncRequestMessage:
+                    logicalMessage = LogicalMessage.ResyncRequest;
+                    kind = DuelWireKind.Control;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool LogicalKindMatches(
+            LogicalMessage logicalMessage,
+            DuelWireKind kind)
+        {
+            switch (logicalMessage)
+            {
+                case LogicalMessage.Hello:
+                    return kind == DuelWireKind.Deck;
+                case LogicalMessage.State:
+                    return kind == DuelWireKind.State;
+                case LogicalMessage.Start:
+                    return kind == DuelWireKind.Start;
+                case LogicalMessage.Response:
+                    return kind == DuelWireKind.Response;
+                case LogicalMessage.PresentationEvent:
+                    return kind == DuelWireKind.State;
+                case LogicalMessage.HelloRequest:
+                case LogicalMessage.HelloAccepted:
+                case LogicalMessage.HelloRejected:
+                case LogicalMessage.ClientReady:
+                case LogicalMessage.StateAck:
+                case LogicalMessage.ResyncRequest:
+                    return kind == DuelWireKind.Control;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool WireMetadataMatches(
+            DuelWirePacket ack,
+            DuelWirePacket data)
+        {
+            return ack != null && data != null &&
+                   ack.TransferId == data.TransferId &&
+                   ack.Kind == data.Kind &&
+                   ack.TotalLength == data.TotalLength &&
+                   ack.ChunkCount == data.ChunkCount &&
+                   ack.PayloadChecksum == data.PayloadChecksum;
+        }
+
+        private void RemoveSupersededStateTransfers(ulong target)
+        {
+            var removals = new List<WireTransferKey>();
+            foreach (KeyValuePair<WireTransferKey, OutboundWireTransfer> pair in
+                     outboundWireTransfers)
+            {
+                if (pair.Value.Target == target &&
+                    pair.Value.LogicalMessage == LogicalMessage.State)
+                {
+                    removals.Add(pair.Key);
+                }
+            }
+            foreach (WireTransferKey key in removals)
+                outboundWireTransfers.Remove(key);
+        }
+
+        private void RemoveOldestInboundWireTransfer()
+        {
+            bool found = false;
+            WireTransferKey oldestKey = default;
+            float oldestTime = float.MaxValue;
+            foreach (KeyValuePair<WireTransferKey, InboundWireTransfer> pair in
+                     inboundWireTransfers)
+            {
+                if (pair.Value.LastActivityTime >= oldestTime)
+                    continue;
+                found = true;
+                oldestKey = pair.Key;
+                oldestTime = pair.Value.LastActivityTime;
+            }
+            if (found)
+                inboundWireTransfers.Remove(oldestKey);
+        }
+
+        private void CleanupWireTransfers(float now)
+        {
+            var incomplete = new List<WireTransferKey>();
+            foreach (KeyValuePair<WireTransferKey, InboundWireTransfer> pair in
+                     inboundWireTransfers)
+            {
+                if (now - pair.Value.LastActivityTime >
+                    WireAssemblyTimeoutSeconds)
+                {
+                    incomplete.Add(pair.Key);
+                }
+            }
+            foreach (WireTransferKey key in incomplete)
+                inboundWireTransfers.Remove(key);
+
+            var receipts = new List<WireTransferKey>();
+            foreach (KeyValuePair<WireTransferKey, CompletedWireTransfer> pair in
+                     completedWireTransfers)
+            {
+                if (now - pair.Value.CompletedTime >
+                    WireReceiptLifetimeSeconds)
+                {
+                    receipts.Add(pair.Key);
+                }
+            }
+            foreach (WireTransferKey key in receipts)
+                completedWireTransfers.Remove(key);
         }
 
         private void OpenDuelArena()
@@ -987,29 +3073,130 @@ namespace ArcaneArena.Multiplayer
                 SceneManager.LoadScene(DuelArenaScene);
         }
 
-        private void ResetAfterFailedConnection(string failure)
+        private void StopConnectionCoroutines()
         {
-            status = failure;
-            roomCode = string.Empty;
-            relayRegion = string.Empty;
-            relayRegionDescription = string.Empty;
-            disconnectReason = string.Empty;
-            role = SessionRole.None;
-            localLoadout = null;
-            remoteLoadout = null;
-            remoteClientId = ulong.MaxValue;
-            matchStarted = false;
-            pendingStateBroadcast = null;
-            helloAccepted = false;
-            UnregisterHandlers();
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
                 helloRetry = null;
             }
-            if (networkManager != null &&
-                (networkManager.IsClient || networkManager.IsServer))
+            if (helloRequestRetry != null)
             {
+                StopCoroutine(helloRequestRetry);
+                helloRequestRetry = null;
+            }
+            if (startRetry != null)
+            {
+                StopCoroutine(startRetry);
+                startRetry = null;
+            }
+            if (stateHeartbeat != null)
+            {
+                StopCoroutine(stateHeartbeat);
+                stateHeartbeat = null;
+            }
+            if (pendingStateBroadcast != null)
+            {
+                StopCoroutine(pendingStateBroadcast);
+                pendingStateBroadcast = null;
+            }
+            if (reconnectCoroutine != null)
+            {
+                StopCoroutine(reconnectCoroutine);
+                reconnectCoroutine = null;
+            }
+            if (hostReconnectGraceCoroutine != null)
+            {
+                StopCoroutine(hostReconnectGraceCoroutine);
+                hostReconnectGraceCoroutine = null;
+            }
+        }
+
+        private void ResetMatchState(bool clearLocalLoadout)
+        {
+            StopConnectionCoroutines();
+            if (hostController != null)
+                hostController.CoreEventPresented -= OnHostCoreEvent;
+            hostController = null;
+            replicaController = null;
+            pendingReplicaState = null;
+            if (clearLocalLoadout)
+                localLoadout = null;
+            remoteLoadout = null;
+            remoteClientId = ulong.MaxValue;
+            currentMatchId = string.Empty;
+            nextStateSequence = 0;
+            lastReplicaSequence = 0;
+            nextPresentationEventSequence = 0;
+            lastPresentationEventSequence = 0;
+            pendingResponseRequestId = 0;
+            pendingResponseBytes = null;
+            pendingCommandId = 0;
+            pendingClientSequence = 0;
+            pendingExpectedStateVersion = 0;
+            nextClientCommandId = 0;
+            nextClientSequence = 0;
+            nextResponseRetryTime = 0f;
+            pendingHostResponseRequestId = 0;
+            pendingHostResponseBytes = null;
+            pendingHostCommandId = 0;
+            pendingHostClientSequence = 0;
+            lastAcknowledgedResponseRequestId = 0;
+            lastAcknowledgedCommandId = 0;
+            lastAcceptedClientSequence = 0;
+            lastAcceptedCommandPayloadHash = 0;
+            authoritativeStateVersion = 0;
+            authoritativePublicStateHash = 0;
+            lastReplicaStateVersion = 0;
+            lastReplicaPublicStateHash = 0;
+            lastStateAckVersion = 0;
+            clientSynchronizing = false;
+            commandTokens = CommandBurstCapacity;
+            lastCommandTokenTime = Time.realtimeSinceStartup;
+            nextClientResyncTime = 0f;
+            nextHostResyncTime = 0f;
+            reconnecting = false;
+            hostAwaitingReconnect = false;
+            hostAwaitingStateAckUnlock = false;
+            reconnectDeadline = 0f;
+            matchStarted = false;
+            hostCoreStarted = false;
+            helloAccepted = false;
+            clientDeckReady = false;
+            clientReceivedStart = false;
+            clientArenaReady = false;
+            hostPlayerDisplayName = string.Empty;
+            hostDeckDisplayName = string.Empty;
+            outboundWireTransfers.Clear();
+            inboundWireTransfers.Clear();
+            completedWireTransfers.Clear();
+            pendingPresentationEvents.Clear();
+            outgoingPresentationEvents.Clear();
+            nextWirePumpTime = 0f;
+            nextWireCleanupTime = 0f;
+        }
+
+        private async void ResetAfterFailedConnection(string failure)
+        {
+            ClearReconnectTicket();
+            status = failure;
+            roomCode = string.Empty;
+            relayRegion = string.Empty;
+            relayRegionDescription = string.Empty;
+            role = SessionRole.None;
+            ResetMatchState(true);
+            disconnectReason = failure;
+            UnregisterHandlers();
+            if (sessionCoordinator.HasSession)
+            {
+                await sessionCoordinator.LeaveAsync();
+            }
+            else if (networkManager != null &&
+                     (networkManager.IsClient || networkManager.IsServer) &&
+                     !networkManager.ShutdownInProgress)
+            {
+                // Only sessions started outside the MPS facade may be stopped
+                // manually. MPS-owned sessions stop NGO through LeaveAsync.
                 networkManager.Shutdown();
             }
         }
@@ -1128,25 +3315,43 @@ namespace ArcaneArena.Multiplayer
 
             GUI.backgroundColor = new Color(0.035f, 0.12f, 0.21f, 1f);
             GUI.Box(new Rect(margin, 264f, 412f, 92f), GUIContent.none);
-            int players = IsHost ? (remoteLoadout == null ? 1 : 2) :
-                role == SessionRole.Client ? 2 : 0;
+            bool peerConnected = IsHost
+                ? remoteClientId != ulong.MaxValue
+                : role == SessionRole.Client && networkManager != null &&
+                  networkManager.IsConnectedClient;
+            int players = role == SessionRole.None
+                ? 0
+                : peerConnected ? 2 : 1;
+            int confirmedDecks = localLoadout == null ? 0 : 1;
+            if (IsHost ? remoteLoadout != null && clientDeckReady : helloAccepted)
+                confirmedDecks++;
             string roleLabel = IsHost ? "ANFITRIAO / JOGADOR 1" :
                 role == SessionRole.Client ? "JOGADOR 2" : "DESCONECTADO";
             GUI.Label(new Rect(54f, 274f, 380f, 22f),
-                $"JOGADORES  •  {players} / 2    {roleLabel}", lobbySmallLabelStyle);
+                $"JOGADORES • {players}/2    DECKS • {confirmedDecks}/2    {roleLabel}",
+                lobbySmallLabelStyle);
             string localDeck = localLoadout?.displayName ?? "AGUARDANDO";
-            string remoteDeck = remoteLoadout?.displayName ?? "AGUARDANDO";
+            string playerOneDeck = IsHost
+                ? localDeck
+                : string.IsNullOrWhiteSpace(hostDeckDisplayName)
+                    ? "AGUARDANDO"
+                    : hostDeckDisplayName;
+            string playerTwoDeck = IsHost
+                ? remoteLoadout?.displayName ?? "AGUARDANDO"
+                : localDeck;
             GUI.Label(new Rect(54f, 300f, 380f, 42f),
-                $"DECK JOGADOR 1  •  {(IsHost ? localDeck : remoteDeck)}\n" +
-                $"DECK JOGADOR 2  •  {(IsHost ? remoteDeck : localDeck)}",
+                $"DECK JOGADOR 1  •  {playerOneDeck}\n" +
+                $"DECK JOGADOR 2  •  {playerTwoDeck}",
                 lobbyDeckStyle);
 
-            GUI.enabled = IsHost && remoteLoadout != null && !matchStarted;
+            bool canStartMatch = IsHost && peerConnected &&
+                remoteLoadout != null && clientDeckReady && !matchStarted;
+            GUI.enabled = canStartMatch;
             GUI.backgroundColor = GUI.enabled
                 ? new Color(0.78f, 0.56f, 0.08f, 1f)
                 : new Color(0.22f, 0.20f, 0.14f, 1f);
             if (GUI.Button(new Rect(margin, 366f, contentWidth, 42f),
-                    IsHost && remoteLoadout != null
+                    canStartMatch
                         ? "INICIAR DUELO ONLINE"
                         : "AGUARDANDO JOGADORES E DECKS", lobbyButtonStyle))
             {
@@ -1186,14 +3391,14 @@ namespace ArcaneArena.Multiplayer
         {
             if (!IsOnlineDuelActive)
             {
-                return "O Relay escolhe automaticamente a melhor região ao criar a sala.";
+                return "ONLINE v4 • Sessions escolhe a melhor região Relay.";
             }
 
             int roundTrip = RelayRoundTripTimeMs;
             string rtt = roundTrip < 0
                 ? "medindo RTT..."
                 : $"RTT real: {roundTrip} ms";
-            return $"Relay: {GetRelayRegionLabel()}  •  {rtt}";
+            return $"ONLINE v4 • Relay: {GetRelayRegionLabel()}  •  {rtt}";
         }
 
         private string GetRelayRegionLabel()

@@ -83,6 +83,7 @@ namespace ArcaneDuel.Game
         private bool remotePlayerOneAuthority;
         private byte networkLocalPlayer;
         private DuelPrompt replicaPrompt;
+        private IDuelNetworkState replicaNetworkState;
 
         public bool ExternalPresentation => externalPresentation;
         public bool IsNetworkReplica => networkReplica;
@@ -118,9 +119,33 @@ namespace ArcaneDuel.Game
                     out attack,
                     out defense);
             }
+            if (networkReplica && replicaNetworkState != null)
+            {
+                return replicaNetworkState.TryGetCombatStats(
+                    controller,
+                    location,
+                    sequence,
+                    out attack,
+                    out defense);
+            }
             attack = 0;
             defense = 0;
             return false;
+        }
+
+        public bool ReconcilePresentationFromCore()
+        {
+            if (networkReplica || engine == null || state == null ||
+                !engine.TryCaptureFieldSnapshot(
+                    out OcgFieldSnapshot authoritative))
+            {
+                return false;
+            }
+            state.ReconcileFromCore(authoritative);
+            playerExtraCards.Clear();
+            playerExtraCards.AddRange(state.Players[0].ExtraDeckCards);
+            PresentationStateChanged?.Invoke();
+            return true;
         }
 
         private void Awake()
@@ -175,6 +200,11 @@ namespace ArcaneDuel.Game
                     playerDeck.extraDeck.Count,
                     opponentDeck.mainDeck.Count,
                     opponentDeck.extraDeck.Count);
+                state.ConfigureDeckContents(
+                    playerDeck.mainDeck,
+                    playerDeck.extraDeck,
+                    opponentDeck.mainDeck,
+                    opponentDeck.extraDeck);
 
                 DuelConfiguration configuration =
                     DuelConfiguration.VerticalSlice(DuelConfiguration.FreshSeed());
@@ -1396,6 +1426,7 @@ namespace ArcaneDuel.Game
             networkLocalPlayer = localPlayer;
             remotePlayerOneAuthority = false;
             replicaPrompt = null;
+            replicaNetworkState = null;
             presentationDecisionLocked = false;
             if (engine != null)
             {
@@ -1429,17 +1460,35 @@ namespace ArcaneDuel.Game
 
             try
             {
-                networkState.ApplyTo(state, database, out replicaPrompt);
-                choicePresenter.Rebuild(replicaPrompt);
-                contextualChoices.Clear();
-                selectedPromptIndexes.Clear();
-                showPhaseChoices = false;
+                DuelPrompt previousPrompt = replicaPrompt;
+                networkState.ApplyTo(
+                    state,
+                    database,
+                    out DuelPrompt receivedPrompt);
+                bool promptChanged = !IsSameNetworkPrompt(
+                    previousPrompt,
+                    receivedPrompt);
+                replicaPrompt = promptChanged
+                    ? receivedPrompt
+                    : previousPrompt;
+                replicaNetworkState = networkState;
+                playerExtraCards.Clear();
+                if (state.Players.Length > 0)
+                    playerExtraCards.AddRange(
+                        state.Players[0].ExtraDeckCards);
+                if (promptChanged)
+                {
+                    choicePresenter.Rebuild(replicaPrompt);
+                    contextualChoices.Clear();
+                    selectedPromptIndexes.Clear();
+                    showPhaseChoices = false;
+                }
                 status = string.IsNullOrWhiteSpace(networkState.Status)
                     ? "Duelo online sincronizado."
                     : networkState.Status;
-                // A snapshot is the host's acknowledgement of the previous
-                // response. It is now safe to enable the next legal choice.
-                presentationDecisionLocked = false;
+                // The transport session owns response acknowledgement. A
+                // heartbeat alone must never unlock a choice that the host
+                // has not processed yet.
                 // The authored arena caches the presentation-state reference.
                 // Notify it after replacing a replica snapshot so it rebinds
                 // without fabricating a Core event on this assembly boundary.
@@ -1454,6 +1503,23 @@ namespace ArcaneDuel.Game
             }
         }
 
+        private static bool IsSameNetworkPrompt(
+            DuelPrompt previous,
+            DuelPrompt received)
+        {
+            if (ReferenceEquals(previous, received))
+                return true;
+            if (previous == null || received == null ||
+                previous.RequestId == 0 || received.RequestId == 0)
+            {
+                return false;
+            }
+            return previous.RequestId == received.RequestId &&
+                   previous.Message == received.Message &&
+                   previous.Player == received.Player &&
+                   previous.Choices.Count == received.Choices.Count;
+        }
+
         public void SetPresentationDecisionLocked(bool locked)
         {
             presentationDecisionLocked = locked;
@@ -1461,16 +1527,28 @@ namespace ArcaneDuel.Game
                 nextAutoDecision = Time.unscaledTime + 0.12f;
         }
 
-        public void SubmitCoreResponse(
+        public void PresentNetworkEvent(DuelEvent duelEvent)
+        {
+            if (!networkReplica || duelEvent == null)
+                return;
+            CoreEventPresented?.Invoke(duelEvent);
+        }
+
+        public bool SubmitCoreResponse(
             byte[] response,
             ulong requestId = 0)
         {
             if (networkReplica)
             {
+                if (response == null || response.Length == 0 ||
+                    DuelOnlineBridge.SubmitReplicaResponse == null)
+                {
+                    return false;
+                }
                 DuelOnlineBridge.SubmitReplicaResponse?.Invoke(
                     response,
                     requestId == 0 ? replicaPrompt?.RequestId ?? 0 : requestId);
-                return;
+                return true;
             }
             DuelPrompt prompt = engine?.CurrentPrompt;
             if (requestId != 0 &&
@@ -1483,9 +1561,9 @@ namespace ArcaneDuel.Game
                     $"Rejected stale raw response request={requestId}; " +
                     $"current={prompt.RequestId}.",
                     this);
-                return;
+                return false;
             }
-            SubmitRaw(response);
+            return SubmitRaw(response);
         }
 
         private static bool ChoiceBelongsToCurrentPrompt(
@@ -1538,6 +1616,11 @@ namespace ArcaneDuel.Game
                 playerExtra?.Length ?? 0,
                 opponentMain.Length,
                 opponentExtra?.Length ?? 0);
+            state.ConfigureDeckContents(
+                playerMain,
+                playerExtra,
+                opponentMain,
+                opponentExtra);
 
             DuelConfiguration configuration =
                 DuelConfiguration.VerticalSlice(DuelConfiguration.FreshSeed());
@@ -1565,13 +1648,14 @@ namespace ArcaneDuel.Game
                 $"seed={configuration.Seed:X16}.");
         }
 
-        private void SubmitRaw(byte[] response)
+        private bool SubmitRaw(byte[] response)
         {
-            if (engine == null || response == null) return;
+            if (engine == null || response == null || response.Length == 0)
+                return false;
             if (presentationDecisionLocked)
             {
                 status = "Aguarde a apresentação da carta terminar.";
-                return;
+                return false;
             }
             try
             {
@@ -1584,6 +1668,7 @@ namespace ArcaneDuel.Game
                 status = engine.IsFinished
                     ? "Duelo concluído pelo Core"
                     : "Ação confirmada · aguardando a próxima decisão";
+                return true;
             }
             catch (Exception exception)
             {
@@ -1592,6 +1677,7 @@ namespace ArcaneDuel.Game
                     $"O duelo foi interrompido pelo Core: {failure}";
                 CoreFailure?.Invoke(failure);
                 Debug.LogException(exception);
+                return false;
             }
         }
 

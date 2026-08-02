@@ -47,7 +47,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 DuelChoice attack = FindValue(prompt, 1);
                 if (attack != null) return attack;
             }
-            else if (prompt.Message == CoreMessage.SelectSum)
+            else if (prompt.Message == CoreMessage.SelectSum ||
+                     prompt.Message == CoreMessage.SelectTribute)
             {
                 DuelChoice selection = ChooseValidSum(prompt);
                 if (selection != null) return selection;
@@ -63,7 +64,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 .Distinct()
                 .OrderBy(index => index)
                 .ToArray();
-            int minimum = prompt.SumAtLeast
+            int minimum = prompt.SumAtLeast ||
+                          prompt.Message == CoreMessage.SelectTribute
                 ? 0
                 : checked((int)prompt.MinimumSelections);
             int maximum = prompt.SumAtLeast

@@ -39,6 +39,12 @@ namespace ArcaneDuel.DuelEngine.Interop
             out uint length,
             ref OcgQueryInfo info);
 
+        [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true, EntryPoint = "OCG_DuelQueryLocation")]
+        internal static extern IntPtr DuelQueryLocation(
+            OcgDuelSafeHandle duel,
+            out uint length,
+            ref OcgQueryInfo info);
+
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true, EntryPoint = "OCG_LoadScript")]
         internal static extern int LoadScript(IntPtr duel, byte[] script, uint length, [MarshalAs(UnmanagedType.LPStr)] string name);
     }
