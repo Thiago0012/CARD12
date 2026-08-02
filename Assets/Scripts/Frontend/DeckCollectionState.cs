@@ -6,7 +6,7 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 4;
+        public int schemaVersion = 5;
         public string localProfileId;
         public string playerDisplayName;
         public string selectedDeckId;
@@ -22,6 +22,23 @@ namespace ArcaneArena.Frontend
             new List<PendingPackOpeningRecord>();
         public List<ShopTransactionRecord> processedShopTransactions =
             new List<ShopTransactionRecord>();
+        public CoinRewardAuthorizationState coinRewardAuthorization =
+            new CoinRewardAuthorizationState();
+    }
+
+    [Serializable]
+    public sealed class CoinRewardAuthorizationState
+    {
+        public bool isAuthorized;
+        public bool isRevoked;
+        public string catalogEntryId;
+        public string originallyAuthorizedNickname;
+        public string normalizedAuthorizedNickname;
+        public string boundLocalProfileId;
+        public string boundInstallId;
+        public long authorizedAtUtcUnixSeconds;
+        public int catalogVersionAtAuthorization;
+        public string integrityTag;
     }
 
     [Serializable]
@@ -59,6 +76,12 @@ namespace ArcaneArena.Frontend
         public int completedRounds;
         public bool winner;
         public bool draw;
+        public string matchId;
+        public string localPlayerId;
+        public string localProfileId;
+        public string catalogEntryId;
+        public int rewardRuleVersion;
+        public RewardReceiptStatus rewardStatus = RewardReceiptStatus.Granted;
         public long createdUtcTicks;
         public List<string> grantedCardIds = new List<string>();
     }

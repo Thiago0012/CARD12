@@ -101,17 +101,158 @@ namespace ArcaneDuel.Tests.EditMode
             try
             {
                 object repository = CreateRepository(path, null);
-                MethodInfo grant = repository.GetType()
-                    .GetMethod("TryGrantOnlineDuelReward");
-                object[] first =
-                    { "match-1:seat0", 8000, 6, true, false, 0, null };
-                object[] repeated =
-                    { "match-1:seat0", 8000, 6, true, false, 0, null };
-                Assert.That((bool)grant.Invoke(repository, first), Is.True);
-                Assert.That((bool)grant.Invoke(repository, repeated), Is.True);
-                Assert.That((int)first[5], Is.EqualTo(53));
-                Assert.That((int)repeated[5], Is.EqualTo(53));
+                ConfigureAuthorization(
+                    repository,
+                    path,
+                    "Nyarlathotep",
+                    "primary");
+                object eligibility = repository.GetType()
+                    .GetMethod("CaptureOnlineRewardEligibility")
+                    .Invoke(repository, null);
+                object request = CreateRewardRequest(
+                    repository,
+                    "match-1",
+                    "seat0",
+                    eligibility,
+                    8000,
+                    6,
+                    true,
+                    false);
+                object first = ClaimReward(repository, request);
+                object repeated = ClaimReward(repository, request);
+                Assert.That((int)Field(first, "coins"), Is.EqualTo(53));
+                Assert.That((int)Field(repeated, "coins"), Is.EqualTo(53));
+                Assert.That(Field(repeated, "status").ToString(),
+                    Is.EqualTo("AlreadyProcessed"));
                 Assert.That(CoinBalance(repository), Is.EqualTo(53));
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
+        [Test]
+        public void BlockedMatchIsConsumedBeforeFutureAuthorization()
+        {
+            string path = TemporarySave("blocked-reward");
+            try
+            {
+                object repository = CreateRepository(path, null);
+                ConfigureAuthorization(
+                    repository,
+                    path,
+                    "Visitante",
+                    "blocked");
+                object blockedSnapshot = repository.GetType()
+                    .GetMethod("CaptureOnlineRewardEligibility")
+                    .Invoke(repository, null);
+                object blockedRequest = CreateRewardRequest(
+                    repository,
+                    "match-blocked",
+                    "seat0",
+                    blockedSnapshot,
+                    8000,
+                    6,
+                    true,
+                    false);
+                object blocked = ClaimReward(repository, blockedRequest);
+                Assert.That(Field(blocked, "status").ToString(),
+                    Is.EqualTo("BlockedNotAuthorized"));
+                Assert.That(CoinBalance(repository), Is.Zero);
+
+                SetPlayerName(repository, "Nyarlathotep");
+                object authorizedSnapshot = repository.GetType()
+                    .GetMethod("CaptureOnlineRewardEligibility")
+                    .Invoke(repository, null);
+                object repeatedRequest = CreateRewardRequest(
+                    repository,
+                    "match-blocked",
+                    "seat0",
+                    authorizedSnapshot,
+                    8000,
+                    6,
+                    true,
+                    false);
+                object repeated = ClaimReward(repository, repeatedRequest);
+                Assert.That(Field(repeated, "status").ToString(),
+                    Is.EqualTo("AlreadyProcessed"));
+                Assert.That(Field(repeated, "originalStatus").ToString(),
+                    Is.EqualTo("BlockedNotAuthorized"));
+                Assert.That(CoinBalance(repository), Is.Zero);
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
+        [Test]
+        public void NicknameChangedDuringMatchUsesTheStartSnapshot()
+        {
+            string path = TemporarySave("start-snapshot");
+            try
+            {
+                object repository = CreateRepository(path, null);
+                ConfigureAuthorization(
+                    repository,
+                    path,
+                    "Visitante",
+                    "snapshot");
+                object startSnapshot = repository.GetType()
+                    .GetMethod("CaptureOnlineRewardEligibility")
+                    .Invoke(repository, null);
+                SetPlayerName(repository, "Nyarlathotep");
+                object request = CreateRewardRequest(
+                    repository,
+                    "match-start-snapshot",
+                    "seat0",
+                    startSnapshot,
+                    8000,
+                    6,
+                    true,
+                    false);
+                object receipt = ClaimReward(repository, request);
+                Assert.That(Field(receipt, "status").ToString(),
+                    Is.EqualTo("BlockedNotAuthorized"));
+                Assert.That(CoinBalance(repository), Is.Zero);
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
+        [Test]
+        public void OfflineMatchNeverCreditsAnAuthorizedProfile()
+        {
+            string path = TemporarySave("offline-reward");
+            try
+            {
+                object repository = CreateRepository(path, null);
+                ConfigureAuthorization(
+                    repository,
+                    path,
+                    "KimDelas",
+                    "offline");
+                object snapshot = repository.GetType()
+                    .GetMethod("CaptureOnlineRewardEligibility")
+                    .Invoke(repository, null);
+                object request = CreateRewardRequest(
+                    repository,
+                    "match-offline",
+                    "seat0",
+                    snapshot,
+                    8000,
+                    6,
+                    true,
+                    false);
+                Type modeType = FindType("ArcaneArena.Frontend.MatchRewardMode");
+                SetField(request, "mode", Enum.Parse(modeType, "Offline"));
+                object receipt = ClaimReward(repository, request);
+                Assert.That(Field(receipt, "status").ToString(),
+                    Is.EqualTo("BlockedOfflineMode"));
+                Assert.That(CoinBalance(repository), Is.Zero);
             }
             finally
             {
@@ -126,6 +267,81 @@ namespace ArcaneDuel.Tests.EditMode
             MethodInfo load = type.GetMethod("Load");
             load.Invoke(repository, new[] { catalog, (object)false });
             return repository;
+        }
+
+        private static void ConfigureAuthorization(
+            object repository,
+            string savePath,
+            string nickname,
+            string identitySuffix)
+        {
+            SetPlayerName(repository, nickname);
+            object authorizationCatalog =
+                AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                    "Assets/Resources/Shop/AuthorizedCoinRecipientsCatalog.asset");
+            Assert.That(authorizationCatalog, Is.Not.Null);
+            Type installType = FindType(
+                "ArcaneArena.Frontend.LocalInstallIdentityService");
+            object installIdentity = Activator.CreateInstance(
+                installType,
+                savePath + "." + identitySuffix + ".identity");
+            repository.GetType()
+                .GetMethod("ConfigureCoinRewardAuthorization")
+                .Invoke(repository, new[]
+                {
+                    authorizationCatalog,
+                    installIdentity
+                });
+        }
+
+        private static void SetPlayerName(object repository, string nickname)
+        {
+            object[] arguments = { nickname, null };
+            bool saved = (bool)repository.GetType()
+                .GetMethod("TrySetPlayerDisplayName")
+                .Invoke(repository, arguments);
+            Assert.That(saved, Is.True, arguments[1] as string);
+        }
+
+        private static object CreateRewardRequest(
+            object repository,
+            string matchId,
+            string localPlayerId,
+            object eligibility,
+            int damage,
+            int rounds,
+            bool winner,
+            bool draw)
+        {
+            Type requestType = FindType(
+                "ArcaneArena.Frontend.MatchRewardRequest");
+            object request = Activator.CreateInstance(requestType);
+            SetField(request, "matchId", matchId);
+            SetField(request, "localPlayerId", localPlayerId);
+            object state = repository.GetType().GetProperty("State")
+                .GetValue(repository);
+            SetField(request, "localProfileId",
+                Field(state, "localProfileId"));
+            Type modeType = FindType("ArcaneArena.Frontend.MatchRewardMode");
+            SetField(request, "mode", Enum.Parse(modeType, "OnlinePvP"));
+            SetField(request, "isAuthoritativeFinal", true);
+            SetField(request, "isWinner", winner);
+            SetField(request, "isDraw", draw);
+            SetField(request, "totalOpponentDamage", damage);
+            SetField(request, "completedRounds", rounds);
+            SetField(request, "eligibilityAtMatchStart", eligibility);
+            return request;
+        }
+
+        private static object ClaimReward(object repository, object request)
+        {
+            object[] arguments = { request, null, null };
+            bool claimed = (bool)repository.GetType()
+                .GetMethod("TryClaimOnlineDuelReward")
+                .Invoke(repository, arguments);
+            Assert.That(claimed, Is.True, arguments[2] as string);
+            Assert.That(arguments[1], Is.Not.Null);
+            return arguments[1];
         }
 
         private static void SetCoinBalance(object repository, int value)
@@ -166,6 +382,11 @@ namespace ArcaneDuel.Tests.EditMode
             return source.GetType().GetField(name).GetValue(source);
         }
 
+        private static void SetField(object source, string name, object value)
+        {
+            source.GetType().GetField(name).SetValue(source, value);
+        }
+
         private static object[] Values(object source)
         {
             return ((IEnumerable)source).Cast<object>().ToArray();
@@ -174,14 +395,18 @@ namespace ArcaneDuel.Tests.EditMode
         private static string TemporarySave(string suffix)
         {
             return Path.Combine(
-                Application.temporaryCachePath,
+                Path.GetFullPath(Path.Combine("Temp", "ArcaneEconomyTests")),
                 "arcane-shop-" + suffix + "-" + Guid.NewGuid().ToString("N") + ".json");
         }
 
         private static void DeleteSave(string path)
         {
-            foreach (string candidate in new[]
-                     { path, path + ".tmp", path + ".bak" })
+            string directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+            foreach (string candidate in Directory.GetFiles(
+                         directory,
+                         Path.GetFileName(path) + "*"))
             {
                 if (File.Exists(candidate))
                     File.Delete(candidate);

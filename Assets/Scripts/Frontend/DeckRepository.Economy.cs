@@ -360,68 +360,6 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        public bool TryGrantOnlineDuelReward(
-            string transactionId,
-            int damageDealt,
-            int completedRounds,
-            bool winner,
-            bool draw,
-            out int grantedCoins,
-            out string rejection)
-        {
-            grantedCoins = 0;
-            rejection = string.Empty;
-            ShopTransactionRecord existing = FindTransaction(transactionId);
-            if (existing != null)
-            {
-                if (!string.Equals(existing.kind, "online-pvp-reward",
-                        StringComparison.Ordinal))
-                {
-                    rejection = "O ID da recompensa já pertence a outra transação.";
-                    return false;
-                }
-                grantedCoins = Math.Max(0, existing.coinDelta);
-                return true;
-            }
-            if (string.IsNullOrWhiteSpace(transactionId))
-            {
-                rejection = "A recompensa online exige um ID de partida.";
-                return false;
-            }
-
-            grantedCoins = OnlineDuelCoinReward.Calculate(
-                damageDealt,
-                completedRounds,
-                winner,
-                draw);
-            string snapshot = JsonUtility.ToJson(State);
-            try
-            {
-                State.coinBalance = checked(State.coinBalance + grantedCoins);
-                ShopTransactionRecord receipt = CreateTransaction(
-                    transactionId,
-                    "online-pvp-reward",
-                    string.Empty,
-                    grantedCoins,
-                    Array.Empty<string>());
-                receipt.damageDealt = Math.Max(0, damageDealt);
-                receipt.completedRounds = Math.Max(0, completedRounds);
-                receipt.winner = winner;
-                receipt.draw = draw;
-                State.processedShopTransactions.Add(receipt);
-                Save();
-                return true;
-            }
-            catch (Exception exception)
-            {
-                RestoreEconomySnapshot(snapshot);
-                grantedCoins = 0;
-                rejection = "A recompensa não foi gravada: " +
-                    exception.GetBaseException().Message;
-                return false;
-            }
-        }
-
         private bool TryPrepareTransaction(
             string transactionId,
             string kind,
@@ -527,10 +465,11 @@ namespace ArcaneArena.Frontend
         {
             State = JsonUtility.FromJson<DeckCollectionState>(json) ??
                 new DeckCollectionState();
-            State.schemaVersion = 4;
+            State.schemaVersion = 5;
             State.decks ??= new List<DeckRecord>();
             State.unlockedDeckProductIds ??= new List<string>();
-            NormalizeEconomyState(4);
+            NormalizeEconomyState(5);
+            NormalizeCoinRewardAuthorizationState(5);
         }
 
         private static int SecureIndex(int count)

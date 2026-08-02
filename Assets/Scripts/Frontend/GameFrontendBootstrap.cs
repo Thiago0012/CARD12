@@ -180,6 +180,7 @@ namespace ArcaneArena.Frontend
             }
             _repository = new DeckRepository();
             _repository.Load(_catalog);
+            InitializeCoinRewardAuthorization();
             InitializeScenePresentation();
             if (!IsActiveScene(DuelArenaSceneName) &&
                 !HasCommandArgument("-arcaneSkipTitle"))
@@ -3319,6 +3320,7 @@ namespace ArcaneArena.Frontend
                 ResolveProjectReferences();
                 _repository = new DeckRepository();
                 _repository.Load(_catalog);
+                InitializeCoinRewardAuthorization();
             }
 
             return _repository.TryCreateSelectedLoadout(

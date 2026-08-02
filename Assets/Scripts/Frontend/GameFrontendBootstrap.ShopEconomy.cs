@@ -18,6 +18,10 @@ namespace ArcaneArena.Frontend
         [Header("Loja e economia")]
         [SerializeField] private Sprite shopCoinSprite;
         [SerializeField] private Sprite shopClosedPackSprite;
+        [SerializeField]
+        private AuthorizedCoinRecipientsCatalog authorizedCoinRecipientsCatalog;
+        [SerializeField]
+        private bool enableDevCoinCheat;
 
         private ShopTab _shopTab = ShopTab.Packages;
         private Action _shopBackAction;
@@ -25,30 +29,77 @@ namespace ArcaneArena.Frontend
         private bool _packOpeningStarted;
         private bool _packRevealBusy;
 
+        public CoinRewardEligibilitySnapshot CaptureOnlineDuelRewardEligibility()
+        {
+            if (_repository == null)
+            {
+                return CoinRewardEligibilitySnapshot.Blocked(
+                    string.Empty,
+                    string.Empty,
+                    authorizedCoinRecipientsCatalog?.CatalogVersion ?? 0,
+                    RewardReceiptStatus.BlockedInvalidMatch);
+            }
+            return _repository.CaptureOnlineRewardEligibility();
+        }
+
         public bool TryApplyOnlineDuelReward(
-            string transactionId,
+            string matchId,
+            string localPlayerId,
             int damageDealt,
             int completedRounds,
             bool winner,
             bool draw,
-            out int grantedCoins,
+            CoinRewardEligibilitySnapshot eligibilityAtMatchStart,
+            out RewardReceipt receipt,
             out string rejection)
         {
-            grantedCoins = 0;
+            receipt = null;
             rejection = string.Empty;
             if (_repository == null)
             {
                 rejection = "O perfil local não está disponível para salvar a recompensa.";
                 return false;
             }
-            return _repository.TryGrantOnlineDuelReward(
-                transactionId,
-                damageDealt,
-                completedRounds,
-                winner,
-                draw,
-                out grantedCoins,
+            return _repository.TryClaimOnlineDuelReward(
+                new MatchRewardRequest
+                {
+                    matchId = matchId,
+                    localPlayerId = localPlayerId,
+                    localProfileId = _repository.State.localProfileId,
+                    mode = MatchRewardMode.OnlinePvP,
+                    isAuthoritativeFinal = true,
+                    isWinner = winner,
+                    isDraw = draw,
+                    totalOpponentDamage = damageDealt,
+                    completedRounds = completedRounds,
+                    eligibilityAtMatchStart = eligibilityAtMatchStart
+                },
+                out receipt,
                 out rejection);
+        }
+
+        private void InitializeCoinRewardAuthorization()
+        {
+            if (_repository == null)
+                return;
+            if (authorizedCoinRecipientsCatalog == null)
+            {
+                // Fallback para cenas de diagnóstico criadas dinamicamente.
+                // As cenas de produção mantêm a referência serializada.
+                authorizedCoinRecipientsCatalog =
+                    Resources.Load<AuthorizedCoinRecipientsCatalog>(
+                        "Shop/AuthorizedCoinRecipientsCatalog");
+            }
+            _repository.ConfigureCoinRewardAuthorization(
+                authorizedCoinRecipientsCatalog);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            DevCoinCheatListener listener =
+                GetComponent<DevCoinCheatListener>();
+            if (listener == null)
+                listener = gameObject.AddComponent<DevCoinCheatListener>();
+            listener.Configure(_repository, enableDevCoinCheat);
+#endif
         }
 
         private void ShowEconomyShop()

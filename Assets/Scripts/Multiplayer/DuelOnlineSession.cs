@@ -31,7 +31,7 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelOnlineSession : MonoBehaviour
     {
         private const string DuelArenaScene = "DuelArena";
-        private const string ProtocolVersion = "arcane-duel-online-v5";
+        private const string ProtocolVersion = "arcane-duel-online-v6";
         private const string HelloMessage = "arcane.duel.hello.v4";
         private const string HelloRequestMessage = "arcane.duel.hello-request.v4";
         private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v4";
@@ -42,12 +42,12 @@ namespace ArcaneArena.Multiplayer
         private const string ResponseMessage = "arcane.duel.response.v4";
         private const string StateAckMessage = "arcane.duel.state-ack.v4";
         private const string ResyncRequestMessage = "arcane.duel.resync.v4";
-        private const string MatchRewardMessage = "arcane.duel.match-reward.v5";
+        private const string MatchRewardMessage = "arcane.duel.match-reward.v6";
         private const string PresentationEventMessage =
             "arcane.duel.presentation-event.v4";
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
-        private const ushort NgoProtocolVersion = 5;
+        private const ushort NgoProtocolVersion = 6;
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
@@ -84,6 +84,8 @@ namespace ArcaneArena.Multiplayer
             "Arcane.Multiplayer.StateVersion";
         private const string ReconnectTimestampKey =
             "Arcane.Multiplayer.Timestamp";
+        private const string ReconnectRewardEligibilityKey =
+            "Arcane.Multiplayer.RewardEligibility";
 
         private enum SessionRole
         {
@@ -156,7 +158,6 @@ namespace ArcaneArena.Multiplayer
         {
             public string protocolVersion;
             public string matchId;
-            public string transactionId;
             public int damageDealt;
             public int completedRounds;
             public bool winner;
@@ -366,6 +367,10 @@ namespace ArcaneArena.Multiplayer
         private bool rewardPlayerZeroTurnEnded;
         private bool rewardPlayerOneTurnEnded;
         private bool matchRewardFinalized;
+        private CoinRewardEligibilitySnapshot
+            localRewardEligibilityAtMatchStart;
+        private string rewardResultMessage = string.Empty;
+        private float rewardResultVisibleUntil;
 
         public bool IsOnlineDuelActive =>
             role != SessionRole.None && networkManager != null &&
@@ -1122,6 +1127,13 @@ namespace ArcaneArena.Multiplayer
                 ReconnectMatchKey,
                 string.Empty);
             matchStarted = !string.IsNullOrWhiteSpace(currentMatchId);
+            string eligibilityJson = PlayerPrefs.GetString(
+                ReconnectRewardEligibilityKey,
+                string.Empty);
+            localRewardEligibilityAtMatchStart =
+                matchStarted && !string.IsNullOrWhiteSpace(eligibilityJson)
+                    ? DeserializeRewardEligibility(eligibilityJson)
+                    : null;
             ulong.TryParse(
                 PlayerPrefs.GetString(ReconnectStateVersionKey, "0"),
                 out lastReplicaStateVersion);
@@ -1191,7 +1203,27 @@ namespace ArcaneArena.Multiplayer
             PlayerPrefs.SetString(
                 ReconnectTimestampKey,
                 DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
+            PlayerPrefs.SetString(
+                ReconnectRewardEligibilityKey,
+                localRewardEligibilityAtMatchStart == null
+                    ? string.Empty
+                    : JsonUtility.ToJson(
+                        localRewardEligibilityAtMatchStart));
             PlayerPrefs.Save();
+        }
+
+        private static CoinRewardEligibilitySnapshot
+            DeserializeRewardEligibility(string json)
+        {
+            try
+            {
+                return JsonUtility.FromJson<CoinRewardEligibilitySnapshot>(
+                    json);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
         }
 
         private static void ClearReconnectTicket()
@@ -1202,6 +1234,7 @@ namespace ArcaneArena.Multiplayer
             PlayerPrefs.DeleteKey(ReconnectProtocolKey);
             PlayerPrefs.DeleteKey(ReconnectStateVersionKey);
             PlayerPrefs.DeleteKey(ReconnectTimestampKey);
+            PlayerPrefs.DeleteKey(ReconnectRewardEligibilityKey);
             PlayerPrefs.Save();
         }
 
@@ -1644,6 +1677,8 @@ namespace ArcaneArena.Multiplayer
             }
 
             currentMatchId = Guid.NewGuid().ToString("N");
+            localRewardEligibilityAtMatchStart =
+                CaptureLocalRewardEligibility();
             matchStarted = true;
             clientSynchronizing = true;
             hostCoreStarted = false;
@@ -1690,6 +1725,11 @@ namespace ArcaneArena.Multiplayer
             clientSynchronizing = true;
             if (string.IsNullOrWhiteSpace(currentMatchId))
                 currentMatchId = start.matchId ?? string.Empty;
+            if (!matchStarted)
+            {
+                localRewardEligibilityAtMatchStart =
+                    CaptureLocalRewardEligibility();
+            }
             PersistReconnectTicket();
             if (helloRetry != null)
             {
@@ -1785,7 +1825,7 @@ namespace ArcaneArena.Multiplayer
         {
             const string reason =
                 "A sala usa conteúdo incompatível. Instale a mesma versão " +
-                "ONLINE v4 no PC e no celular e crie um novo código.";
+                "ONLINE v6 no PC e no celular e crie um novo código.";
             ResetAfterFailedConnection(reason);
             showPanel = true;
         }
@@ -2248,21 +2288,18 @@ namespace ArcaneArena.Multiplayer
             bool draw = duelEvent.Player > 1;
             bool hostWon = !draw && duelEvent.Player == 0;
             bool clientWon = !draw && duelEvent.Player == 1;
-            string hostTransaction =
-                $"{currentMatchId}:online-pvp-reward:v1:seat0";
-            string clientTransaction =
-                $"{currentMatchId}:online-pvp-reward:v1:seat1";
-
             GameFrontendBootstrap frontend = GameFrontendBootstrap.Instance;
-            int hostCoins = 0;
+            RewardReceipt hostReceipt = null;
             string rewardError = "frontend indisponível";
             if (frontend == null || !frontend.TryApplyOnlineDuelReward(
-                    hostTransaction,
+                    currentMatchId,
+                    "seat0",
                     hostRewardDamage,
                     completedRewardRounds,
                     hostWon,
                     draw,
-                    out hostCoins,
+                    localRewardEligibilityAtMatchStart,
+                    out hostReceipt,
                     out rewardError))
             {
                 Debug.LogWarning(
@@ -2271,9 +2308,8 @@ namespace ArcaneArena.Multiplayer
             }
             else
             {
-                status = draw
-                    ? "Duelo concluído. Empate não concede moedas."
-                    : $"Duelo concluído. Recompensa: {hostCoins} moedas.";
+                status = FormatRewardStatus(hostReceipt, draw);
+                ShowRewardResult(status);
             }
 
             if (remoteClientId != ulong.MaxValue)
@@ -2283,7 +2319,6 @@ namespace ArcaneArena.Multiplayer
                     {
                         protocolVersion = ProtocolVersion,
                         matchId = currentMatchId,
-                        transactionId = clientTransaction,
                         damageDealt = clientRewardDamage,
                         completedRounds = completedRewardRounds,
                         winner = clientWon,
@@ -2300,22 +2335,23 @@ namespace ArcaneArena.Multiplayer
                 senderClientId != NetworkManager.ServerClientId ||
                 reward == null ||
                 reward.protocolVersion != ProtocolVersion ||
-                !MatchIdsAreCompatible(currentMatchId, reward.matchId) ||
-                string.IsNullOrWhiteSpace(reward.transactionId))
+                !MatchIdsAreCompatible(currentMatchId, reward.matchId))
             {
                 return;
             }
 
             GameFrontendBootstrap frontend = GameFrontendBootstrap.Instance;
-            int coins = 0;
+            RewardReceipt receipt = null;
             string rejection = "frontend indisponível";
             if (frontend == null || !frontend.TryApplyOnlineDuelReward(
-                    reward.transactionId,
+                    reward.matchId,
+                    "seat1",
                     reward.damageDealt,
                     reward.completedRounds,
                     reward.winner,
                     reward.draw,
-                    out coins,
+                    localRewardEligibilityAtMatchStart,
+                    out receipt,
                     out rejection))
             {
                 Debug.LogWarning(
@@ -2324,9 +2360,39 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
-            status = reward.draw
+            status = FormatRewardStatus(receipt, reward.draw);
+            ShowRewardResult(status);
+        }
+
+        private void ShowRewardResult(string message)
+        {
+            rewardResultMessage = message ?? string.Empty;
+            rewardResultVisibleUntil = Time.realtimeSinceStartup + 10f;
+        }
+
+        private static string FormatRewardStatus(
+            RewardReceipt receipt,
+            bool draw)
+        {
+            if (receipt == null)
+                return "Duelo concluído sem recibo de recompensa.";
+            if (receipt.status == RewardReceiptStatus.AlreadyProcessed)
+            {
+                return receipt.originalStatus == RewardReceiptStatus.Granted
+                    ? $"Recompensa já processada: {receipt.coins} moedas."
+                    : "Recompensa já processada: " +
+                      ArcaneArena.Frontend.DeckRepository.RewardStatusMessage(
+                          receipt.originalStatus);
+            }
+            if (receipt.status != RewardReceiptStatus.Granted)
+            {
+                return "Duelo concluído. 0 moedas. " +
+                       ArcaneArena.Frontend.DeckRepository.RewardStatusMessage(
+                           receipt.status);
+            }
+            return draw
                 ? "Duelo concluído. Empate não concede moedas."
-                : $"Duelo concluído. Recompensa: {coins} moedas.";
+                : $"Duelo concluído. Recompensa: {receipt.coins} moedas.";
         }
 
         private IEnumerator BroadcastLatestStateAtEndOfFrame()
@@ -2578,14 +2644,14 @@ namespace ArcaneArena.Multiplayer
                 hello.protocolVersion != ProtocolVersion)
             {
                 rejection = "O rival usa um protocolo online incompatível. " +
-                    "Ambos precisam instalar a versão ONLINE v4.";
+                    "Ambos precisam instalar a versão ONLINE v6.";
                 return false;
             }
             if (hello.compatibility !=
                 ProjectIdentity.MultiplayerCompatibility)
             {
                 rejection = "O conteúdo do jogo é diferente entre os dois " +
-                    "dispositivos. Instale a mesma versão ONLINE v4 no PC " +
+                    "dispositivos. Instale a mesma versão ONLINE v6 no PC " +
                     "e no celular para usar todos os decks corretamente.";
                 return false;
             }
@@ -2649,6 +2715,19 @@ namespace ArcaneArena.Multiplayer
                 return false;
             }
             return true;
+        }
+
+        private static CoinRewardEligibilitySnapshot
+            CaptureLocalRewardEligibility()
+        {
+            GameFrontendBootstrap frontend = GameFrontendBootstrap.Instance;
+            return frontend != null
+                ? frontend.CaptureOnlineDuelRewardEligibility()
+                : CoinRewardEligibilitySnapshot.Blocked(
+                    string.Empty,
+                    string.Empty,
+                    0,
+                    RewardReceiptStatus.BlockedInvalidMatch);
         }
 
         private bool SendToServer<T>(
@@ -3593,6 +3672,9 @@ namespace ArcaneArena.Multiplayer
             rewardPlayerZeroTurnEnded = false;
             rewardPlayerOneTurnEnded = false;
             matchRewardFinalized = false;
+            localRewardEligibilityAtMatchStart = null;
+            rewardResultMessage = string.Empty;
+            rewardResultVisibleUntil = 0f;
         }
 
         private async Task LeaveRoomAsync()
@@ -3703,6 +3785,7 @@ namespace ArcaneArena.Multiplayer
             {
                 showPanel = false;
             }
+            DrawRewardResultOverlay();
             if (!showPanel)
                 return;
             const float width = 640f;
@@ -3735,6 +3818,35 @@ namespace ArcaneArena.Multiplayer
             GUI.ModalWindow(912701, area, DrawPanel, string.Empty);
             GUI.backgroundColor = originalBackground;
             GUI.matrix = previousMatrix;
+        }
+
+        private void DrawRewardResultOverlay()
+        {
+            if (string.IsNullOrWhiteSpace(rewardResultMessage) ||
+                Time.realtimeSinceStartup > rewardResultVisibleUntil)
+            {
+                return;
+            }
+
+            float width = Mathf.Min(760f, Screen.width - 32f);
+            float height = Mathf.Clamp(Screen.height * 0.12f, 72f, 112f);
+            var area = new Rect(
+                (Screen.width - width) * 0.5f,
+                Mathf.Max(18f, Screen.height * 0.04f),
+                width,
+                height);
+            var style = new GUIStyle(GUI.skin.box)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.Clamp(Screen.height / 38, 18, 30),
+                fontStyle = FontStyle.Bold,
+                wordWrap = true,
+                normal = { textColor = Color.white }
+            };
+            Color previousBackground = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.02f, 0.18f, 0.22f, 0.96f);
+            GUI.Box(area, rewardResultMessage, style);
+            GUI.backgroundColor = previousBackground;
         }
 
         private static float CalculateLobbyScale(
@@ -3898,14 +4010,14 @@ namespace ArcaneArena.Multiplayer
         {
             if (!IsOnlineDuelActive)
             {
-                return "ONLINE v4 • Sessions escolhe a melhor região Relay.";
+                return "ONLINE v6 • Sessions escolhe a melhor região Relay.";
             }
 
             int roundTrip = RelayRoundTripTimeMs;
             string rtt = roundTrip < 0
                 ? "medindo RTT..."
                 : $"RTT real: {roundTrip} ms";
-            return $"ONLINE v4 • Relay: {GetRelayRegionLabel()}  •  {rtt}";
+            return $"ONLINE v6 • Relay: {GetRelayRegionLabel()}  •  {rtt}";
         }
 
         private string GetRelayRegionLabel()

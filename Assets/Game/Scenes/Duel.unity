@@ -66268,6 +66268,8 @@ MonoBehaviour:
   defaultDeckCaseSprite: {fileID: 0}
   deckCaseVariants: []
   cardCatalog: {fileID: 0}
+  authorizedCoinRecipientsCatalog: {fileID: 11400000, guid: 9f4e80118582406d8969147dcff218fe, type: 2}
+  enableDevCoinCheat: 0
   editorPreviewVersion: 0
   editorPreviewScreen: 2
 --- !u!1 &2147101196

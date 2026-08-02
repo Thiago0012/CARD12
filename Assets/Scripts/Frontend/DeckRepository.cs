@@ -14,7 +14,7 @@ namespace ArcaneArena.Frontend
     /// </summary>
     public sealed partial class DeckRepository
     {
-        private const int CurrentSchemaVersion = 4;
+        private const int CurrentSchemaVersion = 5;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
         private const int ExtraDeckMaximum = 15;
@@ -84,6 +84,7 @@ namespace ArcaneArena.Frontend
             NormalizeEconomyState(loadedSchemaVersion);
             if (string.IsNullOrWhiteSpace(State.localProfileId))
                 State.localProfileId = Guid.NewGuid().ToString("N");
+            NormalizeCoinRewardAuthorizationState(loadedSchemaVersion);
 
             State.decks.RemoveAll(deck => deck == null);
             foreach (var deck in State.decks)
@@ -126,6 +127,7 @@ namespace ArcaneArena.Frontend
             }
 
             State.playerDisplayName = normalizedName;
+            TryBindConfiguredNickname();
             Save();
             return true;
         }
