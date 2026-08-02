@@ -520,7 +520,11 @@ namespace ArcaneArena
 
             UpdateLifeAndPhase();
             DuelPrompt prompt = core.CurrentPrompt;
-            if (force || !ReferenceEquals(prompt, observedPrompt))
+            // A network heartbeat replaces the field snapshot, but the
+            // controller deliberately preserves the prompt object while the
+            // same RequestId is awaiting a response. Do not erase a player's
+            // in-progress multi-card selection on that heartbeat.
+            if (!ReferenceEquals(prompt, observedPrompt))
             {
                 observedPrompt = prompt;
                 selectedPromptIndexes.Clear();
@@ -1607,10 +1611,11 @@ namespace ArcaneArena
                 uint code = CodeAt(zone);
                 uint position = PositionAt(zone);
                 CardInstanceState instance = InstanceAt(zone);
+                bool occupied = code != 0 || instance != null;
                 CardInstanceKey key = instance != null
                     ? instance.Key
                     : new CardInstanceKey(
-                        code == 0 ? 0UL : SyntheticZoneRuntimeId(zone),
+                        occupied ? SyntheticZoneRuntimeId(zone) : 0UL,
                         code,
                         StatePlayerForZone(zone),
                         StatePlayerForZone(zone),
@@ -1621,7 +1626,7 @@ namespace ArcaneArena
                     zone.StableId,
                     out CardInstanceKey previous);
                 if (key == previous &&
-                    HasWorldCardRepresentation(zone, key, code))
+                    HasWorldCardRepresentation(zone, key, code, occupied))
                 {
                     ApplyWorldPosition(zone, code, position);
                     continue;
@@ -1630,13 +1635,15 @@ namespace ArcaneArena
                 ClearWorldCard(zone);
                 zone.ClearPlacedCard();
                 renderedZones[zone.StableId] = key;
-                if (code == 0) continue;
+                if (!occupied) continue;
 
                 bool faceUp = IsFaceUp(position);
-                Sprite sprite = SpriteFor(code);
+                Sprite sprite = code == 0 && cardBackSprite != null
+                    ? cardBackSprite
+                    : SpriteFor(code);
                 zone.SetPlacedCard(
                     sprite,
-                    code.ToString("00000000"),
+                    code == 0 ? "HIDDEN" : code.ToString("00000000"),
                     faceUp);
                 if ((position & (FaceUpDefense | FaceDownDefense)) != 0)
                 {
@@ -1691,10 +1698,11 @@ namespace ArcaneArena
         private static bool HasWorldCardRepresentation(
             DuelZone3D zone,
             CardInstanceKey key,
-            uint code)
+            uint code,
+            bool occupied)
         {
             Transform card = zone?.FindPresentedCard();
-            if (code == 0)
+            if (!occupied || code == 0)
                 return card == null;
             if (card == null || !card.gameObject.activeInHierarchy)
                 return false;
@@ -1721,9 +1729,10 @@ namespace ArcaneArena
                 if (zone == null || !zone.HasValidIdentity)
                     continue;
                 uint code = CodeAt(zone);
-                if (code == 0)
-                    continue;
                 CardInstanceState instance = InstanceAt(zone);
+                bool occupied = code != 0 || instance != null;
+                if (!occupied)
+                    continue;
                 CardInstanceKey key = instance != null
                     ? instance.Key
                     : new CardInstanceKey(
@@ -1734,7 +1743,7 @@ namespace ArcaneArena
                         LocationFor(zone.Kind),
                         (uint)Mathf.Max(0, SequenceFor(zone)),
                         PositionAt(zone));
-                if (!HasWorldCardRepresentation(zone, key, code))
+                if (!HasWorldCardRepresentation(zone, key, code, occupied))
                 {
                     problems.Add(
                         $"{zone.StableId} has authoritative card " +
@@ -1769,7 +1778,7 @@ namespace ArcaneArena
         {
             uint code = instanceKey.DefinitionCode;
             bool faceUp = IsFaceUp(position);
-            bool monster = IsMonster(code);
+            bool monster = zone.Kind == DuelZoneKind.Monster;
             var canvasObject = new GameObject(
                 "Carta Invocada",
                 typeof(RectTransform),

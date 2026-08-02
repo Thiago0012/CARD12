@@ -388,6 +388,7 @@ namespace ArcaneDuel.Tests.EditMode
                 CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
 
             Assert.That(prompt.SumAtLeast, Is.True);
+            Assert.That(prompt.MaximumSelections, Is.EqualTo(2));
             Assert.That(
                 CoreMessageDecoder.IsValidSelection(prompt, new[] { 0 }),
                 Is.False);
@@ -399,6 +400,52 @@ namespace ArcaneDuel.Tests.EditMode
                 Is.EqualTo(
                     CoreMessageDecoder.CardSelectionResponse(
                         new uint[] { 0, 1 })));
+        }
+
+        [Test]
+        public void TributePromptUsesReleaseValueInsteadOfCardCount()
+        {
+            var payload = new List<byte> { 0, 0 };
+            UInt32(payload, 2);
+            UInt32(payload, 2);
+            UInt32(payload, 2);
+
+            UInt32(payload, 50354944);
+            payload.Add(0);
+            payload.Add((byte)DuelLocation.MonsterZone);
+            UInt32(payload, 0);
+            payload.Add(2);
+
+            UInt32(payload, 10000001);
+            payload.Add(0);
+            payload.Add((byte)DuelLocation.MonsterZone);
+            UInt32(payload, 1);
+            payload.Add(1);
+
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectTribute,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(
+                prompt.Choices.Single(choice => choice.ChoiceIndex == 0)
+                    .SumValue,
+                Is.EqualTo(2));
+            Assert.That(
+                CoreMessageDecoder.IsValidSelection(prompt, new[] { 0 }),
+                Is.True);
+            Assert.That(
+                CoreMessageDecoder.IsValidSelection(prompt, new[] { 1 }),
+                Is.False);
+            Assert.That(
+                DeterministicDuelPolicy.Choose(prompt).Response,
+                Is.EqualTo(
+                    CoreMessageDecoder.CardSelectionResponse(
+                        new uint[] { 0 })));
         }
 
         [Test]
@@ -417,6 +464,24 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(
                 racePrompt.Choices.All(choice => choice.Response.Length == 8),
                 Is.True);
+
+            var attributePayload = new List<byte> { 0, 1 };
+            UInt32(attributePayload, (1U << 2) | (1U << 5));
+            var attributePacket = new List<byte>();
+            Packet(
+                attributePacket,
+                (byte)CoreMessage.AnnounceAttribute,
+                attributePayload.ToArray());
+            DuelPrompt attributePrompt =
+                CoreMessageDecoder.Decode(attributePacket.ToArray())[0].Prompt;
+            Assert.That(attributePrompt.Choices, Has.Count.EqualTo(2));
+            Assert.That(
+                attributePrompt.Choices.All(
+                    choice => choice.Response.Length == 4),
+                Is.True);
+            Assert.That(
+                attributePrompt.Choices.Select(choice => choice.Response),
+                Does.Contain(CoreMessageDecoder.IntResponse(1 << 5)));
 
             var numberPayload = new List<byte> { 0, 2 };
             UInt64(numberPayload, 3);
@@ -485,6 +550,113 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void SortPromptAcceptsMoreThanEightCardsWithoutExploding()
+        {
+            const uint count = 12;
+            var payload = new List<byte> { 0 };
+            UInt32(payload, count);
+            for (uint index = 0; index < count; index++)
+            {
+                UInt32(payload, 20000000 + index);
+                payload.Add(0);
+                UInt32(payload, DuelLocation.Deck);
+                UInt32(payload, index);
+            }
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SortCard,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt.Choices, Has.Count.EqualTo(3));
+            Assert.That(prompt.Choices.Take(2).All(
+                choice => choice.Response.Length == count), Is.True);
+            Assert.That(prompt.Choices[2].Response, Is.EqualTo(new byte[] { 0xFF }));
+        }
+
+        [Test]
+        public void SelectCounterProducesNativePerCardAllocationResponses()
+        {
+            var payload = new List<byte> { 0 };
+            UInt16(payload, 0x1234);
+            UInt16(payload, 3);
+            UInt32(payload, 2);
+            UInt32(payload, 10000001);
+            payload.Add(0);
+            payload.Add((byte)DuelLocation.MonsterZone);
+            payload.Add(0);
+            UInt16(payload, 2);
+            UInt32(payload, 10000002);
+            payload.Add(0);
+            payload.Add((byte)DuelLocation.MonsterZone);
+            payload.Add(1);
+            UInt16(payload, 3);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectCounter,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt, Is.Not.Null);
+            Assert.That(prompt.Message, Is.EqualTo(CoreMessage.SelectCounter));
+            Assert.That(prompt.Player, Is.Zero);
+            Assert.That(prompt.Choices, Is.Not.Empty);
+            Assert.That(prompt.Choices.All(choice =>
+                choice.Response.Length == 4), Is.True);
+            Assert.That(prompt.Choices.Select(choice => choice.Response),
+                Does.Contain(new byte[] { 2, 0, 1, 0 }));
+        }
+
+        [Test]
+        public void PayLifePointCostUpdatesPresentationLifePoints()
+        {
+            var payload = new List<byte> { 1 };
+            UInt32(payload, 1200);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.PayLifePointCost,
+                payload.ToArray());
+
+            DuelEvent duelEvent =
+                CoreMessageDecoder.Decode(framed.ToArray())[0];
+            var state = new ArcaneDuel.DuelEngine.State.DuelPresentationState(null);
+            state.Apply(duelEvent);
+
+            Assert.That(duelEvent.Player, Is.EqualTo(1));
+            Assert.That(duelEvent.Value, Is.EqualTo(1200));
+            Assert.That(state.Players[1].LifePoints, Is.EqualTo(6800));
+        }
+
+        [Test]
+        public void SwapGraveDeckSkipsNativeHeaderBeforeItsBitfield()
+        {
+            var payload = new List<byte> { 1 };
+            UInt32(payload, 4);
+            UInt32(payload, 2);
+            payload.Add(0x05);
+            payload.Add(0x80);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SwapGraveDeck,
+                payload.ToArray());
+
+            DuelEvent duelEvent =
+                CoreMessageDecoder.Decode(framed.ToArray())[0];
+
+            Assert.That(duelEvent.Player, Is.EqualTo(1));
+            Assert.That(duelEvent.Value, Is.EqualTo(4));
+            Assert.That(duelEvent.Codes, Is.EqualTo(new uint[] { 0x05, 0x80 }));
+        }
+
+        [Test]
         public void KnownPresentationEventsAreNotReportedAsUnknown()
         {
             var framed = new List<byte>();
@@ -519,6 +691,12 @@ namespace ArcaneDuel.Tests.EditMode
             output.Add((byte)(value >> 8));
             output.Add((byte)(value >> 16));
             output.Add((byte)(value >> 24));
+        }
+
+        private static void UInt16(List<byte> output, ushort value)
+        {
+            output.Add((byte)value);
+            output.Add((byte)(value >> 8));
         }
 
         private static void UInt64(List<byte> output, ulong value)

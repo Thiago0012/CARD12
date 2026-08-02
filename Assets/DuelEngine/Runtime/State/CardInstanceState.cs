@@ -108,6 +108,12 @@ namespace ArcaneDuel.DuelEngine.State
 
         public ulong RuntimeId { get; }
         public uint DefinitionCode { get; internal set; }
+        /// <summary>
+        /// True when the Core deliberately hid which previously known card
+        /// now occupies this facedown field address (MSG_SHUFFLE_SET_CARD).
+        /// Authoritative repair must not undo that privacy boundary.
+        /// </summary>
+        public bool IdentityOpaque { get; internal set; }
         public byte Owner { get; }
         public byte Controller { get; private set; }
         public byte Location { get; private set; }
