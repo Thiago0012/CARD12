@@ -653,6 +653,14 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            if (_shopBackAction != null)
+            {
+                Action backAction = _shopBackAction;
+                _shopBackAction = null;
+                backAction.Invoke();
+                return;
+            }
+
             if (_duelPresentationVisible)
                 ReturnToMainMenuScene();
         }
@@ -1747,6 +1755,11 @@ namespace ArcaneArena.Frontend
         }
 
         private void ShowDeckShop()
+        {
+            ShowEconomyShop();
+        }
+
+        private void ShowLegacyDeckShop()
         {
             SetDuelPresentation(false);
             ClearScreen();

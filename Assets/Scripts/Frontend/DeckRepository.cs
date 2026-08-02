@@ -12,9 +12,9 @@ namespace ArcaneArena.Frontend
     /// O estado usa IDs oficiais, nunca nomes de arquivo ou referências de cena,
     /// para que futuramente possa ser enviado a um servidor para validação.
     /// </summary>
-    public sealed class DeckRepository
+    public sealed partial class DeckRepository
     {
-        private const int CurrentSchemaVersion = 3;
+        private const int CurrentSchemaVersion = 4;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
         private const int ExtraDeckMaximum = 15;
@@ -77,9 +77,11 @@ namespace ArcaneArena.Frontend
             }
 
             State ??= new DeckCollectionState();
+            int loadedSchemaVersion = State.schemaVersion;
             State.schemaVersion = CurrentSchemaVersion;
             State.decks ??= new List<DeckRecord>();
             State.unlockedDeckProductIds ??= new List<string>();
+            NormalizeEconomyState(loadedSchemaVersion);
             if (string.IsNullOrWhiteSpace(State.localProfileId))
                 State.localProfileId = Guid.NewGuid().ToString("N");
 
@@ -440,9 +442,42 @@ namespace ArcaneArena.Frontend
             var directory = Path.GetDirectoryName(_savePath);
             if (!string.IsNullOrWhiteSpace(directory))
                 Directory.CreateDirectory(directory);
-            File.WriteAllText(
-                _savePath,
-                JsonUtility.ToJson(State, true));
+            SaveAtomically(JsonUtility.ToJson(State, true));
+        }
+
+        private void SaveAtomically(string json)
+        {
+            string directory = Path.GetDirectoryName(_savePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+
+            string temporaryPath = _savePath + ".tmp";
+            string backupPath = _savePath + ".bak";
+            File.WriteAllText(temporaryPath, json ?? string.Empty);
+            if (File.Exists(_savePath))
+            {
+                try
+                {
+                    File.Replace(temporaryPath, _savePath, backupPath, true);
+                    if (File.Exists(backupPath))
+                        File.Delete(backupPath);
+                    return;
+                }
+                catch (PlatformNotSupportedException)
+                {
+                    // Alguns sistemas de arquivos Android não expõem Replace.
+                }
+                catch (IOException)
+                {
+                    // Usa a substituição portátil abaixo.
+                }
+
+                File.Copy(temporaryPath, _savePath, true);
+                File.Delete(temporaryPath);
+                return;
+            }
+
+            File.Move(temporaryPath, _savePath);
         }
 
         public static string StableCardId(CardCatalogEntry entry)

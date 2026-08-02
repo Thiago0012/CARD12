@@ -6,13 +6,61 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 3;
+        public int schemaVersion = 4;
         public string localProfileId;
         public string playerDisplayName;
         public string selectedDeckId;
         public List<DeckRecord> decks = new List<DeckRecord>();
         public List<string> unlockedDeckProductIds =
             new List<string>();
+        public int coinBalance;
+        public List<CardQuantityRecord> cardQuantities =
+            new List<CardQuantityRecord>();
+        public List<StructureDeckPurchaseRecord> structureDeckPurchases =
+            new List<StructureDeckPurchaseRecord>();
+        public List<PendingPackOpeningRecord> pendingPackOpenings =
+            new List<PendingPackOpeningRecord>();
+        public List<ShopTransactionRecord> processedShopTransactions =
+            new List<ShopTransactionRecord>();
+    }
+
+    [Serializable]
+    public sealed class CardQuantityRecord
+    {
+        public string cardId;
+        public int quantity;
+    }
+
+    [Serializable]
+    public sealed class StructureDeckPurchaseRecord
+    {
+        public string productId;
+        public int purchaseCount;
+    }
+
+    [Serializable]
+    public sealed class PendingPackOpeningRecord
+    {
+        public string transactionId;
+        public string packId;
+        public List<string> cardIds = new List<string>();
+        public List<bool> revealed = new List<bool>();
+    }
+
+    [Serializable]
+    public sealed class ShopTransactionRecord
+    {
+        public string transactionId;
+        public string kind;
+        public string productId;
+        public int coinDelta;
+        public int balanceAfter;
+        public int damageDealt;
+        public int completedRounds;
+        public bool winner;
+        public bool draw;
+        public long createdUtcTicks;
+        public List<string> grantedCardIds = new List<string>();
     }
 
     /// <summary>

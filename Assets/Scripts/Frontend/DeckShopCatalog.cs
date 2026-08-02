@@ -33,8 +33,11 @@ namespace ArcaneArena.Frontend
         public string CoverCardId { get; }
         public string SourceUrl { get; }
         public int CaseTheme { get; }
+        public int PriceCoins { get; }
+        public int MaxPurchases { get; }
         public IReadOnlyList<string> MainDeckCardIds { get; }
         public IReadOnlyList<string> ExtraDeckCardIds { get; }
+        public IReadOnlyList<DeckShopPreview> Previews { get; }
 
         public DeckShopProduct(
             string productId,
@@ -45,7 +48,10 @@ namespace ArcaneArena.Frontend
             string sourceUrl,
             int caseTheme,
             IEnumerable<string> mainDeckCardIds,
-            IEnumerable<string> extraDeckCardIds)
+            IEnumerable<string> extraDeckCardIds,
+            int priceCoins = 425,
+            int maxPurchases = 3,
+            IEnumerable<DeckShopPreview> previews = null)
         {
             ProductId = productId ?? string.Empty;
             DisplayName = displayName ?? string.Empty;
@@ -54,11 +60,26 @@ namespace ArcaneArena.Frontend
             CoverCardId = NormalizeCardId(coverCardId);
             SourceUrl = sourceUrl ?? string.Empty;
             CaseTheme = Math.Max(0, caseTheme);
+            PriceCoins = Math.Max(1, priceCoins);
+            MaxPurchases = Math.Max(1, maxPurchases);
             MainDeckCardIds = NormalizeCards(mainDeckCardIds);
             ExtraDeckCardIds = NormalizeCards(extraDeckCardIds);
+            Previews = previews != null
+                ? previews.Where(preview => preview != null).Take(3).ToArray()
+                : new[] { CoverCardId }
+                    .Concat(MainDeckCardIds)
+                    .Concat(ExtraDeckCardIds)
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Distinct(StringComparer.Ordinal)
+                    .Take(3)
+                    .Select(id => new DeckShopPreview(id, 0f, 0f, 1f, 1f))
+                    .ToArray();
         }
 
         public string DeckId => $"shop:{ProductId}";
+
+        public IReadOnlyList<string> PreviewCardIds =>
+            Previews.Select(preview => preview.CardId).ToArray();
 
         public DeckRecord CreateDeckRecord()
         {
@@ -92,6 +113,34 @@ namespace ArcaneArena.Frontend
         {
             return FrontendCardIdentity.NormalizeOfficialId(
                 value);
+        }
+    }
+
+    public sealed class DeckShopPreview
+    {
+        public string CardId { get; }
+        public float CropX { get; }
+        public float CropY { get; }
+        public float CropWidth { get; }
+        public float CropHeight { get; }
+        public bool HasValidCrop =>
+            CropX >= 0f && CropY >= 0f &&
+            CropWidth > 0f && CropHeight > 0f &&
+            CropX + CropWidth <= 1f &&
+            CropY + CropHeight <= 1f;
+
+        public DeckShopPreview(
+            string cardId,
+            float cropX,
+            float cropY,
+            float cropWidth,
+            float cropHeight)
+        {
+            CardId = FrontendCardIdentity.NormalizeOfficialId(cardId);
+            CropX = cropX;
+            CropY = cropY;
+            CropWidth = cropWidth;
+            CropHeight = cropHeight;
         }
     }
 
@@ -251,6 +300,10 @@ namespace ArcaneArena.Frontend
 
         public static int UniqueCardCount =>
             ProductCardIds.Count;
+        public static IReadOnlyList<string> CollectibleCardIds =>
+            ProductCardIds
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToArray();
         public static int InitiallyLockedCardCount =>
             ProductCardIds.Count(id =>
                 !LegacyOwnedCardIds.Contains(id));
@@ -283,10 +336,26 @@ namespace ArcaneArena.Frontend
             var normalized =
                 FrontendCardIdentity.NormalizeOfficialId(
                     cardId);
+            int explicitQuantity = 0;
+            if (state?.cardQuantities != null)
+            {
+                foreach (CardQuantityRecord record in state.cardQuantities)
+                {
+                    if (record != null && string.Equals(
+                            FrontendCardIdentity.NormalizeOfficialId(record.cardId),
+                            normalized,
+                            StringComparison.Ordinal))
+                    {
+                        explicitQuantity = Math.Max(0, record.quantity);
+                        break;
+                    }
+                }
+            }
+
             if (!IsLockedShopCard(normalized))
-                return 3;
+                return Math.Max(3, explicitQuantity);
             if (state?.unlockedDeckProductIds == null)
-                return 0;
+                return explicitQuantity;
 
             var copies = 0;
             foreach (var productId in
@@ -307,10 +376,10 @@ namespace ArcaneArena.Frontend
                         normalized,
                         StringComparison.Ordinal));
                 if (copies >= 3)
-                    return 3;
+                    break;
             }
 
-            return Math.Min(3, copies);
+            return Math.Max(explicitQuantity, Math.Min(3, copies));
         }
     }
 }
