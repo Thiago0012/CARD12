@@ -22,12 +22,99 @@ namespace ArcaneArena.Frontend
         private Text _relayRegionStatus;
         private MainMenuUiAssets _mainMenuAssets;
         private Material _mainMenuHudOverlayMaterial;
+        private MainMenuSceneView _mainMenuSceneView;
 
         public void ShowMainMenu()
         {
             SetDuelPresentation(false);
             ClearScreen();
+            if (_mainMenuSceneView != null)
+            {
+                _mainMenuSceneView.Bind(this);
+                _mainMenuSceneView.SetMainMenuVisible(true);
+                return;
+            }
             BuildTemplateMainMenu();
+        }
+
+        private bool TryAttachAuthoredMainMenu()
+        {
+            if (!string.Equals(
+                    UnityEngine.SceneManagement.SceneManager
+                        .GetActiveScene().name,
+                    MainMenuSceneName,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            _mainMenuSceneView =
+                FindAnyObjectByType<MainMenuSceneView>(
+                    FindObjectsInactive.Include);
+            if (_mainMenuSceneView == null ||
+                !_mainMenuSceneView.IsConfigured)
+            {
+                _mainMenuSceneView = null;
+                return false;
+            }
+
+            _font = Resources.GetBuiltinResource<Font>(
+                "LegacyRuntime.ttf");
+            _canvas = _mainMenuSceneView.SceneCanvas;
+            _canvasRect = _canvas != null
+                ? _canvas.GetComponent<RectTransform>()
+                : null;
+            _screenRoot = _mainMenuSceneView.DynamicRoot;
+            if (_canvas == null || _screenRoot == null)
+            {
+                _mainMenuSceneView = null;
+                _canvas = null;
+                _canvasRect = null;
+                _screenRoot = null;
+                return false;
+            }
+
+            UniversalUiLayout.ConfigureCanvasScaler(
+                _canvas.GetComponent<CanvasScaler>());
+            _mainMenuSceneView.Bind(this);
+            EnsureEventSystem();
+            return true;
+        }
+
+        public void MainMenuDuel()
+        {
+            FrontendClickAudio.Play();
+            OpenBotDuelSelectionFromMainMenu();
+        }
+
+        public void MainMenuDecks()
+        {
+            FrontendClickAudio.Play();
+            OpenDeckEditorScene();
+        }
+
+        public void MainMenuShop()
+        {
+            FrontendClickAudio.Play();
+            ShowDeckShop();
+        }
+
+        public void MainMenuMultiplayer()
+        {
+            FrontendClickAudio.Play();
+            ShowMultiplayerRoom();
+        }
+
+        public void MainMenuSettings()
+        {
+            FrontendClickAudio.Play();
+            ShowAnimationOptions();
+        }
+
+        public void MainMenuProfile()
+        {
+            FrontendClickAudio.Play();
+            ShowPlayerProfileSetup(true);
         }
 
         private void BuildTemplateMainMenu()

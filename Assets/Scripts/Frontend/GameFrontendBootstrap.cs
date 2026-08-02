@@ -21,6 +21,7 @@ namespace ArcaneArena.Frontend
         private const int ExtraDeckMaximum = 15;
         private const int CopyLimit = 3;
         private const string MainMenuSceneName = "MainMenu";
+        private const string LoginSceneName = "Login";
         private const string DeckEditorSceneName = "DeckEditor";
         private const string DuelArenaSceneName = "DuelArena";
         public const int CurrentEditorPreviewVersion = 3;
@@ -140,6 +141,14 @@ namespace ArcaneArena.Frontend
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureFrontendExists()
         {
+            if (string.Equals(
+                    SceneManager.GetActiveScene().name,
+                    LoginSceneName,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             if (FindAnyObjectByType<GameFrontendBootstrap>(
                     FindObjectsInactive.Include) != null)
                 return;
@@ -162,11 +171,15 @@ namespace ArcaneArena.Frontend
             Instance = this;
             ResolveProjectReferences();
             CaptureEditorLayoutOverrides();
-            ClearGeneratedFrontend();
-            ResolveProjectReferences();
+            bool usesAuthoredMainMenu = TryAttachAuthoredMainMenu();
+            if (!usesAuthoredMainMenu)
+            {
+                ClearGeneratedFrontend();
+                ResolveProjectReferences();
+                BuildCanvas();
+            }
             _repository = new DeckRepository();
             _repository.Load(_catalog);
-            BuildCanvas();
             InitializeScenePresentation();
             if (!IsActiveScene(DuelArenaSceneName) &&
                 !HasCommandArgument("-arcaneSkipTitle"))
@@ -4418,6 +4431,8 @@ namespace ArcaneArena.Frontend
         private void ClearScreen()
         {
             StopMainMenuConnectionMonitor();
+            if (_mainMenuSceneView != null)
+                _mainMenuSceneView.SetMainMenuVisible(false);
             _mainDropZone = null;
             _extraDropZone = null;
             _catalogContent = null;

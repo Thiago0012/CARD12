@@ -20,6 +20,9 @@ namespace ArcaneArena
         [SerializeField] private Sprite placedCard;
         [SerializeField] private bool faceUp = true;
         [SerializeField] private bool sharedVisualProxy;
+        [Header("Apresentacao editavel na Scene")]
+        [SerializeField] private Transform cardPresentationAnchor;
+        [SerializeField] private Transform combatLabelAnchor;
         [SerializeField] private DuelMonsterPosition monsterPosition =
             DuelMonsterPosition.FaceUpAttack;
         private Renderer dropSurface;
@@ -41,6 +44,26 @@ namespace ArcaneArena
         public bool IsFaceUp => faceUp;
         public DuelMonsterPosition MonsterPosition => monsterPosition;
         public bool AcceptsLocalInput => acceptsLocalInput;
+        public Transform CardPresentationAnchor
+        {
+            get
+            {
+                EnsurePresentationAnchors();
+                return cardPresentationAnchor != null
+                    ? cardPresentationAnchor
+                    : transform;
+            }
+        }
+        public Transform CombatLabelAnchor
+        {
+            get
+            {
+                EnsurePresentationAnchors();
+                return combatLabelAnchor != null
+                    ? combatLabelAnchor
+                    : transform;
+            }
+        }
         public bool HasValidIdentity =>
             !string.IsNullOrWhiteSpace(address.StableId) &&
             System.Enum.IsDefined(typeof(DuelPlayerSide), address.Owner) &&
@@ -57,7 +80,90 @@ namespace ArcaneArena
             address = new DuelZoneAddress(owner, kind, index);
             acceptsLocalInput = interactive;
             sharedVisualProxy = useSharedVisualProxy;
+            EnsurePresentationAnchors();
             RefreshExtraMonsterZoneSurface();
+        }
+
+        private void Awake()
+        {
+            EnsurePresentationAnchors();
+        }
+
+        public void EnsurePresentationAnchors()
+        {
+            if (cardPresentationAnchor == null)
+            {
+                cardPresentationAnchor = FindOrCreateAnchor(
+                    "POSICAO VISUAL DA CARTA",
+                    new Vector3(0f, 0.12f, 0f),
+                    DuelCardAnchorRole.Card);
+            }
+            if (combatLabelAnchor == null)
+            {
+                combatLabelAnchor = FindOrCreateAnchor(
+                    "POSICAO DO ATK DEF",
+                    new Vector3(0f, 0.42f, -1.18f),
+                    DuelCardAnchorRole.CombatLabel);
+            }
+
+            MigratePresentationChild(
+                "Carta Invocada",
+                cardPresentationAnchor);
+            MigratePresentationChild(
+                "Indicador de ATK",
+                combatLabelAnchor);
+        }
+
+        public Transform FindPresentedCard()
+        {
+            Transform root = CardPresentationAnchor;
+            return root != null
+                ? root.Find("Carta Invocada")
+                : null;
+        }
+
+        public Transform FindCombatLabel()
+        {
+            Transform root = CombatLabelAnchor;
+            return root != null
+                ? root.Find("Indicador de ATK")
+                : null;
+        }
+
+        private Transform FindOrCreateAnchor(
+            string anchorName,
+            Vector3 defaultPosition,
+            DuelCardAnchorRole role)
+        {
+            Transform anchor = transform.Find(anchorName);
+            if (anchor == null)
+            {
+                var item = new GameObject(anchorName);
+                anchor = item.transform;
+                anchor.SetParent(transform, false);
+                anchor.localPosition = defaultPosition;
+                anchor.localRotation = Quaternion.identity;
+                anchor.localScale = Vector3.one;
+            }
+            var marker =
+                anchor.GetComponent<DuelCardPlacementAnchor>();
+            if (marker == null)
+                marker = anchor.gameObject.AddComponent<DuelCardPlacementAnchor>();
+            marker.Configure(role);
+            return anchor;
+        }
+
+        private void MigratePresentationChild(
+            string childName,
+            Transform destination)
+        {
+            if (destination == null)
+                return;
+            Transform existing = transform.Find(childName);
+            if (existing == null || existing == destination)
+                return;
+            existing.SetParent(destination, false);
+            existing.localPosition = Vector3.zero;
         }
 
         public void SetLocalControlEnabled(bool enabled)

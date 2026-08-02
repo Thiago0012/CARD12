@@ -68,12 +68,16 @@ namespace ArcaneArena.Editor
                 importer.mipmapEnabled ||
                 importer.maxTextureSize != 2048 ||
                 importer.textureCompression !=
-                TextureImporterCompression.Compressed;
+                TextureImporterCompression.Compressed ||
+                (path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase) &&
+                 !importer.alphaIsTransparency);
             if (!changed)
                 return;
             importer.mipmapEnabled = false;
             importer.maxTextureSize = 2048;
             importer.textureCompression = TextureImporterCompression.Compressed;
+            if (path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
+                importer.alphaIsTransparency = true;
             importer.SaveAndReimport();
         }
 

@@ -37,10 +37,11 @@ namespace ArcaneArena
         // Keep the authored prototype's restrained hand motion.  The larger
         // values previously used here pushed the selected card over the first
         // row of field zones and made placement needlessly difficult.
-        private const float SelectedLift = 44f;
-        private const float SelectedScale = 1.04f;
-        private const float HoverLift = 56f;
-        private const float HoverScale = 1.07f;
+        private float selectedLift = 44f;
+        private float selectedScale = 1.04f;
+        private float hoverLift = 56f;
+        private float hoverScale = 1.07f;
+        private float animationDuration = 0.14f;
 
         public uint Code { get; private set; }
         public int HandIndex { get; private set; }
@@ -98,6 +99,20 @@ namespace ArcaneArena
         public void SetHandOrder(int index)
         {
             HandIndex = index;
+        }
+
+        public void ConfigureHandMotion(
+            float configuredSelectedLift,
+            float configuredHoverLift,
+            float configuredSelectedScale,
+            float configuredHoverScale,
+            float configuredAnimationDuration)
+        {
+            selectedLift = Mathf.Max(0f, configuredSelectedLift);
+            hoverLift = Mathf.Max(0f, configuredHoverLift);
+            selectedScale = Mathf.Max(1f, configuredSelectedScale);
+            hoverScale = Mathf.Max(1f, configuredHoverScale);
+            animationDuration = Mathf.Max(0.01f, configuredAnimationDuration);
         }
 
         public void Rebind(
@@ -299,14 +314,14 @@ namespace ArcaneArena
             float angle = restAngle;
             if (hovered)
             {
-                target += new Vector2(0f, HoverLift);
-                scale = HoverScale;
+                target += new Vector2(0f, hoverLift);
+                scale = hoverScale;
                 angle = 0f;
             }
             if (selected)
             {
-                target += new Vector2(0f, SelectedLift);
-                scale = SelectedScale;
+                target += new Vector2(0f, selectedLift);
+                scale = selectedScale;
                 angle = 0f;
             }
             if (poseRoutine != null) StopCoroutine(poseRoutine);
@@ -324,15 +339,14 @@ namespace ArcaneArena
             float fromAlpha =
                 canvasGroup != null ? canvasGroup.alpha : 1f;
             Quaternion targetRotation = Quaternion.Euler(0f, 0f, angle);
-            const float duration = 0.14f;
             float elapsed = 0f;
-            while (elapsed < duration)
+            while (elapsed < animationDuration)
             {
                 elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.SmoothStep(
                     0f,
                     1f,
-                    Mathf.Clamp01(elapsed / duration));
+                    Mathf.Clamp01(elapsed / animationDuration));
                 rect.anchoredPosition =
                     Vector2.Lerp(fromPosition, position, t);
                 rect.localScale =
