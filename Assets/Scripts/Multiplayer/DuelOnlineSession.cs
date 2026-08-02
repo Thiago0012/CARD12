@@ -481,7 +481,7 @@ namespace ArcaneArena.Multiplayer
             catch (Exception exception)
             {
                 ResetAfterFailedConnection(
-                    $"Não foi possível entrar na sala: {exception.GetBaseException().Message}");
+                    DescribeJoinFailure(exception));
             }
             finally
             {
@@ -578,7 +578,8 @@ namespace ArcaneArena.Multiplayer
             if (!helloAccepted && role == SessionRole.Client &&
                 networkManager != null && networkManager.IsConnectedClient)
             {
-                status = "Deck enviado. Aguarde o anfitriao iniciar ou confirme que ambos usam o protocolo online v2.";
+                status = "O host não confirmou o deck. Ele pode ter fechado " +
+                    "a sala, iniciado outra versão do jogo ou perdido a conexão.";
             }
             helloRetry = null;
         }
@@ -1013,6 +1014,20 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
+        private static string DescribeJoinFailure(Exception exception)
+        {
+            string detail = exception?.GetBaseException().Message ??
+                "falha desconhecida";
+            if (detail.IndexOf("404", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                detail.IndexOf("not found", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return "Código da sala não encontrado no Relay. O anfitrião " +
+                    "pode ter saído da sala; mantenha o jogo do anfitrião aberto " +
+                    "e use um novo código criado neste mesmo Card12.";
+            }
+            return $"Não foi possível entrar na sala: {detail}";
+        }
+
         private void OnGUI()
         {
             if (!showPanel)
@@ -1153,8 +1168,15 @@ namespace ArcaneArena.Multiplayer
             if (GUI.Button(new Rect(398f, 420f, 204f, 34f),
                     "FECHAR PAINEL", lobbyButtonStyle))
             {
+                // Closing the window must not destroy a Relay allocation.
+                // The explicit SAIR DA SALA action above is the only way to
+                // release the room before the duel begins.
                 if (IsOnlineDuelActive && !matchStarted)
-                    ResetAfterFailedConnection("Sala cancelada.");
+                {
+                    status = IsHost
+                        ? "Sala continua ativa. Reabra o painel para copiar o código ou iniciar o duelo."
+                        : "Conexão continua ativa. Aguarde o anfitrião iniciar o duelo.";
+                }
                 showPanel = false;
             }
             GUI.backgroundColor = Color.white;
