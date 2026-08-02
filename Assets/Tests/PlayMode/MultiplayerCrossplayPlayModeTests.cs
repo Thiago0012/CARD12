@@ -174,63 +174,12 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(remote.Players[0].Graveyard, Is.EqualTo(new[] { 601u }));
             Assert.That(remote.Players[0].Banished, Is.EqualTo(new[] { 801u }));
             Assert.That(remote.Players[1].Hand, Is.EqualTo(new[] { 0u, 0u }));
-            uint hiddenCard = (uint)protocolType.GetField(
-                    "HiddenCardCode",
-                    BindingFlags.Public | BindingFlags.Static)
-                ?.GetRawConstantValue();
-            Assert.That(
-                remote.Players[1].MonsterZones[1],
-                Is.EqualTo(hiddenCard));
-            Assert.That(
-                remote.Players[1].SpellTrapZones[2],
-                Is.EqualTo(hiddenCard));
+            Assert.That(remote.Players[1].MonsterZones[1], Is.EqualTo(0u));
+            Assert.That(remote.Players[1].SpellTrapZones[2], Is.EqualTo(0u));
             Assert.That(remote.Players[1].Graveyard, Is.EqualTo(new[] { 501u }));
             // A banished card without a face-down position is public to both
             // seats. Only face-down banished cards are redacted by v4.
             Assert.That(remote.Players[1].Banished, Is.EqualTo(new[] { 701u }));
-        }
-
-        [Test]
-        public void TurnFlowEventsRotateAndHideOpponentDrawIdentity()
-        {
-            Type protocolType = TypeByName(
-                "ArcaneArena.Multiplayer.DuelNetworkProtocol");
-            MethodInfo create = protocolType.GetMethod(
-                "CreatePresentationEvent",
-                BindingFlags.Public | BindingFlags.Static);
-            Type duelEventType = typeof(
-                ArcaneDuel.DuelEngine.Protocol.DuelEvent);
-            object ownDraw = Activator.CreateInstance(duelEventType);
-            object opponentDraw = Activator.CreateInstance(duelEventType);
-            SetEvent(
-                ownDraw,
-                ArcaneDuel.DuelEngine.Protocol.CoreMessage.Draw,
-                1,
-                new[] { 12345678u });
-            SetEvent(
-                opponentDraw,
-                ArcaneDuel.DuelEngine.Protocol.CoreMessage.Draw,
-                0,
-                new[] { 87654321u });
-
-            object ownWire = create?.Invoke(
-                null,
-                new object[] { ownDraw, 0x1u, (byte)1 });
-            object opponentWire = create?.Invoke(
-                null,
-                new object[] { opponentDraw, 0x1u, (byte)1 });
-
-            Assert.That(Field<byte>(ownWire, "player"), Is.EqualTo(0));
-            Assert.That(
-                Field<uint[]>(ownWire, "codes"),
-                Is.EqualTo(new[] { 12345678u }));
-            Assert.That(Field<byte>(opponentWire, "player"), Is.EqualTo(1));
-            Assert.That(
-                Field<uint[]>(opponentWire, "codes"),
-                Is.EqualTo(new[] { 0u }));
-            Assert.That(
-                Field<uint>(ownWire, "presentationPhase"),
-                Is.EqualTo(0x1u));
         }
 
         [Test]
@@ -409,18 +358,6 @@ namespace ArcaneDuel.Tests.PlayMode
         private static T Field<T>(object instance, string name)
         {
             return (T)instance.GetType().GetField(name)?.GetValue(instance);
-        }
-
-        private static void SetEvent(
-            object duelEvent,
-            ArcaneDuel.DuelEngine.Protocol.CoreMessage message,
-            byte player,
-            uint[] codes)
-        {
-            Type type = duelEvent.GetType();
-            type.GetProperty("Message")?.SetValue(duelEvent, message);
-            type.GetProperty("Player")?.SetValue(duelEvent, player);
-            type.GetProperty("Codes")?.SetValue(duelEvent, codes);
         }
 
         private static Type TypeByName(string fullName)

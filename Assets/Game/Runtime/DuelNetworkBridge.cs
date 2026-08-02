@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
@@ -14,7 +13,6 @@ namespace ArcaneDuel.Game
     public interface IDuelNetworkState
     {
         string Status { get; }
-        IReadOnlyList<DuelEvent> PresentationEvents { get; }
 
         void ApplyTo(
             DuelPresentationState state,
