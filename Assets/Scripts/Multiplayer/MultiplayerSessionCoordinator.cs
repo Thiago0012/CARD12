@@ -4,6 +4,8 @@ using System.Text;
 using System.Threading.Tasks;
 using ArcaneArena.Frontend;
 using ArcaneDuel.Game;
+using Unity.Services.Authentication;
+using Unity.Services.Lobbies;
 using Unity.Services.Multiplayer;
 using Unity.Services.Relay;
 using UnityEngine;
@@ -62,8 +64,9 @@ namespace ArcaneArena.Multiplayer
             });
 
             Debug.Log("[MP] stage=session-create transport=relay protocol=dtls capacity=2");
-            IHostSession created =
-                await MultiplayerService.Instance.CreateSessionAsync(options);
+            IHostSession created = await ConnectWithLobbyEventRetryAsync(
+                () => MultiplayerService.Instance.CreateSessionAsync(options),
+                true);
             Bind(created);
             Debug.Log("[MP] stage=session-ready role=host members=1");
             return created;
@@ -87,8 +90,11 @@ namespace ArcaneArena.Multiplayer
             });
 
             Debug.Log("[MP] stage=session-join transport=relay protocol=dtls");
-            ISession joined = await MultiplayerService.Instance
-                .JoinSessionByCodeAsync(code, options);
+            ISession joined = await ConnectWithLobbyEventRetryAsync(
+                () => MultiplayerService.Instance.JoinSessionByCodeAsync(
+                    code,
+                    options),
+                false);
             Bind(joined);
             ValidateCompatibility(protocolVersion);
             Debug.Log("[MP] stage=session-ready role=client members=" +
@@ -205,6 +211,111 @@ namespace ArcaneArena.Multiplayer
                 [MatchIdKey] = MemberSessionProperty(string.Empty),
                 [HostEpochKey] = MemberSessionProperty("1")
             };
+        }
+
+        private static async Task<TSession> ConnectWithLobbyEventRetryAsync<TSession>(
+            Func<Task<TSession>> connect,
+            bool createdByLocalPlayer)
+            where TSession : class, ISession
+        {
+            HashSet<string> membershipsBefore =
+                await JoinedSessionIdsOrEmptyAsync();
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                try
+                {
+                    return await connect();
+                }
+                catch (Exception exception)
+                    when (IsLobbyEventConnectionFailure(exception))
+                {
+                    await CleanupNewLobbyMembershipsAsync(
+                        membershipsBefore,
+                        createdByLocalPlayer);
+                    if (attempt > 0)
+                        throw;
+                    Debug.LogWarning(
+                        "[MP] stage=lobby-events-retry reason=23000");
+                    await Task.Delay(700);
+                    membershipsBefore = await JoinedSessionIdsOrEmptyAsync();
+                }
+            }
+            throw new InvalidOperationException(
+                "A conexão com os eventos do Lobby não foi concluída.");
+        }
+
+        private static async Task<HashSet<string>> JoinedSessionIdsOrEmptyAsync()
+        {
+            try
+            {
+                List<string> ids = await MultiplayerService.Instance
+                    .GetJoinedSessionIdsAsync();
+                return new HashSet<string>(
+                    ids ?? new List<string>(),
+                    StringComparer.Ordinal);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[MP] stage=lobby-memberships-read result=" +
+                    exception.GetBaseException().Message);
+                return new HashSet<string>(StringComparer.Ordinal);
+            }
+        }
+
+        private static async Task CleanupNewLobbyMembershipsAsync(
+            HashSet<string> membershipsBefore,
+            bool createdByLocalPlayer)
+        {
+            HashSet<string> current = await JoinedSessionIdsOrEmptyAsync();
+            foreach (string lobbyId in current)
+            {
+                if (string.IsNullOrWhiteSpace(lobbyId) ||
+                    membershipsBefore.Contains(lobbyId))
+                {
+                    continue;
+                }
+                try
+                {
+                    if (createdByLocalPlayer)
+                    {
+                        await LobbyService.Instance.DeleteLobbyAsync(lobbyId);
+                    }
+                    else
+                    {
+                        await LobbyService.Instance.RemovePlayerAsync(
+                            lobbyId,
+                            AuthenticationService.Instance.PlayerId);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogWarning(
+                        "[MP] stage=lobby-membership-cleanup result=" +
+                        exception.GetBaseException().Message);
+                }
+            }
+        }
+
+        private static bool IsLobbyEventConnectionFailure(
+            Exception exception)
+        {
+            for (Exception current = exception;
+                 current != null;
+                 current = current.InnerException)
+            {
+                string message = current.Message ?? string.Empty;
+                if (message.IndexOf(
+                        "lobby events",
+                        StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    message.IndexOf(
+                        "23000",
+                        StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static Dictionary<string, PlayerProperty>

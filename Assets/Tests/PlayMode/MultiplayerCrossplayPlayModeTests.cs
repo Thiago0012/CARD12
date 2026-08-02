@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
+using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
 using NUnit.Framework;
@@ -72,6 +73,8 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(manager.NetworkConfig.NetworkTransport, Is.SameAs(transport));
             Assert.That(manager.NetworkConfig.ProtocolVersion, Is.EqualTo(4));
             Assert.That(manager.NetworkConfig.TickRate, Is.EqualTo(20));
+            Assert.That(transport.HeartbeatTimeoutMS, Is.EqualTo(1000));
+            Assert.That(transport.DisconnectTimeoutMS, Is.EqualTo(120000));
             Assert.That(manager.NetworkConfig.ConnectionApproval, Is.True);
             Assert.That(manager.NetworkConfig.ForceSamePrefabs, Is.False);
             Assert.That(manager.NetworkConfig.EnableSceneManagement, Is.False);
@@ -182,6 +185,170 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(remote.Players[1].Banished, Is.EqualTo(new[] { 701u }));
         }
 
+        [UnityTest]
+        public IEnumerator InitialSnapshotBuildsBothPlayerPerspectivesAndRoutesActions()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = Resources
+                .FindObjectsOfTypeAll<MonoBehaviour>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType().Name == "CardArenaBootstrap");
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            Assert.That(controller, Is.Not.Null);
+            DuelPresentationState authoritative =
+                controller.PresentationState;
+            Assert.That(authoritative, Is.Not.Null);
+            Assert.That(authoritative.Players[0].Hand.Count, Is.GreaterThan(0));
+            Assert.That(authoritative.Players[1].Hand.Count, Is.GreaterThan(0));
+            Assert.That(
+                controller.CurrentPrompt,
+                Is.Not.Null,
+                "The authoritative host must own the playable Core prompt.");
+
+            uint[] playerOneHand = authoritative.Players[0].Hand.ToArray();
+            uint[] playerTwoHand = authoritative.Players[1].Hand.ToArray();
+
+            Type protocolType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelNetworkProtocol");
+            MethodInfo createState = protocolType.GetMethod(
+                    "CreateState",
+                    BindingFlags.Public | BindingFlags.Static);
+            object playerOneState = createState?.Invoke(
+                    null,
+                    new object[]
+                    {
+                        authoritative,
+                        controller.CurrentPrompt,
+                        (byte)0,
+                        1,
+                        "player one snapshot applied"
+                    });
+            object playerTwoState = createState?.Invoke(
+                    null,
+                    new object[]
+                    {
+                        authoritative,
+                        controller.CurrentPrompt,
+                        (byte)1,
+                        1,
+                        "player two snapshot applied"
+                    });
+            Assert.That(playerOneState, Is.Not.Null);
+            Assert.That(playerTwoState, Is.Not.Null);
+
+            controller.ConfigureNetworkReplica(0);
+            controller.ApplyNetworkState((IDuelNetworkState)playerOneState);
+            yield return null;
+            yield return null;
+
+            DuelPresentationState playerOneReplica =
+                controller.PresentationState;
+            Assert.That(playerOneReplica.Players[0].DeckCount, Is.GreaterThan(0));
+            Assert.That(playerOneReplica.Players[1].DeckCount, Is.GreaterThan(0));
+            Assert.That(playerOneReplica.Players[0].Hand, Is.EqualTo(playerOneHand));
+            Assert.That(playerOneReplica.Players[1].Hand.All(code => code == 0u));
+            Assert.That(
+                VisibleHandCount(arena),
+                Is.EqualTo(playerOneHand.Length),
+                "Player one must see every card in their local hand.");
+
+            // Each recipient receives a perspective-rotated snapshot where
+            // their own cards are logical P0, matching the production client.
+            controller.ConfigureNetworkReplica(0);
+            controller.ApplyNetworkState((IDuelNetworkState)playerTwoState);
+            yield return null;
+            yield return null;
+
+            DuelPresentationState playerTwoReplica =
+                controller.PresentationState;
+            Assert.That(playerTwoReplica.Players[0].DeckCount, Is.GreaterThan(0));
+            Assert.That(playerTwoReplica.Players[1].DeckCount, Is.GreaterThan(0));
+            Assert.That(playerTwoReplica.Players[0].Hand, Is.EqualTo(playerTwoHand));
+            Assert.That(playerTwoReplica.Players[1].Hand.All(code => code == 0u));
+            Assert.That(
+                VisibleHandCount(arena),
+                Is.EqualTo(playerTwoHand.Length),
+                "Player two must see every card in their local hand.");
+
+            byte[] forwardedResponse = null;
+            ulong forwardedRequestId = 0;
+            Action<byte[], ulong> previousBridge =
+                DuelOnlineBridge.SubmitReplicaResponse;
+            try
+            {
+                DuelOnlineBridge.SubmitReplicaResponse = (response, requestId) =>
+                {
+                    forwardedResponse = response;
+                    forwardedRequestId = requestId;
+                };
+                byte[] response = { 1, 2, 3 };
+                Assert.That(
+                    controller.SubmitCoreResponse(response, 77),
+                    Is.True,
+                    "The remote player action must enter the network bridge.");
+                Assert.That(forwardedResponse, Is.EqualTo(response));
+                Assert.That(forwardedRequestId, Is.EqualTo(77));
+            }
+            finally
+            {
+                DuelOnlineBridge.SubmitReplicaResponse = previousBridge;
+            }
+        }
+
+        [Test]
+        public void DrawPresentationKeepsTheAuthoritativeDrawPhase()
+        {
+            var state = new DuelPresentationState(null);
+            state.Apply(PresentationEvent(CoreMessage.NewTurn, 1));
+            state.Apply(PresentationEvent(
+                CoreMessage.NewPhase,
+                value: 0x001U));
+            DuelEvent draw = PresentationEvent(
+                CoreMessage.Draw,
+                1,
+                codes: new[] { 97268402U });
+
+            Type protocolType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelNetworkProtocol");
+            MethodInfo create = protocolType.GetMethods(
+                    BindingFlags.Public | BindingFlags.Static)
+                .Single(method =>
+                    method.Name == "CreatePresentationEvent" &&
+                    method.GetParameters().Length == 6);
+            object wire = create.Invoke(
+                null,
+                new object[]
+                {
+                    draw,
+                    state,
+                    (byte)1,
+                    7,
+                    12,
+                    "draw-phase-test"
+                });
+            state.Apply(PresentationEvent(
+                CoreMessage.NewPhase,
+                value: 0x004U));
+            DuelEvent replay = (DuelEvent)protocolType.GetMethod(
+                    "ToPresentationEvent",
+                    BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, new[] { wire });
+
+            Assert.That(
+                Field<uint>(wire, "presentationPhase"),
+                Is.EqualTo(0x001U));
+            Assert.That(replay.PresentationPhase, Is.EqualTo(0x001U));
+            Assert.That(replay.Player, Is.EqualTo(0));
+            Assert.That(replay.Codes, Is.EqualTo(new[] { 97268402U }));
+        }
+
         [Test]
         public void V4HandshakeRejectsDifferentCardContentRevision()
         {
@@ -266,6 +433,24 @@ namespace ArcaneDuel.Tests.PlayMode
                 "MatchIdsAreCompatible",
                 hidden);
             Assert.That(matchIds, Is.Not.Null);
+            Assert.That(
+                sessionType.GetMethod(
+                    "OnDuelSceneLoaded",
+                    BindingFlags.Instance | BindingFlags.NonPublic),
+                Is.Not.Null,
+                "A sessão persistente deve observar o carregamento da arena.");
+            Assert.That(
+                sessionType.GetMethod(
+                    "AttachArenaAfterSceneInitialization",
+                    BindingFlags.Instance | BindingFlags.NonPublic),
+                Is.Not.Null,
+                "A arena deve ser anexada após concluir a inicialização da cena.");
+            Assert.That(
+                sessionType.GetMethod(
+                    "MaintainArenaReadyHandshake",
+                    BindingFlags.Instance | BindingFlags.NonPublic),
+                Is.Not.Null,
+                "O cliente deve repetir a confirmação até receber o snapshot inicial.");
             Assert.That(
                 (bool)matchIds.Invoke(null, new object[] { "match-a", "match-a" }),
                 Is.True);
@@ -358,6 +543,37 @@ namespace ArcaneDuel.Tests.PlayMode
         private static T Field<T>(object instance, string name)
         {
             return (T)instance.GetType().GetField(name)?.GetValue(instance);
+        }
+
+        private static DuelEvent PresentationEvent(
+            CoreMessage message,
+            byte player = 0,
+            uint value = 0,
+            uint[] codes = null)
+        {
+            var duelEvent = new DuelEvent();
+            BindingFlags properties = BindingFlags.Instance |
+                                      BindingFlags.Public |
+                                      BindingFlags.NonPublic;
+            typeof(DuelEvent).GetProperty("Message", properties)
+                ?.SetValue(duelEvent, message);
+            typeof(DuelEvent).GetProperty("Player", properties)
+                ?.SetValue(duelEvent, player);
+            typeof(DuelEvent).GetProperty("Value", properties)
+                ?.SetValue(duelEvent, value);
+            typeof(DuelEvent).GetProperty("Codes", properties)
+                ?.SetValue(duelEvent, codes);
+            return duelEvent;
+        }
+
+        private static int VisibleHandCount(MonoBehaviour arena)
+        {
+            object value = arena.GetType().GetField(
+                    "handViews",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(arena);
+            Assert.That(value, Is.InstanceOf<System.Collections.ICollection>());
+            return ((System.Collections.ICollection)value).Count;
         }
 
         private static Type TypeByName(string fullName)

@@ -323,6 +323,61 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator HiddenOpponentWorldViewIsNotTreatedAsAnEmptyZone()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Component zone = FindZone("PlayerTwo", "Monster", 0);
+            Assert.That(arena, Is.Not.Null);
+            Assert.That(zone, Is.Not.Null);
+            Transform anchor = zone.GetType()
+                .GetProperty("CardPresentationAnchor")
+                ?.GetValue(zone) as Transform;
+            Assert.That(anchor, Is.Not.Null);
+
+            var card = new GameObject("Carta Invocada");
+            card.transform.SetParent(anchor, false);
+            new GameObject("Frente").transform.SetParent(card.transform, false);
+            new GameObject("Verso").transform.SetParent(card.transform, false);
+            System.Type viewType = System.AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Select(assembly => assembly.GetType(
+                    "ArcaneArena.WorldCardInstanceView",
+                    false))
+                .First(type => type != null);
+            Component hiddenView = card.AddComponent(viewType);
+            var key = new CardInstanceKey(
+                0xE000000000000101UL,
+                0,
+                1,
+                1,
+                (byte)DuelLocation.MonsterZone,
+                0,
+                FaceDown);
+            viewType.GetMethod("Bind")?.Invoke(
+                hiddenView,
+                new object[] { key, false });
+
+            MethodInfo validateView = arena.GetType().GetMethod(
+                "HasWorldCardRepresentation",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(validateView, Is.Not.Null);
+            bool represented = (bool)validateView.Invoke(
+                null,
+                new object[] { zone, key, 0U, true });
+
+            Assert.That(
+                represented,
+                Is.True,
+                "Uma carta oculta continua ocupando a zona e deve manter o verso 3D.");
+            Object.Destroy(card);
+        }
+
+        [UnityTest]
         public IEnumerator EveryArenaZoneCanBeHoveredWithoutNullReference()
         {
             SceneManager.LoadScene(ProjectIdentity.DuelScene);
@@ -1111,6 +1166,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 .GetMethod("SuppressAnnouncementBanner", flags)
                 ?.Invoke(arena, null);
             yield return null;
+            controller.ConfigureNetworkReplica(0);
 
             DuelPresentationState state = controller.PresentationState;
             state.Players[0].Hand.Clear();
@@ -1139,12 +1195,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Vector3 originalDeckPosition = mainDeck.transform.position;
             Vector3 originalDeckScale = mainDeck.transform.localScale;
 
-            arena.GetType()
-                .GetMethod("PrepareTurnFlowPresentation", flags)
-                ?.Invoke(arena, new object[] { draw });
-            arena.GetType()
-                .GetMethod("QueueDrawPresentation", flags)
-                ?.Invoke(arena, new object[] { draw });
+            controller.PresentNetworkEvent(draw);
 
             FieldInfo awaiting = arena.GetType().GetField(
                 "awaitingDrawDeckClick",

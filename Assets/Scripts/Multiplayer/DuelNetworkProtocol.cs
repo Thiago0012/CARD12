@@ -171,6 +171,7 @@ namespace ArcaneArena.Multiplayer
         public int requiredStateSequence;
         public byte message;
         public byte player;
+        public uint presentationPhase;
         public uint value;
         public uint code;
         public uint[] codes;
@@ -386,6 +387,9 @@ namespace ArcaneArena.Multiplayer
                 player = source.Player <= 1
                     ? ToPerspective(source.Player, recipient)
                     : source.Player,
+                presentationPhase = source.PresentationPhase != 0
+                    ? source.PresentationPhase
+                    : presentationState?.Phase ?? 0U,
                 value = source.Value,
                 code = hideCode ? 0U : eventCode,
                 codes = codes,
@@ -443,6 +447,7 @@ namespace ArcaneArena.Multiplayer
                 Message = (CoreMessage)source.message,
                 RawMessage = source.message,
                 Player = source.player,
+                PresentationPhase = source.presentationPhase,
                 Value = source.value,
                 Code = source.code,
                 Codes = Clone(source.codes),
