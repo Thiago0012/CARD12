@@ -122,6 +122,82 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator SlowRelayResyncRebasesPendingResponseVersion()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = Resources
+                .FindObjectsOfTypeAll<MonoBehaviour>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType().Name == "CardArenaBootstrap");
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            controller.ConfigureNetworkReplica(0);
+
+            var prompt = new DuelPrompt();
+            SetProperty(prompt, nameof(DuelPrompt.RequestId), 4401UL);
+            SetProperty(prompt, nameof(DuelPrompt.Message),
+                CoreMessage.SelectCard);
+            SetProperty(prompt, nameof(DuelPrompt.Player), (byte)0);
+            SetProperty(prompt, nameof(DuelPrompt.Title), "Choose");
+
+            Type protocolType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelNetworkProtocol");
+            object networkState = protocolType.GetMethod(
+                    "CreateState",
+                    BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, new object[]
+                {
+                    controller.PresentationState,
+                    prompt,
+                    (byte)0,
+                    2,
+                    "slow relay"
+                });
+            Assert.That(networkState, Is.Not.Null);
+            networkState.GetType().GetField("stateVersion")
+                ?.SetValue(networkState, 7UL);
+
+            Type sessionType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelOnlineSession");
+            object session = sessionType.GetMethod(
+                    "EnsureInstance",
+                    BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, null);
+            BindingFlags hidden = BindingFlags.Instance |
+                                  BindingFlags.NonPublic;
+            sessionType.GetField("replicaController", hidden)
+                ?.SetValue(session, controller);
+            sessionType.GetField("pendingResponseRequestId", hidden)
+                ?.SetValue(session, 4401UL);
+            sessionType.GetField("pendingResponseBytes", hidden)
+                ?.SetValue(session, new byte[] { 1 });
+            sessionType.GetField("pendingCommandId", hidden)
+                ?.SetValue(session, 9UL);
+            sessionType.GetField("pendingClientSequence", hidden)
+                ?.SetValue(session, 1U);
+            sessionType.GetField("pendingExpectedStateVersion", hidden)
+                ?.SetValue(session, 3UL);
+
+            sessionType.GetMethod("ApplyReplicaState", hidden)
+                ?.Invoke(session, new[] { networkState });
+
+            Assert.That(
+                sessionType.GetField("pendingExpectedStateVersion", hidden)
+                    ?.GetValue(session),
+                Is.EqualTo(7UL),
+                "A retry must use the newest confirmed host version.");
+            Assert.That(controller.PresentationDecisionLocked, Is.True);
+            sessionType.GetMethod("ResetMatchState", hidden)
+                ?.Invoke(session, new object[] { false });
+        }
+
+        [UnityTest]
         public IEnumerator OptionsExposeAllFiveGraphicsLevels()
         {
             SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
@@ -175,7 +251,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(manager, Is.Not.Null);
             Assert.That(transport, Is.Not.Null);
             Assert.That(manager.NetworkConfig.NetworkTransport, Is.SameAs(transport));
-            Assert.That(manager.NetworkConfig.ProtocolVersion, Is.EqualTo(4));
+            Assert.That(manager.NetworkConfig.ProtocolVersion, Is.EqualTo(5));
             Assert.That(manager.NetworkConfig.TickRate, Is.EqualTo(20));
             Assert.That(transport.HeartbeatTimeoutMS, Is.EqualTo(1000));
             Assert.That(transport.DisconnectTimeoutMS, Is.EqualTo(120000));
@@ -194,7 +270,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(protocol, Is.Not.Null);
             Assert.That(
                 protocol.GetRawConstantValue(),
-                Is.EqualTo("arcane-duel-online-v4"));
+                Is.EqualTo("arcane-duel-online-v5"));
         }
 
         [Test]
@@ -647,6 +723,21 @@ namespace ArcaneDuel.Tests.PlayMode
         private static T Field<T>(object instance, string name)
         {
             return (T)instance.GetType().GetField(name)?.GetValue(instance);
+        }
+
+        private static void SetProperty(
+            object target,
+            string name,
+            object value)
+        {
+            PropertyInfo property = target.GetType().GetProperty(
+                name,
+                BindingFlags.Public | BindingFlags.NonPublic |
+                BindingFlags.Instance);
+            Assert.That(property, Is.Not.Null);
+            MethodInfo setter = property.GetSetMethod(true);
+            Assert.That(setter, Is.Not.Null);
+            setter.Invoke(target, new[] { value });
         }
 
         private static DuelEvent PresentationEvent(

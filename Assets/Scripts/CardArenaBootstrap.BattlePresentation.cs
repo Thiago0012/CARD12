@@ -479,6 +479,7 @@ namespace ArcaneArena
             phaseNavigatorSubtitle.text =
                 $"TURNO {Mathf.Max(1, state?.TurnNumber ?? 1)}  ·  " +
                 $"{CoreMessageDecoder.PhaseName(state?.Phase ?? 0).ToUpperInvariant()}";
+            MarkPromptPresented(prompt);
             phaseNavigator.SetActive(true);
             phaseNavigator.transform.SetAsLastSibling();
         }

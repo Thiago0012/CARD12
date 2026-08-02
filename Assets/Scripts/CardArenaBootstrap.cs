@@ -232,6 +232,7 @@ namespace ArcaneArena
             UpdateDrawRevealFastForward();
             RecoverStalledTurnFlowPresentation();
             UpdateCardPresentationAcceleration();
+            UpdateOnlineInteractionWaitStatus();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
             EnsureRequiredResponseTrayVisible();
@@ -249,6 +250,7 @@ namespace ArcaneArena
                     new Vector2(selectedCard.Rect.anchoredPosition.x, 0f);
                 actionPanel.transform.SetAsLastSibling();
             }
+            UpdateFieldActionMenuPosition();
         }
 
         public void StartLocalTestDuel(
@@ -601,6 +603,7 @@ namespace ArcaneArena
             BindDetailPanel();
             actionPanel = FindObject(frame, "Ações da Carta Selecionada");
             BindActionButtons();
+            BuildFieldActionMenu();
             BindLifeAndPhase();
             BuildChoiceModal();
             BuildZoneBrowser();
@@ -1000,10 +1003,12 @@ namespace ArcaneArena
             if (InteractionLocked)
             {
                 SetStatus(
-                    "Aguarde a conclusao da animacao confirmada pelo Core.",
+                    InteractionLockStatus(
+                        "Aguarde a conclusao da animacao confirmada pelo Core."),
                     Muted);
                 return;
             }
+            CloseFieldActionMenu();
             DuelPrompt prompt = core.CurrentPrompt;
             DuelChoice direct = ChoiceForCard(
                 prompt,
@@ -1373,6 +1378,7 @@ namespace ArcaneArena
             ClearZoneHighlights();
             HideCompactResponseBar();
             CloseChoiceModal();
+            CloseFieldActionMenu();
             CloseZoneBrowser();
             ClosePhaseNavigator();
             if (phasePresentationLocked)
@@ -1466,8 +1472,7 @@ namespace ArcaneArena
                 case CoreMessage.SelectSum:
                 case CoreMessage.SelectUnselectCard:
                     HighlightPromptZones(prompt);
-                    if (HasOffFieldChoices(prompt) ||
-                        IsMultiChoicePrompt(prompt))
+                    if (prompt.Choices.Count > 0)
                         OpenChoiceModal(prompt, prompt.Choices);
                     SetStatus(prompt.Title, Gold);
                     break;
@@ -1505,7 +1510,8 @@ namespace ArcaneArena
             if (InteractionLocked)
             {
                 SetStatus(
-                    "Aguarde a conclusao da animacao confirmada pelo Core.",
+                    InteractionLockStatus(
+                        "Aguarde a conclusao da animacao confirmada pelo Core."),
                     Muted);
                 return;
             }
@@ -1525,13 +1531,16 @@ namespace ArcaneArena
             byte controller = StatePlayerForZone(zone);
             byte location = LocationFor(zone.Kind);
             int sequence = SequenceFor(zone);
+            bool contextualCommand =
+                prompt.Message == CoreMessage.SelectIdleCommand ||
+                prompt.Message == CoreMessage.SelectBattleCommand;
 
             DuelChoice direct = prompt.Choices.FirstOrDefault(choice =>
                 choice.HasLocation &&
                 choice.Controller == controller &&
                 (choice.Location & location) != 0 &&
                 choice.Sequence == sequence);
-            if (direct != null)
+            if (direct != null && !contextualCommand)
             {
                 if (IsMultiPlacePrompt(prompt))
                     StagePlaceChoice(prompt, direct);
@@ -1544,8 +1553,7 @@ namespace ArcaneArena
                 return;
             }
 
-            if (prompt.Message == CoreMessage.SelectIdleCommand ||
-                prompt.Message == CoreMessage.SelectBattleCommand)
+            if (contextualCommand)
             {
                 uint code = CodeAt(zone);
                 List<DuelChoice> cardChoices =
@@ -1555,16 +1563,10 @@ namespace ArcaneArena
                         controller,
                         location,
                         sequence);
-                if (cardChoices.Count == 1)
-                {
-                    core.SubmitChoice(cardChoices[0]);
-                    RefreshEverything(true);
-                    return;
-                }
-                if (cardChoices.Count > 1)
+                if (cardChoices.Count > 0)
                 {
                     ShowInspector(zone);
-                    OpenChoiceModal(prompt, cardChoices);
+                    OpenFieldActionMenu(zone, prompt, cardChoices);
                     return;
                 }
             }
@@ -3556,6 +3558,22 @@ namespace ArcaneArena
             return (source ?? string.Empty).IndexOf(
                 value,
                 StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static string InteractionLockStatus(string fallback)
+        {
+            string online = DuelOnlineSession.Instance?.InteractionWaitMessage;
+            return string.IsNullOrWhiteSpace(online) ? fallback : online;
+        }
+
+        private void UpdateOnlineInteractionWaitStatus()
+        {
+            string online = DuelOnlineSession.Instance?.InteractionWaitMessage;
+            if (!string.IsNullOrWhiteSpace(online) &&
+                (status == null || status.text != online))
+            {
+                SetStatus(online, Gold);
+            }
         }
 
         private static void RebindButton(

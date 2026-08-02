@@ -19,6 +19,7 @@ namespace ArcaneDuel.Tests.PlayMode
         private const uint DarkMagician = 46986414;
         private const uint DarkMagicalCircle = 47222536;
         private const uint EffectVeiler = 97268402;
+        private const uint Polymerization = 24094653;
         private const uint RelinquishedAnima = 94259633;
         private const uint FaceDown = 0xA;
 
@@ -125,6 +126,145 @@ namespace ArcaneDuel.Tests.PlayMode
             finally
             {
                 DuelOnlineBridge.SubmitReplicaChoice = previousSubmit;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator FieldMonsterWaitsForExplicitEffectOrPositionChoice()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            BindingFlags flags = BindingFlags.Instance |
+                                 BindingFlags.Public |
+                                 BindingFlags.NonPublic;
+            arena.GetType().GetMethod("SuppressAnnouncementBanner", flags)
+                ?.Invoke(arena, null);
+            yield return null;
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            controller.ConfigureNetworkReplica(0);
+            arena.GetType().GetField("state", flags)
+                ?.SetValue(arena, controller.PresentationState);
+            controller.PresentationState.Apply(
+                MoveIntoMonsterZone(EffectVeiler, 0));
+
+            DuelPrompt prompt = FieldActionPrompt(7201);
+            typeof(DuelArenaController).GetField("replicaPrompt", flags)
+                ?.SetValue(controller, prompt);
+            arena.GetType().GetMethod("ResetPromptPresentationIdentity", flags)
+                ?.Invoke(arena, null);
+            arena.GetType().GetMethod("RefreshEverything", flags)
+                ?.Invoke(arena, new object[] { true });
+
+            Component zone = FindZone("PlayerOne", "Monster", 0);
+            Assert.That(zone, Is.Not.Null);
+            DuelChoice submitted = null;
+            System.Action<DuelChoice> previous =
+                DuelOnlineBridge.SubmitReplicaChoice;
+            DuelOnlineBridge.SubmitReplicaChoice = choice => submitted = choice;
+            try
+            {
+                arena.GetType().GetMethod("HandleZoneClick", flags)
+                    ?.Invoke(arena, new object[] { zone, 1 });
+                GameObject menu = arena.GetType()
+                    .GetField("fieldActionPanel", flags)
+                    ?.GetValue(arena) as GameObject;
+                Assert.That(menu, Is.Not.Null);
+                Assert.That(menu.activeSelf, Is.True);
+                Assert.That(submitted, Is.Null,
+                    "Clicking a field card must not pick its first action.");
+
+                Button[] buttons = menu.GetComponentsInChildren<Button>(true);
+                Assert.That(buttons, Has.Length.EqualTo(2));
+                string[] labels = buttons.Select(button =>
+                        button.GetComponentInChildren<Text>().text)
+                    .ToArray();
+                Assert.That(labels, Does.Contain("MODO DEFESA"));
+                Assert.That(labels, Does.Contain("ATIVAR EFEITO"));
+
+                buttons.Single(button =>
+                        button.GetComponentInChildren<Text>().text ==
+                        "ATIVAR EFEITO")
+                    .onClick.Invoke();
+                Assert.That(submitted, Is.Not.Null);
+                Assert.That(submitted.Label, Does.Contain("Ativar"));
+                Assert.That(menu.activeSelf, Is.False);
+            }
+            finally
+            {
+                DuelOnlineBridge.SubmitReplicaChoice = previous;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator SingleHandEffectSelectionRequiresTrayConfirmation()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            BindingFlags flags = BindingFlags.Instance |
+                                 BindingFlags.Public |
+                                 BindingFlags.NonPublic;
+            arena.GetType().GetMethod("SuppressAnnouncementBanner", flags)
+                ?.Invoke(arena, null);
+            yield return null;
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            controller.ConfigureNetworkReplica(0);
+            arena.GetType().GetField("state", flags)
+                ?.SetValue(arena, controller.PresentationState);
+            controller.PresentationState.Apply(DrawEvent(0, EffectVeiler));
+
+            DuelPrompt prompt = SingleHandSelectionPrompt(7301);
+            typeof(DuelArenaController).GetField("replicaPrompt", flags)
+                ?.SetValue(controller, prompt);
+            arena.GetType().GetMethod("ResetPromptPresentationIdentity", flags)
+                ?.Invoke(arena, null);
+            arena.GetType().GetMethod("RefreshEverything", flags)
+                ?.Invoke(arena, new object[] { true });
+
+            GameObject tray = arena.GetType().GetField("choiceModal", flags)
+                ?.GetValue(arena) as GameObject;
+            Assert.That(tray, Is.Not.Null);
+            Assert.That(tray.activeSelf, Is.True,
+                "A escolha de um Dragao da mao deve abrir a bandeja.");
+
+            DuelChoice submitted = null;
+            System.Action<DuelChoice> previous =
+                DuelOnlineBridge.SubmitReplicaChoice;
+            DuelOnlineBridge.SubmitReplicaChoice = choice => submitted = choice;
+            try
+            {
+                Button card = arena.GetType().GetField("choiceContent", flags)
+                    ?.GetValue(arena) is RectTransform content
+                    ? content.GetChild(0).GetComponent<Button>()
+                    : null;
+                Assert.That(card, Is.Not.Null);
+                card.onClick.Invoke();
+                Assert.That(submitted, Is.Null,
+                    "Inspecting the candidate must not resolve the effect.");
+
+                Button confirm = arena.GetType().GetField("choiceConfirm", flags)
+                    ?.GetValue(arena) as Button;
+                Assert.That(confirm, Is.Not.Null);
+                Assert.That(confirm.interactable, Is.True);
+                confirm.onClick.Invoke();
+                Assert.That(submitted, Is.Not.Null);
+                Assert.That(submitted.CardCode, Is.EqualTo(EffectVeiler));
+                Assert.That(tray.activeSelf, Is.False);
+            }
+            finally
+            {
+                DuelOnlineBridge.SubmitReplicaChoice = previous;
             }
         }
 
@@ -248,8 +388,14 @@ namespace ArcaneDuel.Tests.PlayMode
             {
                 arena.GetType().GetField(fieldName, flags)?.SetValue(arena, false);
             }
+            controller.SetPresentationDecisionLocked(false);
             actions.SetActive(true);
             Assert.That(details.activeSelf, Is.True);
+            bool interactionLocked = (bool)arena.GetType()
+                .GetProperty("InteractionLocked", flags)
+                .GetValue(arena);
+            Assert.That(interactionLocked, Is.False,
+                "The phase navigator fixture must not be animation-locked.");
 
             arena.GetType()
                 .GetMethod("OpenPhaseNavigator", flags)
@@ -260,6 +406,8 @@ namespace ArcaneDuel.Tests.PlayMode
                         controller.CurrentPrompt,
                         new List<DuelChoice> { new DuelChoice() }
                     });
+            Assert.That(phases.activeSelf, Is.True,
+                "The phase navigator must open synchronously.");
             yield return null;
 
             Assert.That(phases.activeSelf, Is.True);
@@ -1194,7 +1342,7 @@ namespace ArcaneDuel.Tests.PlayMode
             state.Players[0].HandInstances.Clear();
             state.Apply(TurnEvent(0));
             state.Apply(PhaseEvent(0x001));
-            DuelEvent draw = DrawEvent(0, EffectVeiler);
+            DuelEvent draw = DrawEvent(0, Polymerization);
             state.Apply(draw);
             arena.GetType()
                 .GetMethod("RebuildHand", flags)
@@ -1654,6 +1802,89 @@ namespace ArcaneDuel.Tests.PlayMode
                     BindingFlags.NonPublic)
                 ?.SetValue(prompt, requestId);
             return prompt;
+        }
+
+        private static DuelPrompt FieldActionPrompt(ulong requestId)
+        {
+            var prompt = new DuelPrompt();
+            SetProperty(prompt, nameof(DuelPrompt.RequestId), requestId);
+            SetProperty(prompt, nameof(DuelPrompt.Message),
+                CoreMessage.SelectIdleCommand);
+            SetProperty(prompt, nameof(DuelPrompt.Player), (byte)0);
+            SetProperty(prompt, nameof(DuelPrompt.Title), "Escolha uma acao");
+            prompt.Choices.Add(LocatedActionChoice(
+                requestId,
+                "Mudar posicao",
+                EffectVeiler,
+                (byte)DuelLocation.MonsterZone,
+                0,
+                2));
+            prompt.Choices.Add(LocatedActionChoice(
+                requestId,
+                "Ativar",
+                EffectVeiler,
+                (byte)DuelLocation.MonsterZone,
+                0,
+                5));
+            return prompt;
+        }
+
+        private static DuelPrompt SingleHandSelectionPrompt(ulong requestId)
+        {
+            var prompt = new DuelPrompt();
+            SetProperty(prompt, nameof(DuelPrompt.RequestId), requestId);
+            SetProperty(prompt, nameof(DuelPrompt.Message),
+                CoreMessage.SelectCard);
+            SetProperty(prompt, nameof(DuelPrompt.Player), (byte)0);
+            SetProperty(prompt, nameof(DuelPrompt.Title),
+                "Escolha um Dragao da sua mao");
+            SetProperty(prompt, nameof(DuelPrompt.MinimumSelections), 1U);
+            SetProperty(prompt, nameof(DuelPrompt.MaximumSelections), 1U);
+            prompt.Choices.Add(LocatedActionChoice(
+                requestId,
+                "Invocar por Invocacao-Especial",
+                EffectVeiler,
+                (byte)DuelLocation.Hand,
+                0,
+                0));
+            return prompt;
+        }
+
+        private static DuelChoice LocatedActionChoice(
+            ulong requestId,
+            string label,
+            uint code,
+            byte location,
+            uint sequence,
+            int response)
+        {
+            var choice = new DuelChoice();
+            SetProperty(choice, nameof(DuelChoice.RequestId), requestId);
+            SetProperty(choice, nameof(DuelChoice.Label), label);
+            SetProperty(choice, nameof(DuelChoice.CardCode), code);
+            SetProperty(choice, nameof(DuelChoice.Response),
+                System.BitConverter.GetBytes(response));
+            SetProperty(choice, nameof(DuelChoice.HasLocation), true);
+            SetProperty(choice, nameof(DuelChoice.Controller), (byte)0);
+            SetProperty(choice, nameof(DuelChoice.Location), location);
+            SetProperty(choice, nameof(DuelChoice.Sequence), sequence);
+            SetProperty(choice, nameof(DuelChoice.ChoiceIndex), 0);
+            return choice;
+        }
+
+        private static void SetProperty(
+            object target,
+            string name,
+            object value)
+        {
+            PropertyInfo property = target.GetType().GetProperty(
+                name,
+                BindingFlags.Public | BindingFlags.NonPublic |
+                BindingFlags.Instance);
+            Assert.That(property, Is.Not.Null);
+            MethodInfo setter = property.GetSetMethod(true);
+            Assert.That(setter, Is.Not.Null);
+            setter.Invoke(target, new[] { value });
         }
 
         private static void CommandCard(

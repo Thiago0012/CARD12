@@ -59,6 +59,7 @@ namespace ArcaneArena.Multiplayer
         private const float ArenaReadyRetrySeconds = 1f;
         private const float StateHeartbeatSeconds = 2f;
         private const float ResponseRetrySeconds = 0.75f;
+        private const float ResponseResyncSeconds = 3f;
         private const float WireRetrySeconds = 0.35f;
         private const float WirePumpSeconds = 0.02f;
         private const float WireAssemblyTimeoutSeconds = 20f;
@@ -290,6 +291,8 @@ namespace ArcaneArena.Multiplayer
         private ulong nextClientCommandId;
         private uint nextClientSequence;
         private float nextResponseRetryTime;
+        private float pendingResponseStartedAt;
+        private float nextPendingResponseResyncTime;
         private ulong pendingHostResponseRequestId;
         private byte[] pendingHostResponseBytes;
         private ulong pendingHostCommandId;
@@ -375,6 +378,32 @@ namespace ArcaneArena.Multiplayer
         public string Status => status;
         public string RoomCode => roomCode;
         public string RelayRegion => relayRegion;
+        public string InteractionWaitMessage
+        {
+            get
+            {
+                if (pendingResponseRequestId != 0)
+                {
+                    float elapsed = pendingResponseStartedAt > 0f
+                        ? Mathf.Max(
+                            0f,
+                            Time.realtimeSinceStartup -
+                            pendingResponseStartedAt)
+                        : 0f;
+                    int rtt = RelayRoundTripTimeMs;
+                    string latency = rtt > 0
+                        ? $" · RTT {rtt} ms"
+                        : string.Empty;
+                    return elapsed >= ResponseResyncSeconds
+                        ? $"CONEXAO LENTA · ressincronizando a resposta " +
+                          $"({Mathf.CeilToInt(elapsed)}s){latency}"
+                        : $"RESPOSTA ENVIADA · aguardando o anfitriao{latency}";
+                }
+                if (clientSynchronizing)
+                    return "SINCRONIZANDO O DUELO COM O ANFITRIAO...";
+                return string.Empty;
+            }
+        }
 
         // Narrow diagnostics surface used by the opt-in two-process smoke
         // runner. Normal players never call these members and the regular
@@ -764,6 +793,9 @@ namespace ArcaneArena.Multiplayer
             pendingCommandId = ++nextClientCommandId;
             pendingClientSequence = ++nextClientSequence;
             pendingExpectedStateVersion = lastReplicaStateVersion;
+            pendingResponseStartedAt = Time.realtimeSinceStartup;
+            nextPendingResponseResyncTime =
+                pendingResponseStartedAt + ResponseResyncSeconds;
             nextResponseRetryTime = 0f;
             status = "Resposta enviada. Aguardando confirmação do anfitrião...";
             SendPendingClientResponse();
@@ -2408,6 +2440,16 @@ namespace ArcaneArena.Multiplayer
                  state.acknowledgedResponseRequestId != pendingResponseRequestId ||
                  !hostAdvancedPrompt))
             {
+                if (!hostAdvancedPrompt)
+                {
+                    // A resynchronization can confirm a newer state version
+                    // while the Core is still waiting on the same request.
+                    // Retrying with the confirmed version avoids a permanent
+                    // stale-command loop on a slow Relay connection.
+                    pendingExpectedStateVersion = state.stateVersion;
+                    nextResponseRetryTime =
+                        Time.realtimeSinceStartup + 0.20f;
+                }
                 replicaController.SetPresentationDecisionLocked(true);
                 status = "Resposta entregue ao Relay. Aguardando o host processar...";
                 return;
@@ -2420,8 +2462,30 @@ namespace ArcaneArena.Multiplayer
                 pendingClientSequence = 0;
                 pendingExpectedStateVersion = 0;
                 nextResponseRetryTime = 0f;
+                pendingResponseStartedAt = 0f;
+                nextPendingResponseResyncTime = 0f;
             }
             replicaController.SetPresentationDecisionLocked(false);
+        }
+
+        private void MaintainPendingClientResponse(float now)
+        {
+            if (pendingResponseRequestId == 0 ||
+                pendingResponseBytes == null)
+            {
+                return;
+            }
+
+            if (now >= nextResponseRetryTime)
+                SendPendingClientResponse();
+
+            if (pendingResponseStartedAt <= 0f)
+                pendingResponseStartedAt = now;
+            if (now < nextPendingResponseResyncTime)
+                return;
+
+            nextPendingResponseResyncTime = now + ResponseResyncSeconds;
+            RequestResync("response-ack-timeout");
         }
 
         private void SendPendingClientResponse()
@@ -2894,12 +2958,7 @@ namespace ArcaneArena.Multiplayer
             MaintainArenaReadyHandshake(now);
             TryProcessPendingHostResponse();
             TrySendPendingPresentationEvents();
-            if (pendingResponseRequestId != 0 &&
-                pendingResponseBytes != null &&
-                now >= nextResponseRetryTime)
-            {
-                SendPendingClientResponse();
-            }
+            MaintainPendingClientResponse(now);
             if (now < nextWirePumpTime)
                 return;
             nextWirePumpTime = now + WirePumpSeconds;
@@ -3548,6 +3607,8 @@ namespace ArcaneArena.Multiplayer
             nextClientCommandId = 0;
             nextClientSequence = 0;
             nextResponseRetryTime = 0f;
+            pendingResponseStartedAt = 0f;
+            nextPendingResponseResyncTime = 0f;
             pendingHostResponseRequestId = 0;
             pendingHostResponseBytes = null;
             pendingHostCommandId = 0;
