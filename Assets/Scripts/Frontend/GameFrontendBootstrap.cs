@@ -3351,6 +3351,11 @@ namespace ArcaneArena.Frontend
 
         private void ReturnToMainMenuScene()
         {
+            if (_duelPresentationVisible &&
+                DuelOnlineSession.Instance?.IsOnlineDuelActive == true)
+            {
+                DuelOnlineSession.Instance.LeaveRoom();
+            }
             if (IsActiveScene(MainMenuSceneName) ||
                 !Application.CanStreamedLevelBeLoaded(MainMenuSceneName))
             {

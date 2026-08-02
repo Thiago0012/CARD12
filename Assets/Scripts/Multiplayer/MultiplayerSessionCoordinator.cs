@@ -33,7 +33,7 @@ namespace ArcaneArena.Multiplayer
         private const string HostEpochKey = "hostEpoch";
 
         private ISession currentSession;
-        private bool leaving;
+        private Task leaveTask;
 
         public ISession CurrentSession => currentSession;
         public bool HasSession => currentSession != null && currentSession.IsMember;
@@ -164,14 +164,25 @@ namespace ArcaneArena.Multiplayer
             await host.SavePropertiesAsync();
         }
 
-        public async Task LeaveAsync()
+        public Task LeaveAsync()
         {
-            if (leaving || currentSession == null)
-                return;
+            if (leaveTask != null)
+                return leaveTask;
+            if (currentSession == null)
+                return Task.CompletedTask;
 
-            leaving = true;
             ISession leavingSession = currentSession;
             Unbind();
+            currentSession = null;
+            leaveTask = LeaveCurrentSessionAsync(leavingSession);
+            return leaveTask;
+        }
+
+        private async Task LeaveCurrentSessionAsync(ISession leavingSession)
+        {
+            // Ensure LeaveAsync has published the shared task before any
+            // caller can attempt to create or join the next room.
+            await Task.Yield();
             try
             {
                 if (leavingSession.IsMember)
@@ -186,8 +197,7 @@ namespace ArcaneArena.Multiplayer
             }
             finally
             {
-                currentSession = null;
-                leaving = false;
+                leaveTask = null;
             }
         }
 
