@@ -1,0 +1,145 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e392d9e719a21b649b8f734f2b035fd6, type: 3}
+  m_Name: starter_box_deck
+  m_EditorClassIdentifier: ArcaneDuel.Game::ArcaneDuel.Game.StarterDeckDefinition
+  id: starter_box_deck
+  displayName: Deck Box
+  banlistVersion: tcg_eu_2026_05_18
+  raw:
+    sourceTitle: Box deck
+    sourceUrl: https://ygoprodeck.com/deck/box-deck-724449
+    sourceCorrectionNote: "O PDF omitiu o \xFAltimo d\xEDgito 9; a busca oficial
+      pelo nome exato resolveu o endere\xE7o 724449."
+    mainDeck:
+    - 25774450
+    - 25774450
+    - 25774450
+    - 21598948
+    - 21598948
+    - 21598948
+    - 31077447
+    - 31077447
+    - 31077447
+    - 95174353
+    - 95174353
+    - 95174353
+    - 95744531
+    - 95744531
+    - 95744531
+    - 56514812
+    - 56514812
+    - 56514812
+    - 97017120
+    - 97017120
+    - 97017120
+    - 26523337
+    - 09416697
+    - 39522887
+    - 03137279
+    - 99529628
+    - 76133574
+    - 73421698
+    - 46037983
+    - 36562627
+    - 36562627
+    - 36562627
+    - 58570206
+    - 58570206
+    - 58570206
+    - 08794055
+    - 35346968
+    - 35346968
+    - 35346968
+    - 65898344
+    - 45792753
+    - 38409239
+    extraDeck:
+    - 48882106
+    - 48882106
+    - 81330115
+    - 81330115
+    - 16259549
+    - 16259549
+    - 70219023
+    - 70219023
+    - 72309040
+    - 46815301
+    - 02405631
+    - 65910922
+    sideDeck: []
+  mainDeck:
+  - 25774450
+  - 25774450
+  - 25774450
+  - 21598948
+  - 21598948
+  - 21598948
+  - 31077447
+  - 31077447
+  - 31077447
+  - 95174353
+  - 95174353
+  - 95174353
+  - 95744531
+  - 95744531
+  - 95744531
+  - 56514812
+  - 56514812
+  - 56514812
+  - 97017120
+  - 97017120
+  - 97017120
+  - 26523337
+  - 09416697
+  - 39522887
+  - 03137279
+  - 99529628
+  - 76133574
+  - 73421698
+  - 46037983
+  - 36562627
+  - 36562627
+  - 36562627
+  - 58570206
+  - 58570206
+  - 58570206
+  - 08794055
+  - 35346968
+  - 35346968
+  - 35346968
+  - 65898344
+  - 45792753
+  - 38409239
+  extraDeck:
+  - 48882106
+  - 48882106
+  - 81330115
+  - 81330115
+  - 16259549
+  - 16259549
+  - 70219023
+  - 70219023
+  - 72309040
+  - 46815301
+  - 02405631
+  - 65910922
+  sideDeck: []
+  previewCardIds:
+  - 25774450
+  - 21598948
+  - 31077447
+  rawSha256: d40d0eb8eab74dd3e3ba3cb3ac1d458d1421f03773458da67f7fe8f17e93ad4e
+  sanitizedSha256: d40d0eb8eab74dd3e3ba3cb3ac1d458d1421f03773458da67f7fe8f17e93ad4e
+  replacements: []
+  validationIssues: []
+  publishable: 1

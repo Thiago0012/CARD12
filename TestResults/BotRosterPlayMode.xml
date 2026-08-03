@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Failed(Child)" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-03 18:05:28Z" end-time="2026-08-03 18:05:39Z" duration="10,797632">
+  <test-suite type="TestSuite" id="1064" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 18:05:28Z" end-time="2026-08-03 18:05:39Z" duration="10.797632" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1057" name="ArcaneDuel.PlayModeTests.dll" fullname="C:/Unity Projeto/CARD12/Library/ScriptAssemblies/ArcaneDuel.PlayModeTests.dll" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 18:05:28Z" end-time="2026-08-03 18:05:39Z" duration="10.782756" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="15112" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1058" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 18:05:28Z" end-time="2026-08-03 18:05:39Z" duration="10.780131" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1059" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 18:05:28Z" end-time="2026-08-03 18:05:39Z" duration="10.757150" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1060" name="PlayMode" fullname="ArcaneDuel.Tests.PlayMode" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 18:05:28Z" end-time="2026-08-03 18:05:39Z" duration="10.741399" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1042" name="PlayableArenaPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" testcasecount="9" result="Failed" site="Child" start-time="2026-08-03 18:05:28Z" end-time="2026-08-03 18:05:39Z" duration="10.722621" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1051" name="EveryCompleteBotDeckStartsABotDuel" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.EveryCompleteBotDeckStartsABotDuel" methodname="EveryCompleteBotDeckStartsABotDuel" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="366565822" result="Failed" start-time="2026-08-03 18:05:28Z" end-time="2026-08-03 18:05:39Z" duration="10.683425" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Every curated bot deck must pass validation and be clickable. Deck do bot shop:blackwing-s-pride-681357: ARCANE
+DECK / Orgulho dos Asas Negras / 40 PRINCIPAL  •  5 EXTRA | Deck do bot shop:classic-blue-eyes-dragon-genesys-99: ARCANE
+DECK / Dragão Branco - Blue-Eyes Max / 41 PRINCIPAL  •  5 EXTRA | Deck do bot shop:classic-red-eyes-black-dragon: ARCANE
+DECK / Deck Dragão Negro / Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0. | Deck do bot shop:crimson-powerforce-637629: ARCANE
+DECK / Força do Poder Carmesim / 40 PRINCIPAL  •  8 EXTRA | Deck do bot shop:cybernetic-successor-722408: ARCANE
+DECK / Sucessor Cibernético / 40 PRINCIPAL  •  5 EXTRA | Deck do bot shop:dragones-2-724339: ARCANE
+DECK / Dragões 2 / 40 PRINCIPAL  •  1 EXTRA | Deck do bot shop:dragonmaid-to-order-x3-705747: ARCANE
+DECK / Dragonmaid Sob Encomenda x3 / 40 PRINCIPAL  •  8 EXTRA | Deck do bot shop:exodia-723881: ARCANE
+DECK / Exodia / 40 PRINCIPAL  •  12 EXTRA | Deck do bot shop:female-reptile-deck-724288: ARCANE
+DECK / Deck Reptiliano Feminino / Harpie's Feather Duster (18144507) usa 2 cópia(s); máximo 1. | Deck do bot shop:hidden-arts-of-shadows-47456: ARCANE
+DECK / Artes Ocultas das Sombras / Maxx "C" (23434538) usa 1 cópia(s); máximo 0. Baronne de Fleur (84815190) usa 1 cópia(s); máximo 0. | Deck do bot shop:mausoleum-lockdown-edison-724211: ARCANE
+DECK / Mausoléu Lockdown Edison / Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Terraforming (73628505) usa 3 cópia(s); máximo 1. Tempest Magician (63101919) usa 1 cópia(s); máximo 0. | Deck do bot shop:noobs-gaia-263232: ARCANE
+DECK / Gaia para Iniciantes / 40 PRINCIPAL  •  10 EXTRA | Deck do bot shop:n-r-assault-mode-good-stuff-724215: ARCANE
+DECK / Modo de Assalto N/R / 40 PRINCIPAL  •  15 EXTRA | Deck do bot shop:n-r-azamina-illusions-723781: ARCANE
+DECK / Ilusões Azamina N/R / 40 PRINCIPAL  •  15 EXTRA | Deck do bot shop:plant-link-722230: ARCANE
+DECK / Plantas Link / Sunavalon Dryas (93896655) usa 2 cópia(s); máximo 1. | Deck do bot shop:return-to-sender-723161: ARCANE
+DECK / Devolução ao Remetente / 45 PRINCIPAL  •  0 EXTRA | Deck do bot shop:runick-724086: ARCANE
+DECK / Runick / Card of Demise (59750328) usa 3 cópia(s); máximo 1. | Deck do bot shop:shiranui-supremacy-699840: ARCANE
+DECK / Supremacia Shiranui / 40 PRINCIPAL  •  11 EXTRA | Deck do bot shop:star-warrior-level-5-xyz-deck-master-duel-2-722498: ARCANE
+DECK / Guerreiros Estelares Nível 5 Xyz / 40 PRINCIPAL  •  15 EXTRA | Deck do bot shop:summon-bans-723769: ARCANE
+DECK / Bloqueio de Invocações / 40 PRINCIPAL  •  1 EXTRA | Deck do bot shop:toon-test-718475: ARCANE
+DECK / Deck Toon / 40 PRINCIPAL  •  15 EXTRA | Deck do bot shop:yugi-muto-battle-city-722944: ARCANE
+DECK / Yugi Muto — Cidade das Batalhas / Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Pot of Greed (55144522) usa 1 cópia(s); máximo 0. | Deck do bot shop:yugi-mutou-dark-magician-classic: ARCANE
+DECK / Mago Negro - Explosão Mágica / 40 PRINCIPAL  •  15 EXTRA
+  Expected: all items not null
+  But was:  < <Deck do bot shop:blackwing-s-pride-681357 (UnityEngine.UI.Button)>, <Deck do bot shop:classic-blue-eyes-dragon-genesys-99 (UnityEngine.UI.Button)>, null, <Deck do bot shop:crimson-powerforce-637629 (UnityEngine.UI.Button)>, <Deck do bot shop:cybernetic-successor-722408 (UnityEngine.UI.Button)>, <Deck do bot shop:dragones-2-724339 (UnityEngine.UI.Button)>, <Deck do bot shop:dragonmaid-to-order-x3-705747 (UnityEngine.UI.Button)>, <Deck do bot shop:exodia-723881 (UnityEngine.UI.Button)>, null, null, null, <Deck do bot shop:noobs-gaia-263232 (UnityEngine.UI.Button)>, <Deck do bot shop:n-r-assault-mode-good-stuff-724215 (UnityEngine.UI.Button)>, <Deck do bot shop:n-r-azamina-illusions-723781 (UnityEngine.UI.Button)>, null, <Deck do bot shop:return-to-sender-723161 (UnityEngine.UI.Button)>, null, <Deck do bot shop:shiranui-supremacy-699840 (UnityEngine.UI.Button)>, <Deck do bot shop:star-warrior-level-5-xyz-deck-master-duel-2-722498 (UnityEngine.UI.Button)>, <Deck do bot shop:summon-bans-723769 (UnityEngine.UI.Button)>, <Deck do bot shop:toon-test-718475 (UnityEngine.UI.Button)>, null, <Deck do bot shop:yugi-mutou-dark-magician-classic (UnityEngine.UI.Button)> >
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests+<EveryCompleteBotDeckStartsABotDuel>d__8.MoveNext () [0x001c3] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\PlayableArenaPlayModeTests.cs:388
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[Saving results to: C:/Users/Ellen Jennyffer/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

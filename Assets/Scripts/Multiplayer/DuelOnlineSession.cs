@@ -31,7 +31,7 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelOnlineSession : MonoBehaviour
     {
         private const string DuelArenaScene = "DuelArena";
-        private const string ProtocolVersion = "arcane-duel-online-v7";
+        private const string ProtocolVersion = "arcane-duel-online-v8";
         private const string HelloMessage = "arcane.duel.hello.v4";
         private const string HelloRequestMessage = "arcane.duel.hello-request.v4";
         private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v4";
@@ -42,13 +42,13 @@ namespace ArcaneArena.Multiplayer
         private const string ResponseMessage = "arcane.duel.response.v4";
         private const string StateAckMessage = "arcane.duel.state-ack.v4";
         private const string ResyncRequestMessage = "arcane.duel.resync.v4";
-        private const string BeginDuelMessage = "arcane.duel.begin.v7";
-        private const string MatchRewardMessage = "arcane.duel.match-result.v7";
+        private const string BeginDuelMessage = "arcane.duel.begin.v8";
+        private const string MatchRewardMessage = "arcane.duel.match-result.v8";
         private const string PresentationEventMessage =
             "arcane.duel.presentation-event.v4";
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
-        private const ushort NgoProtocolVersion = 7;
+        private const ushort NgoProtocolVersion = 8;
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
@@ -1872,6 +1872,19 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
+            if (!OnlineDeckLegalityGate.TryValidate(
+                    localLoadout, out string localRejection))
+            {
+                status = "Deck do anfitriao recusado: " + localRejection;
+                return;
+            }
+            if (!OnlineDeckLegalityGate.TryValidate(
+                    remoteLoadout, out string remoteRejection))
+            {
+                status = "Deck do rival recusado: " + remoteRejection;
+                return;
+            }
+
             uint[] localMain = ParseCardCodes(localLoadout?.mainDeckCardIds);
             uint[] remoteMain = ParseCardCodes(remoteLoadout.mainDeckCardIds);
             if (localMain.Length < 40 || remoteMain.Length < 40)
@@ -2088,7 +2101,7 @@ namespace ArcaneArena.Multiplayer
         {
             const string reason =
                 "A sala usa conteúdo incompatível. Instale a mesma versão " +
-                "ONLINE v7 no PC e no celular e crie um novo código.";
+                "ONLINE v8 no PC e no celular e crie um novo código.";
             ResetAfterFailedConnection(reason);
             showPanel = true;
         }
@@ -3217,14 +3230,14 @@ namespace ArcaneArena.Multiplayer
                 hello.protocolVersion != ProtocolVersion)
             {
                 rejection = "O rival usa um protocolo online incompatível. " +
-                    "Ambos precisam instalar a versão ONLINE v7.";
+                    "Ambos precisam instalar a versão ONLINE v8.";
                 return false;
             }
             if (hello.compatibility !=
                 ProjectIdentity.MultiplayerCompatibility)
             {
                 rejection = "O conteúdo do jogo é diferente entre os dois " +
-                    "dispositivos. Instale a mesma versão ONLINE v7 no PC " +
+                    "dispositivos. Instale a mesma versão ONLINE v8 no PC " +
                     "e no celular para usar todos os decks corretamente.";
                 return false;
             }
@@ -3236,6 +3249,7 @@ namespace ArcaneArena.Multiplayer
             }
             int mainCount = hello.loadout.mainDeckCardIds?.Count ?? 0;
             int extraCount = hello.loadout.extraDeckCardIds?.Count ?? 0;
+            int sideCount = hello.loadout.sideDeckCardIds?.Count ?? 0;
             if ((hello.loadout.playerDisplayName?.Length ?? 0) > 128 ||
                 (hello.loadout.displayName?.Length ?? 0) > 128 ||
                 (hello.loadout.profileId?.Length ?? 0) > 128 ||
@@ -3244,18 +3258,21 @@ namespace ArcaneArena.Multiplayer
                 rejection = "O deck remoto possui metadados maiores que o limite online.";
                 return false;
             }
-            if (mainCount < 40 || mainCount > 60 || extraCount > 15)
+            if (mainCount < 40 || mainCount > 60 ||
+                extraCount > 15 || sideCount > 15)
             {
-                rejection = "O deck remoto não respeita os limites de 40–60 e 15 cartas.";
+                rejection = "O deck remoto não respeita os limites de Main, Extra e Side.";
                 return false;
             }
             if (ParseCardCodes(hello.loadout.mainDeckCardIds).Length != mainCount ||
-                ParseCardCodes(hello.loadout.extraDeckCardIds).Length != extraCount)
+                ParseCardCodes(hello.loadout.extraDeckCardIds).Length != extraCount ||
+                ParseCardCodes(hello.loadout.sideDeckCardIds).Length != sideCount)
             {
                 rejection = "O deck remoto possui identificadores de carta inválidos.";
                 return false;
             }
-            return true;
+            return OnlineDeckLegalityGate.TryValidate(
+                hello.loadout, out rejection);
         }
 
         private static uint[] ParseCardCodes(System.Collections.Generic.IEnumerable<string> values)
@@ -3287,6 +3304,8 @@ namespace ArcaneArena.Multiplayer
                     : error;
                 return false;
             }
+            if (!OnlineDeckLegalityGate.TryValidate(loadout, out error))
+                return false;
             return true;
         }
 
@@ -4691,14 +4710,14 @@ namespace ArcaneArena.Multiplayer
         {
             if (!IsOnlineDuelActive)
             {
-                return "ONLINE v7 • Sessions escolhe a melhor região Relay.";
+                return "ONLINE v8 • Sessions escolhe a melhor região Relay.";
             }
 
             int roundTrip = RelayRoundTripTimeMs;
             string rtt = roundTrip < 0
                 ? "medindo RTT..."
                 : $"RTT real: {roundTrip} ms";
-            return $"ONLINE v7 • Relay: {GetRelayRegionLabel()}  •  {rtt}";
+            return $"ONLINE v8 • Relay: {GetRelayRegionLabel()}  •  {rtt}";
         }
 
         private string GetRelayRegionLabel()

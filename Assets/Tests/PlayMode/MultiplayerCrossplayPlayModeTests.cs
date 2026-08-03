@@ -251,7 +251,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(manager, Is.Not.Null);
             Assert.That(transport, Is.Not.Null);
             Assert.That(manager.NetworkConfig.NetworkTransport, Is.SameAs(transport));
-            Assert.That(manager.NetworkConfig.ProtocolVersion, Is.EqualTo(7));
+            Assert.That(manager.NetworkConfig.ProtocolVersion, Is.EqualTo(8));
             Assert.That(manager.NetworkConfig.TickRate, Is.EqualTo(20));
             Assert.That(transport.HeartbeatTimeoutMS, Is.EqualTo(1000));
             Assert.That(transport.DisconnectTimeoutMS, Is.EqualTo(120000));
@@ -270,7 +270,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(protocol, Is.Not.Null);
             Assert.That(
                 protocol.GetRawConstantValue(),
-                Is.EqualTo("arcane-duel-online-v7"));
+                Is.EqualTo("arcane-duel-online-v8"));
         }
 
         [Test]
@@ -570,7 +570,7 @@ namespace ArcaneDuel.Tests.PlayMode
 
             Assert.That(accepted, Is.False);
             Assert.That(arguments[1] as string,
-                Does.Contain("mesma versão ONLINE v7"));
+                Does.Contain("mesma versão ONLINE v8"));
         }
 
         [Test]

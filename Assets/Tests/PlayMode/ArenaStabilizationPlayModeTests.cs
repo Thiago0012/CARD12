@@ -222,6 +222,8 @@ namespace ArcaneDuel.Tests.PlayMode
             controller.ConfigureNetworkReplica(0);
             arena.GetType().GetField("state", flags)
                 ?.SetValue(arena, controller.PresentationState);
+            controller.PresentationState.Players[0].Hand.Clear();
+            controller.PresentationState.Players[0].HandInstances.Clear();
             controller.PresentationState.Apply(DrawEvent(0, EffectVeiler));
 
             DuelPrompt prompt = SingleHandSelectionPrompt(7301);
@@ -325,7 +327,7 @@ namespace ArcaneDuel.Tests.PlayMode
 
             Component zone = FindZone("PlayerOne", "Monster", 5);
             Assert.That(zone, Is.Not.Null);
-            Transform worldCard = zone.transform.Find("Carta Invocada");
+            Transform worldCard = FindPresentedCard(zone);
             Assert.That(worldCard, Is.Not.Null);
             Transform front = worldCard.Find("Frente");
             Assert.That(front, Is.Not.Null);
@@ -450,7 +452,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 "SpellTrap",
                 0);
             Assert.That(zone, Is.Not.Null);
-            Transform card = zone.transform.Find("Carta Invocada");
+            Transform card = FindPresentedCard(zone);
             Assert.That(card, Is.Not.Null);
             Transform front = card.Find("Frente");
             Transform back = card.Find("Verso");
@@ -619,7 +621,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 "Monster",
                 0);
             Assert.That(zone, Is.Not.Null);
-            Transform card = zone.transform.Find("Carta Invocada");
+            Transform card = FindPresentedCard(zone);
             Assert.That(card, Is.Not.Null);
             AssertWorldViewMatches(
                 card,
@@ -631,7 +633,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Object.Destroy(card.gameObject);
             yield return null;
             Assert.That(
-                zone.transform.Find("Carta Invocada"),
+                FindPresentedCard(zone),
                 Is.Null);
 
             string[] problems = validate.Invoke(
@@ -645,7 +647,7 @@ namespace ArcaneDuel.Tests.PlayMode
             yield return null;
 
             Transform repaired =
-                zone.transform.Find("Carta Invocada");
+                FindPresentedCard(zone);
             Assert.That(
                 repaired,
                 Is.Not.Null,
@@ -707,7 +709,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 "Graveyard",
                 0);
             Assert.That(zone, Is.Not.Null);
-            Transform card = zone.transform.Find("Carta Invocada");
+            Transform card = FindPresentedCard(zone);
             Assert.That(
                 card,
                 Is.Not.Null,
@@ -825,7 +827,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 "Monster",
                 0);
             Transform worldCard =
-                zone.transform.Find("Carta Invocada");
+                FindPresentedCard(zone);
             Assert.That(worldCard, Is.Not.Null);
             AssertWorldViewMatches(worldCard, second.RuntimeId);
 
@@ -1593,6 +1595,15 @@ namespace ArcaneDuel.Tests.PlayMode
                            zoneIndex is int current &&
                            current == index;
                 });
+        }
+
+        private static Transform FindPresentedCard(Component zone)
+        {
+            if (zone == null)
+                return null;
+            return zone.GetType()
+                .GetMethod("FindPresentedCard")
+                ?.Invoke(zone, null) as Transform;
         }
 
         private static DuelChoice LocatedChoice(

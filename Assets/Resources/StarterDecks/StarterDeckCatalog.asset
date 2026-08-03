@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d11dbac28dc78c4fb6224838aa5bbc6, type: 3}
+  m_Name: StarterDeckCatalog
+  m_EditorClassIdentifier: ArcaneDuel.Game::ArcaneDuel.Game.StarterDeckCatalog
+  catalogVersion: 1
+  activeBanlistId: tcg_eu_2026_05_18
+  legacyPolicy: 0
+  decks:
+  - {fileID: 11400000, guid: d9f0f7298ca3d594eb9fa764192febf9, type: 2}
+  - {fileID: 11400000, guid: d2968131fefd2b2489004572f70198a0, type: 2}
+  - {fileID: 11400000, guid: d5026e92127f10846b5b9e49c7537753, type: 2}
+  - {fileID: 11400000, guid: 8f9541a0eb1f82a459487cda306637ed, type: 2}
+  - {fileID: 11400000, guid: bc6594f429807704eb6c14000e43e878, type: 2}
+  - {fileID: 11400000, guid: 0c5255ad25e103e459a30399d9580e25, type: 2}

@@ -303,6 +303,16 @@ namespace ArcaneArena
                         out player,
                         out rejection))
                 {
+                    if (SceneManager.GetActiveScene().name ==
+                            ProjectIdentity.DuelScene &&
+                        TryCreateDirectSceneFallback(out player))
+                    {
+                        Debug.LogWarning(
+                            "[Arcane legacy bridge] O deck persistido esta ilegal; " +
+                            "a cena tecnica Duel usara um starter validado.");
+                    }
+                    else
+                    {
                     Debug.LogWarning(
                         $"[Arcane legacy bridge] Selected loadout rejected: " +
                         $"{rejection}");
@@ -312,6 +322,7 @@ namespace ArcaneArena
                             : rejection,
                         Gold);
                     return;
+                    }
                 }
             }
 
@@ -371,6 +382,39 @@ namespace ArcaneArena
                     Gold);
                 Debug.LogException(exception);
             }
+        }
+
+        private static bool TryCreateDirectSceneFallback(
+            out DuelDeckLoadout loadout)
+        {
+            loadout = null;
+            StarterDeckCatalog catalog = Resources.Load<StarterDeckCatalog>(
+                "StarterDecks/StarterDeckCatalog");
+            StarterDeckDefinition starter = catalog?.Decks.FirstOrDefault(
+                deck => deck != null && deck.IsPublishable);
+            if (starter == null)
+                return false;
+
+            var main = new List<string>(starter.MainDeck);
+            var extra = new List<string>(starter.ExtraDeck);
+            var side = new List<string>();
+            loadout = new DuelDeckLoadout
+            {
+                profileId = "direct-scene-test",
+                playerDisplayName = "DUELISTA LOCAL",
+                deckId = starter.Id,
+                displayName = starter.DisplayName,
+                mainDeckCardIds = main,
+                extraDeckCardIds = extra,
+                sideDeckCardIds = side,
+                banlistId = BanlistService.ActiveBanlistId,
+                normalizedDeckSha256 = DeckManifestHasher.ComputeSha256(
+                    BanlistService.ActiveBanlistId,
+                    main,
+                    extra,
+                    side)
+            };
+            return true;
         }
 
         private uint[] ParseCodes(IEnumerable<string> values)

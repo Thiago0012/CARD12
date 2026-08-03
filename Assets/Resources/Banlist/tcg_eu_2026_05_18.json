@@ -1,0 +1,1138 @@
+{
+  "schemaVersion": 1,
+  "id": "tcg_eu_2026_05_18",
+  "effectiveDate": "2026-05-18",
+  "sourceSha256": "946f0c25ca1676397353e93c291d25577daf3bdded6160f9efb26fe715a40260",
+  "entries": [
+    {
+      "officialName": "Abyss Dweller",
+      "passcode": "21044178",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Agido the Ancient Sentinel",
+      "passcode": "62320425",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Apollousa, Bow of the Goddess",
+      "passcode": "04280258",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Appointer of the Red Lotus",
+      "passcode": "43262273",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Archnemeses Protos",
+      "passcode": "06728559",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Artifact Mjollnir",
+      "passcode": "80237445",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Artifact Scythe",
+      "passcode": "20292186",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Bahamut Shark",
+      "passcode": "00440556",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Baronne de Fleur",
+      "passcode": "84815190",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Barrier Statue of the Drought",
+      "passcode": "19740112",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Barrier Statue of the Inferno",
+      "passcode": "47961808",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Barrier Statue of the Stormwinds",
+      "passcode": "73356503",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Barrier Statue of the Torrent",
+      "passcode": "10963799",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Beatrice, Lady of the Eternal",
+      "passcode": "27552504",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Blackwing - Gofu the Vague Shadow",
+      "passcode": "09929398",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Block Dragon",
+      "passcode": "94689206",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Borreload Savage Dragon",
+      "passcode": "27548199",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Branded Expulsion",
+      "passcode": "01041278",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Butterfly Dagger - Elma",
+      "passcode": "69243953",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Card of Safe Return",
+      "passcode": "57953380",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Chaos Ruler, the Chaotic Magical Dragon",
+      "passcode": "03040496",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Cold Wave",
+      "passcode": "60682203",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Confiscation",
+      "passcode": "17375316",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Crystron Halqifibrax",
+      "passcode": "50588353",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Curious, the Lightsworn Dominion",
+      "passcode": "98095162",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "CXyz Gimmick Puppet Fanatix Machinix",
+      "passcode": "03685372",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Cyber-Stein",
+      "passcode": "69015963",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Dandylion",
+      "passcode": "15341821",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Delinquent Duo",
+      "passcode": "44763025",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Dimension Fusion",
+      "passcode": "23557835",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Dimensional Barrier",
+      "passcode": "83326048",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Djinn Releaser of Rituals",
+      "passcode": "08903700",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Eclipse Wyvern",
+      "passcode": "51858306",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Elder Entity Norden",
+      "passcode": "17412721",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Evilswarm Ouroboros",
+      "passcode": "38273745",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Fiber Jar",
+      "passcode": "78706415",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Fishborg Blaster",
+      "passcode": "93369354",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Fossil Dyna Pachycephalo",
+      "passcode": "42009836",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Giant Trunade",
+      "passcode": "42703248",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Gimmick Puppet Nightmare",
+      "passcode": "55204071",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Graceful Charity",
+      "passcode": "79571449",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Grinder Golem",
+      "passcode": "75732622",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Guardragon Agarpain",
+      "passcode": "59537380",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Guardragon Elpy",
+      "passcode": "86148577",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Harpie's Feather Storm",
+      "passcode": "87639778",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Heavy Storm",
+      "passcode": "19613556",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Heavymetalfoes Electrumite",
+      "passcode": "24094258",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Herald of the Arc Light",
+      "passcode": "79606837",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Hot Red Dragon Archfiend King Calamity",
+      "passcode": "62242678",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Imperial Order",
+      "passcode": "61740673",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Isolde, Two Tales of the Noble Knights",
+      "passcode": "59934749",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Jowgen the Spiritualist",
+      "passcode": "41855169",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "K9-04 Noroi",
+      "passcode": "47960073",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Kaiser Colosseum",
+      "passcode": "35059553",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Kashtira Arise-Heart",
+      "passcode": "48626373",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Kelbek the Ancient Vanguard",
+      "passcode": "25926710",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "King of the Feral Imps",
+      "passcode": "11398059",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Knightmare Goblin",
+      "passcode": "39064822",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Knightmare Gryphon",
+      "passcode": "65330383",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Knightmare Mermaid",
+      "passcode": "03679218",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Last Turn",
+      "passcode": "28566710",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Last Will",
+      "passcode": "85602018",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Lavalval Chain",
+      "passcode": "34086406",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Level Eater",
+      "passcode": "57421866",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Link Decoder",
+      "passcode": "30342076",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Linkross",
+      "passcode": "85243784",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "M-X-Saber Invoker",
+      "passcode": "04423206",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Magical Scientist",
+      "passcode": "34206604",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Maliss <Q> White Binder",
+      "passcode": "95454996",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Mass Driver",
+      "passcode": "34906152",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Maxx \"C\"",
+      "passcode": "23434538",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Mecha Phantom Beast Auroradon",
+      "passcode": "44097050",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Mind Master",
+      "passcode": "96782886",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Mirage of Nightmare",
+      "passcode": "41482598",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Moon of the Closed Heaven",
+      "passcode": "71818935",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Mystic Mine",
+      "passcode": "76375976",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Naturia Rosewhip",
+      "passcode": "61049315",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Number 16: Shock Master",
+      "passcode": "54719828",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Number 42: Galaxy Tomahawk",
+      "passcode": "10389142",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Number 67: Pair-a-Dice Smasher",
+      "passcode": "35772782",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Number 86: Heroic Champion - Rhongomyniad",
+      "passcode": "63504681",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Number 89: Diablosis the Mind Hacker",
+      "passcode": "95474755",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Number 95: Galaxy-Eyes Dark Matter Dragon",
+      "passcode": "58820923",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Number S0: Utopic ZEXAL",
+      "passcode": "52653092",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Original Sinful Spoils - Snake-Eye",
+      "passcode": "89023486",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Outer Entity Azathot",
+      "passcode": "34945480",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Painful Choice",
+      "passcode": "74191942",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Phoenixian Cluster Amaryllis",
+      "passcode": "23558733",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Pot of Greed",
+      "passcode": "55144522",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Prank-Kids Meow-Meow-Mu",
+      "passcode": "25725326",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Predaplant Verte Anaconda",
+      "passcode": "70369116",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Red Reboot",
+      "passcode": "23002292",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Return from the Different Dimension",
+      "passcode": "27174286",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Ronintoadin",
+      "passcode": "01357146",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Royal Oppression",
+      "passcode": "93016201",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Self-Destruct Button",
+      "passcode": "57585212",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Simorgh, Bird of Sovereignty",
+      "passcode": "72330894",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Sixth Sense",
+      "passcode": "03280747",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Smoke Grenade of the Thief",
+      "passcode": "63789924",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Soul Charge",
+      "passcode": "54447022",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Splash Mage",
+      "passcode": "59859086",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Spright Elf",
+      "passcode": "27381364",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "SPYRAL Master Plan",
+      "passcode": "91258852",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Summon Limit",
+      "passcode": "23516703",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Superheavy Samurai Scarecrow",
+      "passcode": "33918636",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Supreme King Dragon Starving Venom",
+      "passcode": "43387895",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Tearlaments Kitkallos",
+      "passcode": "92731385",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Tempest Magician",
+      "passcode": "63101919",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "The Forceful Sentry",
+      "passcode": "42829885",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "The Tyrant Neptune",
+      "passcode": "88071625",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Topologic Gumblar Dragon",
+      "passcode": "22593417",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Trap Dustshoot",
+      "passcode": "64697231",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "True King of All Calamities",
+      "passcode": "88581108",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Ultimate Offering",
+      "passcode": "80604092",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Union Carrier",
+      "passcode": "83152482",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Vanity's Emptiness",
+      "passcode": "05851097",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Victory Dragon",
+      "passcode": "44910027",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Wind-Up Carrier Zenmaity",
+      "passcode": "81122844",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "Zoodiac Broadbull",
+      "passcode": "85115440",
+      "maxCopies": 0
+    },
+    {
+      "officialName": "\"A Case for K9\"",
+      "passcode": "80181649",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Ame no Habakiri no Mitsurugi",
+      "passcode": "13332685",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Anti-Spell Fragrance",
+      "passcode": "58921041",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Astrograph Sorcerer",
+      "passcode": "76794549",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Bonfire",
+      "passcode": "85106525",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Branded Fusion",
+      "passcode": "44362883",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Brilliant Fusion",
+      "passcode": "07394770",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Bystial Druiswurm",
+      "passcode": "06637331",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Bystial Magnamhut",
+      "passcode": "33854624",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Called by the Grave",
+      "passcode": "24224830",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Card Destruction",
+      "passcode": "72892473",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Card of Demise",
+      "passcode": "59750328",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Chain Strike",
+      "passcode": "91623717",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Chaos Space",
+      "passcode": "99266988",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Chicken Game",
+      "passcode": "67616300",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Crossout Designator",
+      "passcode": "65681983",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Cupsy★Yummy Way",
+      "passcode": "31603289",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Cupsy☆Yummy",
+      "passcode": "31425736",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Daigusto Emeral",
+      "passcode": "00581014",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Dimension Shifter",
+      "passcode": "91800273",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Divine Wind of Mist Valley",
+      "passcode": "15854426",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Dracotail Mululu",
+      "passcode": "07375867",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Exodia the Forbidden One",
+      "passcode": "33396948",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Ext Ryzeal",
+      "passcode": "34022970",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Fairy Tail - Snow",
+      "passcode": "55623480",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Fiendsmith's Lacrima",
+      "passcode": "46640168",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Final Countdown",
+      "passcode": "95308449",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Foolish Burial",
+      "passcode": "81439173",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Gateway of the Six",
+      "passcode": "27970830",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Gem-Knight Master Diamond",
+      "passcode": "39512984",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Gold Sarcophagus",
+      "passcode": "75500286",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Gozen Match",
+      "passcode": "53334471",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Harpie's Feather Duster",
+      "passcode": "18144507",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Infernity Launcher",
+      "passcode": "66957584",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Instant Fusion",
+      "passcode": "01845204",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Into the Void",
+      "passcode": "93946239",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "K9-66a Jokul",
+      "passcode": "28642461",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Keldo the Sacred Protector",
+      "passcode": "63542003",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Ketu Dracotail",
+      "passcode": "06153210",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Left Arm of the Forbidden One",
+      "passcode": "07902349",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Left Leg of the Forbidden One",
+      "passcode": "44519536",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Linkuriboh",
+      "passcode": "41999284",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Magical Explosion",
+      "passcode": "32723153",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Magical Mid-Breaker Field",
+      "passcode": "71650854",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Maliss <P> Dormouse",
+      "passcode": "32061192",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Maliss <P> White Rabbit",
+      "passcode": "69272449",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Mathmech Circular",
+      "passcode": "36521307",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Metamorphosis",
+      "passcode": "46411259",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Miscellaneousaurus",
+      "passcode": "38572779",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Monster Gate",
+      "passcode": "43040603",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Monster Reborn",
+      "passcode": "83764719",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Mudora the Sword Oracle",
+      "passcode": "99937011",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Naturia Sacred Tree",
+      "passcode": "03734202",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Number 40: Gimmick Puppet of Strings",
+      "passcode": "75433814",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Number C40: Gimmick Puppet of Dark Strings",
+      "passcode": "69170557",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Obedience Schooled",
+      "passcode": "72537897",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "One Day of Peace",
+      "passcode": "33782437",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "One for One",
+      "passcode": "02295440",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Phantom of Yubel",
+      "passcode": "80453041",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Pot of Prosperity",
+      "passcode": "84211599",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Premature Burial",
+      "passcode": "70828912",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "PSY-Framegear Gamma",
+      "passcode": "38814750",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "PSY-Framelord Omega",
+      "passcode": "74586817",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Radiant Typhoon Chant",
+      "passcode": "67115133",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Rahu Dracotail",
+      "passcode": "32548318",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Reasoning",
+      "passcode": "58577036",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Reinforcement of the Army",
+      "passcode": "32807846",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Right Arm of the Forbidden One",
+      "passcode": "70903634",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Right Leg of the Forbidden One",
+      "passcode": "08124921",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Rivalry of Warlords",
+      "passcode": "90846359",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Ryzeal Detonator",
+      "passcode": "34909328",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Sangen Kaimen",
+      "passcode": "66730191",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Sangen Summoning",
+      "passcode": "30336082",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Sekka's Light",
+      "passcode": "24940422",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Set Rotation",
+      "passcode": "73468603",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Skill Drain",
+      "passcode": "82732705",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Sky Striker Mecha - Hornet Drones",
+      "passcode": "52340444",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Slash Draw",
+      "passcode": "71344451",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Solemn Judgment",
+      "passcode": "41420027",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Striker Dragon",
+      "passcode": "73539069",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Substitoad",
+      "passcode": "20663556",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Summon Sorceress",
+      "passcode": "61665245",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Sunavalon Dryas",
+      "passcode": "93896655",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Sunvine Healer",
+      "passcode": "65563871",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Synchro Overtake",
+      "passcode": "99243014",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "T.G. Hyper Librarian",
+      "passcode": "90953320",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Tearlaments Havnis",
+      "passcode": "37961969",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Tearlaments Merrli",
+      "passcode": "74078255",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Tearlaments Scheiren",
+      "passcode": "00572850",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Tenpai Dragon Chundra",
+      "passcode": "91810826",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Terraforming",
+      "passcode": "73628505",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "That Grass Looks Greener",
+      "passcode": "11110587",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "There Can Be Only One",
+      "passcode": "24207889",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Triple Tactics Talent",
+      "passcode": "25311006",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Vanquish Soul Hollie Sue",
+      "passcode": "93156774",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Yummy★Snatchy",
+      "passcode": "30581601",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Zoodiac Ratpier",
+      "passcode": "78872731",
+      "maxCopies": 1
+    },
+    {
+      "officialName": "Dracotail Arthalion",
+      "passcode": "33760966",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Dracotail Lukias",
+      "passcode": "75003700",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Droll & Lock Bird",
+      "passcode": "94145021",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Ice Ryzeal",
+      "passcode": "08633261",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Maliss in Underground",
+      "passcode": "68337209",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Purrely Delicious Memory",
+      "passcode": "55584558",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Purrely Sleepy Memory",
+      "passcode": "21347668",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Runick Fountain",
+      "passcode": "92107604",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Sword Ryzeal",
+      "passcode": "35844557",
+      "maxCopies": 2
+    },
+    {
+      "officialName": "Unchained Soul of Sharvara",
+      "passcode": "41165831",
+      "maxCopies": 2
+    }
+  ]
+}

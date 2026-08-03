@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="13" result="Passed" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-03 17:56:35Z" end-time="2026-08-03 17:56:50Z" duration="14,8656743">
+  <test-suite type="TestSuite" id="1064" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-08-03 17:56:35Z" end-time="2026-08-03 17:56:50Z" duration="14.865674" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1057" name="ArcaneDuel.PlayModeTests.dll" fullname="C:/Unity Projeto/CARD12/Library/ScriptAssemblies/ArcaneDuel.PlayModeTests.dll" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-08-03 17:56:35Z" end-time="2026-08-03 17:56:50Z" duration="14.843760" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="18292" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1058" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-08-03 17:56:35Z" end-time="2026-08-03 17:56:50Z" duration="14.840533" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1059" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-08-03 17:56:35Z" end-time="2026-08-03 17:56:50Z" duration="14.822943" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1060" name="PlayMode" fullname="ArcaneDuel.Tests.PlayMode" runstate="Runnable" testcasecount="49" result="Passed" start-time="2026-08-03 17:56:35Z" end-time="2026-08-03 17:56:50Z" duration="14.806201" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1025" name="MultiplayerCrossplayPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-08-03 17:56:35Z" end-time="2026-08-03 17:56:50Z" duration="14.787425" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1032" name="AuthoritativeSnapshotRebuildsTheRemoteField" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.AuthoritativeSnapshotRebuildsTheRemoteField" methodname="AuthoritativeSnapshotRebuildsTheRemoteField" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="326099626" result="Passed" start-time="2026-08-03 17:56:35Z" end-time="2026-08-03 17:56:36Z" duration="0.069418" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1034" name="DrawPresentationKeepsTheAuthoritativeDrawPhase" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.DrawPresentationKeepsTheAuthoritativeDrawPhase" methodname="DrawPresentationKeepsTheAuthoritativeDrawPhase" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="584754216" result="Passed" start-time="2026-08-03 17:56:36Z" end-time="2026-08-03 17:56:36Z" duration="0.009064" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1026" name="ExplicitLobbyExitClearsStateAndCanRunAgain" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.ExplicitLobbyExitClearsStateAndCanRunAgain" methodname="ExplicitLobbyExitClearsStateAndCanRunAgain" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="382069398" result="Passed" start-time="2026-08-03 17:56:36Z" end-time="2026-08-03 17:56:36Z" duration="0.035189" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1033" name="InitialSnapshotBuildsBothPlayerPerspectivesAndRoutesActions" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.InitialSnapshotBuildsBothPlayerPerspectivesAndRoutesActions" methodname="InitialSnapshotBuildsBothPlayerPerspectivesAndRoutesActions" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1894787523" result="Passed" start-time="2026-08-03 17:56:36Z" end-time="2026-08-03 17:56:48Z" duration="12.227734" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1031" name="NetworkSnapshotRotatesPerspectiveAndHidesOpponentHand" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.NetworkSnapshotRotatesPerspectiveAndHidesOpponentHand" methodname="NetworkSnapshotRotatesPerspectiveAndHidesOpponentHand" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="2064103992" result="Passed" start-time="2026-08-03 17:56:48Z" end-time="2026-08-03 17:56:48Z" duration="0.002326" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1027" name="OnlineArenaDoesNotStartASecondLocalDuel" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.OnlineArenaDoesNotStartASecondLocalDuel" methodname="OnlineArenaDoesNotStartASecondLocalDuel" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1504919928" result="Passed" start-time="2026-08-03 17:56:48Z" end-time="2026-08-03 17:56:48Z" duration="0.652348" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (CARTAS DEMONSTRATIVAS (SOMENTE EDICAO): OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (LAYOUT EDITAVEL DA ARENA (SOMENTE EDICAO): OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (IMAGEM DA ARENA (ARRASTE SEU PNG AQUI): OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (PONTOS EDITAVEIS DAS CARTAS E PILHAS: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 6: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 7: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - DECK 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - EXTRA 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - CEMITERIO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - BANIMENTO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - CAMPO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 6: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 7: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - DECK 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - EXTRA 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - CEMITERIO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - BANIMENTO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - CAMPO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (CARTAS DEMONSTRATIVAS (SOMENTE EDICAO): OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 5: OnCanvasGroupChanged)
+[MP] stage=local-core-deferred scene=DuelArena
+]]></output>
+              </test-case>
+              <test-case id="1030" name="OnlineSessionUsesVersionedLowFrequencyRelayConfig" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.OnlineSessionUsesVersionedLowFrequencyRelayConfig" methodname="OnlineSessionUsesVersionedLowFrequencyRelayConfig" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="626030442" result="Passed" start-time="2026-08-03 17:56:48Z" end-time="2026-08-03 17:56:49Z" duration="0.036997" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1036" name="OnlineStartHasDeckStartAndArenaAcknowledgements" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.OnlineStartHasDeckStartAndArenaAcknowledgements" methodname="OnlineStartHasDeckStartAndArenaAcknowledgements" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1495032182" result="Passed" start-time="2026-08-03 17:56:49Z" end-time="2026-08-03 17:56:49Z" duration="0.004389" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1029" name="OptionsExposeAllFiveGraphicsLevels" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.OptionsExposeAllFiveGraphicsLevels" methodname="OptionsExposeAllFiveGraphicsLevels" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1308913403" result="Passed" start-time="2026-08-03 17:56:49Z" end-time="2026-08-03 17:56:49Z" duration="0.527209" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1037" name="PublicStateHashIsPerspectiveInvariantAndExcludesPrivateHands" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.PublicStateHashIsPerspectiveInvariantAndExcludesPrivateHands" methodname="PublicStateHashIsPerspectiveInvariantAndExcludesPrivateHands" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="125658407" result="Passed" start-time="2026-08-03 17:56:49Z" end-time="2026-08-03 17:56:49Z" duration="0.002605" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1028" name="SlowRelayResyncRebasesPendingResponseVersion" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.SlowRelayResyncRebasesPendingResponseVersion" methodname="SlowRelayResyncRebasesPendingResponseVersion" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1507416921" result="Passed" start-time="2026-08-03 17:56:49Z" end-time="2026-08-03 17:56:50Z" duration="1.160179" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1035" name="V4HandshakeRejectsDifferentCardContentRevision" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.V4HandshakeRejectsDifferentCardContentRevision" methodname="V4HandshakeRejectsDifferentCardContentRevision" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1542006223" result="Passed" start-time="2026-08-03 17:56:50Z" end-time="2026-08-03 17:56:50Z" duration="0.006930" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1038" name="V4LogicalPayloadCompressesAndRoundTripsLargeSnapshots" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.V4LogicalPayloadCompressesAndRoundTripsLargeSnapshots" methodname="V4LogicalPayloadCompressesAndRoundTripsLargeSnapshots" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="708142670" result="Passed" start-time="2026-08-03 17:56:50Z" end-time="2026-08-03 17:56:50Z" duration="0.019458" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/Ellen Jennyffer/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

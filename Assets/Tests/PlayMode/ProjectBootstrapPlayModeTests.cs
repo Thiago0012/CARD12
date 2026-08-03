@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Reflection;
 using ArcaneDuel.Game;
 using NUnit.Framework;
 using UnityEngine;
@@ -41,17 +42,38 @@ namespace ArcaneDuel.Tests.PlayMode
                 break;
             }
             Assert.That(frontend, Is.Not.Null);
+            object repository = frontend.GetType().GetField(
+                    "_repository",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(frontend);
+            object state = repository?.GetType().GetProperty("State")
+                ?.GetValue(repository);
+            state?.GetType().GetField("starterDeckClaimed")
+                ?.SetValue(state, true);
             frontend.GetType().GetMethod("ShowMainMenu")?.Invoke(
                 frontend,
                 null);
             yield return null;
 
-            Assert.That(GameObject.Find("HUD da Tela Inicial"), Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Moldura HUD da Tela Inicial"),
+                Is.Not.Null);
             Assert.That(GameObject.Find("Ação DUELAR"), Is.Not.Null);
             Assert.That(GameObject.Find("Ação DECKS"), Is.Not.Null);
             Assert.That(GameObject.Find("Ação LOJA"), Is.Not.Null);
             Assert.That(GameObject.Find("Ação MULTIPLAYER"), Is.Not.Null);
-            Assert.That(GameObject.Find("Qualidade da Conexão"), Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Arte Botão MULTIPLAYER")
+                    .GetComponent<RectTransform>().anchorMin.y,
+                Is.EqualTo(0.2065f).Within(0.0001f));
+            Assert.That(
+                GameObject.Find("Arte Botão DECKS")
+                    .GetComponent<RectTransform>().anchorMin.y,
+                Is.EqualTo(-0.1044f).Within(0.0001f));
+            Assert.That(
+                GameObject.Find("Arte Botão LOJA")
+                    .GetComponent<RectTransform>().anchorMin.y,
+                Is.EqualTo(-0.1028f).Within(0.0001f));
 
             Object assets =
                 Resources.Load("Frontend/MainMenuUiAssets");

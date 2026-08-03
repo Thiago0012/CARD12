@@ -6,9 +6,15 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 5;
+        public int schemaVersion = 6;
         public string localProfileId;
         public string playerDisplayName;
+        public bool starterDeckClaimed;
+        public string starterDeckId;
+        public string starterClaimTransactionId;
+        public long starterClaimedAtUtcTicks;
+        public int starterCatalogVersion;
+        public string banlistVersionAtClaim;
         public string selectedDeckId;
         public List<DeckRecord> decks = new List<DeckRecord>();
         public List<string> unlockedDeckProductIds =
@@ -100,6 +106,9 @@ namespace ArcaneArena.Frontend
         public string displayName;
         public List<string> mainDeckCardIds = new List<string>();
         public List<string> extraDeckCardIds = new List<string>();
+        public List<string> sideDeckCardIds = new List<string>();
+        public string banlistId;
+        public string normalizedDeckSha256;
 
         public static DuelDeckLoadout Create(
             string profileId,
@@ -119,7 +128,16 @@ namespace ArcaneArena.Frontend
                 mainDeckCardIds = new List<string>(
                     deck.mainDeckCardIds),
                 extraDeckCardIds = new List<string>(
-                    deck.extraDeckCardIds)
+                    deck.extraDeckCardIds),
+                sideDeckCardIds = new List<string>(
+                    deck.sideDeckCardIds),
+                banlistId = ArcaneDuel.Game.BanlistService.ActiveBanlistId,
+                normalizedDeckSha256 = ArcaneDuel.Game.DeckManifestHasher
+                    .ComputeSha256(
+                        ArcaneDuel.Game.BanlistService.ActiveBanlistId,
+                        deck.mainDeckCardIds,
+                        deck.extraDeckCardIds,
+                        deck.sideDeckCardIds)
             };
         }
     }
@@ -132,16 +150,19 @@ namespace ArcaneArena.Frontend
         public int caseTheme;
         public List<string> mainDeckCardIds = new List<string>();
         public List<string> extraDeckCardIds = new List<string>();
+        public List<string> sideDeckCardIds = new List<string>();
         public List<string> featuredCardIds = new List<string>();
 
         public int TotalCards =>
             (mainDeckCardIds?.Count ?? 0) +
-            (extraDeckCardIds?.Count ?? 0);
+            (extraDeckCardIds?.Count ?? 0) +
+            (sideDeckCardIds?.Count ?? 0);
 
         public void Normalize()
         {
             mainDeckCardIds ??= new List<string>();
             extraDeckCardIds ??= new List<string>();
+            sideDeckCardIds ??= new List<string>();
             featuredCardIds ??= new List<string>();
             if (string.IsNullOrWhiteSpace(deckId))
                 deckId = Guid.NewGuid().ToString("N");

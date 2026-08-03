@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="8" result="Passed" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:22Z" duration="0,1575681">
+  <test-suite type="TestSuite" id="1000" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="197" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:22Z" duration="0.157568" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1234" name="ArcaneDuel.EditModeTests.dll" fullname="C:/Unity Projeto/CARD12/Library/ScriptAssemblies/ArcaneDuel.EditModeTests.dll" runstate="Runnable" testcasecount="197" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:22Z" duration="0.141162" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="20168" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1235" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="197" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:22Z" duration="0.139950" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1236" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="197" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:22Z" duration="0.139128" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1237" name="EditMode" fullname="ArcaneDuel.Tests.EditMode" runstate="Runnable" testcasecount="197" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:22Z" duration="0.138221" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1001" name="BanlistEditModeTests" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:22Z" duration="0.128233" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1002" name="B01_AbsentCard_AllowsThreeCopies" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests.B01_AbsentCard_AllowsThreeCopies" methodname="B01_AbsentCard_AllowsThreeCopies" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" seed="932034734" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:21Z" duration="0.037784" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1003" name="B02_ForbiddenCard_IsRejected" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests.B02_ForbiddenCard_IsRejected" methodname="B02_ForbiddenCard_IsRejected" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" seed="1962473023" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:21Z" duration="0.003869" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1004" name="B03_LimitedCard_IsCombinedAcrossAllSections" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests.B03_LimitedCard_IsCombinedAcrossAllSections" methodname="B03_LimitedCard_IsCombinedAcrossAllSections" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" seed="1830702805" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:21Z" duration="0.001563" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1005" name="B04_SemiLimitedCard_RejectsThirdCopy" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests.B04_SemiLimitedCard_RejectsThirdCopy" methodname="B04_SemiLimitedCard_RejectsThirdCopy" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" seed="72455311" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:21Z" duration="0.001093" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1006" name="B05_SideDeck_LimitIsFifteen" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests.B05_SideDeck_LimitIsFifteen" methodname="B05_SideDeck_LimitIsFifteen" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" seed="1634661663" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:21Z" duration="0.001123" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1007" name="B06_LeadingZeroPasscode_RemainsCanonical" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests.B06_LeadingZeroPasscode_RemainsCanonical" methodname="B06_LeadingZeroPasscode_RemainsCanonical" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" seed="553838980" result="Passed" start-time="2026-08-03 16:29:21Z" end-time="2026-08-03 16:29:22Z" duration="0.010823" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1008" name="B07_ActiveAsset_HasNormativeCountsAndHash" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests.B07_ActiveAsset_HasNormativeCountsAndHash" methodname="B07_ActiveAsset_HasNormativeCountsAndHash" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" seed="1993660773" result="Passed" start-time="2026-08-03 16:29:22Z" end-time="2026-08-03 16:29:22Z" duration="0.032169" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1009" name="ManifestHash_IsStableAcrossSectionReordering" fullname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests.ManifestHash_IsStableAcrossSectionReordering" methodname="ManifestHash_IsStableAcrossSectionReordering" classname="ArcaneDuel.Tests.EditMode.BanlistEditModeTests" runstate="Runnable" seed="303647388" result="Passed" start-time="2026-08-03 16:29:22Z" end-time="2026-08-03 16:29:22Z" duration="0.005788" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/Ellen Jennyffer/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

@@ -29,6 +29,12 @@ namespace ArcaneArena.Frontend
 
         public void ShowMainMenu()
         {
+            if (_repository != null && _repository.NeedsStarterDeckSelection)
+            {
+                ShowStarterDeckSelection();
+                return;
+            }
+
             SetDuelPresentation(false);
             ClearScreen();
             if (_mainMenuSceneView != null)
@@ -353,9 +359,20 @@ namespace ArcaneArena.Frontend
             Vector2 max,
             System.Action action)
         {
-            CreateFullCanvasArtwork(
+            RawImage artwork = CreateFullCanvasArtwork(
                 $"Arte Botão {label}",
                 texture);
+            float artworkOffsetY = label switch
+            {
+                "MULTIPLAYER" => 0.2065f,
+                "DECKS" => -0.1044f,
+                "LOJA" => -0.1028f,
+                _ => 0f
+            };
+            artwork.rectTransform.anchorMin +=
+                Vector2.up * artworkOffsetY;
+            artwork.rectTransform.anchorMax +=
+                Vector2.up * artworkOffsetY;
             var hitArea = CreatePanel(
                 _screenRoot,
                 $"Ação {label}",

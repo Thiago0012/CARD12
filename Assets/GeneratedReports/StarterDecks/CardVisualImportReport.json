@@ -1,0 +1,403 @@
+{
+  "schemaVersion": 1,
+  "catalogSha256": "174B3D5182E0299ED2109DFFDF136CEF2B7102BB3F967DF49124D0ABA1BBD901",
+  "batchSize": 25,
+  "batchCount": 39,
+  "totalCards": 961,
+  "missingArt": [],
+  "missingScripts": [],
+  "missingDatabaseRows": [],
+  "duplicateCodes": [],
+  "batches": [
+    {
+      "batch": 1,
+      "firstCode": 39015,
+      "lastCode": 2295440,
+      "cardCount": 25,
+      "riskA": 2,
+      "riskB": 15,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 2,
+      "firstCode": 2314238,
+      "lastCode": 4253484,
+      "cardCount": 25,
+      "riskA": 4,
+      "riskB": 10,
+      "riskC": 11,
+      "result": "PASS"
+    },
+    {
+      "batch": 3,
+      "firstCode": 4433488,
+      "lastCode": 6368038,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 14,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 4,
+      "firstCode": 6498706,
+      "lastCode": 8353769,
+      "cardCount": 25,
+      "riskA": 4,
+      "riskB": 15,
+      "riskC": 6,
+      "result": "PASS"
+    },
+    {
+      "batch": 5,
+      "firstCode": 8471389,
+      "lastCode": 10443957,
+      "cardCount": 25,
+      "riskA": 2,
+      "riskB": 9,
+      "riskC": 14,
+      "result": "PASS"
+    },
+    {
+      "batch": 6,
+      "firstCode": 10509340,
+      "lastCode": 13683298,
+      "cardCount": 25,
+      "riskA": 4,
+      "riskB": 9,
+      "riskC": 12,
+      "result": "PASS"
+    },
+    {
+      "batch": 7,
+      "firstCode": 14087893,
+      "lastCode": 17000165,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 16,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 8,
+      "firstCode": 17189677,
+      "lastCode": 21082832,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 18,
+      "riskC": 6,
+      "result": "PASS"
+    },
+    {
+      "batch": 9,
+      "firstCode": 21140872,
+      "lastCode": 23431858,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 16,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 10,
+      "firstCode": 23434538,
+      "lastCode": 24842059,
+      "cardCount": 25,
+      "riskA": 6,
+      "riskB": 11,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 11,
+      "firstCode": 25206027,
+      "lastCode": 27520594,
+      "cardCount": 25,
+      "riskA": 4,
+      "riskB": 15,
+      "riskC": 6,
+      "result": "PASS"
+    },
+    {
+      "batch": 12,
+      "firstCode": 27572350,
+      "lastCode": 30888983,
+      "cardCount": 25,
+      "riskA": 4,
+      "riskB": 11,
+      "riskC": 10,
+      "result": "PASS"
+    },
+    {
+      "batch": 13,
+      "firstCode": 30989084,
+      "lastCode": 32939238,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 16,
+      "riskC": 6,
+      "result": "PASS"
+    },
+    {
+      "batch": 14,
+      "firstCode": 33093439,
+      "lastCode": 35712107,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 17,
+      "riskC": 7,
+      "result": "PASS"
+    },
+    {
+      "batch": 15,
+      "firstCode": 35803249,
+      "lastCode": 38129297,
+      "cardCount": 25,
+      "riskA": 2,
+      "riskB": 14,
+      "riskC": 9,
+      "result": "PASS"
+    },
+    {
+      "batch": 16,
+      "firstCode": 38409239,
+      "lastCode": 41232647,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 13,
+      "riskC": 9,
+      "result": "PASS"
+    },
+    {
+      "batch": 17,
+      "firstCode": 41392891,
+      "lastCode": 44330098,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 14,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 18,
+      "firstCode": 44352516,
+      "lastCode": 46565218,
+      "cardCount": 25,
+      "riskA": 4,
+      "riskB": 11,
+      "riskC": 10,
+      "result": "PASS"
+    },
+    {
+      "batch": 19,
+      "firstCode": 46593546,
+      "lastCode": 48882106,
+      "cardCount": 25,
+      "riskA": 4,
+      "riskB": 10,
+      "riskC": 11,
+      "result": "PASS"
+    },
+    {
+      "batch": 20,
+      "firstCode": 49003716,
+      "lastCode": 50913601,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 9,
+      "riskC": 13,
+      "result": "PASS"
+    },
+    {
+      "batch": 21,
+      "firstCode": 50933533,
+      "lastCode": 53567095,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 13,
+      "riskC": 9,
+      "result": "PASS"
+    },
+    {
+      "batch": 22,
+      "firstCode": 53582587,
+      "lastCode": 56369281,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 14,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 23,
+      "firstCode": 56387350,
+      "lastCode": 59323650,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 16,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 24,
+      "firstCode": 59400890,
+      "lastCode": 62265044,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 15,
+      "riskC": 9,
+      "result": "PASS"
+    },
+    {
+      "batch": 25,
+      "firstCode": 62279055,
+      "lastCode": 64880894,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 14,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 26,
+      "firstCode": 64952266,
+      "lastCode": 67234805,
+      "cardCount": 25,
+      "riskA": 2,
+      "riskB": 14,
+      "riskC": 9,
+      "result": "PASS"
+    },
+    {
+      "batch": 27,
+      "firstCode": 67282505,
+      "lastCode": 70342110,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 18,
+      "riskC": 6,
+      "result": "PASS"
+    },
+    {
+      "batch": 28,
+      "firstCode": 70368879,
+      "lastCode": 71808988,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 14,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 29,
+      "firstCode": 71867500,
+      "lastCode": 73628505,
+      "cardCount": 25,
+      "riskA": 2,
+      "riskB": 11,
+      "riskC": 12,
+      "result": "PASS"
+    },
+    {
+      "batch": 30,
+      "firstCode": 73652465,
+      "lastCode": 76232340,
+      "cardCount": 25,
+      "riskA": 2,
+      "riskB": 12,
+      "riskC": 11,
+      "result": "PASS"
+    },
+    {
+      "batch": 31,
+      "firstCode": 76359406,
+      "lastCode": 78658564,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 13,
+      "riskC": 11,
+      "result": "PASS"
+    },
+    {
+      "batch": 32,
+      "firstCode": 78706415,
+      "lastCode": 81105204,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 15,
+      "riskC": 9,
+      "result": "PASS"
+    },
+    {
+      "batch": 33,
+      "firstCode": 81193865,
+      "lastCode": 84013237,
+      "cardCount": 25,
+      "riskA": 1,
+      "riskB": 14,
+      "riskC": 10,
+      "result": "PASS"
+    },
+    {
+      "batch": 34,
+      "firstCode": 84121193,
+      "lastCode": 87483942,
+      "cardCount": 25,
+      "riskA": 0,
+      "riskB": 12,
+      "riskC": 13,
+      "result": "PASS"
+    },
+    {
+      "batch": 35,
+      "firstCode": 87607094,
+      "lastCode": 90357090,
+      "cardCount": 25,
+      "riskA": 4,
+      "riskB": 13,
+      "riskC": 8,
+      "result": "PASS"
+    },
+    {
+      "batch": 36,
+      "firstCode": 90448279,
+      "lastCode": 93039339,
+      "cardCount": 25,
+      "riskA": 3,
+      "riskB": 10,
+      "riskC": 12,
+      "result": "PASS"
+    },
+    {
+      "batch": 37,
+      "firstCode": 93229151,
+      "lastCode": 95952802,
+      "cardCount": 25,
+      "riskA": 2,
+      "riskB": 19,
+      "riskC": 4,
+      "result": "PASS"
+    },
+    {
+      "batch": 38,
+      "firstCode": 95993388,
+      "lastCode": 98672567,
+      "cardCount": 25,
+      "riskA": 0,
+      "riskB": 11,
+      "riskC": 14,
+      "result": "PASS"
+    },
+    {
+      "batch": 39,
+      "firstCode": 98777036,
+      "lastCode": 99991455,
+      "cardCount": 11,
+      "riskA": 1,
+      "riskB": 4,
+      "riskC": 6,
+      "result": "PASS"
+    }
+  ]
+}

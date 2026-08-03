@@ -369,6 +369,7 @@ namespace ArcaneArena.Frontend
             Image tile = CreateShopTile(parent, "Carta " + cardId, Cyan);
             Image artwork = CreateCardArtwork(tile.transform, entry?.Artwork,
                 new Vector2(0.09f, 0.20f), new Vector2(0.91f, 0.94f), 0f, true);
+            AddBanlistBadge(artwork.transform, cardId);
             CreateText(tile.transform, section, 11, FontStyle.Bold, Cyan,
                 new Vector2(0.05f, 0.04f), new Vector2(0.95f, 0.18f),
                 TextAnchor.MiddleCenter);
@@ -395,8 +396,9 @@ namespace ArcaneArena.Frontend
             AddOutline(panel.gameObject,
                 new Color(Cyan.r, Cyan.g, Cyan.b, 0.78f),
                 new Vector2(3f, -3f));
-            CreateCardArtwork(panel.transform, entry.Artwork,
+            Image detailArtwork = CreateCardArtwork(panel.transform, entry.Artwork,
                 new Vector2(0.07f, 0.10f), new Vector2(0.34f, 0.90f), 0f, true);
+            AddBanlistBadge(detailArtwork.transform, cardId);
             CreateText(panel.transform, entry.DisplayName, 30, FontStyle.Bold,
                 Color.white, new Vector2(0.39f, 0.75f),
                 new Vector2(0.94f, 0.91f), TextAnchor.MiddleLeft);

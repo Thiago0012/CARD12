@@ -1,0 +1,116 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e392d9e719a21b649b8f734f2b035fd6, type: 3}
+  m_Name: starter_vampire_wolf
+  m_EditorClassIdentifier: ArcaneDuel.Game::ArcaneDuel.Game.StarterDeckDefinition
+  id: starter_vampire_wolf
+  displayName: Vampiros e Lobos
+  banlistVersion: tcg_eu_2026_05_18
+  raw:
+    sourceTitle: "Vampire and wolf\u2019s"
+    sourceUrl: https://ygoprodeck.com/deck/vampire-and-wolf-s-723953
+    sourceCorrectionNote: 
+    mainDeck:
+    - 22056710
+    - 04918855
+    - 06917479
+    - 53839837
+    - 33438666
+    - 58947797
+    - 01371589
+    - 80485722
+    - 26495087
+    - 88728507
+    - 56387350
+    - 90299015
+    - 90299015
+    - 34250214
+    - 34250214
+    - 70645913
+    - 70645913
+    - 69247929
+    - 56369281
+    - 08471389
+    - 49417509
+    - 91697229
+    - 13683298
+    - 67922702
+    - 92998610
+    - 03534077
+    - 88975532
+    - 88132637
+    - 15947754
+    - 43175027
+    - 32202803
+    - 72913666
+    - 00293542
+    - 55696885
+    - 93294869
+    - 53167658
+    - 48712195
+    - 91740879
+    - 64163367
+    - 80181649
+    extraDeck: []
+    sideDeck: []
+  mainDeck:
+  - 22056710
+  - 04918855
+  - 06917479
+  - 53839837
+  - 33438666
+  - 58947797
+  - 01371589
+  - 80485722
+  - 26495087
+  - 88728507
+  - 56387350
+  - 90299015
+  - 90299015
+  - 34250214
+  - 34250214
+  - 70645913
+  - 70645913
+  - 69247929
+  - 56369281
+  - 08471389
+  - 49417509
+  - 91697229
+  - 13683298
+  - 67922702
+  - 92998610
+  - 03534077
+  - 88975532
+  - 88132637
+  - 15947754
+  - 43175027
+  - 32202803
+  - 72913666
+  - 00293542
+  - 55696885
+  - 93294869
+  - 53167658
+  - 48712195
+  - 91740879
+  - 64163367
+  - 80181649
+  extraDeck: []
+  sideDeck: []
+  previewCardIds:
+  - 22056710
+  - 04918855
+  - 06917479
+  rawSha256: 9ac29ec84b9118d1fb9f6e92b0847a61b0108255d0d7ebe9ebc2ae5e19a227f8
+  sanitizedSha256: 9ac29ec84b9118d1fb9f6e92b0847a61b0108255d0d7ebe9ebc2ae5e19a227f8
+  replacements: []
+  validationIssues: []
+  publishable: 1

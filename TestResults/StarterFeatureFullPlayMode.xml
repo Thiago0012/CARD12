@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="49" result="Failed(Child)" total="49" passed="40" failed="9" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-03 17:58:11Z" end-time="2026-08-03 17:58:56Z" duration="44,3959548">
+  <test-suite type="TestSuite" id="1064" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 17:58:11Z" end-time="2026-08-03 17:58:56Z" duration="44.395955" total="49" passed="40" failed="9" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1057" name="ArcaneDuel.PlayModeTests.dll" fullname="C:/Unity Projeto/CARD12/Library/ScriptAssemblies/ArcaneDuel.PlayModeTests.dll" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 17:58:11Z" end-time="2026-08-03 17:58:56Z" duration="44.375956" total="49" passed="40" failed="9" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="17820" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1058" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 17:58:11Z" end-time="2026-08-03 17:58:56Z" duration="44.374185" total="49" passed="40" failed="9" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1059" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 17:58:11Z" end-time="2026-08-03 17:58:56Z" duration="44.354566" total="49" passed="40" failed="9" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1060" name="PlayMode" fullname="ArcaneDuel.Tests.PlayMode" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 17:58:11Z" end-time="2026-08-03 17:58:56Z" duration="44.337678" total="49" passed="40" failed="9" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1001" name="ArenaStabilizationPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" testcasecount="20" result="Failed" site="Child" start-time="2026-08-03 17:58:11Z" end-time="2026-08-03 17:58:40Z" duration="29.162637" total="20" passed="15" failed="5" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1006" name="AuthoredArenaBuildsSevenMonsterZonesPerPlayer" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.AuthoredArenaBuildsSevenMonsterZonesPerPlayer" methodname="AuthoredArenaBuildsSevenMonsterZonesPerPlayer" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1965816786" result="Passed" start-time="2026-08-03 17:58:11Z" end-time="2026-08-03 17:58:21Z" duration="9.695630" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1002" name="AuthoredArenaNeverConsumesThePlayersPromptsAutomatically" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.AuthoredArenaNeverConsumesThePlayersPromptsAutomatically" methodname="AuthoredArenaNeverConsumesThePlayersPromptsAutomatically" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="297633255" result="Passed" start-time="2026-08-03 17:58:21Z" end-time="2026-08-03 17:58:22Z" duration="1.066907" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1019" name="CardPresentationLocksPlayerAndBotDecisions" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.CardPresentationLocksPlayerAndBotDecisions" methodname="CardPresentationLocksPlayerAndBotDecisions" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="954477872" result="Passed" start-time="2026-08-03 17:58:22Z" end-time="2026-08-03 17:58:23Z" duration="0.816153" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1016" name="CardSoundsFollowCardCategoryAndSummonFrame" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.CardSoundsFollowCardCategoryAndSummonFrame" methodname="CardSoundsFollowCardCategoryAndSummonFrame" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="270087905" result="Passed" start-time="2026-08-03 17:58:23Z" end-time="2026-08-03 17:58:24Z" duration="1.263780" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1013" name="ConsecutivePileUpdatesKeepTheLatestAuthoritativeView" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.ConsecutivePileUpdatesKeepTheLatestAuthoritativeView" methodname="ConsecutivePileUpdatesKeepTheLatestAuthoritativeView" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1594711066" result="Failed" start-time="2026-08-03 17:58:24Z" end-time="2026-08-03 17:58:25Z" duration="0.991951" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  A deferred Destroy cannot hide the replacement pile view.
+  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<ConsecutivePileUpdatesKeepTheLatestAuthoritativeView>d__17.MoveNext () [0x00144] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:711
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1021" name="DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt" methodname="DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="905137360" result="Passed" start-time="2026-08-03 17:58:25Z" end-time="2026-08-03 17:58:28Z" duration="3.044084" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1014" name="DuplicateSelectionCancelAndSecondSummonStayIndependent" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.DuplicateSelectionCancelAndSecondSummonStayIndependent" methodname="DuplicateSelectionCancelAndSecondSummonStayIndependent" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="493018807" result="Failed" start-time="2026-08-03 17:58:28Z" end-time="2026-08-03 17:58:29Z" duration="1.044394" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<DuplicateSelectionCancelAndSecondSummonStayIndependent>d__18.MoveNext () [0x00495] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:829
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1011" name="EveryArenaZoneCanBeHoveredWithoutNullReference" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.EveryArenaZoneCanBeHoveredWithoutNullReference" methodname="EveryArenaZoneCanBeHoveredWithoutNullReference" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="45892624" result="Passed" start-time="2026-08-03 17:58:29Z" end-time="2026-08-03 17:58:30Z" duration="1.061048" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1017" name="ExtraDeckAndGraveyardUseVisibleLegalOutlines" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.ExtraDeckAndGraveyardUseVisibleLegalOutlines" methodname="ExtraDeckAndGraveyardUseVisibleLegalOutlines" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="617469979" result="Passed" start-time="2026-08-03 17:58:30Z" end-time="2026-08-03 17:58:31Z" duration="0.908094" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1018" name="ExtraDeckBrowserOpensForInspectionWithoutLegalSummon" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.ExtraDeckBrowserOpensForInspectionWithoutLegalSummon" methodname="ExtraDeckBrowserOpensForInspectionWithoutLegalSummon" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="403890208" result="Passed" start-time="2026-08-03 17:58:31Z" end-time="2026-08-03 17:58:32Z" duration="1.038964" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1004" name="FieldMonsterWaitsForExplicitEffectOrPositionChoice" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.FieldMonsterWaitsForExplicitEffectOrPositionChoice" methodname="FieldMonsterWaitsForExplicitEffectOrPositionChoice" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="584796660" result="Passed" start-time="2026-08-03 17:58:32Z" end-time="2026-08-03 17:58:33Z" duration="0.866948" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1010" name="HiddenOpponentWorldViewIsNotTreatedAsAnEmptyZone" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.HiddenOpponentWorldViewIsNotTreatedAsAnEmptyZone" methodname="HiddenOpponentWorldViewIsNotTreatedAsAnEmptyZone" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="2144637763" result="Passed" start-time="2026-08-03 17:58:33Z" end-time="2026-08-03 17:58:34Z" duration="0.801982" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1015" name="LegalCardGlowPulsesWithSummonAndEffectColors" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.LegalCardGlowPulsesWithSummonAndEffectColors" methodname="LegalCardGlowPulsesWithSummonAndEffectColors" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="723865557" result="Passed" start-time="2026-08-03 17:58:34Z" end-time="2026-08-03 17:58:34Z" duration="0.218871" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1007" name="LinkMonsterHasAVisibleWorldCardInExtraMonsterZone" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.LinkMonsterHasAVisibleWorldCardInExtraMonsterZone" methodname="LinkMonsterHasAVisibleWorldCardInExtraMonsterZone" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="90375352" result="Failed" start-time="2026-08-03 17:58:34Z" end-time="2026-08-03 17:58:35Z" duration="0.836732" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<LinkMonsterHasAVisibleWorldCardInExtraMonsterZone>d__11.MoveNext () [0x00100] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:329
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1012" name="MissingAuthoritativeWorldCardIsRepairedBeforeUse" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.MissingAuthoritativeWorldCardIsRepairedBeforeUse" methodname="MissingAuthoritativeWorldCardIsRepairedBeforeUse" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="2075296829" result="Failed" start-time="2026-08-03 17:58:35Z" end-time="2026-08-03 17:58:36Z" duration="0.898123" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<MissingAuthoritativeWorldCardIsRepairedBeforeUse>d__16.MoveNext () [0x001a0] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:623
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1020" name="OnlineResponseWaitsForPresentationAndIsNotLost" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.OnlineResponseWaitsForPresentationAndIsNotLost" methodname="OnlineResponseWaitsForPresentationAndIsNotLost" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="284908173" result="Passed" start-time="2026-08-03 17:58:36Z" end-time="2026-08-03 17:58:37Z" duration="0.855034" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1003" name="OptionalResponseUsesOneCompactBarPerRequest" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.OptionalResponseUsesOneCompactBarPerRequest" methodname="OptionalResponseUsesOneCompactBarPerRequest" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1117509910" result="Passed" start-time="2026-08-03 17:58:37Z" end-time="2026-08-03 17:58:38Z" duration="0.838528" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1008" name="PhaseNavigatorClosesCardInspectorAndActions" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.PhaseNavigatorClosesCardInspectorAndActions" methodname="PhaseNavigatorClosesCardInspectorAndActions" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1472148208" result="Passed" start-time="2026-08-03 17:58:38Z" end-time="2026-08-03 17:58:39Z" duration="1.069581" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1009" name="SetSpellTrapUsesTheCardBackAndHidesItsFace" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.SetSpellTrapUsesTheCardBackAndHidesItsFace" methodname="SetSpellTrapUsesTheCardBackAndHidesItsFace" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="274605326" result="Failed" start-time="2026-08-03 17:58:39Z" end-time="2026-08-03 17:58:40Z" duration="0.943109" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<SetSpellTrapUsesTheCardBackAndHidesItsFace>d__13.MoveNext () [0x0010b] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:454
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1005" name="SingleHandEffectSelectionRequiresTrayConfirmation" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.SingleHandEffectSelectionRequiresTrayConfirmation" methodname="SingleHandEffectSelectionRequiresTrayConfirmation" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1135016319" result="Passed" start-time="2026-08-03 17:58:40Z" end-time="2026-08-03 17:58:40Z" duration="0.875847" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1022" name="DevCoinCheatPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.DevCoinCheatPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.DevCoinCheatPlayModeTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-08-03 17:58:40Z" end-time="2026-08-03 17:58:41Z" duration="0.196644" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1023" name="ExactAndLowercaseSequencesGrantOnceEach" fullname="ArcaneDuel.Tests.PlayMode.DevCoinCheatPlayModeTests.ExactAndLowercaseSequencesGrantOnceEach" methodname="ExactAndLowercaseSequencesGrantOnceEach" classname="ArcaneDuel.Tests.PlayMode.DevCoinCheatPlayModeTests" runstate="Runnable" seed="1917621237" result="Passed" start-time="2026-08-03 17:58:40Z" end-time="2026-08-03 17:58:41Z" duration="0.148617" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1024" name="TimeoutWrongInputAndMissingFocusDoNotGrant" fullname="ArcaneDuel.Tests.PlayMode.DevCoinCheatPlayModeTests.TimeoutWrongInputAndMissingFocusDoNotGrant" methodname="TimeoutWrongInputAndMissingFocusDoNotGrant" classname="ArcaneDuel.Tests.PlayMode.DevCoinCheatPlayModeTests" runstate="Runnable" seed="310225542" result="Passed" start-time="2026-08-03 17:58:41Z" end-time="2026-08-03 17:58:41Z" duration="0.044892" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1025" name="MultiplayerCrossplayPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-08-03 17:58:41Z" end-time="2026-08-03 17:58:44Z" duration="3.208566" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1032" name="AuthoritativeSnapshotRebuildsTheRemoteField" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.AuthoritativeSnapshotRebuildsTheRemoteField" methodname="AuthoritativeSnapshotRebuildsTheRemoteField" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1013786162" result="Passed" start-time="2026-08-03 17:58:41Z" end-time="2026-08-03 17:58:41Z" duration="0.022014" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1034" name="DrawPresentationKeepsTheAuthoritativeDrawPhase" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.DrawPresentationKeepsTheAuthoritativeDrawPhase" methodname="DrawPresentationKeepsTheAuthoritativeDrawPhase" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1173630709" result="Passed" start-time="2026-08-03 17:58:41Z" end-time="2026-08-03 17:58:41Z" duration="0.003930" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1026" name="ExplicitLobbyExitClearsStateAndCanRunAgain" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.ExplicitLobbyExitClearsStateAndCanRunAgain" methodname="ExplicitLobbyExitClearsStateAndCanRunAgain" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="822570728" result="Passed" start-time="2026-08-03 17:58:41Z" end-time="2026-08-03 17:58:41Z" duration="0.034507" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1033" name="InitialSnapshotBuildsBothPlayerPerspectivesAndRoutesActions" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.InitialSnapshotBuildsBothPlayerPerspectivesAndRoutesActions" methodname="InitialSnapshotBuildsBothPlayerPerspectivesAndRoutesActions" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="860939665" result="Passed" start-time="2026-08-03 17:58:41Z" end-time="2026-08-03 17:58:42Z" duration="1.014281" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1031" name="NetworkSnapshotRotatesPerspectiveAndHidesOpponentHand" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.NetworkSnapshotRotatesPerspectiveAndHidesOpponentHand" methodname="NetworkSnapshotRotatesPerspectiveAndHidesOpponentHand" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1857565366" result="Passed" start-time="2026-08-03 17:58:42Z" end-time="2026-08-03 17:58:42Z" duration="0.001982" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1027" name="OnlineArenaDoesNotStartASecondLocalDuel" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.OnlineArenaDoesNotStartASecondLocalDuel" methodname="OnlineArenaDoesNotStartASecondLocalDuel" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1350123706" result="Passed" start-time="2026-08-03 17:58:42Z" end-time="2026-08-03 17:58:42Z" duration="0.572296" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (CARTAS DEMONSTRATIVAS (SOMENTE EDICAO): OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (LAYOUT EDITAVEL DA ARENA (SOMENTE EDICAO): OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (IMAGEM DA ARENA (ARRASTE SEU PNG AQUI): OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (PONTOS EDITAVEIS DAS CARTAS E PILHAS: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 6: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MONSTRO 7: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - MAGIA ARMADILHA 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - DECK 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - EXTRA 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - CEMITERIO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - BANIMENTO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (JOGADOR - CAMPO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 6: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MONSTRO 7: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - MAGIA ARMADILHA 5: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - DECK 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - EXTRA 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - CEMITERIO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - BANIMENTO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (OPONENTE - CAMPO 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (NOME DO PONTO: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (CARTAS DEMONSTRATIVAS (SOMENTE EDICAO): OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 1: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 2: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 3: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 4: OnCanvasGroupChanged)
+SendMessage cannot be called during Awake, CheckConsistency, or OnValidate (Carta 5: OnCanvasGroupChanged)
+[MP] stage=local-core-deferred scene=DuelArena
+]]></output>
+              </test-case>
+              <test-case id="1030" name="OnlineSessionUsesVersionedLowFrequencyRelayConfig" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.OnlineSessionUsesVersionedLowFrequencyRelayConfig" methodname="OnlineSessionUsesVersionedLowFrequencyRelayConfig" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="701651582" result="Passed" start-time="2026-08-03 17:58:42Z" end-time="2026-08-03 17:58:42Z" duration="0.035998" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1036" name="OnlineStartHasDeckStartAndArenaAcknowledgements" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.OnlineStartHasDeckStartAndArenaAcknowledgements" methodname="OnlineStartHasDeckStartAndArenaAcknowledgements" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1630125518" result="Passed" start-time="2026-08-03 17:58:42Z" end-time="2026-08-03 17:58:42Z" duration="0.005163" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1029" name="OptionsExposeAllFiveGraphicsLevels" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.OptionsExposeAllFiveGraphicsLevels" methodname="OptionsExposeAllFiveGraphicsLevels" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1282024384" result="Passed" start-time="2026-08-03 17:58:42Z" end-time="2026-08-03 17:58:43Z" duration="0.470208" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1037" name="PublicStateHashIsPerspectiveInvariantAndExcludesPrivateHands" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.PublicStateHashIsPerspectiveInvariantAndExcludesPrivateHands" methodname="PublicStateHashIsPerspectiveInvariantAndExcludesPrivateHands" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="670477243" result="Passed" start-time="2026-08-03 17:58:43Z" end-time="2026-08-03 17:58:43Z" duration="0.001970" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1028" name="SlowRelayResyncRebasesPendingResponseVersion" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.SlowRelayResyncRebasesPendingResponseVersion" methodname="SlowRelayResyncRebasesPendingResponseVersion" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="2005028511" result="Passed" start-time="2026-08-03 17:58:43Z" end-time="2026-08-03 17:58:44Z" duration="1.002861" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1035" name="V4HandshakeRejectsDifferentCardContentRevision" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.V4HandshakeRejectsDifferentCardContentRevision" methodname="V4HandshakeRejectsDifferentCardContentRevision" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1968795499" result="Passed" start-time="2026-08-03 17:58:44Z" end-time="2026-08-03 17:58:44Z" duration="0.003837" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1038" name="V4LogicalPayloadCompressesAndRoundTripsLargeSnapshots" fullname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests.V4LogicalPayloadCompressesAndRoundTripsLargeSnapshots" methodname="V4LogicalPayloadCompressesAndRoundTripsLargeSnapshots" classname="ArcaneDuel.Tests.PlayMode.MultiplayerCrossplayPlayModeTests" runstate="Runnable" seed="1442659111" result="Passed" start-time="2026-08-03 17:58:44Z" end-time="2026-08-03 17:58:44Z" duration="0.021646" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1039" name="OnlineLoadingResultPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.OnlineLoadingResultPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.OnlineLoadingResultPlayModeTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-08-03 17:58:44Z" end-time="2026-08-03 17:58:44Z" duration="0.586377" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1040" name="LoadingCanvasBlocksTheWholeViewportWithUnscaledTime" fullname="ArcaneDuel.Tests.PlayMode.OnlineLoadingResultPlayModeTests.LoadingCanvasBlocksTheWholeViewportWithUnscaledTime" methodname="LoadingCanvasBlocksTheWholeViewportWithUnscaledTime" classname="ArcaneDuel.Tests.PlayMode.OnlineLoadingResultPlayModeTests" runstate="Runnable" seed="1477279607" result="Passed" start-time="2026-08-03 17:58:44Z" end-time="2026-08-03 17:58:44Z" duration="0.534847" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1041" name="ResultCanvasMapsTitleAndBackButton" fullname="ArcaneDuel.Tests.PlayMode.OnlineLoadingResultPlayModeTests.ResultCanvasMapsTitleAndBackButton" methodname="ResultCanvasMapsTitleAndBackButton" classname="ArcaneDuel.Tests.PlayMode.OnlineLoadingResultPlayModeTests" runstate="Runnable" seed="703917875" result="Passed" start-time="2026-08-03 17:58:44Z" end-time="2026-08-03 17:58:44Z" duration="0.048702" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1042" name="PlayableArenaPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" testcasecount="9" result="Failed" site="Child" start-time="2026-08-03 17:58:44Z" end-time="2026-08-03 17:58:55Z" duration="10.188271" total="9" passed="6" failed="3" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1045" name="CardLabSceneBootsCompleteDeckBuilder" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.CardLabSceneBootsCompleteDeckBuilder" methodname="CardLabSceneBootsCompleteDeckBuilder" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1613026381" result="Passed" start-time="2026-08-03 17:58:44Z" end-time="2026-08-03 17:58:45Z" duration="0.403516" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1046" name="DuelArenaHasIndependentAudioPresentation" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelArenaHasIndependentAudioPresentation" methodname="DuelArenaHasIndependentAudioPresentation" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="967221227" result="Passed" start-time="2026-08-03 17:58:45Z" end-time="2026-08-03 17:58:49Z" duration="4.145532" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1043" name="DuelSceneBootsPlayableArena" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelSceneBootsPlayableArena" methodname="DuelSceneBootsPlayableArena" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1869904987" result="Passed" start-time="2026-08-03 17:58:49Z" end-time="2026-08-03 17:58:50Z" duration="0.764349" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1048" name="DuelSceneBuildsFiveCardConfirmationTrays" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelSceneBuildsFiveCardConfirmationTrays" methodname="DuelSceneBuildsFiveCardConfirmationTrays" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1163729516" result="Passed" start-time="2026-08-03 17:58:50Z" end-time="2026-08-03 17:58:51Z" duration="0.836027" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1047" name="DuelSceneBuildsProfessionalBattlePresentation" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.DuelSceneBuildsProfessionalBattlePresentation" methodname="DuelSceneBuildsProfessionalBattlePresentation" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="978595383" result="Failed" start-time="2026-08-03 17:58:51Z" end-time="2026-08-03 17:58:51Z" duration="0.816824" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests+<DuelSceneBuildsProfessionalBattlePresentation>d__4.MoveNext () [0x0010f] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\PlayableArenaPlayModeTests.cs:140
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1051" name="EveryCompleteBotDeckStartsABotDuel" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.EveryCompleteBotDeckStartsABotDuel" methodname="EveryCompleteBotDeckStartsABotDuel" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="81740172" result="Failed" start-time="2026-08-03 17:58:51Z" end-time="2026-08-03 17:58:52Z" duration="0.634407" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  The bot selection must display all twenty-three curated decks. 
+  Expected: property Length equal to 23
+  But was:  0
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests+<EveryCompleteBotDeckStartsABotDuel>d__8.MoveNext () [0x0016c] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\PlayableArenaPlayModeTests.cs:379
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+              <test-case id="1050" name="ExplicitSelectedDeckSnapshotReachesCore" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.ExplicitSelectedDeckSnapshotReachesCore" methodname="ExplicitSelectedDeckSnapshotReachesCore" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="145463580" result="Passed" start-time="2026-08-03 17:58:52Z" end-time="2026-08-03 17:58:53Z" duration="1.257228" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+[Arcane legacy bridge] StartLocalTestDuel requested: Deck Selecionado de Teste.
+[Arcane legacy bridge] Restarting core with player='Deck Selecionado de Teste' id='test:selected-red-eyes' main=40 cards=[74677422,74677422,74677422,74677422,74677422,74677422,74677422,74677422] extra=0; opponent='Deck Selecionado de Teste' main=40 extra=0.
+[Arcane legacy bridge] Core restarted: playerMain=40, playerExtra=0, opponentMain=40, opponentExtra=0, seed=EED5F70CAAD3949A.
+]]></output>
+              </test-case>
+              <test-case id="1044" name="MainMenuIsTheOnlyPlayerFacingStartScene" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.MainMenuIsTheOnlyPlayerFacingStartScene" methodname="MainMenuIsTheOnlyPlayerFacingStartScene" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1025366637" result="Passed" start-time="2026-08-03 17:58:53Z" end-time="2026-08-03 17:58:54Z" duration="0.410817" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1049" name="PlayerHandRestsInsideTheLowerResponsiveViewportStrip" fullname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests.PlayerHandRestsInsideTheLowerResponsiveViewportStrip" methodname="PlayerHandRestsInsideTheLowerResponsiveViewportStrip" classname="ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests" runstate="Runnable" seed="1880016931" result="Failed" start-time="2026-08-03 17:58:54Z" end-time="2026-08-03 17:58:55Z" duration="0.902095" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: -209.056961f +/- 0.5f
+  But was:  -14.999939f
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.PlayableArenaPlayModeTests+<PlayerHandRestsInsideTheLowerResponsiveViewportStrip>d__6.MoveNext () [0x001ef] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\PlayableArenaPlayModeTests.cs:266
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] Selected loadout rejected: Cyber-Stein (69015963) usa 1 cópia(s); máximo 0. Graceful Charity (79571449) usa 1 cópia(s); máximo 0. Heavy Storm (19613556) usa 1 cópia(s); máximo 0. Metamorphosis (46411259) usa 2 cópia(s); máximo 1. Pot of Greed (55144522) usa 1 cópia(s); máximo 0.
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1052" name="ProjectBootstrapPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" runstate="Runnable" testcasecount="2" result="Failed" site="Child" start-time="2026-08-03 17:58:55Z" end-time="2026-08-03 17:58:55Z" duration="0.485071" total="2" passed="1" failed="1" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1054" name="MainMenuUsesTheNewHudAndDedicatedButtons" fullname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests.MainMenuUsesTheNewHudAndDedicatedButtons" methodname="MainMenuUsesTheNewHudAndDedicatedButtons" classname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" runstate="Runnable" seed="1724156910" result="Failed" start-time="2026-08-03 17:58:55Z" end-time="2026-08-03 17:58:55Z" duration="0.431855" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests+<MainMenuUsesTheNewHudAndDedicatedButtons>d__1.MoveNext () [0x000e2] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ProjectBootstrapPlayModeTests.cs:49
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1053" name="SceneMarkerCanBeCreatedAtRuntime" fullname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests.SceneMarkerCanBeCreatedAtRuntime" methodname="SceneMarkerCanBeCreatedAtRuntime" classname="ArcaneDuel.Tests.PlayMode.ProjectBootstrapPlayModeTests" runstate="Runnable" seed="2077216869" result="Passed" start-time="2026-08-03 17:58:55Z" end-time="2026-08-03 17:58:55Z" duration="0.049504" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1055" name="StarterDeckOnboardingPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.StarterDeckOnboardingPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.StarterDeckOnboardingPlayModeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-08-03 17:58:55Z" end-time="2026-08-03 17:58:56Z" duration="0.490891" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1056" name="NewProfileCannotBypassSixDeckGallery" fullname="ArcaneDuel.Tests.PlayMode.StarterDeckOnboardingPlayModeTests.NewProfileCannotBypassSixDeckGallery" methodname="NewProfileCannotBypassSixDeckGallery" classname="ArcaneDuel.Tests.PlayMode.StarterDeckOnboardingPlayModeTests" runstate="Runnable" seed="419089038" result="Passed" start-time="2026-08-03 17:58:55Z" end-time="2026-08-03 17:58:56Z" duration="0.474287" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/Ellen Jennyffer/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

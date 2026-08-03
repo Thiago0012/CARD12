@@ -79,7 +79,15 @@ def locate_source(row: dict[str, str], provided_root: Path, downloaded_root: Pat
     source = row["source_art_path"]
     if source.startswith("Cards.rar::"):
         relative = source.split("::", 1)[1].strip("/\\")
-        return provided_root.joinpath(*relative.replace("\\", "/").split("/"))
+        provided = provided_root.joinpath(
+            *relative.replace("\\", "/").split("/")
+        )
+        if provided.exists():
+            return provided
+        # A importação original pode não existir em outra máquina. Depois da
+        # primeira sincronização, a arte canônica em StreamingAssets é a fonte
+        # local auditada e evita depender de um RAR externo.
+        return downloaded_root / f"{int(row['official_code'])}.jpg"
     return downloaded_root / f"{int(row['official_code'])}.jpg"
 
 

@@ -243,7 +243,7 @@ namespace ArcaneDuel.Tests.EditMode
                 object repository = CreateRepository(path);
                 object state = repository.GetType().GetProperty("State")
                     .GetValue(repository);
-                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(5));
+                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(6));
                 Assert.That(Field(state, "coinBalance"), Is.EqualTo(77));
                 object[] quantities = Values(Field(state, "cardQuantities"));
                 Assert.That(quantities, Has.Length.EqualTo(1));

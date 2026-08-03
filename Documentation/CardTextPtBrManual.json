@@ -26,6 +26,18 @@
       "strings": []
     },
     {
+      "code": 2405631,
+      "name": "Guoglim, Lança do Ghoti",
+      "description": "1 Fish Tuner + 1+ monstros não-Tuner\r\nNo início da Etapa de Dano, se este card batalhar com um monstro do oponente: você pode banir esse monstro do oponente. Durante a Fase de Apoio do seu oponente: você pode banir este card e, depois, se os monstros usados ​​como matéria para a Invocação-Sincro deste card estiverem todos no seu Cemitério, você pode Invocar todos eles por Invocação-Especial, mas bana-os quando eles deixarem o campo. Você só pode usar cada efeito de \"Guoglim, Lança do Ghoti\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 3137279,
+      "name": "Ixeep, Presságio do Ghoti",
+      "description": "Se um ou mais monstros Peixe forem banidos (exceto durante a Etapa de Dano): você pode Invocar este card por Invocação-Especial da sua mão. Durante a Fase de Apoio do próximo turno após este card ter sido banido: você pode escolher 1 das suas Armadilhas \"Ghoti\" que estiver banida ou no seu Cemitério; Defina essa meta. Você só pode usar cada efeito de \"Ixeep, Presságio dos Ghoti\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 5829717,
       "name": "Mago Negro, o Cavaleiro da Magia do Dragão",
       "description": "\"Mago Negro\" + 1 monstro Dragão ou Guerreiro de Nível 7 ou superior\r\nSe o seu monstro atacar um monstro em Posição de Defesa, cause dano de batalha perfurante ao seu oponente. Uma vez por turno, quando seu monstro destruir um monstro do oponente em batalha: você pode causar dano ao seu oponente igual ao ATK original do monstro destruído. Se este card for destruído: você pode Invocar por Invocação-Especial 1 \"Mago Negro\" e 1 \"Gaia, a Campeã do Dragão\" da sua mão, Deck, Deck Adicional e/ou Cemitério.",
@@ -167,6 +179,12 @@
       "strings": []
     },
     {
+      "code": 15947754,
+      "name": "Lobo Silencioso Calupo",
+      "description": "Se este card for Invocado por Invocação-Normal ou Especial: equipe o card do topo do seu Deck a este card como uma Magia de Equipamento virada para baixo que lhe dá 500 de ATK. Durante a Fase Final: Seu oponente invoca o tipo original (Monstro, Magia ou Armadilha) daquele Card de Equipamento equipado pelo efeito deste card. Se eles acertarem, envie este card para o Cemitério. Se eles erraram, descarte 1 carta aleatória da mão do seu oponente e, se isso acontecer, devolva esta carta para a mão. Você só pode usar este efeito de \"Lobo Silencioso Calupo\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 16310544,
       "name": "Mikanko Kagura",
       "description": "Este card pode ser usado para Invocar por Invocação-Ritual qualquer Monstro de Ritual \"Mikanko\". Você também deve oferecer como Tributo monstros da sua mão ou do campo cuja soma dos Níveis seja igual ou superior ao Nível do Monstro de Ritual que você Invocou por Invocação-Ritual. Então você pode aplicar o seguinte efeito.\r\n● Destrua cards que seu oponente controla até o número de Magias de Equipamento com nomes diferentes no seu Cemitério e, se isso acontecer, cause 1000 de dano ao seu oponente para cada card destruído.\r\nVocê só pode ativar 1 \"Mikanko Kagura\" por turno.",
@@ -296,6 +314,12 @@
       "strings": []
     },
     {
+      "code": 26523337,
+      "name": "Psíquicos, Luar do Ghoti",
+      "description": "Se este card for Invocado por Invocação-Normal ou Especial: você pode adicionar 1 monstro Peixe do seu Deck à sua mão, exceto \"Psiics, Moonlight of the Ghoti\" e, depois, banir 1 monstro Peixe da sua mão ou com a face para cima no campo. Se este card for banido: você pode banir 1 monstro Peixe da sua mão, do Cemitério ou do campo com a face para cima, exceto \"Psiics, Moonlight of the Ghoti\"; Invoque este card por Invocação-Especial. Você só pode usar cada efeito de \"Psíquicos, Luar dos Ghoti\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 27519978,
       "name": "Quarteto de Encantadoras em Flor",
       "description": "2+ monstros\r\nGanha 300 de ATK para cada Atributo diferente no campo. Uma vez, enquanto este card estiver com a face para cima no campo, durante a Fase Principal (Efeito Rápido): você pode escolher 2 monstros no seu Cemitério com o mesmo Atributo, mas Tipos diferentes, ou com o mesmo Tipo, mas Atributos diferentes; Invoque os dois por Invocação-Especial e, além disso, até o final do próximo turno, este card e os monstros Invocados por Invocação-Especial não podem ser usados como matéria para uma Invocação-Fusão, Sincro, Xyz ou Link. Você só pode usar este efeito de \"Quarteto de Encantadoras em Flor\" uma vez por turno.",
@@ -402,6 +426,12 @@
       "strings": []
     },
     {
+      "code": 38409239,
+      "name": "Ghoti Cosmo",
+      "description": "Aplique esses efeitos em sequência, com base no número de monstros Peixe banidos.\r\n● 1+: Seus monstros Peixes não podem ser destruídos em batalha neste turno.\r\n● 4+: A ativação e os efeitos dos monstros Peixe ativados em seu campo não podem ser negados neste turno.\r\n● 8+: Invoque por Invocação-Especial 1 Monstro Sincro Peixe do seu Deck Adicional. (Isso é tratado como uma Invocação Sincro.)\r\nVocê só pode ativar 1 \"Ghoti Cosmos\" por turno.",
+      "strings": []
+    },
+    {
       "code": 38699854,
       "name": "Livro de Taiyou",
       "description": "Escolha 1 monstro com a face para baixo no campo; mude o alvo para a Posição de Ataque com a face para cima.",
@@ -411,6 +441,12 @@
       "code": 38775407,
       "name": "Sengenjin acorda de um milênio",
       "description": "Não pode ser destruído por efeitos de monstros. Você só pode usar cada um dos seguintes efeitos de \"Sengenjin Desperta do Milênio\" uma vez por turno. Se este card estiver na sua mão: você pode colocá-lo na sua Zona de Magias e Armadilhas como um Magia Contínuo com a face para cima. Embora esta carta seja um Magia Contínuo: você pode pagar 2.000 PV ou revelar 1 \"Millennium Ankh\" em sua mão; Invoque este card por Invocação-Especial e, depois, você pode adicionar 1 monstro \"Milênio\" do seu Deck à sua mão.",
+      "strings": []
+    },
+    {
+      "code": 39522887,
+      "name": "Snopios, Sombra do Ghoti",
+      "description": "Durante a Fase Principal (Efeito Rápido): você pode banir 2 monstros Peixe da sua mão e/ou Cemitério; Invoque este card por Invocação-Especial da sua mão. Se este card for Invocado por Invocação-Especial: você pode escolher 1 card com a face para cima no campo; bani-lo quando ele sair do campo. Se este card for banido: você pode banir 1 monstro Peixe do seu Cemitério; adicione este card à sua mão. Você só pode usar cada efeito de \"Snopios, Sombra do Ghoti\" uma vez por turno.",
       "strings": []
     },
     {
@@ -544,6 +580,12 @@
       "strings": []
     },
     {
+      "code": 48882106,
+      "name": "Peixe-caixa Tóxico",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\r\nSe este card for Invocado por Invocação-Sincro: você pode escolher 1 card em qualquer Cemitério; bani-lo. Se este card for banido: você pode escolher 1 card com a face para cima que seu oponente controla; negue seus efeitos até o final deste turno. Você só pode usar cada efeito de \"Peixe-caixa Tóxico\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 49139666,
       "name": "E Stranger Big Bang",
       "description": "Se um monstro Invocado por Invocação-Especial do Deck Adicional estiver no campo: você pode Invocar este card por Invocação-Especial da sua mão. Durante sua Fase Principal: você pode reduzir os Níveis de todos os outros monstros no campo em 1 e, se isso acontecer, aumente o Nível deste card pelo número de monstros cujos Níveis foram reduzidos por este efeito. Durante sua Fase de Batalha ou Fase Principal do seu oponente, se o Nível deste card for 8 ou superior (Efeito Rápido): você pode destruir 1 outro card no campo e, se isso acontecer, o Nível deste card se torna 5. Você só pode usar cada efeito de \"E Stranger Big Bang\" uma vez por turno.",
@@ -650,6 +692,12 @@
       "strings": []
     },
     {
+      "code": 56514812,
+      "name": "Kunoichi",
+      "description": "Quando o controle desta carta virada para cima muda, seu novo controlador descarta 1 carta aleatória.",
+      "strings": []
+    },
+    {
       "code": 57736667,
       "name": "Dança Mikanko - Mayowashidori",
       "description": "O monstro equipado não pode ser destruído por efeitos de cartas. Você só pode usar cada um dos seguintes efeitos de \"Dança Mikanko - Mayowashidori\" uma vez por turno. No final da Etapa de Dano, se seu monstro \"Mikanko\" batalhou: você pode escolher 1 card no campo; devolva-o para a mão. Se este card estiver no seu Cemitério: você pode escolher 1 monstro \"Mikanko\" no seu Cemitério; Invoque-o por Invocação-Especial e, se isso acontecer, equipe-o com este card, mas bana-o quando ele sair do campo.",
@@ -662,6 +710,12 @@
       "strings": [
         "Invocar este card por Invocação-Especial do Cemitério"
       ]
+    },
+    {
+      "code": 58570206,
+      "name": "Polimerização Pesada",
+      "description": "Invoque por Invocação-Fusão 1 Monstro de Fusão do seu Deck Adicional, usando 3 ou mais monstros da sua mão ou campo como matéria. Você também pode banir monstros do seu Deck Adicional como matéria, até o número de monstros que seu oponente controla, mas você perde PV igual ao ATK total dos monstros banidos desta forma, quando o monstro é Invocado por Invocação-Fusão.",
+      "strings": []
     },
     {
       "code": 59323650,
@@ -706,6 +760,18 @@
       "code": 65033975,
       "name": "Rainha Azamina",
       "description": "(Esta carta é sempre tratada como uma carta de “Despojos Pecaminosos”.)\r\nSe este card na sua mão ou no campo for enviado para o Cemitério ou banido por um efeito ativado: você pode Invocá-lo por Invocação-Especial. Quando um monstro \"Azamina\" ou \"Floresta Branca\" seu destruir um monstro do oponente em batalha: você pode escolher 1 Magia/Armadilha \"Despojos Pecaminosos\" no seu Cemitério; adicione-o à sua mão. Você só pode usar cada efeito de \"Rainha Azamina\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 65898344,
+      "name": "Fúria de Ghoti",
+      "description": "Você pode escolher 1 monstro Peixe que você controla e 1 monstro que seu oponente controla; bana ambos os monstros até sua próxima Fase de Apoio. Se um ou mais monstros Peixe forem Invocados por Invocação-Especial no seu campo enquanto qualquer card estiver banido: você pode banir este card do seu Cemitério ou da sua Zona de Magias & Armadilhas com a face para cima; todos os monstros Peixe que você controla atualmente ganham 100 de ATK para cada card banido no momento, até o final deste turno. Você só pode usar cada efeito de \"Fúria Ghoti\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 65910922,
+      "name": "Arionpos, Serpente do Ghoti",
+      "description": "1 Regulador + 1+ monstros não-Reguladores\r\nSe este card for Invocado por Invocação-Sincro: você pode banir 1 monstro Peixe de Nível 6 ou menos do seu Deck. Se este card for enviado para o Cemitério como Matéria Sincro: você pode escolher 1 monstro Peixe no seu Cemitério; bana o alvo e, depois, você pode adicionar 1 monstro Peixe de Nível igual ou inferior do seu Deck à sua mão. Você só pode usar cada efeito de \"Arionpos, Serpente do Ghoti\" uma vez por turno.",
       "strings": []
     },
     {
@@ -840,6 +906,12 @@
       "strings": []
     },
     {
+      "code": 76133574,
+      "name": "Zep, Rubi do Ghoti",
+      "description": "Você pode banir este card da sua mão e, depois, escolher 1 monstro Peixe no seu Cemitério; bani-lo. Durante o turno do seu oponente, se este card for banido: você pode Invocá-lo por Invocação-Especial. Se este card for Invocado por Invocação-Especial, você pode (exceto durante a Etapa de Dano): Imediatamente após este efeito ser resolvido, Invoque por Invocação-Sincro 1 Monstro Sincro Peixe usando este card que você controla. Você só pode usar cada efeito de \"Zep, Rubi do Ghoti\" uma vez por turno.",
+      "strings": []
+    },
+    {
       "code": 76721030,
       "name": "Tirania do Tirano",
       "description": "Tribute 2 monstros. Os efeitos dos Monstros de Efeito que são ativados na mão ou no campo não podem ser ativados.",
@@ -879,6 +951,12 @@
       "code": 80044027,
       "name": "Dança do Fogo Mikanko",
       "description": "Invoque por Invocação-Especial 1 monstro \"Mikanko\" da sua mão ou Cemitério e, se isso acontecer, equipe-o com este card e, depois, você pode Invocar por Invocação-Especial 1 monstro do Cemitério do seu oponente no campo dele, mas negue seus efeitos. O monstro equipado não pode ser destruído por efeitos de cartas. Você só pode ativar 1 \"Dança do Fogo Mikanko\" por turno.",
+      "strings": []
+    },
+    {
+      "code": 80181649,
+      "name": "\"Um caso para K9\"",
+      "description": "Quando este card for ativado: você pode adicionar 1 monstro \"K9\" do seu Deck à sua mão. Monstros \"K9\" que você controla ganham 900 de ATK durante qualquer turno em que seu oponente tenha ativado um efeito de monstro na mão ou no Cemitério. Se este card na Zona de Magias e Armadilhas for destruído por um efeito de card: você pode Baixar 1 Magia Rápida \"K9\" do seu Deck ou Cemitério. Você só pode usar este efeito de \"\"A Case for K9\"\" uma vez por turno. Você só pode ativar 1 \"\"A Case for K9\"\" por turno.",
       "strings": []
     },
     {
@@ -993,6 +1071,12 @@
       "strings": []
     },
     {
+      "code": 89832901,
+      "name": "B. Dragão Rei da Selva",
+      "description": "Um dragão negro encontrado nas selvas mais profundas que normalmente devora árvores.",
+      "strings": []
+    },
+    {
       "code": 89932017,
       "name": "Sincronização unidirecional",
       "description": "Pegue 1 Regulador de Nível 1 do seu Deck ou Cemitério e adicione-o à sua mão ou Invoque-o por Invocação-Especial. Se você controlar \"Guerreiro Sucata\" ou um monstro que o mencione, e este card estiver no seu Cemitério: você pode Baixar este card, mas bana-o quando ele deixar o campo. Você só pode usar 1 efeito de \"Sincronização Unidirecional\" por turno e apenas uma vez por turno.",
@@ -1066,6 +1150,12 @@
       "code": 98937206,
       "name": "Detonador Rokket",
       "description": "Se você controlar um Monstro Link Dragão de TREVAS, você pode Invocar este card por Invocação-Especial (da sua mão). Você só pode Invocar \"Foguete Detonador\" por Invocação-Especial uma vez por turno desta forma. Você pode escolher 1 Card de Monstro Dragão TREVADO na sua Zona de Magias e Armadilhas; Invoque-o por Invocação-Especial (mas ele não pode atacar e seus efeitos também são negados) e você também não pode Invocá-lo por Invocação-Especial do Deck Adicional pelo resto deste turno, exceto monstros de TREVAS. Você só pode usar este efeito de \"Foguete Detonador\" uma vez por turno.",
+      "strings": []
+    },
+    {
+      "code": 99529628,
+      "name": "Keaf, Murk do Ghoti",
+      "description": "Se um monstro Peixe estiver no campo: você pode Invocar este card por Invocação-Especial da sua mão. Se um ou mais monstros forem Invocados por Invocação-Especial no campo do seu oponente (exceto durante a Etapa de Dano): você pode escolher 1 desses monstros e 1 dos seus monstros Peixe de Nível 6 ou menos banidos; bana tanto o monstro do oponente quanto este card e, se isso acontecer, Invoque por Invocação-Especial o monstro alvo. Durante a Fase de Apoio do próximo turno após este card ter sido banido: você pode Invocar este card banido por Invocação-Especial. Você só pode usar cada efeito de \"Keaf, Murk of the Ghoti\" uma vez por turno.",
       "strings": []
     },
     {

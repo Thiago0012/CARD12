@@ -654,6 +654,13 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            if (_starterClaimModal != null)
+            {
+                Destroy(_starterClaimModal);
+                _starterClaimModal = null;
+                return;
+            }
+
             if (_shopBackAction != null)
             {
                 Action backAction = _shopBackAction;
@@ -700,6 +707,12 @@ namespace ArcaneArena.Frontend
             if (_repository != null && !_repository.HasPlayerProfile)
             {
                 ShowPlayerProfileSetup();
+                return;
+            }
+
+            if (_repository != null && _repository.NeedsStarterDeckSelection)
+            {
+                ShowStarterDeckSelection();
                 return;
             }
 
@@ -1194,7 +1207,10 @@ namespace ArcaneArena.Frontend
                         input.text,
                         out var rejection))
                 {
-                    ShowMainMenu();
+                    if (_repository.NeedsStarterDeckSelection)
+                        ShowStarterDeckSelection();
+                    else
+                        ShowMainMenu();
                     return;
                 }
 
@@ -2687,6 +2703,9 @@ namespace ArcaneArena.Frontend
                 _deckEditorDetailArtwork.sprite = entry.Artwork;
                 _deckEditorDetailArtwork.color =
                     entry.Artwork != null ? Color.white : Color.clear;
+                RefreshBanlistBadge(
+                    _deckEditorDetailArtwork.transform,
+                    cardId);
             }
             if (_deckEditorDetailName != null)
                 _deckEditorDetailName.text = entry.DisplayName;
@@ -2767,6 +2786,7 @@ namespace ArcaneArena.Frontend
                     Vector2.one,
                     0f,
                     false);
+                AddBanlistBadge(card.transform, cardId);
                 var removeIndex = i;
                 var trigger = card.gameObject.AddComponent<EventTrigger>();
                 AddTrigger(
@@ -2833,6 +2853,7 @@ namespace ArcaneArena.Frontend
                     Vector2.one,
                     0f,
                     false);
+                AddBanlistBadge(card.transform, cardId);
                 var outlineColor = entry.Category == CardCategory.Spell
                     ? new Color(0.1f, 0.86f, 0.74f, 0.8f)
                     : entry.Category == CardCategory.Trap
@@ -4469,6 +4490,7 @@ namespace ArcaneArena.Frontend
             _deckEditorDetailType = null;
             _deckEditorDetailStats = null;
             _deckEditorDetailEffect = null;
+            _starterClaimModal = null;
             _catalogFilterButtons.Clear();
             if (_dragGhost != null)
                 Destroy(_dragGhost.gameObject);

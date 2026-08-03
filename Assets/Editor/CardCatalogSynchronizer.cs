@@ -24,6 +24,8 @@ namespace ArcaneArena.Editor
             "Assets/Cards/Cards/Decks/BatchJuly2026";
         private const string BatchAugust2026ArtFolder =
             "Assets/Cards/Cards/Decks/BatchAugust2026";
+        private const string StarterDeckArtFolder =
+            "Assets/Cards/Cards/Decks/StarterDecks2026";
 
         [MenuItem("Arcane Arena/Content/Sync Yugi Battle City")]
         public static void SyncYugiMutoBattleCity()
@@ -127,6 +129,35 @@ namespace ArcaneArena.Editor
                     CuratedDeckLists.ExodiaExtra,
                     CuratedDeckLists.BlueEyesMaxModifiedExtra
                 }.SelectMany(cards => cards).ToArray());
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync Starter Deck Cards")]
+        public static void SyncStarterDeckCards()
+        {
+            TextAsset source = Resources.Load<TextAsset>(
+                "StarterDecks/starter-deck-sources");
+            if (source == null)
+                throw new FileNotFoundException(
+                    "Resources/StarterDecks/starter-deck-sources.json");
+            StarterDeckSourceCatalogFile catalog =
+                JsonUtility.FromJson<StarterDeckSourceCatalogFile>(source.text);
+            if (catalog?.decks == null || catalog.decks.Count != 6)
+                throw new InvalidDataException(
+                    "O catálogo bruto de decks iniciais deve conter seis decks.");
+
+            uint[] codes = catalog.decks
+                .Where(deck => deck?.raw != null)
+                .SelectMany(deck => deck.raw.mainDeck
+                    .Concat(deck.raw.extraDeck)
+                    .Concat(deck.raw.sideDeck))
+                .Select(value => uint.Parse(value))
+                .Distinct()
+                .ToArray();
+            SyncDeck(
+                "starter-decks-2026-08",
+                StarterDeckArtFolder,
+                codes,
+                System.Array.Empty<uint>());
         }
 
         private static void SyncDeck(

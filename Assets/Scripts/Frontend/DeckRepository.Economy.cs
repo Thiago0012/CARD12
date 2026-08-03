@@ -465,11 +465,11 @@ namespace ArcaneArena.Frontend
         {
             State = JsonUtility.FromJson<DeckCollectionState>(json) ??
                 new DeckCollectionState();
-            State.schemaVersion = 5;
+            State.schemaVersion = CurrentSchemaVersion;
             State.decks ??= new List<DeckRecord>();
             State.unlockedDeckProductIds ??= new List<string>();
-            NormalizeEconomyState(5);
-            NormalizeCoinRewardAuthorizationState(5);
+            NormalizeEconomyState(CurrentSchemaVersion);
+            NormalizeCoinRewardAuthorizationState(CurrentSchemaVersion);
         }
 
         private static int SecureIndex(int count)

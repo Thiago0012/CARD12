@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="20" result="Failed(Child)" total="20" passed="15" failed="5" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-03 20:53:25Z" end-time="2026-08-03 20:54:03Z" duration="37,140989">
+  <test-suite type="TestSuite" id="1064" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 20:53:25Z" end-time="2026-08-03 20:54:03Z" duration="37.140989" total="20" passed="15" failed="5" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1057" name="ArcaneDuel.PlayModeTests.dll" fullname="C:/Unity Projeto/CARD12/Library/ScriptAssemblies/ArcaneDuel.PlayModeTests.dll" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 20:53:25Z" end-time="2026-08-03 20:54:03Z" duration="37.126579" total="20" passed="15" failed="5" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="20464" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1058" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 20:53:25Z" end-time="2026-08-03 20:54:03Z" duration="37.118870" total="20" passed="15" failed="5" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1059" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 20:53:25Z" end-time="2026-08-03 20:54:03Z" duration="37.102095" total="20" passed="15" failed="5" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1060" name="PlayMode" fullname="ArcaneDuel.Tests.PlayMode" runstate="Runnable" testcasecount="49" result="Failed" site="Child" start-time="2026-08-03 20:53:25Z" end-time="2026-08-03 20:54:03Z" duration="37.085380" total="20" passed="15" failed="5" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1001" name="ArenaStabilizationPlayModeTests" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" testcasecount="20" result="Failed" site="Child" start-time="2026-08-03 20:53:26Z" end-time="2026-08-03 20:54:03Z" duration="37.066491" total="20" passed="15" failed="5" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1006" name="AuthoredArenaBuildsSevenMonsterZonesPerPlayer" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.AuthoredArenaBuildsSevenMonsterZonesPerPlayer" methodname="AuthoredArenaBuildsSevenMonsterZonesPerPlayer" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="81840820" result="Passed" start-time="2026-08-03 20:53:26Z" end-time="2026-08-03 20:53:37Z" duration="11.286887" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=960DFA5247DD7CA9.
+]]></output>
+              </test-case>
+              <test-case id="1002" name="AuthoredArenaNeverConsumesThePlayersPromptsAutomatically" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.AuthoredArenaNeverConsumesThePlayersPromptsAutomatically" methodname="AuthoredArenaNeverConsumesThePlayersPromptsAutomatically" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1465255463" result="Passed" start-time="2026-08-03 20:53:37Z" end-time="2026-08-03 20:53:38Z" duration="1.502987" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=7E87480ADEEF6CCD.
+]]></output>
+              </test-case>
+              <test-case id="1019" name="CardPresentationLocksPlayerAndBotDecisions" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.CardPresentationLocksPlayerAndBotDecisions" methodname="CardPresentationLocksPlayerAndBotDecisions" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="706812616" result="Passed" start-time="2026-08-03 20:53:38Z" end-time="2026-08-03 20:53:40Z" duration="1.200851" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1016" name="CardSoundsFollowCardCategoryAndSummonFrame" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.CardSoundsFollowCardCategoryAndSummonFrame" methodname="CardSoundsFollowCardCategoryAndSummonFrame" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1135171336" result="Passed" start-time="2026-08-03 20:53:40Z" end-time="2026-08-03 20:53:41Z" duration="1.736887" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=2998A08643BC14B7.
+[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=7591BB5C94AAC394.
+]]></output>
+              </test-case>
+              <test-case id="1013" name="ConsecutivePileUpdatesKeepTheLatestAuthoritativeView" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.ConsecutivePileUpdatesKeepTheLatestAuthoritativeView" methodname="ConsecutivePileUpdatesKeepTheLatestAuthoritativeView" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1969490377" result="Failed" start-time="2026-08-03 20:53:41Z" end-time="2026-08-03 20:53:43Z" duration="1.343496" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  A deferred Destroy cannot hide the replacement pile view.
+  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<ConsecutivePileUpdatesKeepTheLatestAuthoritativeView>d__17.MoveNext () [0x00144] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:711
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=1465FBDA7B1AE6F1.
+]]></output>
+              </test-case>
+              <test-case id="1021" name="DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt" methodname="DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1007231442" result="Passed" start-time="2026-08-03 20:53:43Z" end-time="2026-08-03 20:53:46Z" duration="3.439934" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=7598BA9D3B8C8855.
+]]></output>
+              </test-case>
+              <test-case id="1014" name="DuplicateSelectionCancelAndSecondSummonStayIndependent" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.DuplicateSelectionCancelAndSecondSummonStayIndependent" methodname="DuplicateSelectionCancelAndSecondSummonStayIndependent" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="846310418" result="Failed" start-time="2026-08-03 20:53:46Z" end-time="2026-08-03 20:53:47Z" duration="1.378429" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<DuplicateSelectionCancelAndSecondSummonStayIndependent>d__18.MoveNext () [0x00495] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:829
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=7379FB93BF9FB6F6.
+]]></output>
+              </test-case>
+              <test-case id="1011" name="EveryArenaZoneCanBeHoveredWithoutNullReference" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.EveryArenaZoneCanBeHoveredWithoutNullReference" methodname="EveryArenaZoneCanBeHoveredWithoutNullReference" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1671055142" result="Passed" start-time="2026-08-03 20:53:47Z" end-time="2026-08-03 20:53:49Z" duration="1.239248" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=7A101F71B3837ED0.
+]]></output>
+              </test-case>
+              <test-case id="1017" name="ExtraDeckAndGraveyardUseVisibleLegalOutlines" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.ExtraDeckAndGraveyardUseVisibleLegalOutlines" methodname="ExtraDeckAndGraveyardUseVisibleLegalOutlines" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="706157970" result="Passed" start-time="2026-08-03 20:53:49Z" end-time="2026-08-03 20:53:50Z" duration="0.862523" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1018" name="ExtraDeckBrowserOpensForInspectionWithoutLegalSummon" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.ExtraDeckBrowserOpensForInspectionWithoutLegalSummon" methodname="ExtraDeckBrowserOpensForInspectionWithoutLegalSummon" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="411587871" result="Passed" start-time="2026-08-03 20:53:50Z" end-time="2026-08-03 20:53:51Z" duration="1.533746" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=FE359AFA5AD83566.
+[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=3BA03890547F7099.
+]]></output>
+              </test-case>
+              <test-case id="1004" name="FieldMonsterWaitsForExplicitEffectOrPositionChoice" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.FieldMonsterWaitsForExplicitEffectOrPositionChoice" methodname="FieldMonsterWaitsForExplicitEffectOrPositionChoice" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1748151923" result="Passed" start-time="2026-08-03 20:53:51Z" end-time="2026-08-03 20:53:52Z" duration="1.164228" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=ED80CD1D80297777.
+]]></output>
+              </test-case>
+              <test-case id="1010" name="HiddenOpponentWorldViewIsNotTreatedAsAnEmptyZone" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.HiddenOpponentWorldViewIsNotTreatedAsAnEmptyZone" methodname="HiddenOpponentWorldViewIsNotTreatedAsAnEmptyZone" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="432006353" result="Passed" start-time="2026-08-03 20:53:52Z" end-time="2026-08-03 20:53:53Z" duration="1.028231" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=39660EBCEBB82A6C.
+]]></output>
+              </test-case>
+              <test-case id="1015" name="LegalCardGlowPulsesWithSummonAndEffectColors" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.LegalCardGlowPulsesWithSummonAndEffectColors" methodname="LegalCardGlowPulsesWithSummonAndEffectColors" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="645932244" result="Passed" start-time="2026-08-03 20:53:53Z" end-time="2026-08-03 20:53:54Z" duration="0.326611" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1007" name="LinkMonsterHasAVisibleWorldCardInExtraMonsterZone" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.LinkMonsterHasAVisibleWorldCardInExtraMonsterZone" methodname="LinkMonsterHasAVisibleWorldCardInExtraMonsterZone" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1557978379" result="Failed" start-time="2026-08-03 20:53:54Z" end-time="2026-08-03 20:53:55Z" duration="1.127632" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<LinkMonsterHasAVisibleWorldCardInExtraMonsterZone>d__11.MoveNext () [0x00100] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:329
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=EF352F2A82D69719.
+]]></output>
+              </test-case>
+              <test-case id="1012" name="MissingAuthoritativeWorldCardIsRepairedBeforeUse" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.MissingAuthoritativeWorldCardIsRepairedBeforeUse" methodname="MissingAuthoritativeWorldCardIsRepairedBeforeUse" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1596380140" result="Failed" start-time="2026-08-03 20:53:55Z" end-time="2026-08-03 20:53:56Z" duration="1.098983" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<MissingAuthoritativeWorldCardIsRepairedBeforeUse>d__16.MoveNext () [0x001a0] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:623
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=21D4555E2A79893D.
+]]></output>
+              </test-case>
+              <test-case id="1020" name="OnlineResponseWaitsForPresentationAndIsNotLost" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.OnlineResponseWaitsForPresentationAndIsNotLost" methodname="OnlineResponseWaitsForPresentationAndIsNotLost" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="733209428" result="Passed" start-time="2026-08-03 20:53:56Z" end-time="2026-08-03 20:53:57Z" duration="1.080881" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=A06F89B3E1997BF8.
+]]></output>
+              </test-case>
+              <test-case id="1003" name="OptionalResponseUsesOneCompactBarPerRequest" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.OptionalResponseUsesOneCompactBarPerRequest" methodname="OptionalResponseUsesOneCompactBarPerRequest" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1627235751" result="Passed" start-time="2026-08-03 20:53:57Z" end-time="2026-08-03 20:53:58Z" duration="1.600484" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=BA168DBC2AAB4FC8.
+]]></output>
+              </test-case>
+              <test-case id="1008" name="PhaseNavigatorClosesCardInspectorAndActions" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.PhaseNavigatorClosesCardInspectorAndActions" methodname="PhaseNavigatorClosesCardInspectorAndActions" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1613991582" result="Passed" start-time="2026-08-03 20:53:58Z" end-time="2026-08-03 20:54:00Z" duration="1.273490" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=B8347FC1F6A2E4E7.
+]]></output>
+              </test-case>
+              <test-case id="1009" name="SetSpellTrapUsesTheCardBackAndHidesItsFace" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.SetSpellTrapUsesTheCardBackAndHidesItsFace" methodname="SetSpellTrapUsesTheCardBackAndHidesItsFace" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="272809045" result="Failed" start-time="2026-08-03 20:54:00Z" end-time="2026-08-03 20:54:01Z" duration="1.431867" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: not null
+  But was:  null
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests+<SetSpellTrapUsesTheCardBackAndHidesItsFace>d__13.MoveNext () [0x0010b] in C:\Unity Projeto\CARD12\Assets\Tests\PlayMode\ArenaStabilizationPlayModeTests.cs:454
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@f3e6c9a02477\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=5C1D03C77CEEADB8.
+]]></output>
+              </test-case>
+              <test-case id="1005" name="SingleHandEffectSelectionRequiresTrayConfirmation" fullname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests.SingleHandEffectSelectionRequiresTrayConfirmation" methodname="SingleHandEffectSelectionRequiresTrayConfirmation" classname="ArcaneDuel.Tests.PlayMode.ArenaStabilizationPlayModeTests" runstate="Runnable" seed="1967174004" result="Passed" start-time="2026-08-03 20:54:01Z" end-time="2026-08-03 20:54:03Z" duration="1.378045" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[Arcane legacy bridge] StartLocalTestDuel requested: deck ativo persistido.
+[Arcane legacy bridge] O deck persistido esta ilegal; a cena tecnica Duel usara um starter validado.
+[Arcane legacy bridge] Restarting core with player='Deck Inicial 724579' id='starter_724579' main=42 cards=[59811955,59811955,67829249,67829249,4446672,37694547,37694547,92001300] extra=5; opponent='Deck Inicial 724579' main=42 extra=5.
+[Arcane legacy bridge] Core restarted: playerMain=42, playerExtra=5, opponentMain=42, opponentExtra=5, seed=24B050F8999EE400.
+Saving results to: C:/Users/Ellen Jennyffer/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

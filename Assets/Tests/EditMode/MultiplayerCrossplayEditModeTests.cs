@@ -57,6 +57,9 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(
                 compatibility,
                 Does.Contain(ProjectIdentity.BabelCdbCommit));
+            Assert.That(
+                compatibility,
+                Does.Contain(BanlistService.ActiveBanlistId));
         }
 
     }

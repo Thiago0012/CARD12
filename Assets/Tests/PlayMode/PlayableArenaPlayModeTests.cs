@@ -336,9 +336,45 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator EveryCompleteBotDeckStartsABotDuel()
+        public IEnumerator EveryLegalBotDeckStartsAndIllegalDecksAreDisabled()
         {
-            for (int deckIndex = 0; deckIndex < 23; deckIndex++)
+            SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour initialFrontend =
+                Resources.FindObjectsOfTypeAll<MonoBehaviour>()
+                    .FirstOrDefault(component =>
+                        component != null &&
+                        component.gameObject.activeInHierarchy &&
+                        component.GetType().Name == "GameFrontendBootstrap");
+            Assert.That(initialFrontend, Is.Not.Null);
+            ConfigureFrontendWithStarterDeck(initialFrontend);
+            var initialSelection = initialFrontend.GetType().GetMethod(
+                "ShowBotDeckSelection",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            initialSelection.Invoke(initialFrontend, null);
+            yield return null;
+
+            Image[] initialTiles = Resources.FindObjectsOfTypeAll<Image>()
+                .Where(candidate =>
+                    candidate != null &&
+                    candidate.gameObject.activeInHierarchy &&
+                    candidate.name.StartsWith(
+                        "Deck do bot shop:",
+                        System.StringComparison.Ordinal))
+                .OrderBy(candidate => candidate.name)
+                .ToArray();
+            Assert.That(initialTiles, Has.Length.EqualTo(23));
+            string[] legalDeckNames = initialTiles
+                .Where(tile => tile.GetComponent<Button>() != null)
+                .Select(tile => tile.name)
+                .ToArray();
+            Assert.That(legalDeckNames, Has.Length.EqualTo(16));
+            Assert.That(initialTiles.Count(tile =>
+                tile.GetComponent<Button>() == null), Is.EqualTo(7));
+
+            foreach (string legalDeckName in legalDeckNames)
             {
                 SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
                 yield return null;
@@ -351,6 +387,7 @@ namespace ArcaneDuel.Tests.PlayMode
                             component.gameObject.activeInHierarchy &&
                             component.GetType().Name == "GameFrontendBootstrap");
                 Assert.That(frontend, Is.Not.Null);
+                ConfigureFrontendWithStarterDeck(frontend);
                 var showSelection = frontend.GetType().GetMethod(
                     "ShowBotDeckSelection",
                     System.Reflection.BindingFlags.Instance |
@@ -368,28 +405,13 @@ namespace ArcaneDuel.Tests.PlayMode
                             System.StringComparison.Ordinal))
                     .OrderBy(candidate => candidate.name)
                     .ToArray();
-                string validationDetails = string.Join(
-                    " | ",
-                    deckTiles.Select(tile =>
-                        tile.name + ": " +
-                        string.Join(
-                            " / ",
-                            tile.GetComponentsInChildren<Text>(true)
-                                .Select(label => label.text))));
                 Assert.That(
                     deckTiles,
-                    Has.Length.EqualTo(23),
-                    "The bot selection must display all twenty-three curated decks. " +
-                    validationDetails);
-                Button[] deckButtons = deckTiles
-                    .Select(tile => tile.GetComponent<Button>())
-                    .ToArray();
-                Assert.That(
-                    deckButtons,
-                    Has.All.Not.Null,
-                    "Every curated bot deck must pass validation and be clickable. " +
-                    validationDetails);
-                Button deckButton = deckButtons[deckIndex];
+                    Has.Length.EqualTo(23));
+                Button deckButton = deckTiles
+                    .First(tile => tile.name == legalDeckName)
+                    .GetComponent<Button>();
+                Assert.That(deckButton, Is.Not.Null);
                 Assert.That(deckButton.interactable, Is.True);
                 string selectedDeckName = deckButton.name;
 
@@ -423,6 +445,65 @@ namespace ArcaneDuel.Tests.PlayMode
                 Assert.That(controller.CurrentPrompt, Is.Not.Null);
             }
         }
+
+        private static void ConfigureFrontendWithStarterDeck(
+            MonoBehaviour frontend)
+        {
+            StarterDeckCatalog starterCatalog =
+                Resources.Load<StarterDeckCatalog>(
+                    "StarterDecks/StarterDeckCatalog");
+            StarterDeckDefinition starter = starterCatalog.Decks
+                .First(deck => deck != null && deck.IsPublishable);
+            BindingFlags flags = BindingFlags.Instance |
+                                 BindingFlags.NonPublic;
+            object repository = frontend.GetType().GetField(
+                    "_repository", flags)
+                .GetValue(frontend);
+            object state = repository.GetType().GetProperty("State")
+                .GetValue(repository);
+            System.Type deckType = frontend.GetType().Assembly.GetType(
+                "ArcaneArena.Frontend.DeckRecord");
+            object deck = System.Activator.CreateInstance(deckType);
+            string deckId = "playmode-starter";
+            deckType.GetField("deckId").SetValue(deck, deckId);
+            deckType.GetField("displayName").SetValue(
+                deck, starter.DisplayName);
+            deckType.GetField("mainDeckCardIds").SetValue(
+                deck, new List<string>(starter.MainDeck));
+            deckType.GetField("extraDeckCardIds").SetValue(
+                deck, new List<string>(starter.ExtraDeck));
+            deckType.GetField("sideDeckCardIds").SetValue(
+                deck, new List<string>());
+            deckType.GetMethod("Normalize").Invoke(deck, null);
+
+            var decks = (System.Collections.IList)state.GetType()
+                .GetField("decks").GetValue(state);
+            decks.Clear();
+            decks.Add(deck);
+            state.GetType().GetField("selectedDeckId")
+                .SetValue(state, deckId);
+            state.GetType().GetField("playerDisplayName")
+                .SetValue(state, "Duelista PlayMode");
+            state.GetType().GetField("starterDeckClaimed")
+                .SetValue(state, true);
+
+            var quantities = (System.Collections.IList)state.GetType()
+                .GetField("cardQuantities").GetValue(state);
+            quantities.Clear();
+            System.Type quantityType = frontend.GetType().Assembly.GetType(
+                "ArcaneArena.Frontend.CardQuantityRecord");
+            foreach (var group in starter.MainDeck
+                         .Concat(starter.ExtraDeck)
+                         .GroupBy(cardId => cardId))
+            {
+                object quantity = System.Activator.CreateInstance(quantityType);
+                quantityType.GetField("cardId").SetValue(quantity, group.Key);
+                quantityType.GetField("quantity").SetValue(
+                    quantity, group.Count());
+                quantities.Add(quantity);
+            }
+        }
+
         private static Transform FindDescendant(
             Transform parent,
             string objectName)

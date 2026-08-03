@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ArcaneArena.Cards;
+using ArcaneDuel.Game;
 using UnityEngine;
 
 namespace ArcaneArena.Frontend
@@ -14,10 +15,11 @@ namespace ArcaneArena.Frontend
     /// </summary>
     public sealed partial class DeckRepository
     {
-        private const int CurrentSchemaVersion = 5;
+        private const int CurrentSchemaVersion = 6;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
         private const int ExtraDeckMaximum = 15;
+        private const int SideDeckMaximum = 15;
         private const int CopyLimit = 3;
         public const int MinimumPlayerNameLength = 3;
         public const int MaximumPlayerNameLength = 18;
@@ -29,6 +31,8 @@ namespace ArcaneArena.Frontend
             State?.playerDisplayName?.Trim() ?? string.Empty;
         public bool HasPlayerProfile =>
             !string.IsNullOrWhiteSpace(PlayerDisplayName);
+        public bool NeedsStarterDeckSelection =>
+            HasPlayerProfile && State != null && !State.starterDeckClaimed;
         public DeckRecord SelectedDeck =>
             State?.decks?.Find(deck =>
                 deck != null &&
@@ -85,13 +89,12 @@ namespace ArcaneArena.Frontend
             if (string.IsNullOrWhiteSpace(State.localProfileId))
                 State.localProfileId = Guid.NewGuid().ToString("N");
             NormalizeCoinRewardAuthorizationState(loadedSchemaVersion);
+            MigrateStarterOnboarding(loadedSchemaVersion);
 
             State.decks.RemoveAll(deck => deck == null);
             foreach (var deck in State.decks)
                 deck.Normalize();
 
-            if (State.decks.Count == 0)
-                State.decks.Add(CreateStarterDeck(catalog));
             if (string.IsNullOrWhiteSpace(State.selectedDeckId) ||
                 State.decks.All(deck =>
                     !string.Equals(
@@ -99,11 +102,39 @@ namespace ArcaneArena.Frontend
                         State.selectedDeckId,
                         StringComparison.Ordinal)))
             {
-                State.selectedDeckId = State.decks[0].deckId;
+                State.selectedDeckId = State.decks.Count > 0
+                    ? State.decks[0].deckId
+                    : string.Empty;
             }
 
             if (persistNormalizedState)
                 Save();
+        }
+
+        private void MigrateStarterOnboarding(int loadedSchemaVersion)
+        {
+            if (loadedSchemaVersion >= CurrentSchemaVersion ||
+                State.starterDeckClaimed ||
+                !HasPlayerProfile)
+            {
+                return;
+            }
+
+            StarterDeckCatalog catalog = Resources.Load<StarterDeckCatalog>(
+                "StarterDecks/StarterDeckCatalog");
+            if (catalog == null ||
+                catalog.LegacyPolicy !=
+                    StarterLegacyPolicy.MarkCompletedByMigration)
+            {
+                return;
+            }
+
+            State.starterDeckClaimed = true;
+            State.starterDeckId = "legacy-migration";
+            State.starterClaimTransactionId = string.Empty;
+            State.starterClaimedAtUtcTicks = DateTime.UtcNow.Ticks;
+            State.starterCatalogVersion = catalog.CatalogVersion;
+            State.banlistVersionAtClaim = catalog.ActiveBanlistId;
         }
 
         public bool TrySetPlayerDisplayName(
@@ -358,6 +389,12 @@ namespace ArcaneArena.Frontend
                     $"O Deck Adicional pode conter no máximo {ExtraDeckMaximum} cards.";
                 return false;
             }
+            if (deck.sideDeckCardIds.Count > SideDeckMaximum)
+            {
+                rejection =
+                    $"O Side Deck pode conter no máximo {SideDeckMaximum} cards.";
+                return false;
+            }
 
             var copies = new Dictionary<string, int>(
                 StringComparer.Ordinal);
@@ -389,6 +426,31 @@ namespace ArcaneArena.Frontend
                     return false;
             }
 
+            foreach (var cardId in deck.sideDeckCardIds)
+            {
+                if (!TryValidateCardPlacement(
+                        catalog,
+                        cardId,
+                        null,
+                        out rejection))
+                {
+                    return false;
+                }
+                if (!TryCountCopy(cardId, copies, out rejection))
+                    return false;
+            }
+
+            DeckLegalityResult legality = DeckLegalityValidator.Validate(
+                deck.mainDeckCardIds,
+                deck.extraDeckCardIds,
+                deck.sideDeckCardIds,
+                BanlistService.Active);
+            if (!legality.IsLegal)
+            {
+                rejection = legality.Summary;
+                return false;
+            }
+
             return true;
         }
 
@@ -402,8 +464,9 @@ namespace ArcaneArena.Frontend
 
             var copies = new Dictionary<string, int>(
                 StringComparer.Ordinal);
-            foreach (var cardId in deck.mainDeckCardIds.Concat(
-                         deck.extraDeckCardIds))
+            foreach (var cardId in deck.mainDeckCardIds
+                         .Concat(deck.extraDeckCardIds)
+                         .Concat(deck.sideDeckCardIds))
             {
                 var normalized =
                     NormalizeNumericCardId(cardId);
@@ -564,7 +627,7 @@ namespace ArcaneArena.Frontend
         private static bool TryValidateCardPlacement(
             CardCatalog catalog,
             string cardId,
-            bool expectedInExtraDeck,
+            bool? expectedInExtraDeck,
             out string rejection)
         {
             rejection = string.Empty;
@@ -609,9 +672,10 @@ namespace ArcaneArena.Frontend
                 return false;
             }
 
-            if (BelongsToExtraDeck(entry) != expectedInExtraDeck)
+            if (expectedInExtraDeck.HasValue &&
+                BelongsToExtraDeck(entry) != expectedInExtraDeck.Value)
             {
-                rejection = expectedInExtraDeck
+                rejection = expectedInExtraDeck.Value
                     ? $"{entry.DisplayName} não pertence ao Deck Adicional."
                     : $"{entry.DisplayName} deve ficar no Deck Adicional.";
                 return false;
@@ -626,9 +690,12 @@ namespace ArcaneArena.Frontend
             out string rejection)
         {
             rejection = string.Empty;
-            copies.TryGetValue(cardId, out var count);
+            string copyKey = NormalizeNumericCardId(cardId);
+            if (string.IsNullOrEmpty(copyKey))
+                copyKey = cardId?.Trim() ?? string.Empty;
+            copies.TryGetValue(copyKey, out var count);
             count++;
-            copies[cardId] = count;
+            copies[copyKey] = count;
             if (count <= CopyLimit)
                 return true;
 
@@ -656,43 +723,5 @@ namespace ArcaneArena.Frontend
             return normalized.Length == 0 ? "0" : normalized;
         }
 
-        private static DeckRecord CreateStarterDeck(CardCatalog catalog)
-        {
-            var deck = new DeckRecord
-            {
-                deckId = Guid.NewGuid().ToString("N"),
-                displayName = "Deck Inicial",
-                caseTheme = 0
-            };
-
-            if (catalog != null)
-            {
-                foreach (var entry in catalog.Entries)
-                {
-                    if (entry == null ||
-                        !entry.IsReadyForGameplay ||
-                        entry.Artwork == null ||
-                        !FrontendCardRuntimeCompatibility
-                            .CanEnterDuel(entry))
-                    {
-                        continue;
-                    }
-
-                    var id = StableCardId(entry);
-                    if (BelongsToExtraDeck(entry))
-                    {
-                        if (deck.extraDeckCardIds.Count < 15)
-                            deck.extraDeckCardIds.Add(id);
-                    }
-                    else if (deck.mainDeckCardIds.Count < 40)
-                    {
-                        deck.mainDeckCardIds.Add(id);
-                    }
-                }
-            }
-
-            deck.Normalize();
-            return deck;
-        }
     }
 }

@@ -19,13 +19,14 @@ namespace ArcaneArena.Multiplayer
     /// </summary>
     internal sealed class MultiplayerSessionCoordinator
     {
-        internal const string SessionType = "arcane-duel-private-v4";
+        internal const string SessionType = "arcane-duel-private-v5";
 
         private const string AppVersionKey = "appVersion";
         private const string ProtocolVersionKey = "protocolVersion";
         private const string EngineVersionKey = "engineVersion";
         private const string RulesetHashKey = "rulesetHash";
         private const string CardDatabaseHashKey = "cardDbHash";
+        private const string BanlistVersionKey = "banlistVersion";
         private const string ModeKey = "mode";
         private const string StatusKey = "status";
         private const string JoinableKey = "joinable";
@@ -215,6 +216,8 @@ namespace ArcaneArena.Multiplayer
                     ProjectIdentity.CardScriptsCommit),
                 [CardDatabaseHashKey] = PublicProperty(
                     ProjectIdentity.BabelCdbCommit),
+                [BanlistVersionKey] = PublicProperty(
+                    BanlistService.ActiveBanlistId),
                 [ModeKey] = PublicProperty("private-duel-1v1"),
                 [StatusKey] = PublicProperty("waiting"),
                 [JoinableKey] = PublicProperty("true"),
@@ -336,6 +339,8 @@ namespace ArcaneArena.Multiplayer
                 ["displayName"] = MemberPlayerProperty(
                     Limit(loadout?.playerDisplayName, 32)),
                 ["deckHash"] = MemberPlayerProperty(ComputeDeckHash(loadout)),
+                ["banlistId"] = MemberPlayerProperty(
+                    loadout?.banlistId ?? string.Empty),
                 ["ready"] = MemberPlayerProperty("false"),
                 ["platform"] = MemberPlayerProperty(Application.platform.ToString()),
                 ["seat"] = MemberPlayerProperty(seat.ToString()),
@@ -357,6 +362,8 @@ namespace ArcaneArena.Multiplayer
                 ProjectIdentity.CardScriptsCommit);
             RequireProperty(CardDatabaseHashKey,
                 ProjectIdentity.BabelCdbCommit);
+            RequireProperty(BanlistVersionKey,
+                BanlistService.ActiveBanlistId);
             RequireProperty(ModeKey, "private-duel-1v1");
         }
 
@@ -438,12 +445,13 @@ namespace ArcaneArena.Multiplayer
 
         internal static string ComputeDeckHash(DuelDeckLoadout loadout)
         {
-            var builder = new StringBuilder(1024);
-            AppendCards(builder, loadout?.mainDeckCardIds);
-            builder.Append('|');
-            AppendCards(builder, loadout?.extraDeckCardIds);
-
-            return ComputeStableHash(builder.ToString());
+            if (loadout == null)
+                return string.Empty;
+            return DeckManifestHasher.ComputeSha256(
+                loadout.banlistId,
+                loadout.mainDeckCardIds,
+                loadout.extraDeckCardIds,
+                loadout.sideDeckCardIds);
         }
 
         internal static string ComputeCompatibilityHash()
@@ -467,18 +475,5 @@ namespace ArcaneArena.Multiplayer
             return hash.ToString("x16");
         }
 
-        private static void AppendCards(
-            StringBuilder builder,
-            List<string> cards)
-        {
-            if (cards == null)
-                return;
-            for (int i = 0; i < cards.Count; i++)
-            {
-                if (i > 0)
-                    builder.Append(',');
-                builder.Append(cards[i] ?? string.Empty);
-            }
-        }
     }
 }

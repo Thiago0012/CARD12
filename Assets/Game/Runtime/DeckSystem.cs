@@ -17,6 +17,7 @@ namespace ArcaneDuel.Game
         public uint featuredCode;
         public List<uint> mainDeck = new List<uint>();
         public List<uint> extraDeck = new List<uint>();
+        public List<uint> sideDeck = new List<uint>();
 
         public DeckFile Clone()
         {
@@ -28,7 +29,8 @@ namespace ArcaneDuel.Game
                 theme = theme,
                 featuredCode = featuredCode,
                 mainDeck = new List<uint>(mainDeck ?? new List<uint>()),
-                extraDeck = new List<uint>(extraDeck ?? new List<uint>())
+                extraDeck = new List<uint>(extraDeck ?? new List<uint>()),
+                sideDeck = new List<uint>(sideDeck ?? new List<uint>())
             };
         }
     }
@@ -85,6 +87,7 @@ namespace ArcaneDuel.Game
 
             deck.mainDeck ??= new List<uint>();
             deck.extraDeck ??= new List<uint>();
+            deck.sideDeck ??= new List<uint>();
             if (deck.mainDeck.Count < MinimumMainDeck ||
                 deck.mainDeck.Count > MaximumMainDeck)
             {
@@ -96,12 +99,25 @@ namespace ArcaneDuel.Game
                 result.Add(
                     $"O Extra Deck aceita no máximo {MaximumExtraDeck} cartas.");
             }
+            if (deck.sideDeck.Count > DeckLegalityValidator.MaximumSide)
+            {
+                result.Add(
+                    $"O Side Deck aceita no máximo {DeckLegalityValidator.MaximumSide} cartas.");
+            }
 
             var copies = new Dictionary<uint, int>();
             ValidateSection(
                 "Main Deck",
                 deck.mainDeck,
                 false,
+                database,
+                visuals,
+                copies,
+                result);
+            ValidateSection(
+                "Side Deck",
+                deck.sideDeck,
+                null,
                 database,
                 visuals,
                 copies,
@@ -126,13 +142,24 @@ namespace ArcaneDuel.Game
                         $"{name} excede o limite de {MaximumCopies} cópias.");
                 }
             }
+
+            DeckLegalityResult banlistResult = DeckLegalityValidator.Validate(
+                deck.mainDeck.Select(code => code.ToString("00000000")),
+                deck.extraDeck.Select(code => code.ToString("00000000")),
+                deck.sideDeck.Select(code => code.ToString("00000000")),
+                BanlistService.Active);
+            foreach (string error in banlistResult.Errors)
+            {
+                if (!result.Errors.Contains(error))
+                    result.Add(error);
+            }
             return result;
         }
 
         private static void ValidateSection(
             string section,
             IEnumerable<uint> cards,
-            bool expectExtra,
+            bool? expectExtra,
             CardDatabase database,
             CardVisualCatalog visuals,
             Dictionary<uint, int> copies,
@@ -157,7 +184,8 @@ namespace ArcaneDuel.Game
                 {
                     result.Add($"{card.Name} não possui script de efeito resolvido.");
                 }
-                if (IsExtraDeck(card) != expectExtra)
+                if (expectExtra.HasValue &&
+                    IsExtraDeck(card) != expectExtra.Value)
                 {
                     result.Add($"{card.Name} está na seção incorreta do deck.");
                 }
@@ -218,6 +246,7 @@ namespace ArcaneDuel.Game
             }
             result.mainDeck ??= new List<uint>();
             result.extraDeck ??= new List<uint>();
+            result.sideDeck ??= new List<uint>();
             return result;
         }
 
