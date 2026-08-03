@@ -28,7 +28,7 @@ em `Logs/`.
   `Builds/Windows`), SHA-256
   `E113B0D76537E3C1E41AA2623AE145E5869AFB9095CF1771C10B43AFC0E2918E`.
 - `Builds/Android/ArcaneDuel.apk`, SHA-256
-  `6E81C6B9ADDFD7B1AF24EB35F7071E3CCEB30A23BEAF7AF26CE4B4DA13EEEB37`.
+  `EE720800367E60129777A92D3BF501A3BB51B4D63E489A0DCEE323A65F8774D0`.
 
 Os dois artefatos carregam a mesma versao 1.2.0 e as mesmas revisoes de Core,
 scripts de cartas e banco de dados.
@@ -59,3 +59,62 @@ reconexao, snapshot e continuidade. Desligar o host deve encerrar a partida.
 
 A compilacao e os testes locais verificam codigo, serializacao e configuracao,
 mas nao substituem a matriz com duas contas UGS e redes reais.
+
+## Validacao do loading sincronizado e resultado online v7
+
+Data: 2026-08-02
+
+### Resultado automatizado
+
+- Compilacao C# final em batchmode: sucesso, sem erro de compilacao.
+- Suite EditMode completa: 189 aprovados, 0 falhas.
+- Suite PlayMode direcionada ao multiplayer/loading/resultado: 17 aprovados,
+  0 falhas.
+- Suite PlayMode completa: 40 aprovados e 8 falhas preexistentes em testes
+  visuais/de apresentacao de arena e menu. Nenhuma dessas oito falhas pertence
+  ao novo loading, barreira de readiness, `BeginDuel` ou tela de resultado.
+- Build Release Windows x64: sucesso, com marcador
+  `ARCANE_DUEL_WINDOWS_BUILD_OK`.
+- Build Release Android ARM64: sucesso, com marcador
+  `ARCANE_DUEL_ANDROID_BUILD_OK`.
+
+Evidencias:
+
+- `Logs/codex-loading-result-editmode.xml`
+- `Logs/codex-loading-result-final-focused-playmode.xml`
+- `Logs/codex-loading-result-full-playmode.xml`
+- `Logs/codex-loading-result-windows-build.log`
+- `Logs/codex-loading-result-android-build.log`
+
+### Falhas antigas observadas na suite PlayMode completa
+
+1. `ArenaStabilizationPlayModeTests.ConsecutivePileUpdatesKeepTheLatestAuthoritativeView`
+2. `ArenaStabilizationPlayModeTests.DuplicateSelectionCancelAndSecondSummonStayIndependent`
+3. `ArenaStabilizationPlayModeTests.LinkMonsterHasAVisibleWorldCardInExtraMonsterZone`
+4. `ArenaStabilizationPlayModeTests.MissingAuthoritativeWorldCardIsRepairedBeforeUse`
+5. `ArenaStabilizationPlayModeTests.SetSpellTrapUsesTheCardBackAndHidesItsFace`
+6. `PlayableArenaPlayModeTests.DuelSceneBuildsProfessionalBattlePresentation`
+7. `PlayableArenaPlayModeTests.PlayerHandRestsInsideTheLowerResponsiveViewportStrip`
+8. `ProjectBootstrapPlayModeTests.MainMenuUsesTheNewHudAndDedicatedButtons`
+
+Essas falhas continuam registradas para uma revisao visual separada. Corrigi-las
+no mesmo conjunto misturaria uma refatoracao de arena/menu com o protocolo
+online e aumentaria o risco desta entrega.
+
+### Matriz manual obrigatoria para o protocolo v7
+
+Instalar exatamente o mesmo build v7 nos dois participantes. Versoes antigas
+v6 sao recusadas de forma intencional porque nao possuem `transitionEpoch`, a
+barreira em duas etapas nem o comando `BeginDuel`.
+
+| Host | Cliente | Validacao adicional |
+| --- | --- | --- |
+| PC | PC | loading preto nos dois, inicio conjunto e resultado oposto |
+| Android | Android | Safe Area, background/retorno e saida independente |
+| PC | Android | testar PC e Android alternadamente como anfitriao |
+
+Para cada combinacao, confirmar: ambos chegam a `SceneReady`; o snapshot e
+aplicado antes de revelar a arena; nenhum jogador age antes do `BeginDuel`; o
+vencedor recebe `VITORIA` e o outro `DERROTA`; a recompensa e aplicada uma
+unica vez; cada aparelho pode voltar ao menu sem apagar o resultado do outro;
+e uma segunda sala pode ser criada sem reiniciar o aplicativo.
