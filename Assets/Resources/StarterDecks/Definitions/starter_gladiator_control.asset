@@ -106,6 +106,7 @@ MonoBehaviour:
   - 77538567
   - 44095762
   - 53582587
+  - 35224440
   extraDeck:
   - 27346636
   - 48156348
@@ -117,18 +118,19 @@ MonoBehaviour:
   - 57731460
   - 78868776
   rawSha256: 2bab1c54a283f11f23415b732451b7b4be5b2cc0dfc5351985fa31dbeda38ada
-  sanitizedSha256: 9a8bd698de1f0256fb50081ae59ceb431edc767710c2a2b8315131ebecc9203b
+  sanitizedSha256: 6f48753e1a7471e98b6ba322663c4c6215f2e79aa9c6fa366e2afd190827d183
   replacements:
   - removedPasscode: 19613556
     replacementPasscode: 
     section: Main
     reason: Carta proibida pela banlist ativa.
     approved: 1
-  - removedPasscode: 
-    replacementPasscode: 
+  - removedPasscode: 19613556
+    replacementPasscode: 35224440
     section: Main
-    reason: O Main Deck ficou abaixo de 40; informe uma substituicao aprovada.
-    approved: 0
-  validationIssues:
-  - "O Main Deck deve ter 40\u201360 cartas."
-  publishable: 0
+    reason: 'Terceira copia de Campo de Provas dos Gladiadores: substitui a Tempestade
+      Pesada proibida e aumenta a consistencia ao buscar uma Besta Gladiadora de
+      Nivel 4 ou menor.'
+    approved: 1
+  validationIssues: []
+  publishable: 1

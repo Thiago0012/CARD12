@@ -138,7 +138,9 @@ namespace ArcaneDuel.Tests.PlayMode
                 FindDescendant(arena.transform, "Orientação do Duelo"),
                 Is.Not.Null);
             Assert.That(
-                FindDescendant(arena.transform, "Mão do Oponente"),
+                FindDescendant(
+                    arena.transform,
+                    "POSICAO DA MAO DO OPONENTE"),
                 Is.Not.Null);
             Assert.That(
                 FindDescendant(arena.transform, "Ações Recentes"),
@@ -153,7 +155,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Transform hand =
                 FindDescendant(
                     arena.transform,
-                    "Mão do Jogador");
+                    "POSICAO DA MAO DO JOGADOR");
             if (hand != null && hand.childCount > 0)
             {
                 for (int index = 0;

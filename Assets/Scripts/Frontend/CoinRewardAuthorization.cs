@@ -97,6 +97,13 @@ namespace ArcaneArena.Frontend
             out string rejection);
     }
 
+    public interface ICardSelectionContext
+    {
+        bool TryGetSelectedCardId(out string cardId);
+        bool IsInDuel { get; }
+        bool IsTextInputFocused { get; }
+    }
+
     public sealed class LocalInstallIdentityService : IInstallIdentityService
     {
         private readonly string _identityPath;

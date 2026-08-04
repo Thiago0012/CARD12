@@ -16,29 +16,7 @@ namespace ArcaneDuel.Tests.EditMode
     {
         private const int BatchSize = 25;
 
-        [TestCase(0)]
-        [TestCase(1)]
-        [TestCase(2)]
-        [TestCase(3)]
-        [TestCase(4)]
-        [TestCase(5)]
-        [TestCase(6)]
-        [TestCase(7)]
-        [TestCase(8)]
-        [TestCase(9)]
-        [TestCase(10)]
-        [TestCase(11)]
-        [TestCase(12)]
-        [TestCase(13)]
-        [TestCase(14)]
-        [TestCase(15)]
-        [TestCase(16)]
-        [TestCase(17)]
-        [TestCase(18)]
-        [TestCase(19)]
-        [TestCase(20)]
-        [TestCase(21)]
-        [TestCase(22)]
+        [TestCaseSource(nameof(PublishedBatchIndices))]
         public void ImportedBatchHasDataArtAndResolvedScripts(int batchIndex)
         {
             CardDatabase database = CardDatabase.LoadDefault();
@@ -152,29 +130,7 @@ namespace ArcaneDuel.Tests.EditMode
             }
         }
 
-        [TestCase(0)]
-        [TestCase(1)]
-        [TestCase(2)]
-        [TestCase(3)]
-        [TestCase(4)]
-        [TestCase(5)]
-        [TestCase(6)]
-        [TestCase(7)]
-        [TestCase(8)]
-        [TestCase(9)]
-        [TestCase(10)]
-        [TestCase(11)]
-        [TestCase(12)]
-        [TestCase(13)]
-        [TestCase(14)]
-        [TestCase(15)]
-        [TestCase(16)]
-        [TestCase(17)]
-        [TestCase(18)]
-        [TestCase(19)]
-        [TestCase(20)]
-        [TestCase(21)]
-        [TestCase(22)]
+        [TestCaseSource(nameof(PublishedBatchIndices))]
         public void CatalogBatchSurvivesTenTurnsThroughNativeCore(
             int batchIndex)
         {
@@ -261,6 +217,13 @@ namespace ArcaneDuel.Tests.EditMode
                     $"Batch {batchIndex} emitted unknown messages: " +
                     string.Join(",", unknown));
             }
+        }
+
+        private static IEnumerable<int> PublishedBatchIndices()
+        {
+            CardVisualCatalog visuals = CardVisualCatalog.LoadDefault();
+            int batchCount = (visuals.Count + BatchSize - 1) / BatchSize;
+            return Enumerable.Range(0, batchCount);
         }
     }
 }

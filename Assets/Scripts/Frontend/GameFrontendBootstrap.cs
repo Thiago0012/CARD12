@@ -13,7 +13,8 @@ using UnityEngine.UI;
 
 namespace ArcaneArena.Frontend
 {
-    public sealed partial class GameFrontendBootstrap : MonoBehaviour
+    public sealed partial class GameFrontendBootstrap : MonoBehaviour,
+        ICardSelectionContext
     {
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
@@ -137,6 +138,28 @@ namespace ArcaneArena.Frontend
         public static GameFrontendBootstrap Instance { get; private set; }
         public bool NeedsEditorPreviewRebuild =>
             editorPreviewVersion != CurrentEditorPreviewVersion;
+        public bool IsInDuel => IsActiveScene(DuelArenaSceneName);
+        public bool IsTextInputFocused
+        {
+            get
+            {
+                GameObject selected = EventSystem.current?.currentSelectedGameObject;
+                return selected != null &&
+                    selected.GetComponentInParent<InputField>() != null;
+            }
+        }
+
+        public bool TryGetSelectedCardId(out string cardId)
+        {
+            cardId = _deckEditorSelectedCardId ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(cardId) ||
+                DeckRepository.ResolveCard(_catalog, cardId) == null)
+            {
+                cardId = string.Empty;
+                return false;
+            }
+            return true;
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureFrontendExists()
@@ -4472,6 +4495,7 @@ namespace ArcaneArena.Frontend
         private void ClearScreen()
         {
             StopMainMenuConnectionMonitor();
+            _deckEditorSelectedCardId = string.Empty;
             if (_mainMenuSceneView != null)
                 _mainMenuSceneView.SetMainMenuVisible(false);
             _mainDropZone = null;

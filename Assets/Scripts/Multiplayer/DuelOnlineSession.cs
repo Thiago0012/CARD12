@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ArcaneArena;
 using ArcaneArena.Frontend;
+using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
 using Unity.Collections;
@@ -1078,6 +1079,13 @@ namespace ArcaneArena.Multiplayer
             }
             catch (Exception exception)
             {
+                RuntimeDiagnosticRecorder.Record(
+                    "F08",
+                    "Multiplayer",
+                    nameof(DuelOnlineSession),
+                    "Host room creation failed.",
+                    mode: "online-host",
+                    exception: exception);
                 ResetAfterFailedConnection(
                     $"Não foi possível criar a sala: {exception.GetBaseException().Message}");
             }
@@ -1147,6 +1155,13 @@ namespace ArcaneArena.Multiplayer
             }
             catch (Exception exception)
             {
+                RuntimeDiagnosticRecorder.Record(
+                    "F08",
+                    "Multiplayer",
+                    nameof(DuelOnlineSession),
+                    "Client room join failed.",
+                    mode: "online-client",
+                    exception: exception);
                 ResetAfterFailedConnection(
                     DescribeJoinFailure(exception));
             }
@@ -1776,6 +1791,13 @@ namespace ArcaneArena.Multiplayer
 
             if (!ValidateHello(hello, out string rejection))
             {
+                RuntimeDiagnosticRecorder.Record(
+                    "F08",
+                    "MultiplayerCompatibility",
+                    nameof(DuelOnlineSession),
+                    "Remote hello payload was rejected.",
+                    mode: "online-host",
+                    details: rejection);
                 status = rejection;
                 SendToClient(senderClientId, HelloRejectedMessage,
                     new HelloRejectedPayload { reason = rejection });
@@ -2657,6 +2679,14 @@ namespace ArcaneArena.Multiplayer
             catch (Exception exception)
             {
                 status = $"Falha ao iniciar o duelo online: {exception.GetBaseException().Message}";
+                RuntimeDiagnosticRecorder.Record(
+                    "F08",
+                    "Multiplayer",
+                    nameof(DuelOnlineSession),
+                    "Authoritative online duel failed to start.",
+                    RuntimeDiagnosticSeverity.Critical,
+                    mode: "online-host",
+                    exception: exception);
                 Debug.LogException(exception);
             }
         }
@@ -3214,6 +3244,13 @@ namespace ArcaneArena.Multiplayer
 
         private void DisconnectProtocolViolation(string reason)
         {
+            RuntimeDiagnosticRecorder.Record(
+                "F08",
+                "MultiplayerProtocol",
+                nameof(DuelOnlineSession),
+                "Remote command violated the online protocol.",
+                mode: IsHost ? "online-host" : "online-client",
+                details: reason);
             Debug.LogWarning("[MP] stage=protocol-violation reason=" + reason);
             status = "O rival enviou uma sequência de comandos inválida.";
             if (networkManager != null && networkManager.IsServer &&

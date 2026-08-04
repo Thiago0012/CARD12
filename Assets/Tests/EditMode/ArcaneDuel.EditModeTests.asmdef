@@ -3,7 +3,8 @@
   "rootNamespace": "ArcaneDuel.Tests.EditMode",
   "references": [
     "ArcaneDuel.Game",
-    "ArcaneDuel.DuelEngine"
+    "ArcaneDuel.DuelEngine",
+    "Game.Editor.ZeroCoinGrant"
   ],
   "includePlatforms": [
     "Editor"
@@ -22,4 +23,3 @@
     "TestAssemblies"
   ]
 }
-

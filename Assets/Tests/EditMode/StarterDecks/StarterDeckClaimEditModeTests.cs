@@ -168,7 +168,7 @@ namespace ArcaneDuel.Tests.EditMode
                 .Where(deck => deck != null && deck.IsPublishable)
                 .ToArray();
             Assert.That(catalog.Decks.Count, Is.EqualTo(6));
-            Assert.That(publishable, Has.Length.EqualTo(5));
+            Assert.That(publishable, Has.Length.EqualTo(6));
 
             foreach (StarterDeckDefinition definition in publishable)
             {

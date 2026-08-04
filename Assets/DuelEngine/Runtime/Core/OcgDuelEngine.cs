@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using ArcaneDuel.DuelEngine.Abstractions;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Content;
+using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Interop;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.Scripts;
@@ -531,6 +532,12 @@ namespace ArcaneDuel.DuelEngine.Core
                 configuration.OpponentExtraDeck);
             if (unsupported.Length > 0)
             {
+                RuntimeDiagnosticRecorder.Record(
+                    "F01",
+                    "DataOrScript",
+                    nameof(OcgDuelEngine),
+                    "Selected duel contains unsupported cards or dependencies.",
+                    details: string.Join(" | ", unsupported));
                 throw new InvalidDataException(
                     "The selected duel contains unsupported cards: " +
                     string.Join(" | ", unsupported));
@@ -571,6 +578,13 @@ namespace ArcaneDuel.DuelEngine.Core
             {
                 if (++iterations > 4096)
                 {
+                    RuntimeDiagnosticRecorder.Record(
+                        "F00",
+                        "Core",
+                        nameof(OcgDuelEngine),
+                        "Core processing safety limit exceeded.",
+                        RuntimeDiagnosticSeverity.Critical,
+                        details: $"status={Status}; events={history.Count}");
                     throw new InvalidOperationException("ocgcore exceeded the processing safety limit.");
                 }
                 Status = (OcgDuelStatus)OcgCoreNative.DuelProcess(duel);
@@ -644,6 +658,12 @@ namespace ArcaneDuel.DuelEngine.Core
             if (length == 0) return;
             if (source == IntPtr.Zero || length > 16 * 1024 * 1024)
             {
+                RuntimeDiagnosticRecorder.Record(
+                    "F03",
+                    "Protocol",
+                    nameof(OcgDuelEngine),
+                    "Core returned an invalid message buffer.",
+                    details: $"length={length}; sourceIsNull={source == IntPtr.Zero}");
                 throw new CoreProtocolException($"ocgcore returned an invalid message buffer ({length} bytes).");
             }
             byte[] copy = new byte[length];
@@ -785,6 +805,12 @@ namespace ArcaneDuel.DuelEngine.Core
                 if (string.IsNullOrEmpty(name) || !owner.scripts.TryRead(name, out byte[] script))
                 {
                     owner.nativeLogs.Add($"SCRIPT_MISSING {name}");
+                    RuntimeDiagnosticRecorder.Record(
+                        "F01",
+                        "CardScripts",
+                        nameof(OcgDuelEngine),
+                        "Core requested a missing card script.",
+                        details: name ?? string.Empty);
                     return 0;
                 }
                 return OcgCoreNative.LoadScript(nativeDuel, script, (uint)script.Length, name);
@@ -801,7 +827,16 @@ namespace ArcaneDuel.DuelEngine.Core
             OcgDuelEngine owner = Owner(payload);
             string message = Marshal.PtrToStringAnsi(nativeMessage) ?? string.Empty;
             owner.nativeLogs.Add($"[{type}] {message}");
-            if (type == 0) Debug.LogError($"[ocgcore] {message}");
+            if (type == 0)
+            {
+                RuntimeDiagnosticRecorder.Record(
+                    "F02",
+                    "Core",
+                    nameof(OcgDuelEngine),
+                    "Core emitted an error log.",
+                    details: message);
+                Debug.LogError($"[ocgcore] {message}");
+            }
             else Debug.Log($"[ocgcore] {message}");
         }
 
@@ -810,6 +845,13 @@ namespace ArcaneDuel.DuelEngine.Core
             if (callbackFailure == null) return;
             Exception failure = callbackFailure;
             callbackFailure = null;
+            RuntimeDiagnosticRecorder.Record(
+                "F03",
+                "Interop",
+                nameof(OcgDuelEngine),
+                "Core callback failed.",
+                RuntimeDiagnosticSeverity.Critical,
+                exception: failure);
             throw new InvalidOperationException("An ocgcore callback failed.", failure);
         }
 

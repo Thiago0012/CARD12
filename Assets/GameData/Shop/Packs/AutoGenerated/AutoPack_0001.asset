@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df6ff09ce382884f92fc015226d1ec1, type: 3}
+  m_Name: AutoPack_0001
+  m_EditorClassIdentifier: Assembly-CSharp-Editor:ArcaneArena.Editor.AutoPacks:AutoPackMetadata
+  packId: auto-pack-0001
+  generationBatchId: 0e38884c7d7c2e1dbe93de8a1c3e1685
+  generatorVersion: 1
+  priceCoins: 35
+  cardIds:
+  - 33698022
+  - 4614116
+  - 46815301
+  - 1861629
+  - 47986555
+  - 88728507
+  - 11901678
+  - 71107816
+  - 30113682
+  - 73421698
+  - 61583217
+  - 20747792
+  - 19066538
+  - 86780027
+  - 42129512
+  - 72309040
+  - 80770678
+  - 74210057
+  - 56532353
+  - 92998610
+  - 63102017
+  - 90299015
+  - 1784619
+  - 94259633
+  - 10202894
+  - 4433488
+  - 71407486
+  - 36562627
+  - 17658803
+  - 93920745
+  - 46052429
+  - 26523337
+  - 48882106
+  - 2504891
+  - 95174353
+  - 74131780
+  - 47963370
+  - 52097679
+  previewCardIds:
+  - 33698022
+  - 92998610
+  - 52097679
+  packSprite: {fileID: 2588928355246923300, guid: 1e2a7ee6baa12a643b1d7594bce3bbe0, type: 3}
+  contentHash: 10026A3D393F9F75BFC7FE99B14D462A96572B7DEBE01EFE0B96EA3036635839
+  published: 1
+  contentLockedAfterPublish: 1
+  countsForAutoCoverage: 1
+  manualVisualOverride: 0
+  needsPreviewReview: 0

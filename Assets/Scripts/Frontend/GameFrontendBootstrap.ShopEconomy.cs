@@ -20,8 +20,6 @@ namespace ArcaneArena.Frontend
         [SerializeField] private Sprite shopClosedPackSprite;
         [SerializeField]
         private AuthorizedCoinRecipientsCatalog authorizedCoinRecipientsCatalog;
-        [SerializeField]
-        private bool enableDevCoinCheat;
 
         private ShopTab _shopTab = ShopTab.Packages;
         private Action _shopBackAction;
@@ -93,13 +91,6 @@ namespace ArcaneArena.Frontend
             _repository.ConfigureCoinRewardAuthorization(
                 authorizedCoinRecipientsCatalog);
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            DevCoinCheatListener listener =
-                GetComponent<DevCoinCheatListener>();
-            if (listener == null)
-                listener = gameObject.AddComponent<DevCoinCheatListener>();
-            listener.Configure(_repository, enableDevCoinCheat);
-#endif
         }
 
         private void ShowEconomyShop()
@@ -237,19 +228,27 @@ namespace ArcaneArena.Frontend
                 Color.white, new Vector2(0.05f, 0.66f),
                 new Vector2(0.95f, 0.86f), TextAnchor.MiddleLeft);
 
-            CardCatalogEntry cover = DeckRepository.ResolveCard(
-                _catalog, pack.CoverCardId);
-            CreateCardArtwork(tile.transform, cover?.Artwork,
-                new Vector2(0.06f, 0.25f), new Vector2(0.25f, 0.65f), 0f, true);
+            for (int previewIndex = 0;
+                 previewIndex < pack.PreviewCardIds.Count;
+                 previewIndex++)
+            {
+                string cardId = pack.PreviewCardIds[previewIndex];
+                CardCatalogEntry preview = DeckRepository.ResolveCard(
+                    _catalog, cardId);
+                float left = 0.05f + previewIndex * 0.09f;
+                CreateCardArtwork(tile.transform, preview?.Artwork,
+                    new Vector2(left, 0.25f),
+                    new Vector2(left + 0.08f, 0.65f), 0f, true);
+            }
             CreateText(tile.transform,
                 $"5 cartas • duplicatas permitidas\n{pack.CardIds.Count} cartas possíveis",
                 13, FontStyle.Bold, Muted,
-                new Vector2(0.30f, 0.32f), new Vector2(0.94f, 0.62f),
+                new Vector2(0.34f, 0.32f), new Vector2(0.94f, 0.62f),
                 TextAnchor.MiddleLeft);
             AddButtonBehaviour(tile, () => ShowPackDetails(pack));
             CreateButton(tile.transform,
-                $"COMPRAR  •  {ShopPackCatalog.PackPriceCoins}",
-                new Vector2(0.30f, 0.07f), new Vector2(0.94f, 0.28f),
+                $"COMPRAR  •  {pack.PriceCoins}",
+                new Vector2(0.34f, 0.07f), new Vector2(0.94f, 0.28f),
                 Gold, () => ShowPackPurchaseConfirmation(pack));
         }
 
@@ -319,7 +318,7 @@ namespace ArcaneArena.Frontend
                 16, FontStyle.Bold, Muted, new Vector2(0.08f, 0.81f),
                 new Vector2(0.72f, 0.87f), TextAnchor.MiddleLeft);
             CreateButton(_screenRoot,
-                $"COMPRAR POR {ShopPackCatalog.PackPriceCoins}",
+                $"COMPRAR POR {pack.PriceCoins}",
                 new Vector2(0.76f, 0.81f), new Vector2(0.95f, 0.87f),
                 Gold, () => ShowPackPurchaseConfirmation(pack));
 
@@ -385,6 +384,7 @@ namespace ArcaneArena.Frontend
             Action safeReturn = returnAction ?? ShowEconomyShop;
             SetDuelPresentation(false);
             ClearScreen();
+            _deckEditorSelectedCardId = cardId;
             _shopBackAction = safeReturn;
             BuildSharedBackground("DETALHES DA CARTA");
             BuildHeader(entry.DisplayName, safeReturn);
@@ -419,7 +419,7 @@ namespace ArcaneArena.Frontend
                 pack.DisplayName,
                 $"Você receberá exatamente 5 cartas. Cada posição é sorteada " +
                 $"independentemente e pode conter duplicatas.",
-                ShopPackCatalog.PackPriceCoins,
+                pack.PriceCoins,
                 () =>
                 {
                     string transactionId = Guid.NewGuid().ToString("N");

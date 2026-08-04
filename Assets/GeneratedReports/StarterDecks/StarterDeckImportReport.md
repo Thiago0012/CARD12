@@ -18,13 +18,12 @@
 
 - Source: https://ygoprodeck.com/deck/gladiator-control-724515
 - Raw: Main 40, Extra 4, Side 0
-- Sanitized: Main 39, Extra 4, Side 0
+- Sanitized: Main 40, Extra 4, Side 0
 - Raw SHA-256: `2bab1c54a283f11f23415b732451b7b4be5b2cc0dfc5351985fa31dbeda38ada`
-- Sanitized SHA-256: `9a8bd698de1f0256fb50081ae59ceb431edc767710c2a2b8315131ebecc9203b`
-- Publishable: `False`
+- Sanitized SHA-256: `6f48753e1a7471e98b6ba322663c4c6215f2e79aa9c6fa366e2afd190827d183`
+- Publishable: `True`
 - Removed `19613556` from Main: Carta proibida pela banlist ativa.
-- Removed `` from Main: O Main Deck ficou abaixo de 40; informe uma substituicao aprovada.
-- BLOCKER: O Main Deck deve ter 40–60 cartas.
+- Removed `19613556` from Main: Terceira copia de Campo de Provas dos Gladiadores: substitui a Tempestade Pesada proibida e aumenta a consistencia ao buscar uma Besta Gladiadora de Nivel 4 ou menor.
 
 ## Deck Box (`starter_box_deck`)
 

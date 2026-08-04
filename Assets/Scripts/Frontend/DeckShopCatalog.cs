@@ -325,7 +325,9 @@ namespace ArcaneArena.Frontend
             var normalized =
                 FrontendCardIdentity.NormalizeOfficialId(
                     cardId);
-            return ProductCardIds.Contains(normalized) &&
+            bool belongsToPack = ShopPackCatalog.Packs.Any(pack =>
+                pack.CardIds.Contains(normalized, StringComparer.Ordinal));
+            return (ProductCardIds.Contains(normalized) || belongsToPack) &&
                    !LegacyOwnedCardIds.Contains(normalized);
         }
 
