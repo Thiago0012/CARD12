@@ -83,7 +83,15 @@
     {
       "id": "starter_gladiator_control",
       "displayName": "Controle Gladiador",
-      "approvedReplacements": [],
+      "approvedReplacements": [
+        {
+          "removedPasscode": "19613556",
+          "replacementPasscode": "35224440",
+          "section": "Main",
+          "reason": "Terceira copia de Campo de Provas dos Gladiadores: substitui a Tempestade Pesada proibida e aumenta a consistencia ao buscar uma Besta Gladiadora de Nivel 4 ou menor.",
+          "approved": true
+        }
+      ],
       "raw": {
         "sourceTitle": "Gladiator Control",
         "sourceUrl": "https://ygoprodeck.com/deck/gladiator-control-724515",

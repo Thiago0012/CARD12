@@ -50,14 +50,15 @@ namespace ArcaneDuel.Tests.EditMode
                 .Select(value => value.ToString())
                 .ToArray();
 
-            Assert.That(packs, Has.Length.EqualTo(19));
+            Assert.That(packs, Has.Length.GreaterThanOrEqualTo(19));
             Assert.That(packs.All(pack =>
                 Values(Property(pack, "CardIds")).Length is >= 1 and <= 38),
                 Is.True);
-            Assert.That(distributed, Has.Length.EqualTo(collectible.Length));
             Assert.That(distributed.Distinct(StringComparer.Ordinal).Count(),
                 Is.EqualTo(distributed.Length));
-            Assert.That(distributed, Is.EquivalentTo(collectible));
+            Assert.That(collectible.Except(distributed, StringComparer.Ordinal),
+                Is.Empty,
+                "Todo card colecionavel dos Decks Estruturais deve continuar coberto.");
         }
 
         [Test]

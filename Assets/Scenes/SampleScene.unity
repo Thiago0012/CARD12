@@ -32613,7 +32613,6 @@ MonoBehaviour:
   deckCaseVariants: []
   cardCatalog: {fileID: 0}
   authorizedCoinRecipientsCatalog: {fileID: 11400000, guid: 9f4e80118582406d8969147dcff218fe, type: 2}
-  enableDevCoinCheat: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

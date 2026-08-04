@@ -1268,12 +1268,9 @@ namespace ArcaneArena
             }
 
             lastHandViewportSize = viewportSize;
-            if (handLayoutAnchor == null)
-            {
-                handRestPosition = new Vector2(
-                    0f,
-                    CalculateHandRestY(viewportSize.y));
-            }
+            handRestPosition = new Vector2(
+                0f,
+                CalculateHandRestY(viewportSize.y));
             handRoot.anchoredPosition =
                 handRestPosition +
                 (handPlacementMode

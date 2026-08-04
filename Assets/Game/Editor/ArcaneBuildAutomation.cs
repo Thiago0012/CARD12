@@ -45,10 +45,23 @@ namespace ArcaneDuel.Editor
             BuildAndroid("Android", BuildOptions.None);
         }
 
+        [MenuItem("Arcane Duel/Build Android/Development APK")]
+        public static void BuildAndroidDevelopment()
+        {
+            BuildAndroid(
+                "Android-Development",
+                BuildOptions.Development | BuildOptions.AllowDebugging);
+        }
+
         // Public entry point for Unity -batchmode -executeMethod.
         public static void BuildAndroidFromCommandLine()
         {
             BuildAndroidRelease();
+        }
+
+        public static void BuildAndroidDevelopmentFromCommandLine()
+        {
+            BuildAndroidDevelopment();
         }
 
         private static void Build(string folderName, BuildOptions options)

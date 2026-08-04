@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10e9036693936e14ba6049aad9f7da84, type: 3}
+  m_Name: AutoPackGenerationSettings
+  m_EditorClassIdentifier: Assembly-CSharp-Editor:ArcaneArena.Editor.AutoPacks:AutoPackGenerationSettings
+  enabled: 1
+  minCardsPerPack: 35
+  maxCardsPerPack: 38
+  priceCoins: 35
+  generatorVersion: 1
+  watchedFolders:
+  - Assets/Cards/CardCatalog.asset
+  - Assets/Cards/Cards
+  - Assets/StreamingAssets/Ygo/Data/cards.bin
+  - Assets/StreamingAssets/Ygo/Data/card-texts.json
+  defaultPackSprite: {fileID: 2588928355246923300, guid: 1e2a7ee6baa12a643b1d7594bce3bbe0, type: 3}
+  includeForbiddenCards: 1
+  blockOnMissingArtwork: 1
+  displayNamePattern: Pacote de Expansao {0:000}
+  excludedPathTokens:
+  - /Tokens/
+  - /Placeholders/
+  - /EditorOnly/
