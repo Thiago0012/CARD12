@@ -73,14 +73,47 @@ namespace ArcaneArena
                 cardCount,
                 1,
                 MaximumVisibleChoiceCards);
-            float width = 0.22f + visible * 0.066f;
-            width = Mathf.Min(width, 0.88f);
-            const float center = 0.5f;
+            float requiredWidth = visible * ChoiceCardWidth +
+                                  Mathf.Max(0, visible - 1) * 12f +
+                                  104f;
+            float frameWidth = Mathf.Max(960f, frame.rect.width);
+            float width = Mathf.Clamp(
+                requiredWidth / frameWidth,
+                0.40f,
+                0.68f);
+            // Keep the authored card inspector column on the left free.
+            // Inspecting an Extra Deck candidate must not cover its tray.
+            const float safeAreaMin = 0.29f;
+            const float safeAreaMax = 0.97f;
+            const float center = (safeAreaMin + safeAreaMax) * 0.5f;
             RectTransform rect =
                 zoneBrowserTray.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(center - width * 0.5f, 0.25f);
-            rect.anchorMax = new Vector2(center + width * 0.5f, 0.71f);
+            rect.anchorMin = new Vector2(center - width * 0.5f, 0.235f);
+            rect.anchorMax = new Vector2(center + width * 0.5f, 0.725f);
             rect.offsetMin = rect.offsetMax = Vector2.zero;
+        }
+
+        private void RefreshZoneBrowserScrolling()
+        {
+            if (zoneBrowserViewport == null || zoneBrowserContent == null ||
+                zoneBrowserScroll == null)
+            {
+                return;
+            }
+
+            float viewportWidth = zoneBrowserViewport.rect.width;
+            float contentWidth = zoneBrowserContent.rect.width;
+            bool contentOverflows = contentWidth > viewportWidth + 1f;
+            if (zoneBrowserScrollbar != null)
+                zoneBrowserScrollbar.gameObject.SetActive(contentOverflows);
+
+            zoneBrowserScroll.horizontalNormalizedPosition = 0f;
+            if (!contentOverflows)
+            {
+                Vector2 position = zoneBrowserContent.anchoredPosition;
+                position.x = Mathf.Max(12f, (viewportWidth - contentWidth) * 0.5f);
+                zoneBrowserContent.anchoredPosition = position;
+            }
         }
 
         private void ConfigureZoneBrowserActionMode(bool summonMode)

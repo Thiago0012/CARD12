@@ -88,7 +88,8 @@ namespace ArcaneArena
             choiceScroll.content = choiceContent;
             choiceScroll.horizontal = true;
             choiceScroll.vertical = false;
-            choiceScroll.movementType = ScrollRect.MovementType.Elastic;
+            choiceScroll.movementType = ScrollRect.MovementType.Clamped;
+            choiceScroll.inertia = true;
             choiceScroll.scrollSensitivity = 42f;
             choiceScroll.decelerationRate = 0.12f;
 
@@ -152,7 +153,7 @@ namespace ArcaneArena
             ResetChoiceSelectionState();
             stagedChoicePrompt = prompt;
             ApplyChoicePresentationProfile(prompt);
-            ResizeChoiceTray(choices.Count);
+            ResizeChoiceTray(choices);
             ClearChildren(choiceContent);
             choiceModal.SetActive(true);
             choiceModal.transform.SetAsLastSibling();
@@ -179,8 +180,8 @@ namespace ArcaneArena
                 cursor += width + ChoiceCardSpacing;
             }
 
-            choiceScrollbar.gameObject.SetActive(
-                choices.Count > MaximumVisibleChoiceCards);
+            bool contentOverflows = groupWidth + 28f > viewportWidth + 1f;
+            choiceScrollbar.gameObject.SetActive(contentOverflows);
             choiceScroll.horizontalNormalizedPosition = 0f;
             choiceConfirm.gameObject.SetActive(true);
             choiceConfirm.interactable = false;
@@ -609,16 +610,33 @@ namespace ArcaneArena
                 : "CONFIRMAR ESCOLHA";
         }
 
-        private void ResizeChoiceTray(int count)
+        private void ResizeChoiceTray(
+            IReadOnlyList<DuelChoice> choices)
         {
-            int visible = Mathf.Clamp(
-                count,
-                1,
-                MaximumVisibleChoiceCards);
-            float width = 0.22f + visible * 0.066f;
+            int count = choices?.Count ?? 0;
+            int visible = Mathf.Clamp(count, 1, MaximumVisibleChoiceCards);
+            float visibleWidth = (choices ?? new List<DuelChoice>())
+                .Take(visible)
+                .Sum(ChoiceWidth) +
+                Mathf.Max(0, visible - 1) * ChoiceCardSpacing + 116f;
+            float frameWidth = Mathf.Max(960f, frame.rect.width);
+            float frameHeight = Mathf.Max(540f, frame.rect.height);
+            float width = Mathf.Clamp(
+                visibleWidth / frameWidth,
+                0.38f,
+                0.76f);
+            float height = Mathf.Clamp(
+                472f / frameHeight,
+                0.44f,
+                0.78f);
+            const float centerY = 0.515f;
             RectTransform rect = choiceModal.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f - width * 0.5f, 0.27f);
-            rect.anchorMax = new Vector2(0.5f + width * 0.5f, 0.73f);
+            rect.anchorMin = new Vector2(
+                0.5f - width * 0.5f,
+                centerY - height * 0.5f);
+            rect.anchorMax = new Vector2(
+                0.5f + width * 0.5f,
+                centerY + height * 0.5f);
             rect.offsetMin = rect.offsetMax = Vector2.zero;
         }
 
