@@ -670,6 +670,9 @@ namespace ArcaneArena.Frontend
                 !Keyboard.current.escapeKey.wasPressedThisFrame)
                 return;
 
+            if (_packOpeningSequenceActive)
+                return;
+
             if (_deckEditorZoomOverlay != null &&
                 _deckEditorZoomOverlay.activeSelf)
             {
@@ -3805,7 +3808,7 @@ namespace ArcaneArena.Frontend
                        StringComparison.OrdinalIgnoreCase);
         }
 
-        private void BuildSharedBackground(string section)
+        private Image BuildSharedBackground(string section)
         {
             var background = CreatePanel(
                 _screenRoot,
@@ -3849,6 +3852,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.73f, 0.12f),
                 new Vector2(0.96f, 0.88f),
                 TextAnchor.MiddleRight);
+            return background;
         }
 
         private void BuildHeader(string title, Action backAction)
@@ -4665,6 +4669,7 @@ namespace ArcaneArena.Frontend
 
         private void ClearScreen()
         {
+            CancelPackOpeningPresentation();
             StopMainMenuConnectionMonitor();
             _deckEditorSelectedCardId = string.Empty;
             if (_mainMenuSceneView != null)
@@ -4830,7 +4835,10 @@ namespace ArcaneArena.Frontend
 
         private void OnDestroy()
         {
+            CancelPackOpeningPresentation();
+            ReleasePackOpeningAnimationResources();
             ReleaseShopMysteryCardSprite();
+            ReleaseShopVisualSprites();
             ReleaseMainMenuHudOverlayMaterial();
             if (Instance == this)
                 Instance = null;

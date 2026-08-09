@@ -301,10 +301,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fa15bedf5114a4495333906ed20ab47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.Frontend.GameFrontendBootstrap
+  shopBackgroundSprite: {fileID: 0}
+  shopCoinSprite: {fileID: 0}
+  shopClosedPackSprite: {fileID: 0}
+  authorizedCoinRecipientsCatalog: {fileID: 11400000, guid: 9f4e80118582406d8969147dcff218fe, type: 2}
+  shopPackTitleAnchorMinX: 0.34
+  shopPackCardSize: {x: 0.105, y: 0.3}
+  shopPackLeftCardAnchorMin: {x: 0.045, y: 0.34}
+  shopPackCenterCardAnchorMin: {x: 0.115, y: 0.36}
+  shopPackRightCardAnchorMin: {x: 0.185, y: 0.34}
+  shopPackCardRotations: {x: 11, y: -0.57, z: -11}
   defaultDeckCaseSprite: {fileID: 0}
   deckCaseVariants: []
   cardCatalog: {fileID: 11400000, guid: 70f4156a6229ed5458dc495b428f786f, type: 2}
-  authorizedCoinRecipientsCatalog: {fileID: 11400000, guid: 9f4e80118582406d8969147dcff218fe, type: 2}
   editorPreviewVersion: 3
   editorPreviewScreen: 2
 --- !u!1 &170889079
@@ -710,7 +719,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 640, y: 360}
+  m_SizeDelta: {x: 1845.3065, y: 1037.9849}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &625502266
 MonoBehaviour:

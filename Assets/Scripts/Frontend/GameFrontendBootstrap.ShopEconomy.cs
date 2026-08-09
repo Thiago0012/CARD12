@@ -16,17 +16,48 @@ namespace ArcaneArena.Frontend
         }
 
         [Header("Loja e economia")]
+        [SerializeField] private Sprite shopBackgroundSprite;
         [SerializeField] private Sprite shopCoinSprite;
         [SerializeField] private Sprite shopClosedPackSprite;
         [SerializeField]
         private AuthorizedCoinRecipientsCatalog authorizedCoinRecipientsCatalog;
+
+        [Header("Loja - cartas dos pacotes editáveis no Inspector")]
+        [Tooltip("Início horizontal do nome do pacote. Aumente para afastar o texto da arte.")]
+        [InspectorName("Título - início horizontal (X)")]
+        [SerializeField, Range(0f, 0.8f)]
+        private float shopPackTitleAnchorMinX = 0.34f;
+        [Tooltip("Largura e altura de cada carta do leque.")]
+        [InspectorName("Cartas do leque - tamanho")]
+        [SerializeField]
+        private Vector2 shopPackCardSize = new(0.105f, 0.30f);
+        [Tooltip("Posição inicial da carta esquerda.")]
+        [InspectorName("Carta esquerda - posição")]
+        [SerializeField]
+        private Vector2 shopPackLeftCardAnchorMin = new(0.045f, 0.34f);
+        [Tooltip("Posição inicial da carta central.")]
+        [InspectorName("Carta central - posição")]
+        [SerializeField]
+        private Vector2 shopPackCenterCardAnchorMin = new(0.115f, 0.36f);
+        [Tooltip("Posição inicial da carta direita.")]
+        [InspectorName("Carta direita - posição")]
+        [SerializeField]
+        private Vector2 shopPackRightCardAnchorMin = new(0.185f, 0.34f);
+        [Tooltip("Rotação Z das cartas esquerda, central e direita, nessa ordem.")]
+        [InspectorName("Cartas do leque - rotações")]
+        [SerializeField]
+        private Vector3 shopPackCardRotations = new(11f, 0f, -11f);
 
         private ShopTab _shopTab = ShopTab.Packages;
         private Action _shopBackAction;
         private string _activePackOpeningId = string.Empty;
         private bool _packOpeningStarted;
         private bool _packRevealBusy;
+        private bool _shopPurchaseBusy;
         private Sprite _shopMysteryCardSprite;
+        private Sprite _runtimeShopBackgroundSprite;
+        private Sprite _runtimeShopBoosterPackSprite;
+        private Sprite _runtimeShopCurrencySprite;
 
         public CoinRewardEligibilitySnapshot CaptureOnlineDuelRewardEligibility()
         {
@@ -102,11 +133,12 @@ namespace ArcaneArena.Frontend
                 ShowPackOpening(pending);
                 return;
             }
+            _shopPurchaseBusy = false;
 
             SetDuelPresentation(false);
             ClearScreen();
             _shopBackAction = () => LeaveShop(ShowMainMenu);
-            BuildSharedBackground("LOJA");
+            BuildShopBackground("LOJA");
             BuildHeader("LOJA ARCANE", () => LeaveShop(ShowMainMenu));
             CreateCoinBalance(_screenRoot);
 
@@ -161,6 +193,7 @@ namespace ArcaneArena.Frontend
 
         private void CreateCoinBalance(Transform parent)
         {
+            Sprite currencySprite = ResolveShopCurrencySprite();
             Image panel = CreatePanel(
                 parent,
                 "Saldo de Moedas",
@@ -169,32 +202,99 @@ namespace ArcaneArena.Frontend
                 new Color(0.015f, 0.045f, 0.075f, 0.98f));
             AddOutline(panel.gameObject, new Color(Gold.r, Gold.g, Gold.b, 0.9f),
                 new Vector2(2f, -2f));
-            Image icon = CreatePanel(
-                panel.transform,
-                "Ícone de Moeda",
-                new Vector2(0.055f, 0.18f),
-                new Vector2(0.22f, 0.82f),
-                Gold);
-            if (shopCoinSprite != null)
-            {
-                icon.sprite = shopCoinSprite;
-                icon.preserveAspect = true;
-                icon.color = Color.white;
-            }
-            else
-            {
-                CreateText(icon.transform, "A", 21, FontStyle.Bold, Ink,
-                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
-            }
+            CreateShopCurrencyIcon(panel.transform, "Ícone de Moeda",
+                new Vector2(0.065f, 0.14f), new Vector2(0.26f, 0.86f),
+                currencySprite);
             CreateText(
                 panel.transform,
                 (_repository?.CoinBalance ?? 0).ToString("N0"),
                 28,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.26f, 0.08f),
-                new Vector2(0.94f, 0.92f),
-                TextAnchor.MiddleRight);
+                new Vector2(0.275f, 0.08f),
+                new Vector2(0.92f, 0.92f),
+                TextAnchor.MiddleLeft);
+        }
+
+        private Image CreateShopCurrencyIcon(
+            Transform parent,
+            string name,
+            Vector2 min,
+            Vector2 max,
+            Sprite currencySprite = null)
+        {
+            Sprite sprite = currencySprite != null
+                ? currencySprite
+                : ResolveShopCurrencySprite();
+            Image icon = CreatePanel(parent, name, min, max,
+                sprite != null ? Color.white : Gold);
+            icon.raycastTarget = false;
+            if (sprite != null)
+            {
+                icon.sprite = sprite;
+                icon.preserveAspect = true;
+            }
+            else
+            {
+                CreateText(icon.transform, "A", 18, FontStyle.Bold, Ink,
+                    Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            }
+            return icon;
+        }
+
+        private Image CreateShopPriceButton(
+            Transform parent,
+            string label,
+            int price,
+            Vector2 min,
+            Vector2 max,
+            Color accent,
+            Action action)
+        {
+            Image button = CreateButton(parent, $"{label} {price}", min, max,
+                accent, action);
+            Text labelText = button.GetComponentInChildren<Text>();
+            if (labelText != null)
+            {
+                labelText.text = label;
+                labelText.gameObject.name = "Ação da Compra";
+                RectTransform labelRect = labelText.rectTransform;
+                labelRect.anchorMin = new Vector2(0.045f, 0.05f);
+                labelRect.anchorMax = new Vector2(0.57f, 0.95f);
+                labelRect.offsetMin = Vector2.zero;
+                labelRect.offsetMax = Vector2.zero;
+                labelText.alignment = TextAnchor.MiddleRight;
+            }
+
+            CreateShopCurrencyIcon(button.transform, "Gema do Preço",
+                new Vector2(0.60f, 0.19f), new Vector2(0.72f, 0.81f));
+            CreateText(button.transform, price.ToString(), 22, FontStyle.Bold,
+                Color.white, new Vector2(0.74f, 0.05f),
+                new Vector2(0.95f, 0.95f), TextAnchor.MiddleLeft);
+            return button;
+        }
+
+        private void CreateShopAmountBadge(
+            Transform parent,
+            string label,
+            int amount,
+            Vector2 min,
+            Vector2 max,
+            Color amountColor)
+        {
+            Image badge = CreatePanel(parent, label, min, max,
+                new Color(0.015f, 0.045f, 0.075f, 0.96f));
+            AddOutline(badge.gameObject,
+                new Color(Gold.r, Gold.g, Gold.b, 0.48f),
+                new Vector2(1f, -1f));
+            CreateText(badge.transform, label, 15, FontStyle.Bold, Muted,
+                new Vector2(0.055f, 0.08f), new Vector2(0.43f, 0.92f),
+                TextAnchor.MiddleLeft);
+            CreateText(badge.transform, amount.ToString(), 23, FontStyle.Bold,
+                amountColor, new Vector2(0.43f, 0.08f),
+                new Vector2(0.73f, 0.92f), TextAnchor.MiddleRight);
+            CreateShopCurrencyIcon(badge.transform, "Gema de " + label,
+                new Vector2(0.75f, 0.17f), new Vector2(0.93f, 0.83f));
         }
 
         private void CreateShopTabButton(
@@ -226,31 +326,53 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.05f, 0.84f), new Vector2(0.42f, 0.96f),
                 TextAnchor.MiddleLeft);
             CreateText(tile.transform, pack.DisplayName, 21, FontStyle.Bold,
-                Color.white, new Vector2(0.05f, 0.66f),
+                Color.white, new Vector2(shopPackTitleAnchorMinX, 0.66f),
                 new Vector2(0.95f, 0.86f), TextAnchor.MiddleLeft);
 
-            for (int previewIndex = 0;
-                 previewIndex < pack.PreviewCardIds.Count;
-                 previewIndex++)
-            {
-                string cardId = pack.PreviewCardIds[previewIndex];
-                CardCatalogEntry preview = DeckRepository.ResolveCard(
-                    _catalog, cardId);
-                float left = 0.05f + previewIndex * 0.09f;
-                CreateCardArtwork(tile.transform, preview?.Artwork,
-                    new Vector2(left, 0.25f),
-                    new Vector2(left + 0.08f, 0.65f), 0f, true);
-            }
+            CreatePackCardFanPreview(tile.transform, pack);
             CreateText(tile.transform,
                 $"5 cartas • duplicatas permitidas\n{pack.CardIds.Count} cartas possíveis",
                 13, FontStyle.Bold, Muted,
                 new Vector2(0.34f, 0.32f), new Vector2(0.94f, 0.62f),
                 TextAnchor.MiddleLeft);
             AddButtonBehaviour(tile, () => ShowPackDetails(pack));
-            CreateButton(tile.transform,
-                $"COMPRAR  •  {pack.PriceCoins}",
+            CreateShopPriceButton(tile.transform, "COMPRAR", pack.PriceCoins,
                 new Vector2(0.34f, 0.07f), new Vector2(0.94f, 0.28f),
                 Gold, () => ShowPackPurchaseConfirmation(pack));
+        }
+
+        private void CreatePackCardFanPreview(
+            Transform parent,
+            ShopPackDefinition pack)
+        {
+            Vector2[] cardMins =
+            {
+                shopPackLeftCardAnchorMin,
+                shopPackCenterCardAnchorMin,
+                shopPackRightCardAnchorMin
+            };
+            float[] rotations =
+            {
+                shopPackCardRotations.x,
+                shopPackCardRotations.y,
+                shopPackCardRotations.z
+            };
+            int previewCount = Mathf.Min(3, pack.PreviewCardIds.Count);
+            for (int previewIndex = 0;
+                 previewIndex < previewCount;
+                 previewIndex++)
+            {
+                string cardId = pack.PreviewCardIds[previewIndex];
+                CardCatalogEntry preview = DeckRepository.ResolveCard(
+                    _catalog, cardId);
+                Vector2 min = cardMins[previewIndex];
+                Image card = CreateCardArtwork(parent, preview?.Artwork, min,
+                    min + shopPackCardSize,
+                    rotations[previewIndex], true);
+                card.gameObject.name =
+                    $"Carta Destaque {previewIndex + 1} de {pack.PackId}";
+                card.raycastTarget = false;
+            }
         }
 
         private void CreateStructureDeckProductTile(
@@ -284,13 +406,19 @@ namespace ArcaneArena.Frontend
                     0f, true);
             }
             AddButtonBehaviour(tile, () => ShowStructureDeckDetails(product));
-            CreateButton(tile.transform,
-                purchased >= product.MaxPurchases
-                    ? "LIMITE ATINGIDO"
-                    : $"COMPRAR  •  {product.PriceCoins}",
-                new Vector2(0.55f, 0.07f), new Vector2(0.94f, 0.31f),
-                purchased >= product.MaxPurchases ? Danger : Gold,
-                () => ShowStructureDeckPurchaseConfirmation(product));
+            if (purchased >= product.MaxPurchases)
+            {
+                CreateButton(tile.transform, "LIMITE ATINGIDO",
+                    new Vector2(0.55f, 0.07f), new Vector2(0.94f, 0.31f),
+                    Danger, () => ShowStructureDeckPurchaseConfirmation(product));
+            }
+            else
+            {
+                CreateShopPriceButton(tile.transform, "COMPRAR",
+                    product.PriceCoins, new Vector2(0.55f, 0.07f),
+                    new Vector2(0.94f, 0.31f), Gold,
+                    () => ShowStructureDeckPurchaseConfirmation(product));
+            }
         }
 
         private static Image CreateShopTile(
@@ -311,15 +439,14 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             _shopBackAction = ShowEconomyShop;
-            BuildSharedBackground("CONTEÚDO DO PACOTE");
+            BuildShopBackground("CONTEÚDO DO PACOTE");
             BuildHeader(pack.DisplayName, ShowEconomyShop);
             CreateCoinBalance(_screenRoot);
             CreateText(_screenRoot,
                 $"{pack.Description}  •  Cada abertura contém 5 sorteios independentes.",
                 16, FontStyle.Bold, Muted, new Vector2(0.08f, 0.81f),
                 new Vector2(0.72f, 0.87f), TextAnchor.MiddleLeft);
-            CreateButton(_screenRoot,
-                $"COMPRAR POR {pack.PriceCoins}",
+            CreateShopPriceButton(_screenRoot, "COMPRAR POR", pack.PriceCoins,
                 new Vector2(0.76f, 0.81f), new Vector2(0.95f, 0.87f),
                 Gold, () => ShowPackPurchaseConfirmation(pack));
 
@@ -336,7 +463,7 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             _shopBackAction = ShowEconomyShop;
-            BuildSharedBackground("DECK ESTRUTURAL");
+            BuildShopBackground("DECK ESTRUTURAL");
             BuildHeader(product.DisplayName, ShowEconomyShop);
             CreateCoinBalance(_screenRoot);
 
@@ -345,8 +472,8 @@ namespace ArcaneArena.Frontend
                 $"{product.ExtraDeckCardIds.Count} Adicional",
                 15, FontStyle.Bold, Muted, new Vector2(0.08f, 0.81f),
                 new Vector2(0.70f, 0.87f), TextAnchor.MiddleLeft);
-            CreateButton(_screenRoot,
-                $"COMPRAR POR {product.PriceCoins}",
+            CreateShopPriceButton(_screenRoot, "COMPRAR POR",
+                product.PriceCoins,
                 new Vector2(0.75f, 0.81f), new Vector2(0.95f, 0.87f),
                 Gold, () => ShowStructureDeckPurchaseConfirmation(product));
 
@@ -387,30 +514,68 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             _deckEditorSelectedCardId = cardId;
             _shopBackAction = safeReturn;
-            BuildSharedBackground("DETALHES DA CARTA");
+            BuildShopBackground("DETALHES DA CARTA");
             BuildHeader(entry.DisplayName, safeReturn);
             CreateCoinBalance(_screenRoot);
 
             Image panel = CreatePanel(_screenRoot, "Detalhes da Carta",
-                new Vector2(0.12f, 0.12f), new Vector2(0.88f, 0.82f),
+                new Vector2(0.07f, 0.09f), new Vector2(0.93f, 0.82f),
                 new Color(0.008f, 0.025f, 0.05f, 0.98f));
             AddOutline(panel.gameObject,
                 new Color(Cyan.r, Cyan.g, Cyan.b, 0.78f),
                 new Vector2(3f, -3f));
             Image detailArtwork = CreateCardArtwork(panel.transform, entry.Artwork,
-                new Vector2(0.07f, 0.10f), new Vector2(0.34f, 0.90f), 0f, true);
+                new Vector2(0.04f, 0.08f), new Vector2(0.34f, 0.92f), 0f, true);
             AddBanlistBadge(detailArtwork.transform, cardId);
-            CreateText(panel.transform, entry.DisplayName, 30, FontStyle.Bold,
-                Color.white, new Vector2(0.39f, 0.75f),
-                new Vector2(0.94f, 0.91f), TextAnchor.MiddleLeft);
-            CreateText(panel.transform,
+
+            Text title = CreateText(panel.transform, entry.DisplayName, 30,
+                FontStyle.Bold, Color.white, new Vector2(0.39f, 0.78f),
+                new Vector2(0.96f, 0.92f), TextAnchor.MiddleLeft);
+            title.gameObject.name = "Título da Carta da Loja";
+            title.resizeTextMinSize = 22;
+
+            Image metadataPanel = CreatePanel(panel.transform,
+                "Metadados da Carta da Loja", new Vector2(0.39f, 0.65f),
+                new Vector2(0.96f, 0.77f),
+                new Color(0.025f, 0.11f, 0.16f, 0.96f));
+            AddOutline(metadataPanel.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.42f),
+                new Vector2(1f, -1f));
+            Text metadata = CreateText(metadataPanel.transform,
                 $"{entry.TypeName}  •  ID {entry.OfficialCardId}\n" +
-                $"Na coleção: {_repository.OwnedCardQuantity(cardId)}",
-                17, FontStyle.Bold, Cyan, new Vector2(0.39f, 0.61f),
-                new Vector2(0.94f, 0.75f), TextAnchor.UpperLeft);
-            CreateText(panel.transform, entry.EffectText, 16, FontStyle.Normal,
-                Muted, new Vector2(0.39f, 0.12f),
-                new Vector2(0.94f, 0.59f), TextAnchor.UpperLeft);
+                $"NA COLEÇÃO  •  {_repository.OwnedCardQuantity(cardId)}",
+                17, FontStyle.Bold, Cyan, new Vector2(0.035f, 0.08f),
+                new Vector2(0.965f, 0.92f), TextAnchor.MiddleLeft);
+            metadata.gameObject.name = "Texto dos Metadados da Carta da Loja";
+            metadata.resizeTextMinSize = 15;
+
+            Image effectHeader = CreatePanel(panel.transform,
+                "Cabeçalho do Efeito da Carta", new Vector2(0.39f, 0.58f),
+                new Vector2(0.96f, 0.64f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.92f));
+            CreateText(effectHeader.transform, "EFEITO DA CARTA", 16,
+                FontStyle.Bold, Ink, new Vector2(0.035f, 0f),
+                new Vector2(0.965f, 1f), TextAnchor.MiddleLeft);
+
+            Text effectText = CreateScrollableText(panel.transform,
+                "Painel do Efeito da Carta", new Vector2(0.39f, 0.08f),
+                new Vector2(0.96f, 0.57f));
+            effectText.gameObject.name = "Texto do Efeito da Carta";
+            effectText.text = string.IsNullOrWhiteSpace(entry.EffectText)
+                ? "Esta carta não possui texto de efeito."
+                : entry.EffectText;
+            effectText.fontSize = 19;
+            effectText.color = new Color(0.92f, 0.96f, 1f, 1f);
+            effectText.lineSpacing = 1.14f;
+            ScrollRect effectScroll = effectText.GetComponentInParent<ScrollRect>();
+            if (effectScroll != null)
+            {
+                AddOutline(effectScroll.gameObject,
+                    new Color(Cyan.r, Cyan.g, Cyan.b, 0.32f),
+                    new Vector2(1f, -1f));
+                effectScroll.scrollSensitivity = 56f;
+                effectScroll.verticalNormalizedPosition = 1f;
+            }
         }
 
         private void ShowPackPurchaseConfirmation(ShopPackDefinition pack)
@@ -423,6 +588,9 @@ namespace ArcaneArena.Frontend
                 pack.PriceCoins,
                 () =>
                 {
+                    if (_shopPurchaseBusy)
+                        return;
+                    _shopPurchaseBusy = true;
                     string transactionId = Guid.NewGuid().ToString("N");
                     if (_repository.TryPurchasePack(pack.PackId, transactionId,
                             out PendingPackOpeningRecord opening,
@@ -436,6 +604,7 @@ namespace ArcaneArena.Frontend
                     }
                     else
                     {
+                        _shopPurchaseBusy = false;
                         SetShopFailure(rejection);
                     }
                 });
@@ -479,7 +648,7 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             _shopBackAction = ShowEconomyShop;
-            BuildSharedBackground(section);
+            BuildShopBackground(section);
             BuildHeader(section, ShowEconomyShop);
             CreateCoinBalance(_screenRoot);
             Image panel = CreatePanel(_screenRoot, "Confirmação de Compra",
@@ -494,12 +663,15 @@ namespace ArcaneArena.Frontend
             CreateText(panel.transform, description, 18, FontStyle.Normal,
                 Muted, new Vector2(0.10f, 0.42f),
                 new Vector2(0.90f, 0.68f), TextAnchor.MiddleCenter);
-            CreateText(panel.transform,
-                $"PREÇO  {price}   •   SALDO  {_repository.CoinBalance}",
-                23, FontStyle.Bold,
-                _repository.CoinBalance >= price ? Lime : Danger,
-                new Vector2(0.10f, 0.28f), new Vector2(0.90f, 0.43f),
-                TextAnchor.MiddleCenter);
+            Color amountColor = _repository.CoinBalance >= price
+                ? Lime
+                : Danger;
+            CreateShopAmountBadge(panel.transform, "PREÇO", price,
+                new Vector2(0.10f, 0.28f), new Vector2(0.48f, 0.43f),
+                amountColor);
+            CreateShopAmountBadge(panel.transform, "SALDO",
+                _repository.CoinBalance, new Vector2(0.52f, 0.28f),
+                new Vector2(0.90f, 0.43f), amountColor);
             CreateButton(panel.transform, "CANCELAR",
                 new Vector2(0.08f, 0.08f), new Vector2(0.46f, 0.25f),
                 Danger, ShowEconomyShop);
@@ -508,7 +680,9 @@ namespace ArcaneArena.Frontend
                 Gold, confirm);
         }
 
-        private void ShowPackOpening(PendingPackOpeningRecord opening)
+        private void ShowPackOpening(
+            PendingPackOpeningRecord opening,
+            bool playEntrySequence = false)
         {
             if (opening == null)
             {
@@ -527,7 +701,7 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             _shopBackAction = () => LeaveShop(ShowMainMenu);
-            BuildSharedBackground("ABERTURA DE PACOTE");
+            BuildShopBackground("ABERTURA DE PACOTE");
             BuildHeader(pack?.DisplayName ?? "Pacote",
                 () => LeaveShop(ShowMainMenu));
             CreateCoinBalance(_screenRoot);
@@ -537,32 +711,43 @@ namespace ArcaneArena.Frontend
                 Image closedPack = CreatePanel(_screenRoot, "Pacote Fechado",
                     new Vector2(0.37f, 0.25f), new Vector2(0.63f, 0.76f),
                     new Color(0.025f, 0.10f, 0.18f, 1f));
-                if (shopClosedPackSprite != null)
+                Sprite boosterSprite = ResolveShopBoosterPackSprite();
+                if (boosterSprite != null)
                 {
-                    closedPack.sprite = shopClosedPackSprite;
+                    closedPack.sprite = boosterSprite;
                     closedPack.color = Color.white;
                     closedPack.preserveAspect = true;
                 }
                 AddOutline(closedPack.gameObject,
                     new Color(Cyan.r, Cyan.g, Cyan.b, 0.95f),
                     new Vector2(5f, -5f));
-                CreateText(closedPack.transform, "ARCANE\nPACK", 45,
-                    FontStyle.Bold, Color.white, new Vector2(0.08f, 0.25f),
-                    new Vector2(0.92f, 0.78f), TextAnchor.MiddleCenter);
+                if (boosterSprite == null)
+                {
+                    CreateText(closedPack.transform, "ARCANE\nPACK", 45,
+                        FontStyle.Bold, Color.white, new Vector2(0.08f, 0.25f),
+                        new Vector2(0.92f, 0.78f), TextAnchor.MiddleCenter);
+                }
                 CreateButton(_screenRoot, "ABRIR PACOTE",
                     new Vector2(0.38f, 0.13f), new Vector2(0.62f, 0.22f),
-                    Lime, () =>
-                    {
-                        _packOpeningStarted = true;
-                        ShowPackOpening(opening);
-                    });
+                    Lime, () => StartPackOpeningPresentation(opening));
                 return;
             }
 
-            CreateText(_screenRoot,
+            bool animateEntry = playEntrySequence &&
+                packOpeningAnimationEnabled &&
+                opening.revealed != null &&
+                opening.revealed.All(value => !value);
+            PackOpeningAnimationView animationView = animateEntry
+                ? CreatePackOpeningAnimationView(pack)
+                : null;
+            Text revealInstruction = CreateText(_screenRoot,
                 "Toque ou clique em cada carta para revelar. O resultado já está salvo.",
                 17, FontStyle.Bold, Muted, new Vector2(0.16f, 0.79f),
                 new Vector2(0.84f, 0.86f), TextAnchor.MiddleCenter);
+            revealInstruction.gameObject.SetActive(!animateEntry);
+            if (animationView != null)
+                animationView.RevealInstruction = revealInstruction;
+
             bool allRevealed = true;
             for (int index = 0; index < opening.cardIds.Count; index++)
             {
@@ -575,10 +760,18 @@ namespace ArcaneArena.Frontend
                 Sprite artwork = revealed
                     ? entry?.Artwork
                     : ResolveShopMysteryCardSprite();
-                Image card = CreateCardArtwork(_screenRoot,
+                Transform cardParent = animationView != null
+                    ? animationView.Layer
+                    : _screenRoot;
+                Vector2 finalMin = new Vector2(left, 0.27f);
+                Vector2 finalMax = new Vector2(left + 0.15f, 0.72f);
+                Image card = CreateCardArtwork(cardParent,
                     artwork,
-                    new Vector2(left, 0.27f),
-                    new Vector2(left + 0.15f, 0.72f), 0f, true);
+                    finalMin,
+                    finalMax, 0f, true);
+                card.gameObject.name = revealed
+                    ? $"Carta Revelada {index + 1}"
+                    : $"Carta Oculta {index + 1}";
                 if (!revealed)
                 {
                     bool hasMysteryArtwork = artwork != null;
@@ -594,9 +787,22 @@ namespace ArcaneArena.Frontend
                     }
                     AddButtonBehaviour(card, () =>
                     {
-                        if (!_packRevealBusy)
+                        if (!_packRevealBusy && !_packOpeningSequenceActive)
                             StartCoroutine(RevealPackCard(opening, capturedIndex, card));
                     });
+                    if (animationView != null)
+                    {
+                        Button cardButton = card.GetComponent<Button>();
+                        if (cardButton != null)
+                            cardButton.interactable = false;
+                        RegisterPackOpeningCard(
+                            animationView,
+                            card,
+                            cardButton,
+                            finalMin,
+                            finalMax,
+                            index);
+                    }
                 }
                 else
                 {
@@ -633,6 +839,9 @@ namespace ArcaneArena.Frontend
                         }
                     });
             }
+
+            if (animationView != null)
+                BeginPackOpeningPresentation(animationView);
         }
 
         private IEnumerator RevealPackCard(
@@ -710,12 +919,120 @@ namespace ArcaneArena.Frontend
             return _shopMysteryCardSprite;
         }
 
+        private void BuildShopBackground(string section)
+        {
+            Image background = BuildSharedBackground(section);
+            Sprite artwork = ResolveShopBackgroundSprite();
+            if (artwork == null || background == null)
+                return;
+
+            Image image = CreatePanel(background.transform,
+                "Arte de Fundo da Loja", Vector2.zero, Vector2.one,
+                new Color(0.62f, 0.66f, 0.76f, 1f));
+            image.sprite = artwork;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            image.transform.SetAsFirstSibling();
+            var aspect = image.gameObject.AddComponent<AspectRatioFitter>();
+            aspect.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            aspect.aspectRatio = artwork.rect.width / artwork.rect.height;
+
+            Image veil = CreatePanel(background.transform,
+                "Contraste da Arte da Loja", Vector2.zero, Vector2.one,
+                new Color(0.005f, 0.015f, 0.035f, 0.34f));
+            veil.raycastTarget = false;
+            veil.transform.SetSiblingIndex(1);
+        }
+
+        private Sprite ResolveShopBackgroundSprite()
+        {
+            return ResolveShopVisualSprite(shopBackgroundSprite,
+                "Shop/ShopBackground", "Fundo da Loja Arcane",
+                ref _runtimeShopBackgroundSprite);
+        }
+
+        private Sprite ResolveShopBoosterPackSprite()
+        {
+            return ResolveShopVisualSprite(shopClosedPackSprite,
+                "Shop/BoosterPack", "Booster Arcane",
+                ref _runtimeShopBoosterPackSprite);
+        }
+
+        private Sprite ResolveShopCurrencySprite()
+        {
+            if (shopCoinSprite != null)
+                return shopCoinSprite;
+            if (_runtimeShopCurrencySprite != null)
+                return _runtimeShopCurrencySprite;
+
+            Texture2D texture = Resources.Load<Texture2D>(
+                "Shop/CurrencyCrystal");
+            if (texture == null || texture.width <= 0 || texture.height <= 0)
+            {
+                return ResolveShopVisualSprite(null,
+                    "Shop/CurrencyCrystal", "Cristal de Moeda Arcane",
+                    ref _runtimeShopCurrencySprite);
+            }
+
+            var crop = new Rect(texture.width * 0.15f,
+                texture.height * 0.12f, texture.width * 0.70f,
+                texture.height * 0.80f);
+            _runtimeShopCurrencySprite = Sprite.Create(texture, crop,
+                new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect);
+            _runtimeShopCurrencySprite.name = "Cristal de Moeda Arcane";
+            _runtimeShopCurrencySprite.hideFlags = HideFlags.DontSave;
+            return _runtimeShopCurrencySprite;
+        }
+
+        private static Sprite ResolveShopVisualSprite(
+            Sprite configured,
+            string resourcePath,
+            string runtimeName,
+            ref Sprite runtimeSprite)
+        {
+            if (configured != null)
+                return configured;
+
+            Sprite importedSprite = Resources.Load<Sprite>(resourcePath);
+            if (importedSprite != null)
+                return importedSprite;
+            if (runtimeSprite != null)
+                return runtimeSprite;
+
+            Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+            if (texture == null || texture.width <= 0 || texture.height <= 0)
+                return null;
+            runtimeSprite = Sprite.Create(texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect);
+            runtimeSprite.name = runtimeName;
+            runtimeSprite.hideFlags = HideFlags.DontSave;
+            return runtimeSprite;
+        }
+
         private void ReleaseShopMysteryCardSprite()
         {
             if (_shopMysteryCardSprite == null)
                 return;
             Destroy(_shopMysteryCardSprite);
             _shopMysteryCardSprite = null;
+        }
+
+        private void ReleaseShopVisualSprites()
+        {
+            ReleaseRuntimeShopSprite(ref _runtimeShopBackgroundSprite);
+            ReleaseRuntimeShopSprite(ref _runtimeShopBoosterPackSprite);
+            ReleaseRuntimeShopSprite(ref _runtimeShopCurrencySprite);
+        }
+
+        private static void ReleaseRuntimeShopSprite(ref Sprite sprite)
+        {
+            if (sprite == null)
+                return;
+            Destroy(sprite);
+            sprite = null;
         }
 
         private void SetShopFailure(string rejection)
