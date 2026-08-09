@@ -26,6 +26,7 @@ namespace ArcaneArena.Frontend
         private string _activePackOpeningId = string.Empty;
         private bool _packOpeningStarted;
         private bool _packRevealBusy;
+        private Sprite _shopMysteryCardSprite;
 
         public CoinRewardEligibilitySnapshot CaptureOnlineDuelRewardEligibility()
         {
@@ -571,16 +572,26 @@ namespace ArcaneArena.Frontend
                 CardCatalogEntry entry = DeckRepository.ResolveCard(
                     _catalog, opening.cardIds[index]);
                 float left = 0.075f + index * 0.185f;
+                Sprite artwork = revealed
+                    ? entry?.Artwork
+                    : ResolveShopMysteryCardSprite();
                 Image card = CreateCardArtwork(_screenRoot,
-                    revealed ? entry?.Artwork : null,
+                    artwork,
                     new Vector2(left, 0.27f),
                     new Vector2(left + 0.15f, 0.72f), 0f, true);
                 if (!revealed)
                 {
-                    card.color = new Color(0.025f, 0.10f, 0.18f, 1f);
-                    CreateText(card.transform, "ARCANE\n?", 25,
-                        FontStyle.Bold, Cyan, Vector2.zero, Vector2.one,
-                        TextAnchor.MiddleCenter);
+                    bool hasMysteryArtwork = artwork != null;
+                    card.color = hasMysteryArtwork
+                        ? Color.white
+                        : new Color(0.025f, 0.10f, 0.18f, 1f);
+                    card.preserveAspect = true;
+                    if (!hasMysteryArtwork)
+                    {
+                        CreateText(card.transform, "ARCANE\n?", 25,
+                            FontStyle.Bold, Cyan, Vector2.zero, Vector2.one,
+                            TextAnchor.MiddleCenter);
+                    }
                     AddButtonBehaviour(card, () =>
                     {
                         if (!_packRevealBusy)
@@ -668,6 +679,43 @@ namespace ArcaneArena.Frontend
             }
             _packRevealBusy = false;
             ShowPackOpening(opening);
+        }
+
+        private Sprite ResolveShopMysteryCardSprite()
+        {
+            if (_shopMysteryCardSprite != null)
+                return _shopMysteryCardSprite;
+
+            Texture2D texture = Resources.Load<Texture2D>("CardArtFallback");
+            if (texture == null || texture.width <= 0 || texture.height <= 0)
+                return null;
+
+            // The source is square, but the luminous card occupies this
+            // centered portrait region. Cropping at runtime keeps the artwork
+            // proportional in the five tall reveal slots without stretching.
+            var crop = new Rect(
+                texture.width * 0.18f,
+                texture.height * 0.055f,
+                texture.width * 0.64f,
+                texture.height * 0.89f);
+            _shopMysteryCardSprite = Sprite.Create(
+                texture,
+                crop,
+                new Vector2(0.5f, 0.5f),
+                100f,
+                0,
+                SpriteMeshType.FullRect);
+            _shopMysteryCardSprite.name = "Arcane Pack Mystery Card";
+            _shopMysteryCardSprite.hideFlags = HideFlags.DontSave;
+            return _shopMysteryCardSprite;
+        }
+
+        private void ReleaseShopMysteryCardSprite()
+        {
+            if (_shopMysteryCardSprite == null)
+                return;
+            Destroy(_shopMysteryCardSprite);
+            _shopMysteryCardSprite = null;
         }
 
         private void SetShopFailure(string rejection)

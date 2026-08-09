@@ -82,5 +82,41 @@ namespace ArcaneDuel.Tests.PlayMode
                 assets.GetType().GetField("interfaceClick")?.GetValue(assets),
                 Is.Not.Null);
         }
+
+        [UnityTest]
+        public IEnumerator ShopMysteryArtworkUsesTheAuthoredQuestionCardCrop()
+        {
+            SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour frontend = null;
+            foreach (MonoBehaviour candidate in
+                     Object.FindObjectsByType<MonoBehaviour>(
+                         FindObjectsInactive.Include,
+                         FindObjectsSortMode.None))
+            {
+                if (candidate.GetType().Name == "GameFrontendBootstrap")
+                {
+                    frontend = candidate;
+                    break;
+                }
+            }
+            Assert.That(frontend, Is.Not.Null);
+
+            MethodInfo resolver = frontend.GetType().GetMethod(
+                "ResolveShopMysteryCardSprite",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(resolver, Is.Not.Null);
+            var sprite = resolver.Invoke(frontend, null) as Sprite;
+
+            Assert.That(sprite, Is.Not.Null);
+            Assert.That(sprite.texture, Is.Not.Null);
+            Assert.That(sprite.texture.name, Is.EqualTo("CardArtFallback"));
+            Assert.That(sprite.rect.width / sprite.rect.height,
+                Is.InRange(0.70f, 0.74f));
+            Assert.That(sprite.rect.width, Is.LessThan(sprite.texture.width));
+            Assert.That(sprite.rect.height, Is.LessThan(sprite.texture.height));
+        }
     }
 }
