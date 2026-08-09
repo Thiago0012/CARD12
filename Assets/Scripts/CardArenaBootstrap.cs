@@ -123,6 +123,8 @@ namespace ArcaneArena
         private GameObject zoneBrowser;
         private GameObject zoneBrowserTray;
         private ScrollRect zoneBrowserScroll;
+        private Scrollbar zoneBrowserScrollbar;
+        private RectTransform zoneBrowserViewport;
         private RectTransform zoneBrowserContent;
         private Text zoneBrowserTitle;
         private uint inspectedCode;
@@ -537,6 +539,8 @@ namespace ArcaneArena
         {
             state = core.PresentationState;
             presentationReady = state != null && database != null;
+            CardTransitionSnapshot cardTransition =
+                CaptureCardTransition(duelEvent);
             if (duelEvent.Message == CoreMessage.Retry)
             {
                 // The Core rejected the last response. Force the UI
@@ -553,6 +557,7 @@ namespace ArcaneArena
             ValidatePresentationConsistency(duelEvent, true);
             HandleArenaPresentationEvent(duelEvent);
             QueueCardSoundPresentation(duelEvent);
+            BeginCardTransition(cardTransition);
         }
 
         private void OnPresentationStateChanged()
@@ -1993,6 +1998,7 @@ namespace ArcaneArena
                 "Carta Invocada",
                 typeof(RectTransform),
                 typeof(Canvas),
+                typeof(CanvasGroup),
                 typeof(GraphicRaycaster),
                 typeof(WorldCardInstanceView));
             canvasObject.transform.SetParent(
@@ -3093,12 +3099,13 @@ namespace ArcaneArena
             GameObject viewportObject = CreatePanel(
                 zoneBrowserTray.transform,
                 "Área de rolagem",
-                new Vector2(0.025f, 0.22f),
-                new Vector2(0.975f, 0.81f),
+                new Vector2(0.025f, 0.24f),
+                new Vector2(0.975f, 0.82f),
                 new Color(0.012f, 0.055f, 0.075f, 0.82f));
             AddOutline(viewportObject, new Color(0.18f, 0.55f, 0.62f, 1f));
             RectTransform viewport =
                 viewportObject.GetComponent<RectTransform>();
+            zoneBrowserViewport = viewport;
             viewportObject.AddComponent<RectMask2D>();
             zoneBrowserContent = CreateRect(
                 viewportObject.transform,
@@ -3126,9 +3133,32 @@ namespace ArcaneArena
             zoneBrowserScroll.content = zoneBrowserContent;
             zoneBrowserScroll.horizontal = true;
             zoneBrowserScroll.vertical = false;
-            zoneBrowserScroll.movementType = ScrollRect.MovementType.Elastic;
+            zoneBrowserScroll.movementType = ScrollRect.MovementType.Clamped;
+            zoneBrowserScroll.inertia = true;
             zoneBrowserScroll.scrollSensitivity = 38f;
             zoneBrowserScroll.decelerationRate = 0.12f;
+
+            GameObject scrollbarTrack = CreatePanel(
+                zoneBrowserTray.transform,
+                "Rolagem das Cartas da Zona",
+                new Vector2(0.16f, 0.207f),
+                new Vector2(0.84f, 0.227f),
+                new Color(0.04f, 0.12f, 0.17f, 0.92f));
+            Image scrollbarHandle = CreateImage(
+                scrollbarTrack.transform,
+                "Alca",
+                Vector2.zero,
+                new Vector2(0.30f, 1f),
+                Gold);
+            zoneBrowserScrollbar =
+                scrollbarTrack.AddComponent<Scrollbar>();
+            zoneBrowserScrollbar.handleRect = scrollbarHandle.rectTransform;
+            zoneBrowserScrollbar.targetGraphic = scrollbarHandle;
+            zoneBrowserScrollbar.direction =
+                Scrollbar.Direction.LeftToRight;
+            zoneBrowserScroll.horizontalScrollbar = zoneBrowserScrollbar;
+            zoneBrowserScroll.horizontalScrollbarVisibility =
+                ScrollRect.ScrollbarVisibility.AutoHide;
 
             BuildZoneBrowserConfirmation(zoneBrowserTray.transform);
 
@@ -3139,7 +3169,7 @@ namespace ArcaneArena
                 FontStyle.Bold,
                 Muted,
                 new Vector2(0.03f, 0.15f),
-                new Vector2(0.97f, 0.21f),
+                new Vector2(0.97f, 0.198f),
                 TextAnchor.MiddleCenter);
             zoneBrowser.SetActive(false);
         }
@@ -3205,7 +3235,7 @@ namespace ArcaneArena
             }
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(zoneBrowserContent);
-            zoneBrowserScroll.horizontalNormalizedPosition = 0f;
+            RefreshZoneBrowserScrolling();
             SetDuelExperienceObscured(true);
             zoneBrowser.SetActive(true);
             zoneBrowser.transform.SetAsLastSibling();
