@@ -289,6 +289,63 @@ namespace ArcaneArena.Frontend
             return deck;
         }
 
+        public bool TryDeleteDeck(
+            string deckId,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            if (State == null)
+            {
+                rejection = "A coleção de decks ainda não foi carregada.";
+                return false;
+            }
+
+            State.decks ??= new List<DeckRecord>();
+            if (string.IsNullOrWhiteSpace(deckId))
+            {
+                rejection = "O deck solicitado não possui um identificador válido.";
+                return false;
+            }
+
+            int removedIndex = State.decks.FindIndex(candidate =>
+                candidate != null &&
+                string.Equals(
+                    candidate.deckId,
+                    deckId,
+                    StringComparison.Ordinal));
+            if (removedIndex < 0)
+            {
+                rejection = "O deck solicitado não existe neste perfil.";
+                return false;
+            }
+
+            bool removedSelectedDeck = string.Equals(
+                State.selectedDeckId,
+                deckId,
+                StringComparison.Ordinal);
+            State.decks.RemoveAt(removedIndex);
+
+            bool currentSelectionStillExists =
+                !string.IsNullOrWhiteSpace(State.selectedDeckId) &&
+                State.decks.Any(candidate =>
+                    candidate != null &&
+                    string.Equals(
+                        candidate.deckId,
+                        State.selectedDeckId,
+                        StringComparison.Ordinal));
+            if (removedSelectedDeck || !currentSelectionStillExists)
+            {
+                State.selectedDeckId = State.decks.Count > 0
+                    ? State.decks[Mathf.Min(
+                        removedIndex,
+                        State.decks.Count - 1)].deckId
+                    : string.Empty;
+            }
+
+            Save();
+            return true;
+        }
+
         public bool IsSelected(DeckRecord deck)
         {
             return deck != null &&

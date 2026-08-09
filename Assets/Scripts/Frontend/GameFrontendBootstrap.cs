@@ -687,6 +687,13 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            if (_deckDeleteModal != null)
+            {
+                Destroy(_deckDeleteModal);
+                _deckDeleteModal = null;
+                return;
+            }
+
             if (_shopBackAction != null)
             {
                 Action backAction = _shopBackAction;
@@ -2212,7 +2219,7 @@ namespace ArcaneArena.Frontend
                     tile.transform,
                     "Deck ativo no duelo",
                     new Vector2(0.12f, 0.86f),
-                    new Vector2(0.88f, 0.975f),
+                    new Vector2(0.78f, 0.975f),
                     new Color(
                         Lime.r,
                         Lime.g,
@@ -2261,10 +2268,23 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleCenter);
 
             var trigger = tile.gameObject.AddComponent<EventTrigger>();
+            Image deleteControl = CreateDeckDeleteControl(
+                tile.transform,
+                deck);
+            bool keepDeleteVisible = Application.isMobilePlatform;
+            deleteControl.gameObject.SetActive(keepDeleteVisible);
             AddTrigger(trigger, EventTriggerType.PointerEnter, _ =>
-                showcase.SetActive(true));
+            {
+                showcase.SetActive(true);
+                deleteControl.gameObject.SetActive(true);
+                deleteControl.transform.SetAsLastSibling();
+            });
             AddTrigger(trigger, EventTriggerType.PointerExit, _ =>
-                showcase.SetActive(false));
+            {
+                showcase.SetActive(false);
+                if (!keepDeleteVisible)
+                    deleteControl.gameObject.SetActive(false);
+            });
             AddButtonBehaviour(
                 tile,
                 () => ShowDeckDetails(deck));
@@ -4691,6 +4711,7 @@ namespace ArcaneArena.Frontend
             _deckEditorDetailStats = null;
             _deckEditorDetailEffect = null;
             _starterClaimModal = null;
+            _deckDeleteModal = null;
             _catalogFilterButtons.Clear();
             if (_dragGhost != null)
                 Destroy(_dragGhost.gameObject);
