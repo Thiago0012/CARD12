@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
 using UnityEngine;
@@ -10,6 +11,7 @@ namespace ArcaneArena
     public sealed partial class CardArenaBootstrap
     {
         private const float ChoiceCardWidth = 168f;
+        private const float DescribedEffectChoiceWidth = 390f;
         private const float ChoiceCardHeight = 244f;
         private const float ChoiceCardSpacing = 14f;
         private const int MaximumVisibleChoiceCards = 5;
@@ -18,10 +20,13 @@ namespace ArcaneArena
         {
             public DuelChoice Choice;
             public Outline Outline;
+            public Text Label;
         }
 
         private readonly Dictionary<int, ChoiceTrayVisual>
             choiceTrayVisuals = new();
+        private readonly List<int> orderedPromptIndexes = new();
+        private readonly Dictionary<int, ushort> selectedPromptAmounts = new();
         private RectTransform choiceViewport;
         private ScrollRect choiceScroll;
         private Scrollbar choiceScrollbar;
@@ -129,6 +134,21 @@ namespace ArcaneArena
                 return;
 
             HideCompactResponseBar();
+            bool describedEffect = choices.Any(choice =>
+                choice != null && choice.DescriptionId != 0);
+            bool blockingDecision =
+                describedEffect || IsDirectSelectionPrompt(prompt);
+            if (blockingDecision)
+            {
+                // A pergunta do efeito e seus botoes precisam ser a camada
+                // principal. Paineis de carta/acao abertos anteriormente nao
+                // podem esconder a decisao que mantem o Core aguardando.
+                actionPanel?.SetActive(false);
+                CloseFieldActionMenu();
+                CloseZoneBrowser();
+                ClosePhaseNavigator();
+                CloseCardDetails();
+            }
             ResetChoiceSelectionState();
             stagedChoicePrompt = prompt;
             ApplyChoicePresentationProfile(prompt);
@@ -143,18 +163,20 @@ namespace ArcaneArena
             float viewportWidth = Mathf.Max(
                 1f,
                 choiceViewport.rect.width);
-            float groupWidth =
-                choices.Count * ChoiceCardWidth +
+            float groupWidth = choices.Sum(ChoiceWidth) +
                 Mathf.Max(0, choices.Count - 1) * ChoiceCardSpacing;
             float contentWidth = Mathf.Max(viewportWidth, groupWidth + 28f);
             choiceContent.sizeDelta = new Vector2(contentWidth, 0f);
             choiceContent.anchoredPosition = Vector2.zero;
             float start = (contentWidth - groupWidth) * 0.5f;
+            float cursor = start;
 
             foreach ((DuelChoice choice, int index) in
                      choices.Select((choice, index) => (choice, index)))
             {
-                CreateChoiceTrayCard(choice, index, start);
+                float width = ChoiceWidth(choice);
+                CreateChoiceTrayCard(choice, index, cursor, width);
+                cursor += width + ChoiceCardSpacing;
             }
 
             choiceScrollbar.gameObject.SetActive(
@@ -173,12 +195,17 @@ namespace ArcaneArena
                     prompt) ||
                 InteractionLocked || choiceModal == null ||
                 choiceModal.activeInHierarchy ||
-                compactResponseBar?.activeInHierarchy == true ||
-                IsPromptPresentationCurrent(prompt))
+                compactResponseBar?.activeInHierarchy == true)
             {
                 return;
             }
-            RefreshEverything(false);
+
+            // A apresentacao de batalha pode fechar uma janela ja marcada
+            // como exibida. Reabra diretamente enquanto o mesmo request ainda
+            // aguarda uma resposta, sem depender da identidade em cache.
+            selectedPromptIndexes.Clear();
+            if (RefreshPrompt(prompt))
+                MarkPromptPresented(prompt);
         }
 
         private void BuildCompactResponseBar()
@@ -226,8 +253,11 @@ namespace ArcaneArena
             int responses = DuelPromptPresentationRules
                 .ActionableResponseChoices(prompt)
                 .Count;
-            compactResponseText.text = responses == 1
-                ? "VOCÊ PODE RESPONDER"
+            DuelChoice response = DuelPromptPresentationRules
+                .ActionableResponseChoices(prompt)
+                .FirstOrDefault();
+            compactResponseText.text = responses == 1 && response != null
+                ? ChoiceLabel(response).Replace("\n", " — ")
                 : $"{responses} RESPOSTAS DISPONÍVEIS";
             compactResponseBar.SetActive(true);
             compactResponseBar.transform.SetAsLastSibling();
@@ -278,8 +308,10 @@ namespace ArcaneArena
         private void CreateChoiceTrayCard(
             DuelChoice choice,
             int index,
-            float start)
+            float x,
+            float width)
         {
+            bool describedEffect = choice.DescriptionId != 0;
             GameObject card = CreatePanel(
                 choiceContent,
                 $"Escolha {index + 1}",
@@ -290,22 +322,21 @@ namespace ArcaneArena
             rect.anchorMin = rect.anchorMax = new Vector2(0f, 0.5f);
             rect.pivot = new Vector2(0f, 0.5f);
             rect.sizeDelta = new Vector2(
-                ChoiceCardWidth,
+                width,
                 ChoiceCardHeight);
-            rect.anchoredPosition = new Vector2(
-                start + index * (ChoiceCardWidth + ChoiceCardSpacing),
-                0f);
+            rect.anchoredPosition = new Vector2(x, 0f);
             AddOutline(card, DimmedChoiceAccent());
             Outline outline = card.GetComponent<Outline>();
-            choiceTrayVisuals[index] = new ChoiceTrayVisual
+            var visual = new ChoiceTrayVisual
             {
                 Choice = choice,
                 Outline = outline
             };
+            choiceTrayVisuals[index] = visual;
 
             var button = card.AddComponent<Button>();
             button.targetGraphic = card.GetComponent<Image>();
-            if (choice.CardCode != 0)
+            if (choice.CardCode != 0 && !describedEffect)
             {
                 Image art = CreateImage(
                     card.transform,
@@ -316,14 +347,20 @@ namespace ArcaneArena
                 art.sprite = SpriteFor(choice.CardCode);
                 art.preserveAspect = true;
             }
-            CreateText(
+            visual.Label = CreateText(
                 card.transform,
                 ChoiceLabel(choice),
-                11,
+                describedEffect ? 14 : 11,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.03f, 0.01f),
-                new Vector2(0.97f, choice.CardCode == 0 ? 0.92f : 0.21f),
+                describedEffect
+                    ? new Vector2(0.07f, 0.08f)
+                    : new Vector2(0.03f, 0.01f),
+                describedEffect
+                    ? new Vector2(0.93f, 0.92f)
+                    : new Vector2(
+                        0.97f,
+                        choice.CardCode == 0 ? 0.92f : 0.21f),
                 TextAnchor.MiddleCenter);
 
             DuelChoice capturedChoice = choice;
@@ -344,10 +381,49 @@ namespace ArcaneArena
                 return;
             }
 
-            if (choice.CardCode != 0)
-                ShowInspector(choice.CardCode);
-
-            if (IsMultiChoicePrompt(prompt) && choice.ChoiceIndex >= 0)
+            if (prompt.RequiresOrderedSelection && choice.ChoiceIndex >= 0)
+            {
+                stagedSingleChoice = null;
+                if (orderedPromptIndexes.Contains(choice.ChoiceIndex))
+                    orderedPromptIndexes.Remove(choice.ChoiceIndex);
+                else
+                    orderedPromptIndexes.Add(choice.ChoiceIndex);
+                selectedPromptIndexes.Clear();
+                foreach (int index in orderedPromptIndexes)
+                    selectedPromptIndexes.Add(index);
+            }
+            else if (prompt.Message == CoreMessage.SelectCounter &&
+                     choice.ChoiceIndex >= 0)
+            {
+                stagedSingleChoice = null;
+                selectedPromptAmounts.TryGetValue(
+                    choice.ChoiceIndex,
+                    out ushort current);
+                ushort capacity = (ushort)Mathf.Min(
+                    ushort.MaxValue,
+                    choice.SumValue);
+                ushort next = current >= capacity
+                    ? (ushort)0
+                    : (ushort)(current + 1);
+                int totalWithoutCurrent = selectedPromptAmounts.Values.Sum(
+                    value => (int)value) - current;
+                if (totalWithoutCurrent + next >
+                    prompt.RequiredCounterCount)
+                {
+                    next = 0;
+                }
+                if (next == 0)
+                {
+                    selectedPromptAmounts.Remove(choice.ChoiceIndex);
+                    selectedPromptIndexes.Remove(choice.ChoiceIndex);
+                }
+                else
+                {
+                    selectedPromptAmounts[choice.ChoiceIndex] = next;
+                    selectedPromptIndexes.Add(choice.ChoiceIndex);
+                }
+            }
+            else if (IsMultiChoicePrompt(prompt) && choice.ChoiceIndex >= 0)
             {
                 stagedSingleChoice = null;
                 if (!selectedPromptIndexes.Add(choice.ChoiceIndex))
@@ -359,16 +435,18 @@ namespace ArcaneArena
             else
             {
                 if (IsMultiChoicePrompt(prompt))
+                {
                     selectedPromptIndexes.Clear();
+                    orderedPromptIndexes.Clear();
+                    selectedPromptAmounts.Clear();
+                }
                 stagedSingleChoice = choice;
             }
 
             UpdateChoiceTrayVisuals(visualIndex);
             choiceConfirm.interactable = IsMultiChoicePrompt(prompt)
                 ? stagedSingleChoice != null ||
-                  CoreMessageDecoder.IsValidSelection(
-                      prompt,
-                      selectedPromptIndexes)
+                  IsStructuredSelectionValid(prompt)
                 : stagedSingleChoice != null;
             UpdateChoiceConfirmLabel(prompt);
             SetStatus(
@@ -394,21 +472,71 @@ namespace ArcaneArena
                 {
                     core.SubmitChoice(stagedSingleChoice);
                 }
-                else if (!CoreMessageDecoder.IsValidSelection(
-                        prompt,
-                        selectedPromptIndexes))
+                else if (!IsStructuredSelectionValid(prompt))
                 {
                     return;
                 }
                 else
                 {
-                    core.SubmitCoreResponse(
-                        CoreMessageDecoder.CardSelectionResponse(
-                            selectedPromptIndexes
-                                .OrderBy(index => index)
-                                .Select(index => (uint)index)
-                                .ToArray()),
+                    int[] indexes = prompt.RequiresOrderedSelection
+                        ? orderedPromptIndexes.ToArray()
+                        : selectedPromptIndexes
+                            .OrderBy(index => index)
+                            .ToArray();
+                    byte[] response = BuildStructuredResponse(
+                        prompt,
+                        indexes);
+                    string selectedCards = string.Join(
+                        ",",
+                        indexes.Select(index =>
+                        {
+                            DuelChoice selected = prompt.Choices
+                                .FirstOrDefault(candidate =>
+                                    candidate.ChoiceIndex == index);
+                            return selected == null
+                                ? $"{index}:missing"
+                                : $"{index}:{selected.CardCode}:" +
+                                  $"P{selected.Controller}/" +
+                                  $"L{selected.Location:X2}/" +
+                                  $"S{selected.Sequence}";
+                        }));
+                    bool submitted = core.SubmitCoreResponse(
+                        response,
                         prompt.RequestId);
+                    RuntimeDiagnosticRecorder.Record(
+                        submitted
+                            ? "EFFECT_TARGET_CONFIRMATION"
+                            : "EFFECT_TARGET_REJECTED",
+                        "EffectFlow",
+                        nameof(CardArenaBootstrap),
+                        submitted
+                            ? "The selected effect targets were delivered to the Core."
+                            : "The selected effect targets could not be delivered to the Core.",
+                        submitted
+                            ? RuntimeDiagnosticSeverity.Info
+                            : RuntimeDiagnosticSeverity.Error,
+                        indexes.Select(index => prompt.Choices
+                                .FirstOrDefault(candidate =>
+                                    candidate.ChoiceIndex == index)
+                                ?.CardCode ?? 0U)
+                            .FirstOrDefault(),
+                        prompt.Player,
+                        core.IsNetworkReplica
+                            ? "online-replica"
+                            : "local",
+                        $"request={prompt.RequestId}; " +
+                        $"message={prompt.Message}; " +
+                        $"indexes=[{string.Join(",", indexes)}]; " +
+                        $"cards=[{selectedCards}]; " +
+                        $"response={System.BitConverter.ToString(response)}");
+                    if (!submitted)
+                    {
+                        SetStatus(
+                            "A seleção continua aberta. Confirme os alvos novamente.",
+                            Red);
+                        choiceModal.transform.SetAsLastSibling();
+                        return;
+                    }
                 }
             }
             else
@@ -438,6 +566,26 @@ namespace ArcaneArena
                 visual.Outline.effectDistance = selected
                     ? new Vector2(5f, -5f)
                     : new Vector2(2f, -2f);
+                if (visual.Label != null)
+                {
+                    string suffix = string.Empty;
+                    if (stagedChoicePrompt?.RequiresOrderedSelection == true)
+                    {
+                        int order = orderedPromptIndexes.IndexOf(
+                            visual.Choice.ChoiceIndex);
+                        if (order >= 0)
+                            suffix = $"\nORDEM {order + 1}";
+                    }
+                    else if (stagedChoicePrompt?.Message ==
+                             CoreMessage.SelectCounter &&
+                             selectedPromptAmounts.TryGetValue(
+                                 visual.Choice.ChoiceIndex,
+                                 out ushort amount))
+                    {
+                        suffix = $"\nALOCADO: {amount}";
+                    }
+                    visual.Label.text = ChoiceLabel(visual.Choice) + suffix;
+                }
             }
         }
 
@@ -446,6 +594,15 @@ namespace ArcaneArena
             Text label = choiceConfirm?.GetComponentInChildren<Text>();
             if (label == null)
                 return;
+            if (IsMultiChoicePrompt(prompt) &&
+                stagedSingleChoice == null &&
+                prompt.Message == CoreMessage.SelectCounter)
+            {
+                int total = selectedPromptAmounts.Values.Sum(
+                    value => (int)value);
+                label.text = $"CONFIRMAR - {total}/{prompt.RequiredCounterCount}";
+                return;
+            }
             label.text = IsMultiChoicePrompt(prompt) &&
                          stagedSingleChoice == null
                 ? $"CONFIRMAR · {selectedPromptIndexes.Count}/{prompt.MaximumSelections}"
@@ -474,18 +631,79 @@ namespace ArcaneArena
                 0.92f);
         }
 
+        private static float ChoiceWidth(DuelChoice choice)
+        {
+            return choice != null && choice.DescriptionId != 0
+                ? DescribedEffectChoiceWidth
+                : ChoiceCardWidth;
+        }
+
         private static bool IsMultiChoicePrompt(DuelPrompt prompt)
         {
             return prompt != null &&
-                   (prompt.Message == CoreMessage.SelectCard ||
+                   (prompt.RequiresOrderedSelection ||
+                    prompt.RequiresMaskSelection ||
+                    prompt.Message == CoreMessage.SelectCounter ||
+                    prompt.Message == CoreMessage.SelectCard ||
                     prompt.Message == CoreMessage.SelectTribute ||
                     prompt.Message == CoreMessage.SelectSum) &&
-                   prompt.MaximumSelections > 1;
+                   (prompt.RequiresOrderedSelection ||
+                    prompt.Message == CoreMessage.SelectCounter ||
+                    prompt.MaximumSelections > 1);
+        }
+
+        private bool IsStructuredSelectionValid(DuelPrompt prompt)
+        {
+            if (prompt == null)
+                return false;
+            if (prompt.RequiresOrderedSelection)
+                return orderedPromptIndexes.Count == prompt.MaximumSelections &&
+                       orderedPromptIndexes.Distinct().Count() ==
+                       orderedPromptIndexes.Count;
+            if (prompt.Message == CoreMessage.SelectCounter)
+            {
+                return selectedPromptAmounts.Values.Sum(
+                    value => (int)value) == prompt.RequiredCounterCount &&
+                    selectedPromptAmounts.All(item =>
+                    {
+                        DuelChoice choice = prompt.Choices.FirstOrDefault(
+                            candidate => candidate.ChoiceIndex == item.Key);
+                        return choice != null && item.Value <= choice.SumValue;
+                    });
+            }
+            return CoreMessageDecoder.IsValidSelection(
+                prompt,
+                selectedPromptIndexes);
+        }
+
+        private byte[] BuildStructuredResponse(
+            DuelPrompt prompt,
+            IReadOnlyList<int> indexes)
+        {
+            if (prompt.RequiresOrderedSelection)
+                return CoreMessageDecoder.OrderedSelectionResponse(indexes);
+            if (prompt.Message == CoreMessage.SelectCounter)
+            {
+                var allocation = new ushort[
+                    checked((int)prompt.MaximumSelections)];
+                foreach ((int index, ushort amount) in selectedPromptAmounts)
+                {
+                    if (index >= 0 && index < allocation.Length)
+                        allocation[index] = amount;
+                }
+                return CoreMessageDecoder.CounterResponse(allocation);
+            }
+            if (prompt.RequiresMaskSelection)
+                return CoreMessageDecoder.AnnounceMaskResponse(prompt, indexes);
+            return CoreMessageDecoder.CardSelectionResponse(
+                indexes.Select(index => (uint)index).ToArray());
         }
 
         private void ResetChoiceSelectionState()
         {
             selectedPromptIndexes.Clear();
+            orderedPromptIndexes.Clear();
+            selectedPromptAmounts.Clear();
             choiceTrayVisuals.Clear();
             stagedChoicePrompt = null;
             stagedSingleChoice = null;

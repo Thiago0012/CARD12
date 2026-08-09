@@ -17,6 +17,28 @@ namespace ArcaneDuel.Tests.PlayMode
 {
     public sealed class MultiplayerCrossplayPlayModeTests
     {
+        [UnityTearDown]
+        public IEnumerator DestroyPersistentOnlineSessionAfterEachTest()
+        {
+            MonoBehaviour[] sessions = Resources
+                .FindObjectsOfTypeAll<MonoBehaviour>()
+                .Where(component =>
+                    component != null &&
+                    component.GetType().FullName ==
+                    "ArcaneArena.Multiplayer.DuelOnlineSession")
+                .ToArray();
+            foreach (MonoBehaviour session in sessions)
+            {
+                if (session != null)
+                    UnityEngine.Object.Destroy(session.gameObject);
+            }
+
+            // NetworkManager.OnDestroy performs the synchronous NGO cleanup.
+            // Let Unity complete that destruction before the next test or the
+            // PlayMode domain is closed, so Netcode never disposes it twice.
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator ExplicitLobbyExitClearsStateAndCanRunAgain()
         {
@@ -231,6 +253,45 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator OptionsExposeActivationModesSelfChainAndSortOrder()
+        {
+            SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour frontend = Resources
+                .FindObjectsOfTypeAll<MonoBehaviour>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType().Name == "GameFrontendBootstrap");
+            MethodInfo showResponses = frontend.GetType().GetMethod(
+                "ShowDuelResponseOptions",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(showResponses, Is.Not.Null);
+            showResponses.Invoke(frontend, null);
+            yield return null;
+
+            Transform panel = FindDescendant(
+                frontend.transform,
+                "Respostas e Correntes");
+            Assert.That(panel, Is.Not.Null);
+            string[] labels = panel.GetComponentsInChildren<Text>(true)
+                .Select(text => text.text)
+                .ToArray();
+            Assert.That(labels, Does.Contain("ON"));
+            Assert.That(labels, Does.Contain("AUTO"));
+            Assert.That(labels, Does.Contain("OFF"));
+            Assert.That(
+                labels.Any(label =>
+                    label == "ATIVADO" || label == "DESATIVADO"),
+                Is.True);
+            Assert.That(
+                labels.Any(label => label == "MANUAL" || label == "CORE"),
+                Is.True);
+        }
+
+        [UnityTest]
         public IEnumerator OnlineSessionUsesVersionedLowFrequencyRelayConfig()
         {
             Type sessionType = TypeByName(
@@ -251,7 +312,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(manager, Is.Not.Null);
             Assert.That(transport, Is.Not.Null);
             Assert.That(manager.NetworkConfig.NetworkTransport, Is.SameAs(transport));
-            Assert.That(manager.NetworkConfig.ProtocolVersion, Is.EqualTo(8));
+            Assert.That(manager.NetworkConfig.ProtocolVersion, Is.EqualTo(10));
             Assert.That(manager.NetworkConfig.TickRate, Is.EqualTo(20));
             Assert.That(transport.HeartbeatTimeoutMS, Is.EqualTo(1000));
             Assert.That(transport.DisconnectTimeoutMS, Is.EqualTo(120000));
@@ -270,7 +331,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(protocol, Is.Not.Null);
             Assert.That(
                 protocol.GetRawConstantValue(),
-                Is.EqualTo("arcane-duel-online-v8"));
+                Is.EqualTo("arcane-duel-online-v10"));
         }
 
         [Test]
@@ -643,7 +704,7 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [Test]
-        public void PublicStateHashIsPerspectiveInvariantAndExcludesPrivateHands()
+        public void ProjectionHashVerifiesExactPrivatePayloadWithoutLeakingIt()
         {
             Type protocolType = TypeByName(
                 "ArcaneArena.Multiplayer.DuelNetworkProtocol");
@@ -674,7 +735,10 @@ namespace ArcaneDuel.Tests.PlayMode
             ulong hostHash = (ulong)hash.Invoke(null, new[] { hostView });
             ulong clientHash = (ulong)hash.Invoke(null, new[] { clientView });
             Assert.That(hostHash, Is.Not.Zero);
-            Assert.That(clientHash, Is.EqualTo(hostHash));
+            Assert.That(
+                clientHash,
+                Is.Not.EqualTo(hostHash),
+                "Each recipient acknowledges the exact privacy-filtered payload it received.");
 
             state.Players[0].Hand[0] = 999999u;
             object changedPrivateView = create.Invoke(
@@ -685,7 +749,23 @@ namespace ArcaneDuel.Tests.PlayMode
             ulong changedPrivateHash = (ulong)hash.Invoke(
                 null,
                 new[] { changedPrivateView });
-            Assert.That(changedPrivateHash, Is.EqualTo(hostHash));
+            Assert.That(
+                changedPrivateHash,
+                Is.Not.EqualTo(hostHash),
+                "Changing the owner's visible private hand must change that owner's payload hash.");
+
+            object unchangedOpponentView = create.Invoke(
+                null,
+                new object[] { state, null, (byte)1, 2, "ok" });
+            unchangedOpponentView.GetType().GetField("matchId")
+                ?.SetValue(unchangedOpponentView, "match");
+            ulong unchangedOpponentHash = (ulong)hash.Invoke(
+                null,
+                new[] { unchangedOpponentView });
+            Assert.That(
+                unchangedOpponentHash,
+                Is.EqualTo(clientHash),
+                "A hidden opponent hand identity must not enter the recipient's payload hash.");
         }
 
         [Test]

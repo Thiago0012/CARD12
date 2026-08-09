@@ -27,6 +27,8 @@ namespace ArcaneDuel.Game
         private GUIStyle bodyStyle;
         private GUIStyle tinyStyle;
         private GUIStyle menuButtonStyle;
+        private GUIStyle modalTitle54;
+        private GUIStyle modalTitle50;
         private bool showRules;
         private bool showDiagnostics;
         private bool showDuelSelection;
@@ -431,17 +433,10 @@ namespace ArcaneDuel.Game
             Fill(
                 new Rect(modal.x, modal.y, modal.width, 7),
                 new Color(0.74f, 0.42f, 1f));
-            GUIStyle modalTitle = new GUIStyle(duelStyle)
-            {
-                fontSize = 54,
-                alignment = TextAnchor.MiddleCenter,
-                wordWrap = false,
-                clipping = TextClipping.Clip
-            };
             GUI.Label(
                 new Rect(modal.x + 70, 138, modal.width - 140, 78),
                 "MODOS DE DUELO",
-                modalTitle);
+                modalTitle54);
             GUI.Label(
                 new Rect(465, 225, 990, 64),
                 ActiveDeckSummary(),
@@ -617,32 +612,26 @@ namespace ArcaneDuel.Game
             Rect modal = new Rect(300, 100, 1320, 880);
             Fill(modal, new Color(0.018f, 0.11f, 0.14f, 0.995f));
             Stroke(modal, new Color(0.16f, 0.92f, 1f), 2);
-            GUIStyle modalTitle = new GUIStyle(duelStyle)
-            {
-                fontSize = 50,
-                alignment = TextAnchor.MiddleCenter,
-                wordWrap = false,
-                clipping = TextClipping.Clip
-            };
             GUI.Label(
                 new Rect(modal.x + 70, 122, modal.width - 140, 76),
                 "ANIMAÇÕES DO DUELO",
-                modalTitle);
+                modalTitle50);
             GUI.Label(
                 new Rect(520, 215, 900, 42),
                 "Configuração local: altera apenas a apresentação deste dispositivo.",
                 bodyStyle);
 
+            DrawActivationResponseRow(new Rect(380, 260, 1160, 72));
             DrawOptionRow(
-                new Rect(380, 300, 1160, 140),
+                new Rect(380, 350, 1160, 140),
                 "INVOCAÇÃO DE MONSTROS",
                 DuelAnimationFamily.Summon);
             DrawOptionRow(
-                new Rect(380, 470, 1160, 140),
+                new Rect(380, 510, 1160, 140),
                 "ATIVAÇÃO DE MAGIAS / ARMADILHAS",
                 DuelAnimationFamily.Activation);
             DrawOptionRow(
-                new Rect(380, 640, 1160, 140),
+                new Rect(380, 670, 1160, 140),
                 "APRESENTAÇÃO DA CORRENTE",
                 DuelAnimationFamily.Chain);
 
@@ -652,6 +641,7 @@ namespace ArcaneDuel.Game
                 menuButtonStyle))
             {
                 DuelPresentationPreferences.RestoreDefaults();
+                DuelActivationPreferences.RestoreDefaults();
             }
             if (GUI.Button(
                 new Rect(1030, 840, 380, 62),
@@ -659,6 +649,57 @@ namespace ArcaneDuel.Game
                 menuButtonStyle))
             {
                 showOptions = false;
+            }
+        }
+
+        private void DrawActivationResponseRow(Rect rect)
+        {
+            Fill(rect, new Color(0.03f, 0.22f, 0.25f, 0.95f));
+            Stroke(rect, new Color(0.12f, 0.72f, 0.82f), 1);
+            GUI.Label(
+                new Rect(rect.x + 22, rect.y + 10, 235, 52),
+                "RESPOSTAS",
+                subtitleStyle);
+
+            ActivationPromptMode[] modes =
+            {
+                ActivationPromptMode.On,
+                ActivationPromptMode.Auto,
+                ActivationPromptMode.Off
+            };
+            for (int index = 0; index < modes.Length; index++)
+            {
+                ActivationPromptMode mode = modes[index];
+                Color original = GUI.backgroundColor;
+                if (DuelActivationPreferences.Mode == mode)
+                    GUI.backgroundColor = new Color(0.68f, 1f, 0.04f);
+                if (GUI.Button(
+                    new Rect(rect.x + 250 + index * 112, rect.y + 12, 98, 48),
+                    DuelActivationPreferences.DisplayName(mode),
+                    menuButtonStyle))
+                {
+                    DuelActivationPreferences.Mode = mode;
+                }
+                GUI.backgroundColor = original;
+            }
+
+            if (GUI.Button(
+                new Rect(rect.x + 610, rect.y + 12, 245, 48),
+                DuelActivationPreferences.SelfChainEnabled
+                    ? "SELF CHAIN: ON" : "SELF CHAIN: OFF",
+                menuButtonStyle))
+            {
+                DuelActivationPreferences.SelfChainEnabled =
+                    !DuelActivationPreferences.SelfChainEnabled;
+            }
+            if (GUI.Button(
+                new Rect(rect.x + 875, rect.y + 12, 260, 48),
+                DuelActivationPreferences.ManualChainOrder
+                    ? "ORDEM: MANUAL" : "ORDEM: CORE",
+                menuButtonStyle))
+            {
+                DuelActivationPreferences.ManualChainOrder =
+                    !DuelActivationPreferences.ManualChainOrder;
             }
         }
 
@@ -809,6 +850,20 @@ namespace ArcaneDuel.Game
             menuButtonStyle.normal.textColor = Color.white;
             menuButtonStyle.hover.textColor = Color.white;
             menuButtonStyle.active.textColor = Color.white;
+            modalTitle54 = new GUIStyle(duelStyle)
+            {
+                fontSize = 54,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false,
+                clipping = TextClipping.Clip
+            };
+            modalTitle50 = new GUIStyle(duelStyle)
+            {
+                fontSize = 50,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false,
+                clipping = TextClipping.Clip
+            };
         }
 
         private static GUIStyle Label(

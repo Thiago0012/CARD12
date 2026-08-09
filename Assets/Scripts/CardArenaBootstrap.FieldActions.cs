@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
 using UnityEngine;
@@ -15,6 +16,7 @@ namespace ArcaneArena
         private GameObject fieldActionPanel;
         private DuelZone3D fieldActionZone;
         private DuelPrompt fieldActionPrompt;
+        private readonly List<DuelChoice> fieldActionEffectChoices = new();
 
         private void BuildFieldActionMenu()
         {
@@ -45,16 +47,40 @@ namespace ArcaneArena
             ClearChildren(fieldActionPanel.transform);
             fieldActionZone = zone;
             fieldActionPrompt = prompt;
+            fieldActionEffectChoices.Clear();
+            fieldActionEffectChoices.AddRange(choices.Where(choice =>
+                DuelPromptPresentationRules.IsEffectCandidate(
+                    prompt,
+                    choice)));
+
+            // Several effect candidates from the same physical card are one
+            // action category in the compact field menu. The category opens
+            // the full effect list; it must never submit the first candidate.
+            var menuChoices = new List<DuelChoice>();
+            bool effectCategoryAdded = false;
+            foreach (DuelChoice choice in choices)
+            {
+                if (DuelPromptPresentationRules.IsEffectCandidate(
+                        prompt,
+                        choice))
+                {
+                    if (effectCategoryAdded)
+                        continue;
+                    effectCategoryAdded = true;
+                }
+                menuChoices.Add(choice);
+            }
 
             RectTransform panel =
                 fieldActionPanel.GetComponent<RectTransform>();
-            float width = choices.Count * FieldActionWidth +
-                          Mathf.Max(0, choices.Count - 1) * FieldActionGap;
+            float width = menuChoices.Count * FieldActionWidth +
+                          Mathf.Max(0, menuChoices.Count - 1) *
+                          FieldActionGap;
             panel.sizeDelta = new Vector2(width, FieldActionHeight);
 
-            for (int index = 0; index < choices.Count; index++)
+            for (int index = 0; index < menuChoices.Count; index++)
             {
-                DuelChoice choice = choices[index];
+                DuelChoice choice = menuChoices[index];
                 Color accent = FieldActionAccent(choice);
                 Button button = CreateButton(
                     fieldActionPanel.transform,
@@ -88,6 +114,20 @@ namespace ArcaneArena
                 !CoreCardActionBinding.BelongsToRequest(prompt, choice))
             {
                 CloseFieldActionMenu();
+                return;
+            }
+
+            if (DuelPromptPresentationRules.IsEffectCandidate(
+                    prompt,
+                    choice) &&
+                fieldActionEffectChoices.Count > 1)
+            {
+                DuelChoice[] effects = fieldActionEffectChoices.ToArray();
+                CloseFieldActionMenu();
+                OpenChoiceModal(prompt, effects);
+                SetStatus(
+                    "Escolha qual efeito deseja ativar.",
+                    EffectGlow);
                 return;
             }
 
@@ -177,6 +217,7 @@ namespace ArcaneArena
                 fieldActionPanel.SetActive(false);
             fieldActionZone = null;
             fieldActionPrompt = null;
+            fieldActionEffectChoices.Clear();
         }
     }
 }

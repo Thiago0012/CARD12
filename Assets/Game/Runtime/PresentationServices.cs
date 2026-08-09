@@ -34,6 +34,13 @@ namespace ArcaneDuel.Game
             string path = catalog.ArtPath(code);
             if (!File.Exists(path))
             {
+                Texture2D fallback = Resources.Load<Texture2D>("CardArtFallback");
+                if (fallback != null)
+                {
+                    texture = UnityEngine.Object.Instantiate(fallback);
+                    textures.Add(code, texture);
+                    return true;
+                }
                 texture = null;
                 return false;
             }
@@ -136,10 +143,17 @@ namespace ArcaneDuel.Game
                 case CoreMessage.SpecialSummoning:
                 case CoreMessage.FlipSummoning:
                     return Cue(
-                        "INVOCAÇÃO",
+                        "TENTATIVA DE INVOCAÇÃO",
                         new Color(0.95f, 0.66f, 0.23f),
                         0.75f,
                         duelEvent.Code);
+                case CoreMessage.Summoned:
+                case CoreMessage.SpecialSummoned:
+                case CoreMessage.FlipSummoned:
+                    return Cue(
+                        "INVOCAÇÃO CONFIRMADA",
+                        new Color(0.16f, 0.88f, 1f),
+                        0.75f);
                 case CoreMessage.Chaining:
                     return Cue(
                         $"CORRENTE {duelEvent.Value}",

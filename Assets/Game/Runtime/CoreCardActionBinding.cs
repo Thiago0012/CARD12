@@ -29,6 +29,8 @@ namespace ArcaneDuel.Game
                 (choice.RequestId == 0 ||
                  prompt.RequestId == 0 ||
                  choice.RequestId == prompt.RequestId) &&
+                (choice.RuntimeId == 0 ||
+                 choice.RuntimeId == instance.RuntimeId) &&
                 (!choice.HasLocation ||
                  (choice.Controller == instance.Controller &&
                   (choice.Location & instance.Location) != 0 &&

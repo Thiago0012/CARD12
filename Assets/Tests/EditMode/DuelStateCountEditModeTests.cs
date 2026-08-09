@@ -66,6 +66,53 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(state.Players[0].MonsterZones[2], Is.Zero);
         }
 
+        [Test]
+        public void CountOnlyPrivateDeckSurvivesDrawAndReturnWithoutLeakingContents()
+        {
+            var state = new DuelPresentationState(null);
+            state.ConfigureDeckCounts(40, 15, 40, 15);
+
+            state.Apply(Draw(0, 10000003));
+
+            Assert.That(state.Players[0].DeckCount, Is.EqualTo(39));
+            Assert.That(state.Players[0].Hand, Is.EqualTo(new[] { 10000003U }));
+
+            state.Apply(Move(
+                10000003,
+                0,
+                (byte)DuelLocation.Hand,
+                0,
+                0,
+                0,
+                (byte)DuelLocation.Deck,
+                0,
+                0));
+
+            Assert.That(state.Players[0].DeckCount, Is.EqualTo(40));
+            Assert.That(state.Players[0].Hand, Is.Empty);
+            Assert.That(
+                state.CaptureSnapshot().Players[0].Hand,
+                Is.Empty,
+                "Returning a card to a count-only pile must not expose its identity.");
+        }
+
+        private static DuelEvent Draw(byte player, params uint[] codes)
+        {
+            var payload = new List<byte> { player };
+            UInt32(payload, (uint)(codes?.Length ?? 0));
+            foreach (uint code in codes ?? System.Array.Empty<uint>())
+            {
+                UInt32(payload, code);
+                UInt32(payload, 0);
+            }
+
+            var framed = new List<byte>();
+            UInt32(framed, (uint)payload.Count + 1);
+            framed.Add((byte)CoreMessage.Draw);
+            framed.AddRange(payload);
+            return CoreMessageDecoder.Decode(framed.ToArray())[0];
+        }
+
         private static DuelEvent Move(
             uint code,
             byte previousController,

@@ -23,6 +23,7 @@ namespace ArcaneArena
             cardSoundPresentationQueue = new();
         private Coroutine cardSoundPresentationRoutine;
         private ArcaneAudioDirector cardAudioDirector;
+        private CardSoundPresentationRequest pendingSummonPresentation;
         private bool cardPresentationDecisionLocked;
         private bool cardPresentationCanAccelerate;
         private bool cardPresentationAccelerated;
@@ -67,17 +68,28 @@ namespace ArcaneArena
                 duelEvent.Message == CoreMessage.SpecialSummoning ||
                 duelEvent.Message == CoreMessage.FlipSummoning)
             {
-                return new CardSoundPresentationRequest
-                {
-                    Code = duelEvent.Code,
-                    Heading = SummonPresentationHeading(duelEvent.Code),
-                    Accent = Cyan,
-                    Sound = duelEvent.Message == CoreMessage.FlipSummoning
-                        ? ArcaneCardSound.None
-                        : SummonSoundFor(duelEvent.Code),
-                    ExtraDeckSummon =
-                        IsExtraDeckSummonPresentation(duelEvent.Code)
-                };
+                // MSG_*_SUMMONING opens the negation window. Stage the
+                // presentation, but do not show a completed summon until the
+                // Core emits the matching MSG_*_SUMMONED confirmation.
+                pendingSummonPresentation = CreateSummonPresentation(duelEvent);
+                return null;
+            }
+            if (duelEvent.Message == CoreMessage.Summoned ||
+                duelEvent.Message == CoreMessage.SpecialSummoned ||
+                duelEvent.Message == CoreMessage.FlipSummoned)
+            {
+                CardSoundPresentationRequest confirmed =
+                    state?.LastSummon?.Status ==
+                        ArcaneDuel.DuelEngine.State.DuelSummonStatus.Confirmed
+                        ? pendingSummonPresentation
+                        : null;
+                pendingSummonPresentation = null;
+                return confirmed;
+            }
+            if (state?.LastSummon?.Status ==
+                    ArcaneDuel.DuelEngine.State.DuelSummonStatus.Negated)
+            {
+                pendingSummonPresentation = null;
             }
             if (duelEvent.Message == CoreMessage.Chaining)
             {
@@ -101,6 +113,22 @@ namespace ArcaneArena
                 };
             }
             return null;
+        }
+
+        private CardSoundPresentationRequest CreateSummonPresentation(
+            DuelEvent duelEvent)
+        {
+            return new CardSoundPresentationRequest
+            {
+                Code = duelEvent.Code,
+                Heading = SummonPresentationHeading(duelEvent.Code),
+                Accent = Cyan,
+                Sound = duelEvent.Message == CoreMessage.FlipSummoning
+                    ? ArcaneCardSound.None
+                    : SummonSoundFor(duelEvent.Code),
+                ExtraDeckSummon =
+                    IsExtraDeckSummonPresentation(duelEvent.Code)
+            };
         }
 
         private ArcaneCardSound SummonSoundFor(uint code)
@@ -217,6 +245,7 @@ namespace ArcaneArena
             cardPresentationAccelerated = false;
             lastCardPresentationClick = -10f;
             cardAudioDirector?.StopCardCue();
+            pendingSummonPresentation = null;
             cardSoundPresentationQueue.Clear();
             cardSoundPresentationRoutine = null;
             SetCardPresentationDecisionLock(false);

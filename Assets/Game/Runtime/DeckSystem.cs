@@ -72,8 +72,10 @@ namespace ArcaneDuel.Game
         public static DeckValidationResult Validate(
             DeckFile deck,
             CardDatabase database,
-            CardVisualCatalog visuals)
+            CardVisualCatalog visuals,
+            BanlistService banlist = null)
         {
+            banlist ??= BanlistService.Active;
             var result = new DeckValidationResult();
             if (deck == null)
             {
@@ -147,7 +149,7 @@ namespace ArcaneDuel.Game
                 deck.mainDeck.Select(code => code.ToString("00000000")),
                 deck.extraDeck.Select(code => code.ToString("00000000")),
                 deck.sideDeck.Select(code => code.ToString("00000000")),
-                BanlistService.Active);
+                banlist);
             foreach (string error in banlistResult.Errors)
             {
                 if (!result.Errors.Contains(error))
@@ -174,12 +176,11 @@ namespace ArcaneDuel.Game
                     result.Add($"{section} #{index}: código {code:00000000} não existe.");
                     continue;
                 }
-                if (!visuals.TryGet(code, out CardVisualData visual) ||
-                    !File.Exists(visuals.ArtPath(code)))
+                if (!visuals.TryGet(code, out CardVisualData visual))
                 {
                     result.Add($"{card.Name} não possui apresentação completa.");
-                }
-                else if (visual.scriptStatus != "not_required_no_effect" &&
+                    continue;
+                }else if (visual.scriptStatus != "not_required_no_effect" &&
                          string.IsNullOrWhiteSpace(visual.scriptFile))
                 {
                     result.Add($"{card.Name} não possui script de efeito resolvido.");

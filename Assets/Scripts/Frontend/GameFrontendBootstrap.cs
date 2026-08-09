@@ -1361,23 +1361,194 @@ namespace ArcaneArena.Frontend
                 panel.transform,
                 "PERFIL DO DUELISTA",
                 new Vector2(0.11f, 0.025f),
-                new Vector2(0.46f, 0.095f),
+                new Vector2(0.35f, 0.095f),
                 Cyan,
                 () => ShowPlayerProfileSetup(true));
             CreateButton(
                 panel.transform,
+                "RESPOSTAS",
+                new Vector2(0.38f, 0.025f),
+                new Vector2(0.62f, 0.095f),
+                Lime,
+                ShowDuelResponseOptions);
+            CreateButton(
+                panel.transform,
                 "RESTAURAR PADRÃO",
-                new Vector2(0.54f, 0.025f),
+                new Vector2(0.65f, 0.025f),
                 new Vector2(0.89f, 0.095f),
                 Gold,
                 () =>
                 {
                     DuelAnimationPreferences
                         .ResetToDefaults();
+                    DuelActivationPreferences.RestoreDefaults();
                     ArcaneAudioPreferences.ResetToDefaults();
                     ArcaneGraphicsPreferences.ResetToAutomatic();
                     ShowAnimationOptions();
                 });
+        }
+
+        private void ShowDuelResponseOptions()
+        {
+            SetDuelPresentation(false);
+            ClearScreen();
+            BuildSharedBackground("OPÇÕES");
+            BuildHeader("RESPOSTAS DO DUELO", ShowAnimationOptions);
+
+            var panel = CreatePanel(
+                _screenRoot,
+                "Respostas e Correntes",
+                new Vector2(0.17f, 0.14f),
+                new Vector2(0.83f, 0.84f),
+                new Color(0.015f, 0.04f, 0.075f, 0.97f));
+            AddOutline(
+                panel.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.8f),
+                new Vector2(3f, -3f));
+
+            CreateText(
+                panel.transform,
+                "CONFIRMAÇÃO DE ATIVAÇÃO",
+                34,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.07f, 0.86f),
+                new Vector2(0.93f, 0.97f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                panel.transform,
+                "Estas opções só controlam perguntas e PASSAR. " +
+                "A legalidade e os candidatos continuam vindo do Core.",
+                17,
+                FontStyle.Normal,
+                Muted,
+                new Vector2(0.08f, 0.77f),
+                new Vector2(0.92f, 0.85f),
+                TextAnchor.MiddleCenter);
+
+            var modeRow = CreatePanel(
+                panel.transform,
+                "Modo de confirmação",
+                new Vector2(0.07f, 0.57f),
+                new Vector2(0.93f, 0.75f),
+                new Color(0.025f, 0.09f, 0.135f, 0.94f));
+            CreateText(
+                modeRow.transform,
+                "JANELAS OPCIONAIS",
+                17,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.03f, 0.55f),
+                new Vector2(0.31f, 0.92f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                modeRow.transform,
+                "ON pergunta sempre · AUTO padrão · OFF passa opções",
+                12,
+                FontStyle.Normal,
+                Muted,
+                new Vector2(0.03f, 0.10f),
+                new Vector2(0.45f, 0.52f),
+                TextAnchor.MiddleLeft);
+            ActivationPromptMode[] modes =
+            {
+                ActivationPromptMode.On,
+                ActivationPromptMode.Auto,
+                ActivationPromptMode.Off
+            };
+            for (int index = 0; index < modes.Length; index++)
+            {
+                ActivationPromptMode mode = modes[index];
+                float xMin = 0.49f + index * 0.16f;
+                CreateButton(
+                    modeRow.transform,
+                    DuelActivationPreferences.DisplayName(mode),
+                    new Vector2(xMin, 0.20f),
+                    new Vector2(xMin + 0.135f, 0.80f),
+                    DuelActivationPreferences.Mode == mode ? Lime : Cyan,
+                    () =>
+                    {
+                        DuelActivationPreferences.Mode = mode;
+                        ShowDuelResponseOptions();
+                    });
+            }
+
+            var selfChainRow = CreatePanel(
+                panel.transform,
+                "Self Chain",
+                new Vector2(0.07f, 0.36f),
+                new Vector2(0.93f, 0.53f),
+                new Color(0.025f, 0.09f, 0.135f, 0.94f));
+            CreateText(
+                selfChainRow.transform,
+                "SELF CHAIN",
+                18,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.03f, 0.18f),
+                new Vector2(0.53f, 0.82f),
+                TextAnchor.MiddleLeft);
+            CreateButton(
+                selfChainRow.transform,
+                DuelActivationPreferences.SelfChainEnabled
+                    ? "ATIVADO" : "DESATIVADO",
+                new Vector2(0.69f, 0.20f),
+                new Vector2(0.94f, 0.80f),
+                DuelActivationPreferences.SelfChainEnabled ? Lime : Gold,
+                () =>
+                {
+                    DuelActivationPreferences.SelfChainEnabled =
+                        !DuelActivationPreferences.SelfChainEnabled;
+                    ShowDuelResponseOptions();
+                });
+
+            var orderRow = CreatePanel(
+                panel.transform,
+                "Ordem de ativação",
+                new Vector2(0.07f, 0.15f),
+                new Vector2(0.93f, 0.32f),
+                new Color(0.025f, 0.09f, 0.135f, 0.94f));
+            CreateText(
+                orderRow.transform,
+                "ORDEM DE ATIVAÇÃO SIMULTÂNEA",
+                18,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.03f, 0.18f),
+                new Vector2(0.62f, 0.82f),
+                TextAnchor.MiddleLeft);
+            CreateButton(
+                orderRow.transform,
+                DuelActivationPreferences.ManualChainOrder
+                    ? "MANUAL" : "CORE",
+                new Vector2(0.69f, 0.20f),
+                new Vector2(0.94f, 0.80f),
+                DuelActivationPreferences.ManualChainOrder ? Lime : Cyan,
+                () =>
+                {
+                    DuelActivationPreferences.ManualChainOrder =
+                        !DuelActivationPreferences.ManualChainOrder;
+                    ShowDuelResponseOptions();
+                });
+
+            CreateButton(
+                panel.transform,
+                "RESTAURAR RESPOSTAS",
+                new Vector2(0.12f, 0.025f),
+                new Vector2(0.44f, 0.10f),
+                Gold,
+                () =>
+                {
+                    DuelActivationPreferences.RestoreDefaults();
+                    ShowDuelResponseOptions();
+                });
+            CreateButton(
+                panel.transform,
+                "VOLTAR",
+                new Vector2(0.56f, 0.025f),
+                new Vector2(0.88f, 0.10f),
+                Cyan,
+                ShowAnimationOptions);
         }
 
         private void BuildGraphicsQualityRow(Transform parent, float yMin)

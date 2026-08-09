@@ -17,6 +17,7 @@ namespace ArcaneDuel.Tests.PlayMode
     public sealed class ArenaStabilizationPlayModeTests
     {
         private const uint DarkMagician = 46986414;
+        private const uint BlueEyesWhiteDragon = 89631139;
         private const uint DarkMagicalCircle = 47222536;
         private const uint EffectVeiler = 97268402;
         private const uint Polymerization = 24094653;
@@ -64,6 +65,7 @@ namespace ArcaneDuel.Tests.PlayMode
 
             MonoBehaviour arena = FindArena();
             Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
             BindingFlags flags = BindingFlags.Instance |
                                  BindingFlags.NonPublic;
             arena.GetType()
@@ -76,7 +78,7 @@ namespace ArcaneDuel.Tests.PlayMode
             FieldInfo replicaPrompt = typeof(DuelArenaController).GetField(
                 "replicaPrompt",
                 flags);
-            DuelPrompt first = EffectQuestionPrompt(7001);
+            DuelPrompt first = OptionalChainPrompt(7001);
             replicaPrompt?.SetValue(controller, first);
             arena.GetType()
                 .GetMethod("ResetPromptPresentationIdentity", flags)
@@ -95,7 +97,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(compact.activeSelf, Is.True);
             Assert.That(modal?.activeSelf, Is.False);
 
-            DuelPrompt repeatedSnapshot = EffectQuestionPrompt(7001);
+            DuelPrompt repeatedSnapshot = OptionalChainPrompt(7001);
             replicaPrompt?.SetValue(controller, repeatedSnapshot);
             arena.GetType()
                 .GetMethod("RefreshEverything", flags)
@@ -120,7 +122,10 @@ namespace ArcaneDuel.Tests.PlayMode
                     .First(button => button.name == "Passar");
                 pass.onClick.Invoke();
                 Assert.That(submitted, Is.Not.Null);
-                Assert.That(submitted.Label, Does.Contain("ativar"));
+                Assert.That(
+                    submitted.Label,
+                    Is.EqualTo("Não responder"),
+                    "Passing SELECT_CHAIN must use the explicit no-response choice.");
                 Assert.That(compact.activeSelf, Is.False);
             }
             finally
@@ -271,6 +276,86 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator TwoEffectTargetsReachTheCoreInOneConfirmedResponse()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            BindingFlags flags = BindingFlags.Instance |
+                                 BindingFlags.Public |
+                                 BindingFlags.NonPublic;
+            arena.GetType().GetMethod("SuppressAnnouncementBanner", flags)
+                ?.Invoke(arena, null);
+            yield return null;
+
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            controller.ConfigureNetworkReplica(0);
+            DuelPrompt prompt = TwoTargetSelectionPrompt(7351);
+            typeof(DuelArenaController).GetField("replicaPrompt", flags)
+                ?.SetValue(controller, prompt);
+            arena.GetType().GetMethod(
+                    "ResetPromptPresentationIdentity",
+                    flags)
+                ?.Invoke(arena, null);
+            arena.GetType().GetMethod("RefreshEverything", flags)
+                ?.Invoke(arena, new object[] { true });
+
+            GameObject tray = arena.GetType()
+                .GetField("choiceModal", flags)
+                ?.GetValue(arena) as GameObject;
+            RectTransform content = arena.GetType()
+                .GetField("choiceContent", flags)
+                ?.GetValue(arena) as RectTransform;
+            Button confirm = arena.GetType()
+                .GetField("choiceConfirm", flags)
+                ?.GetValue(arena) as Button;
+            GameObject details = arena.GetType()
+                .GetField("detailPanel", flags)
+                ?.GetValue(arena) as GameObject;
+            Assert.That(tray?.activeSelf, Is.True);
+            Assert.That(content, Is.Not.Null);
+            Assert.That(content.childCount, Is.EqualTo(2));
+            Assert.That(confirm, Is.Not.Null);
+
+            byte[] submitted = null;
+            ulong submittedRequest = 0;
+            System.Action<byte[], ulong> previous =
+                DuelOnlineBridge.SubmitReplicaResponse;
+            DuelOnlineBridge.SubmitReplicaResponse = (response, request) =>
+            {
+                submitted = response;
+                submittedRequest = request;
+            };
+            try
+            {
+                content.GetChild(0).GetComponent<Button>().onClick.Invoke();
+                content.GetChild(1).GetComponent<Button>().onClick.Invoke();
+                Assert.That(details?.activeSelf, Is.False,
+                    "Inspecting a target must not cover the mandatory tray.");
+                Assert.That(confirm.interactable, Is.True);
+
+                confirm.onClick.Invoke();
+
+                Assert.That(submittedRequest, Is.EqualTo(7351));
+                Assert.That(
+                    submitted,
+                    Is.EqualTo(CoreMessageDecoder.CardSelectionResponse(
+                        new uint[] { 0, 1 })));
+                Assert.That(tray.activeSelf, Is.False);
+            }
+            finally
+            {
+                DuelOnlineBridge.SubmitReplicaResponse = previous;
+            }
+        }
+
+        [UnityTest]
         public IEnumerator AuthoredArenaBuildsSevenMonsterZonesPerPlayer()
         {
             SceneManager.LoadScene(ProjectIdentity.DuelScene);
@@ -314,6 +399,8 @@ namespace ArcaneDuel.Tests.PlayMode
             yield return null;
 
             MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();
             controller.PresentationState.Apply(
@@ -335,6 +422,14 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(
                 front.GetComponent<UnityEngine.UI.Image>().sprite,
                 Is.Not.Null);
+            MethodInfo formatMarkers = arena.GetType().GetMethod(
+                "FormatLinkMarkers",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(formatMarkers, Is.Not.Null);
+            Assert.That(
+                formatMarkers.Invoke(null, new object[] { 0x1EFU }),
+                Is.EqualTo("↙↓↘←→↖↑↗"),
+                "All Core Link Marker bits must have a clear visual arrow; this mapping must not infer legal zones.");
         }
 
         [UnityTest]
@@ -426,6 +521,8 @@ namespace ArcaneDuel.Tests.PlayMode
             yield return null;
 
             MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();
             controller.PresentationState.Apply(
@@ -596,6 +693,7 @@ namespace ArcaneDuel.Tests.PlayMode
 
             MonoBehaviour arena = FindArena();
             Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();
             Assert.That(controller, Is.Not.Null);
@@ -670,6 +768,7 @@ namespace ArcaneDuel.Tests.PlayMode
 
             MonoBehaviour arena = FindArena();
             Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();
             Assert.That(controller, Is.Not.Null);
@@ -724,6 +823,34 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator PrivateDeckPilesDoNotRequireIndividualWorldCardViews()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            MethodInfo validate = arena.GetType().GetMethod(
+                "ValidatePresentationConsistency",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(validate, Is.Not.Null);
+
+            string[] problems = validate.Invoke(
+                arena,
+                new object[] { null, false }) as string[];
+            Assert.That(problems, Is.Not.Null);
+            Assert.That(
+                problems.Any(problem =>
+                    problem.Contains("main_deck") ||
+                    problem.Contains("extra_deck")),
+                Is.False,
+                "Private Deck/Extra Deck piles are count-backed proxies, " +
+                "not one public WorldCardInstanceView per hidden card.");
+        }
+
+        [UnityTest]
         public IEnumerator DuplicateSelectionCancelAndSecondSummonStayIndependent()
         {
             SceneManager.LoadScene(ProjectIdentity.DuelScene);
@@ -733,6 +860,7 @@ namespace ArcaneDuel.Tests.PlayMode
 
             MonoBehaviour arena = FindArena();
             Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();
             DuelPresentationState state =
@@ -1060,6 +1188,76 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator SummonCutInWaitsForCoreConfirmationAndSkipsNegation()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            var presentationState = new DuelPresentationState(null);
+            FieldInfo arenaState = arena.GetType().GetField(
+                "state",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(arenaState, Is.Not.Null);
+            arenaState.SetValue(arena, presentationState);
+            MethodInfo create = arena.GetType().GetMethod(
+                "CreateCardSoundPresentation",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo pending = arena.GetType().GetField(
+                "pendingSummonPresentation",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(create, Is.Not.Null);
+            Assert.That(pending, Is.Not.Null);
+
+            DuelEvent placed = MoveIntoMonsterZone(DarkMagician, 0);
+            presentationState.Apply(placed);
+            DuelEvent attempt = SummonEvent(
+                CoreMessage.Summoning,
+                DarkMagician,
+                0,
+                0,
+                0x1);
+            presentationState.Apply(attempt);
+            Assert.That(create.Invoke(arena, new object[] { attempt }), Is.Null);
+            Assert.That(pending.GetValue(arena), Is.Not.Null,
+                "The cut-in may be staged during the negation window, but it must not play yet.");
+
+            DuelEvent confirmed = Decode(
+                CoreMessage.Summoned,
+                new List<byte>());
+            presentationState.Apply(confirmed);
+            Assert.That(create.Invoke(arena, new object[] { confirmed }),
+                Is.Not.Null,
+                "Only the Core confirmation releases the summon cut-in.");
+            Assert.That(pending.GetValue(arena), Is.Null);
+
+            presentationState.Apply(MoveIntoMonsterZone(EffectVeiler, 1));
+            DuelEvent negatedAttempt = SummonEvent(
+                CoreMessage.Summoning,
+                EffectVeiler,
+                0,
+                1,
+                0x1);
+            presentationState.Apply(negatedAttempt);
+            Assert.That(create.Invoke(arena, new object[] { negatedAttempt }), Is.Null);
+            DuelEvent removed = MoveEvent(
+                EffectVeiler,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                1,
+                0,
+                (byte)DuelLocation.Graveyard,
+                0,
+                0x1);
+            presentationState.Apply(removed);
+            Assert.That(create.Invoke(arena, new object[] { removed }), Is.Null);
+            Assert.That(pending.GetValue(arena), Is.Null,
+                "A negated summon must discard the staged cut-in.");
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator ExtraDeckAndGraveyardUseVisibleLegalOutlines()
         {
             PlayerPrefs.SetInt("ArcaneAutoStart", 0);
@@ -1296,6 +1494,7 @@ namespace ArcaneDuel.Tests.PlayMode
 
             MonoBehaviour arena = FindArena();
             Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
             BindingFlags flags =
                 BindingFlags.Instance |
                 BindingFlags.Public |
@@ -1333,11 +1532,18 @@ namespace ArcaneDuel.Tests.PlayMode
             GameObject compactResponse = arena.GetType()
                 .GetField("compactResponseBar", flags)
                 ?.GetValue(arena) as GameObject;
+            GameObject responseModal = arena.GetType()
+                .GetField("choiceModal", flags)
+                ?.GetValue(arena) as GameObject;
             Assert.That(compactResponse, Is.Not.Null);
             Assert.That(
                 compactResponse.activeSelf,
+                Is.False,
+                "A concrete effect question must not be reduced to the generic compact bar.");
+            Assert.That(
+                responseModal?.activeSelf,
                 Is.True,
-                "The snapshot prompt is presented before the delayed Draw event.");
+                "The full effect question is presented before the delayed Draw event.");
 
             DuelPresentationState state = controller.PresentationState;
             state.Players[0].Hand.Clear();
@@ -1352,13 +1558,23 @@ namespace ArcaneDuel.Tests.PlayMode
 
             CardInstanceState drawn =
                 state.Players[0].HandInstances.Last();
-            Component drawnView = Resources
-                .FindObjectsOfTypeAll<Component>()
-                .First(component =>
-                    component != null &&
-                    component.gameObject.activeInHierarchy &&
-                    component.GetType().Name == "CardView" &&
-                    RuntimeIdOf(component) == drawn.RuntimeId);
+            Component drawnView = null;
+            for (int frame = 0; frame < 120 && drawnView == null; frame++)
+            {
+                drawnView = Resources
+                    .FindObjectsOfTypeAll<Component>()
+                    .FirstOrDefault(component =>
+                        component != null &&
+                        component.gameObject.activeInHierarchy &&
+                        component.GetType().Name == "CardView" &&
+                        RuntimeIdOf(component) == drawn.RuntimeId);
+                if (drawnView == null)
+                    yield return null;
+            }
+            Assert.That(
+                drawnView,
+                Is.Not.Null,
+                "The drawn RuntimeId must materialize as a hand CardView.");
             Component mainDeck = FindZone("PlayerOne", "MainDeck", 0);
             Component extraDeck = FindZone("PlayerOne", "ExtraDeck", 0);
             Assert.That(mainDeck, Is.Not.Null);
@@ -1509,7 +1725,8 @@ namespace ArcaneDuel.Tests.PlayMode
                 yield return null;
             }
             while (((bool)locked.GetValue(arena) ||
-                    !compactResponse.activeSelf) &&
+                    responseModal == null ||
+                    !responseModal.activeSelf) &&
                    Time.realtimeSinceStartup < drawDeadline)
             {
                 yield return null;
@@ -1541,8 +1758,12 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(locked.GetValue(arena), Is.False);
             Assert.That(
                 compactResponse.activeSelf,
+                Is.False,
+                "A concrete effect choice must not regress to the generic compact bar.");
+            Assert.That(
+                responseModal?.activeSelf,
                 Is.True,
-                "The same Core prompt must reopen after the Draw animation.");
+                "The same concrete Core prompt must reopen after the Draw animation.");
             Assert.That(
                 handInteraction.alpha,
                 Is.EqualTo(1f).Within(0.001f),
@@ -1566,6 +1787,25 @@ namespace ArcaneDuel.Tests.PlayMode
                     component != null &&
                     component.gameObject.activeInHierarchy &&
                     component.GetType().Name == "CardArenaBootstrap");
+        }
+
+        private static IEnumerator WaitForPresentationReady(
+            MonoBehaviour arena)
+        {
+            FieldInfo ready = arena?.GetType().GetField(
+                "presentationReady",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(ready, Is.Not.Null);
+            for (int frame = 0;
+                 frame < 600 && !(bool)ready.GetValue(arena);
+                 frame++)
+            {
+                yield return null;
+            }
+            Assert.That(
+                ready.GetValue(arena),
+                Is.True,
+                "The arena presentation must finish loading before the test manipulates authoritative state.");
         }
 
         private static Component FindZone(
@@ -1772,6 +2012,20 @@ namespace ArcaneDuel.Tests.PlayMode
             return Decode(CoreMessage.Move, payload);
         }
 
+        private static DuelEvent SummonEvent(
+            CoreMessage message,
+            uint code,
+            byte controller,
+            uint sequence,
+            uint position)
+        {
+            var payload = new List<byte>();
+            UInt32(payload, code);
+            Location(payload, controller,
+                (byte)DuelLocation.MonsterZone, sequence, position);
+            return Decode(message, payload);
+        }
+
         private static DuelPrompt DuplicateIdlePrompt()
         {
             var payload = new List<byte> { 0 };
@@ -1787,6 +2041,30 @@ namespace ArcaneDuel.Tests.PlayMode
                     CoreMessage.SelectIdleCommand,
                     payload)
                 .Prompt;
+        }
+
+        private static DuelPrompt OptionalChainPrompt(ulong requestId)
+        {
+            var payload = new List<byte> { 0, 0, 0 };
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            UInt32(payload, 1);
+            UInt32(payload, EffectVeiler);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.Hand,
+                0,
+                1);
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            payload.Add(0);
+            DuelPrompt prompt = Decode(
+                    CoreMessage.SelectChain,
+                    payload)
+                .Prompt;
+            SetProperty(prompt, nameof(DuelPrompt.RequestId), requestId);
+            return prompt;
         }
 
         private static DuelPrompt EffectQuestionPrompt(ulong requestId)
@@ -1858,6 +2136,41 @@ namespace ArcaneDuel.Tests.PlayMode
                 (byte)DuelLocation.Hand,
                 0,
                 0));
+            return prompt;
+        }
+
+        private static DuelPrompt TwoTargetSelectionPrompt(ulong requestId)
+        {
+            var prompt = new DuelPrompt();
+            SetProperty(prompt, nameof(DuelPrompt.RequestId), requestId);
+            SetProperty(prompt, nameof(DuelPrompt.Message),
+                CoreMessage.SelectCard);
+            SetProperty(prompt, nameof(DuelPrompt.Player), (byte)0);
+            SetProperty(prompt, nameof(DuelPrompt.Title),
+                "Escolha ate 2 monstros com a face para cima");
+            SetProperty(prompt, nameof(DuelPrompt.MinimumSelections), 1U);
+            SetProperty(prompt, nameof(DuelPrompt.MaximumSelections), 2U);
+
+            DuelChoice first = LocatedActionChoice(
+                requestId,
+                "Selecionar carta 1",
+                DarkMagician,
+                (byte)DuelLocation.MonsterZone,
+                0,
+                0);
+            SetProperty(first, nameof(DuelChoice.ChoiceIndex), 0);
+            prompt.Choices.Add(first);
+
+            DuelChoice second = LocatedActionChoice(
+                requestId,
+                "Selecionar carta 2",
+                BlueEyesWhiteDragon,
+                (byte)DuelLocation.MonsterZone,
+                1,
+                1);
+            SetProperty(second, nameof(DuelChoice.Controller), (byte)1);
+            SetProperty(second, nameof(DuelChoice.ChoiceIndex), 1);
+            prompt.Choices.Add(second);
             return prompt;
         }
 

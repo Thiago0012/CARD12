@@ -82,6 +82,66 @@ namespace ArcaneArena.Multiplayer
         public uint phase;
         public bool hasWinner;
         public byte winner;
+        public uint disabledFieldMask;
+        public DuelNetworkChainLink[] chainLinks;
+        public DuelNetworkCardMetadata[] cardMetadata;
+        public DuelNetworkPlayerHint[] playerHints;
+        public DuelNetworkSummon pendingSummon;
+        public DuelNetworkSummon lastSummon;
+    }
+
+    [Serializable]
+    public sealed class DuelNetworkSummon
+    {
+        public byte message;
+        public uint cardCode;
+        public ulong runtimeId;
+        public byte controller;
+        public byte location;
+        public uint sequence;
+        public uint position;
+        public byte status;
+    }
+
+    [Serializable]
+    public sealed class DuelNetworkChainLink
+    {
+        public uint chainIndex;
+        public byte player;
+        public uint cardCode;
+        public ulong descriptionId;
+        public ulong runtimeId;
+        public byte controller;
+        public byte location;
+        public uint sequence;
+        public uint position;
+        public byte status;
+    }
+
+    [Serializable]
+    public sealed class DuelNetworkCardMetadata
+    {
+        public ulong runtimeId;
+        public uint coreStatus;
+        public bool isPublic;
+        public uint linkRating;
+        public uint linkMarkers;
+        public ushort[] counterTypes;
+        public uint[] counterAmounts;
+        public ulong equippedToRuntimeId;
+        public ulong[] targetRuntimeIds;
+        public ulong[] relationRuntimeIds;
+        public byte[] hintTypes;
+        public ulong[] hintValues;
+        public bool isTemporaryTarget;
+    }
+
+    [Serializable]
+    public sealed class DuelNetworkPlayerHint
+    {
+        public byte player;
+        public byte hintType;
+        public ulong value;
     }
 
     [Serializable]
@@ -91,6 +151,7 @@ namespace ArcaneArena.Multiplayer
         public int deckCount;
         public int extraDeckCount;
         public uint[] extraDeck;
+        public uint[] extraDeckPositions;
         public uint[] hand;
         public uint[] monsterZones;
         public uint[] monsterPositions;
@@ -102,11 +163,13 @@ namespace ArcaneArena.Multiplayer
         public uint[] banished;
         public uint[] banishedPositions;
         public ulong[] handRuntimeIds;
+        public ulong[] extraDeckRuntimeIds;
         public ulong[] monsterRuntimeIds;
         public ulong[] spellTrapRuntimeIds;
         public ulong[] graveyardRuntimeIds;
         public ulong[] banishedRuntimeIds;
         public byte[] handOwners;
+        public byte[] extraDeckOwners;
         public byte[] monsterOwners;
         public byte[] spellTrapOwners;
         public byte[] graveyardOwners;
@@ -135,6 +198,11 @@ namespace ArcaneArena.Multiplayer
         public uint maximumSelections;
         public uint requiredSum;
         public bool sumAtLeast;
+        public bool requiresOrderedSelection;
+        public bool requiresMaskSelection;
+        public ushort counterType;
+        public ushort requiredCounterCount;
+        public byte maskWidth;
         public uint[] mandatorySums;
         public DuelNetworkChoice[] choices;
     }
@@ -142,6 +210,7 @@ namespace ArcaneArena.Multiplayer
     [Serializable]
     public sealed class DuelNetworkChoice
     {
+        public ulong runtimeId;
         public string label;
         public uint cardCode;
         public string responseBase64;
@@ -149,6 +218,7 @@ namespace ArcaneArena.Multiplayer
         public byte controller;
         public byte location;
         public uint sequence;
+        public uint position;
         public int choiceIndex;
         public ulong descriptionId;
         public uint sumValue;
@@ -174,9 +244,14 @@ namespace ArcaneArena.Multiplayer
         public uint presentationPhase;
         public uint value;
         public uint code;
+        public ushort counterType;
+        public ulong hintValue;
+        public ulong descriptionId;
         public uint[] codes;
         public DuelNetworkLocation previous;
         public DuelNetworkLocation current;
+        public DuelNetworkLocation[] previousLocations;
+        public DuelNetworkLocation[] currentLocations;
         public int attackerAttack;
         public int attackerDefense;
         public int targetAttack;
@@ -236,22 +311,45 @@ namespace ArcaneArena.Multiplayer
                         ? ToPerspective(snapshot.Winner.Value, recipient)
                         : (byte)0
                 },
-                // Only the player whose turn it is receives a prompt. The
-                // other client only sees that the opponent is considering.
+                // Only the player addressed by the Core receives the prompt.
+                // This also covers responses and optional effects outside
+                // that player's turn without leaking private choices.
                 prompt = currentPrompt != null && currentPrompt.Player == recipient
                     ? CopyPrompt(currentPrompt, state, recipient)
                     : null
             };
+            HashSet<ulong> visibleRuntimeIds = VisibleRuntimeIds(
+                networkState.snapshot.players);
+            networkState.snapshot.disabledFieldMask =
+                ToPerspectiveFieldMask(
+                    snapshot.DisabledFieldMask,
+                    recipient);
+            networkState.snapshot.chainLinks = CopyChainLinks(
+                snapshot.ChainLinks,
+                recipient);
+            networkState.snapshot.cardMetadata = CopyCardMetadata(
+                snapshot.CardMetadata,
+                visibleRuntimeIds);
+            networkState.snapshot.playerHints = CopyPlayerHints(
+                snapshot.PlayerHints,
+                recipient);
+            networkState.snapshot.pendingSummon = CopySummon(
+                snapshot.PendingSummon,
+                recipient);
+            networkState.snapshot.lastSummon = CopySummon(
+                snapshot.LastSummon,
+                recipient);
             networkState.publicStateHash =
                 ComputePublicProjectionHash(networkState);
             return networkState;
         }
 
         /// <summary>
-        /// Deterministic hash of information that is public to both seats.
-        /// Private hand/extra-deck identities and face-down card identities are
-        /// intentionally excluded. The logical-seat remap makes the result
-        /// identical before and after client perspective rotation.
+        /// Deterministic hash of the exact privacy-filtered projection sent to
+        /// one recipient. The legacy property name is retained for wire
+        /// compatibility, but the hash also covers that recipient's private
+        /// choices and card identities. The client must acknowledge precisely
+        /// the snapshot it received, not a weaker public-state subset.
         /// </summary>
         public static ulong ComputePublicProjectionHash(
             DuelNetworkState networkState)
@@ -276,6 +374,11 @@ namespace ArcaneArena.Multiplayer
                 HashByte(ref hash,
                     ToLogical(snapshot.winner, networkState.recipientSeat));
             }
+            HashUInt(
+                ref hash,
+                ToPerspectiveFieldMask(
+                    snapshot.disabledFieldMask,
+                    networkState.recipientSeat));
 
             for (byte logicalSeat = 0; logicalSeat < 2; logicalSeat++)
             {
@@ -283,6 +386,18 @@ namespace ArcaneArena.Multiplayer
                     networkState.recipientSeat ? 0 : 1;
                 HashDuelist(ref hash, snapshot.players[perspectiveIndex]);
             }
+            HashChainLinks(
+                ref hash,
+                snapshot.chainLinks,
+                networkState.recipientSeat);
+            HashPublicCardMetadata(ref hash, snapshot.cardMetadata);
+            HashPlayerHints(ref hash, snapshot.playerHints);
+            HashSummon(ref hash, snapshot.pendingSummon, networkState.recipientSeat);
+            HashSummon(ref hash, snapshot.lastSummon, networkState.recipientSeat);
+            HashPrompt(
+                ref hash,
+                networkState.prompt,
+                networkState.recipientSeat);
             return hash;
         }
 
@@ -314,6 +429,12 @@ namespace ArcaneArena.Multiplayer
                 TurnPlayer = source.turnPlayer,
                 Phase = source.phase,
                 Winner = source.hasWinner ? source.winner : (byte?)null,
+                DisabledFieldMask = source.disabledFieldMask,
+                ChainLinks = ToChainLinks(source.chainLinks),
+                CardMetadata = ToCardMetadata(source.cardMetadata),
+                PlayerHints = ToPlayerHints(source.playerHints),
+                PendingSummon = ToSummon(source.pendingSummon),
+                LastSummon = ToSummon(source.lastSummon),
                 // The host's full event log can mention a card before it is
                 // public. A remote replica keeps an empty local history.
                 Log = Array.Empty<string>()
@@ -392,9 +513,18 @@ namespace ArcaneArena.Multiplayer
                     : presentationState?.Phase ?? 0U,
                 value = source.Value,
                 code = hideCode ? 0U : eventCode,
+                counterType = source.CounterType,
+                hintValue = hideCode ? 0UL : source.HintValue,
+                descriptionId = hideCode ? 0UL : source.DescriptionId,
                 codes = codes,
                 previous = CopyLocation(source.Previous, recipient),
                 current = CopyLocation(source.Current, recipient),
+                previousLocations = CopyLocations(
+                    source.PreviousLocations,
+                    recipient),
+                currentLocations = CopyLocations(
+                    source.CurrentLocations,
+                    recipient),
                 attackerAttack = source.AttackerAttack,
                 attackerDefense = source.AttackerDefense,
                 targetAttack = source.TargetAttack,
@@ -450,9 +580,14 @@ namespace ArcaneArena.Multiplayer
                 PresentationPhase = source.presentationPhase,
                 Value = source.value,
                 Code = source.code,
+                CounterType = source.counterType,
+                HintValue = source.hintValue,
+                DescriptionId = source.descriptionId,
                 Codes = Clone(source.codes),
                 Previous = ToLocation(source.previous),
                 Current = ToLocation(source.current),
+                PreviousLocations = ToLocations(source.previousLocations),
+                CurrentLocations = ToLocations(source.currentLocations),
                 AttackerAttack = source.attackerAttack,
                 AttackerDefense = source.attackerDefense,
                 TargetAttack = source.targetAttack,
@@ -467,6 +602,12 @@ namespace ArcaneArena.Multiplayer
             DuelEvent source,
             byte recipient)
         {
+            // A card that activates an effect is public for the duration of
+            // the chain even when the triggering location was the hand. The
+            // Core broadcasts MSG_CHAINING to both duelists; redacting it here
+            // made the remote player lose both card and effect identity.
+            if (source.Message == CoreMessage.Chaining)
+                return false;
             if (source.Message == CoreMessage.Draw)
                 return source.Player != recipient;
             CardLocation location = source.Message == CoreMessage.Swap
@@ -526,6 +667,273 @@ namespace ArcaneArena.Multiplayer
             };
         }
 
+        private static DuelNetworkLocation[] CopyLocations(
+            IEnumerable<CardLocation> source,
+            byte recipient)
+        {
+            return source?
+                .Where(location => location != null)
+                .Select(location => CopyLocation(location, recipient))
+                .ToArray() ?? Array.Empty<DuelNetworkLocation>();
+        }
+
+        private static CardLocation[] ToLocations(
+            IEnumerable<DuelNetworkLocation> source)
+        {
+            return source?
+                .Where(location => location != null)
+                .Select(ToLocation)
+                .ToArray() ?? Array.Empty<CardLocation>();
+        }
+
+        private static uint ToPerspectiveFieldMask(
+            uint mask,
+            byte recipient)
+        {
+            if (recipient == 0)
+                return mask;
+            return (mask << 16) | (mask >> 16);
+        }
+
+        private static DuelNetworkChainLink[] CopyChainLinks(
+            IEnumerable<DuelChainLinkSnapshot> source,
+            byte recipient)
+        {
+            return source?
+                .Where(link => link != null)
+                .Select(link =>
+                {
+                    var location = new CardLocation
+                    {
+                        Controller = link.Controller,
+                        Location = link.Location,
+                        Sequence = link.Sequence,
+                        Position = link.Position
+                    };
+                    bool privateAddress = LocationCodeIsPrivate(
+                        location,
+                        recipient);
+                    return new DuelNetworkChainLink
+                    {
+                        chainIndex = link.ChainIndex,
+                        player = ToPerspective(link.Player, recipient),
+                        cardCode = link.CardCode,
+                        descriptionId = link.DescriptionId,
+                        runtimeId = privateAddress
+                            ? HiddenRuntimeId(
+                                link.Location,
+                                link.Sequence > int.MaxValue
+                                    ? int.MaxValue
+                                    : (int)link.Sequence,
+                                0)
+                            : link.RuntimeId,
+                        controller = ToPerspective(
+                            link.Controller,
+                            recipient),
+                        location = link.Location,
+                        sequence = link.Sequence,
+                        position = link.Position,
+                        status = (byte)link.Status
+                    };
+                })
+                .ToArray() ?? Array.Empty<DuelNetworkChainLink>();
+        }
+
+        private static DuelChainLinkSnapshot[] ToChainLinks(
+            IEnumerable<DuelNetworkChainLink> source)
+        {
+            return source?
+                .Where(link => link != null)
+                .Select(link => new DuelChainLinkSnapshot
+                {
+                    ChainIndex = link.chainIndex,
+                    Player = link.player,
+                    CardCode = link.cardCode,
+                    DescriptionId = link.descriptionId,
+                    RuntimeId = link.runtimeId,
+                    Controller = link.controller,
+                    Location = link.location,
+                    Sequence = link.sequence,
+                    Position = link.position,
+                    Status = Enum.IsDefined(
+                        typeof(DuelChainLinkStatus),
+                        link.status)
+                            ? (DuelChainLinkStatus)link.status
+                            : DuelChainLinkStatus.Chaining
+                })
+                .ToArray() ?? Array.Empty<DuelChainLinkSnapshot>();
+        }
+
+        private static DuelNetworkSummon CopySummon(
+            DuelSummonSnapshot source,
+            byte recipient)
+        {
+            if (source == null)
+                return null;
+            return new DuelNetworkSummon
+            {
+                message = (byte)source.Message,
+                cardCode = source.CardCode,
+                runtimeId = source.RuntimeId,
+                controller = ToPerspective(source.Controller, recipient),
+                location = source.Location,
+                sequence = source.Sequence,
+                position = source.Position,
+                status = (byte)source.Status
+            };
+        }
+
+        private static DuelSummonSnapshot ToSummon(DuelNetworkSummon source)
+        {
+            if (source == null)
+                return null;
+            return new DuelSummonSnapshot
+            {
+                Message = Enum.IsDefined(typeof(CoreMessage), source.message)
+                    ? (CoreMessage)source.message
+                    : CoreMessage.Summoning,
+                CardCode = source.cardCode,
+                RuntimeId = source.runtimeId,
+                Controller = source.controller,
+                Location = source.location,
+                Sequence = source.sequence,
+                Position = source.position,
+                Status = Enum.IsDefined(typeof(DuelSummonStatus), source.status)
+                    ? (DuelSummonStatus)source.status
+                    : DuelSummonStatus.Pending
+            };
+        }
+
+        private static HashSet<ulong> VisibleRuntimeIds(
+            IEnumerable<DuelNetworkDuelist> players)
+        {
+            var result = new HashSet<ulong>();
+            foreach (DuelNetworkDuelist player in
+                     players ?? Array.Empty<DuelNetworkDuelist>())
+            {
+                if (player == null)
+                    continue;
+                AddRuntimeIds(result, player.extraDeckRuntimeIds);
+                AddRuntimeIds(result, player.handRuntimeIds);
+                AddRuntimeIds(result, player.monsterRuntimeIds);
+                AddRuntimeIds(result, player.spellTrapRuntimeIds);
+                AddRuntimeIds(result, player.graveyardRuntimeIds);
+                AddRuntimeIds(result, player.banishedRuntimeIds);
+                foreach (DuelNetworkOverlayStack stack in
+                         player.overlays ??
+                         Array.Empty<DuelNetworkOverlayStack>())
+                {
+                    AddRuntimeIds(result, stack?.runtimeIds);
+                }
+            }
+            return result;
+        }
+
+        private static void AddRuntimeIds(
+            ISet<ulong> destination,
+            IEnumerable<ulong> values)
+        {
+            if (values == null)
+                return;
+            foreach (ulong value in values)
+            {
+                if (value != 0)
+                    destination.Add(value);
+            }
+        }
+
+        private static DuelNetworkCardMetadata[] CopyCardMetadata(
+            IEnumerable<CardPresentationMetadataSnapshot> source,
+            ISet<ulong> visibleRuntimeIds)
+        {
+            return source?
+                .Where(item => item != null && item.RuntimeId != 0 &&
+                               visibleRuntimeIds.Contains(item.RuntimeId))
+                .Select(item => new DuelNetworkCardMetadata
+                {
+                    runtimeId = item.RuntimeId,
+                    coreStatus = item.CoreStatus,
+                    isPublic = item.IsPublic,
+                    linkRating = item.LinkRating,
+                    linkMarkers = item.LinkMarkers,
+                    counterTypes = Clone(item.CounterTypes),
+                    counterAmounts = Clone(item.CounterAmounts),
+                    equippedToRuntimeId = visibleRuntimeIds.Contains(
+                        item.EquippedToRuntimeId)
+                            ? item.EquippedToRuntimeId
+                            : 0UL,
+                    targetRuntimeIds = (item.TargetRuntimeIds ??
+                        Array.Empty<ulong>())
+                        .Where(visibleRuntimeIds.Contains)
+                        .ToArray(),
+                    relationRuntimeIds = (item.RelationRuntimeIds ??
+                        Array.Empty<ulong>())
+                        .Where(visibleRuntimeIds.Contains)
+                        .ToArray(),
+                    hintTypes = Clone(item.HintTypes),
+                    hintValues = Clone(item.HintValues),
+                    isTemporaryTarget = item.IsTemporaryTarget
+                })
+                .ToArray() ?? Array.Empty<DuelNetworkCardMetadata>();
+        }
+
+        private static CardPresentationMetadataSnapshot[] ToCardMetadata(
+            IEnumerable<DuelNetworkCardMetadata> source)
+        {
+            return source?
+                .Where(item => item != null && item.runtimeId != 0)
+                .Select(item => new CardPresentationMetadataSnapshot
+                {
+                    RuntimeId = item.runtimeId,
+                    CoreStatus = item.coreStatus,
+                    IsPublic = item.isPublic,
+                    LinkRating = item.linkRating,
+                    LinkMarkers = item.linkMarkers,
+                    CounterTypes = Clone(item.counterTypes),
+                    CounterAmounts = Clone(item.counterAmounts),
+                    EquippedToRuntimeId = item.equippedToRuntimeId,
+                    TargetRuntimeIds = Clone(item.targetRuntimeIds),
+                    RelationRuntimeIds = Clone(item.relationRuntimeIds),
+                    HintTypes = Clone(item.hintTypes),
+                    HintValues = Clone(item.hintValues),
+                    IsTemporaryTarget = item.isTemporaryTarget
+                })
+                .ToArray() ??
+                Array.Empty<CardPresentationMetadataSnapshot>();
+        }
+
+        private static DuelNetworkPlayerHint[] CopyPlayerHints(
+            IEnumerable<PlayerHintSnapshot> source,
+            byte recipient)
+        {
+            // The pinned protocol does not describe which hint types are
+            // public. Preserve privacy by routing player hints only to their
+            // owner until each type has an explicit visibility policy.
+            return source?
+                .Where(hint => hint != null && hint.Player == recipient)
+                .Select(hint => new DuelNetworkPlayerHint
+                {
+                    player = 0,
+                    hintType = hint.HintType,
+                    value = hint.Value
+                })
+                .ToArray() ?? Array.Empty<DuelNetworkPlayerHint>();
+        }
+
+        private static PlayerHintSnapshot[] ToPlayerHints(
+            IEnumerable<DuelNetworkPlayerHint> source)
+        {
+            return source?
+                .Where(hint => hint != null)
+                .Select(hint => new PlayerHintSnapshot
+                {
+                    Player = hint.player,
+                    HintType = hint.hintType,
+                    Value = hint.value
+                })
+                .ToArray() ?? Array.Empty<PlayerHintSnapshot>();
+        }
+
         private static DuelNetworkDuelist CopyDuelist(
             DuelistPresentationSnapshot source,
             bool ownsCards,
@@ -535,6 +943,7 @@ namespace ArcaneArena.Multiplayer
             source ??= new DuelistPresentationSnapshot();
             uint[] hand = Clone(source.Hand);
             uint[] extraDeck = Clone(source.ExtraDeck);
+            uint[] extraDeckPositions = Clone(source.ExtraDeckPositions);
             uint[] monsters = Clone(source.MonsterZones);
             uint[] spells = Clone(source.SpellTrapZones);
             uint[] graveyard = Clone(source.Graveyard);
@@ -544,6 +953,8 @@ namespace ArcaneArena.Multiplayer
             uint[] monsterPositions = Clone(source.MonsterPositions);
             uint[] spellPositions = Clone(source.SpellTrapPositions);
             ulong[] handRuntimeIds = Clone(source.HandRuntimeIds);
+            ulong[] extraDeckRuntimeIds = Clone(
+                source.ExtraDeckRuntimeIds);
             ulong[] monsterRuntimeIds = Clone(source.MonsterRuntimeIds);
             ulong[] spellRuntimeIds = Clone(source.SpellTrapRuntimeIds);
             ulong[] graveyardRuntimeIds = Clone(source.GraveyardRuntimeIds);
@@ -552,6 +963,11 @@ namespace ArcaneArena.Multiplayer
             byte[] handOwners = PerspectiveOwners(
                 source.HandOwners,
                 hand.Length,
+                sourceSide,
+                recipient);
+            byte[] extraDeckOwners = PerspectiveOwners(
+                source.ExtraDeckOwners,
+                extraDeck.Length,
                 sourceSide,
                 recipient);
             byte[] monsterOwners = PerspectiveOwners(
@@ -584,10 +1000,13 @@ namespace ArcaneArena.Multiplayer
             {
                 // Hand cards never become public through the network.
                 hand = HiddenCount(hand);
-                extraDeck = HiddenCount(extraDeck);
                 handRuntimeIds = HiddenRuntimeIds(
                     hand.Length,
                     (byte)DuelLocation.Hand);
+                HideFaceDownExtra(
+                    extraDeck,
+                    extraDeckPositions,
+                    extraDeckRuntimeIds);
                 HideFaceDown(
                     monsters,
                     monsterPositions,
@@ -611,6 +1030,7 @@ namespace ArcaneArena.Multiplayer
                 deckCount = source.DeckCount,
                 extraDeckCount = source.ExtraDeckCount,
                 extraDeck = extraDeck,
+                extraDeckPositions = extraDeckPositions,
                 hand = hand,
                 monsterZones = monsters,
                 monsterPositions = monsterPositions,
@@ -622,11 +1042,13 @@ namespace ArcaneArena.Multiplayer
                 banished = banished,
                 banishedPositions = banishedPositions,
                 handRuntimeIds = handRuntimeIds,
+                extraDeckRuntimeIds = extraDeckRuntimeIds,
                 monsterRuntimeIds = monsterRuntimeIds,
                 spellTrapRuntimeIds = spellRuntimeIds,
                 graveyardRuntimeIds = graveyardRuntimeIds,
                 banishedRuntimeIds = banishedRuntimeIds,
                 handOwners = handOwners,
+                extraDeckOwners = extraDeckOwners,
                 monsterOwners = monsterOwners,
                 spellTrapOwners = spellOwners,
                 graveyardOwners = graveyardOwners,
@@ -703,6 +1125,11 @@ namespace ArcaneArena.Multiplayer
                 maximumSelections = source.MaximumSelections,
                 requiredSum = source.RequiredSum,
                 sumAtLeast = source.SumAtLeast,
+                requiresOrderedSelection = source.RequiresOrderedSelection,
+                requiresMaskSelection = source.RequiresMaskSelection,
+                counterType = source.CounterType,
+                requiredCounterCount = source.RequiredCounterCount,
+                maskWidth = source.MaskWidth,
                 mandatorySums = source.MandatorySums?.ToArray() ??
                     Array.Empty<uint>(),
                 choices = source.Choices.Select(choice =>
@@ -710,6 +1137,14 @@ namespace ArcaneArena.Multiplayer
                     bool hidden = IsPrivateChoice(choice, state, recipient);
                     return new DuelNetworkChoice
                     {
+                        runtimeId = hidden && choice.HasLocation
+                            ? HiddenRuntimeId(
+                                choice.Location,
+                                choice.Sequence > int.MaxValue
+                                    ? int.MaxValue
+                                    : (int)choice.Sequence,
+                                0)
+                            : choice.RuntimeId,
                         label = hidden ? "Carta oculta" : (choice.Label ?? string.Empty),
                         cardCode = hidden ? 0u : choice.CardCode,
                         responseBase64 = choice.Response == null
@@ -721,6 +1156,7 @@ namespace ArcaneArena.Multiplayer
                             : choice.Controller,
                         location = choice.Location,
                         sequence = choice.Sequence,
+                        position = choice.Position,
                         choiceIndex = choice.ChoiceIndex,
                         descriptionId = hidden ? 0UL : choice.DescriptionId,
                         sumValue = hidden ? 0U : choice.SumValue
@@ -780,6 +1216,7 @@ namespace ArcaneArena.Multiplayer
                 DeckCount = source.deckCount,
                 ExtraDeckCount = source.extraDeckCount,
                 ExtraDeck = Clone(source.extraDeck),
+                ExtraDeckPositions = Clone(source.extraDeckPositions),
                 Hand = Clone(source.hand),
                 MonsterZones = Clone(source.monsterZones),
                 MonsterPositions = Clone(source.monsterPositions),
@@ -790,12 +1227,14 @@ namespace ArcaneArena.Multiplayer
                 BanishedPositions = Clone(source.banishedPositions),
                 OverlayMaterials = OverlayCards(source.overlays),
                 HandRuntimeIds = Clone(source.handRuntimeIds),
+                ExtraDeckRuntimeIds = Clone(source.extraDeckRuntimeIds),
                 MonsterRuntimeIds = Clone(source.monsterRuntimeIds),
                 SpellTrapRuntimeIds = Clone(source.spellTrapRuntimeIds),
                 GraveyardRuntimeIds = Clone(source.graveyardRuntimeIds),
                 BanishedRuntimeIds = Clone(source.banishedRuntimeIds),
                 OverlayRuntimeIds = OverlayRuntimeIds(source.overlays),
                 HandOwners = Clone(source.handOwners),
+                ExtraDeckOwners = Clone(source.extraDeckOwners),
                 MonsterOwners = Clone(source.monsterOwners),
                 SpellTrapOwners = Clone(source.spellTrapOwners),
                 GraveyardOwners = Clone(source.graveyardOwners),
@@ -820,7 +1259,12 @@ namespace ArcaneArena.Multiplayer
                 MinimumSelections = source.minimumSelections,
                 MaximumSelections = source.maximumSelections,
                 RequiredSum = source.requiredSum,
-                SumAtLeast = source.sumAtLeast
+                SumAtLeast = source.sumAtLeast,
+                RequiresOrderedSelection = source.requiresOrderedSelection,
+                RequiresMaskSelection = source.requiresMaskSelection,
+                CounterType = source.counterType,
+                RequiredCounterCount = source.requiredCounterCount,
+                MaskWidth = source.maskWidth
             };
             if (source.mandatorySums != null)
                 prompt.MandatorySums.AddRange(source.mandatorySums);
@@ -842,6 +1286,7 @@ namespace ArcaneArena.Multiplayer
                 prompt.Choices.Add(new DuelChoice
                 {
                     RequestId = prompt.RequestId,
+                    RuntimeId = sourceChoice.runtimeId,
                     Label = sourceChoice.label ?? string.Empty,
                     CardCode = sourceChoice.cardCode,
                     Response = response,
@@ -849,6 +1294,7 @@ namespace ArcaneArena.Multiplayer
                     Controller = sourceChoice.controller,
                     Location = sourceChoice.location,
                     Sequence = sourceChoice.sequence,
+                    Position = sourceChoice.position,
                     ChoiceIndex = sourceChoice.choiceIndex,
                     DescriptionId = sourceChoice.descriptionId,
                     SumValue = sourceChoice.sumValue
@@ -880,6 +1326,32 @@ namespace ArcaneArena.Multiplayer
                             index,
                             0);
                     }
+                }
+            }
+        }
+
+        private static void HideFaceDownExtra(
+            uint[] cards,
+            uint[] positions,
+            ulong[] runtimeIds)
+        {
+            if (cards == null)
+                return;
+            for (int index = 0; index < cards.Length; index++)
+            {
+                uint position = positions != null && index < positions.Length
+                    ? positions[index]
+                    : 0U;
+                bool faceUp = (position & 0x5U) != 0;
+                if (faceUp)
+                    continue;
+                cards[index] = 0;
+                if (runtimeIds != null && index < runtimeIds.Length)
+                {
+                    runtimeIds[index] = HiddenRuntimeId(
+                        (byte)DuelLocation.Extra,
+                        index,
+                        0);
                 }
             }
         }
@@ -979,6 +1451,199 @@ namespace ArcaneArena.Multiplayer
             HashInt(ref hash, overlayZones);
             for (int zone = 0; zone < overlayZones; zone++)
                 HashUIntArray(ref hash, player.overlays[zone]?.cards);
+
+            // Hash the complete privacy-filtered projection actually sent to
+            // this recipient. This detects a lost/reordered private hand,
+            // runtime identity or combat-stat field without exposing any
+            // information that CopyDuelist already redacted.
+            HashUIntArray(ref hash, player.extraDeck);
+            HashUIntArray(ref hash, player.extraDeckPositions);
+            HashUIntArray(ref hash, player.hand);
+            HashUIntArray(ref hash, player.monsterZones);
+            HashUIntArray(ref hash, player.monsterPositions);
+            HashIntArray(ref hash, player.monsterAttack);
+            HashIntArray(ref hash, player.monsterDefense);
+            HashUIntArray(ref hash, player.spellTrapZones);
+            HashUIntArray(ref hash, player.spellTrapPositions);
+            HashUIntArray(ref hash, player.banishedPositions);
+            HashOrderedULongArray(ref hash, player.handRuntimeIds);
+            HashOrderedULongArray(ref hash, player.extraDeckRuntimeIds);
+            HashOrderedULongArray(ref hash, player.monsterRuntimeIds);
+            HashOrderedULongArray(ref hash, player.spellTrapRuntimeIds);
+            HashOrderedULongArray(ref hash, player.graveyardRuntimeIds);
+            HashOrderedULongArray(ref hash, player.banishedRuntimeIds);
+            HashByteArray(ref hash, player.handOwners);
+            HashByteArray(ref hash, player.extraDeckOwners);
+            HashByteArray(ref hash, player.monsterOwners);
+            HashByteArray(ref hash, player.spellTrapOwners);
+            HashByteArray(ref hash, player.graveyardOwners);
+            HashByteArray(ref hash, player.banishedOwners);
+            for (int zone = 0; zone < overlayZones; zone++)
+            {
+                DuelNetworkOverlayStack stack = player.overlays[zone];
+                HashOrderedULongArray(ref hash, stack?.runtimeIds);
+                HashByteArray(ref hash, stack?.owners);
+            }
+        }
+
+        private static void HashChainLinks(
+            ref ulong hash,
+            IEnumerable<DuelNetworkChainLink> links,
+            byte recipient)
+        {
+            DuelNetworkChainLink[] ordered = links?
+                .Where(link => link != null)
+                .OrderBy(link => link.chainIndex)
+                .ToArray() ?? Array.Empty<DuelNetworkChainLink>();
+            HashInt(ref hash, ordered.Length);
+            foreach (DuelNetworkChainLink link in ordered)
+            {
+                HashUInt(ref hash, link.chainIndex);
+                HashByte(ref hash, ToLogical(link.player, recipient));
+                HashUInt(ref hash, link.cardCode);
+                HashULong(ref hash, link.descriptionId);
+                HashULong(ref hash, link.runtimeId);
+                HashByte(ref hash, ToLogical(link.controller, recipient));
+                HashByte(ref hash, link.location);
+                HashUInt(ref hash, link.sequence);
+                HashUInt(ref hash, link.position);
+                HashByte(ref hash, link.status);
+            }
+        }
+
+        private static void HashSummon(
+            ref ulong hash,
+            DuelNetworkSummon summon,
+            byte recipient)
+        {
+            if (summon == null)
+            {
+                HashByte(ref hash, 0);
+                return;
+            }
+            HashByte(ref hash, 1);
+            HashByte(ref hash, summon.message);
+            HashUInt(ref hash, summon.cardCode);
+            HashULong(ref hash, summon.runtimeId);
+            HashByte(ref hash, ToLogical(summon.controller, recipient));
+            HashByte(ref hash, summon.location);
+            HashUInt(ref hash, summon.sequence);
+            HashUInt(ref hash, summon.position);
+            HashByte(ref hash, summon.status);
+        }
+
+        private static void HashPublicCardMetadata(
+            ref ulong hash,
+            IEnumerable<DuelNetworkCardMetadata> metadata)
+        {
+            DuelNetworkCardMetadata[] visible = metadata?
+                .Where(item => item != null)
+                .OrderBy(item => item.runtimeId)
+                .ToArray() ?? Array.Empty<DuelNetworkCardMetadata>();
+            HashInt(ref hash, visible.Length);
+            foreach (DuelNetworkCardMetadata item in visible)
+            {
+                HashULong(ref hash, item.runtimeId);
+                HashByte(ref hash, item.isPublic ? (byte)1 : (byte)0);
+                HashUInt(ref hash, item.coreStatus);
+                HashUInt(ref hash, item.linkRating);
+                HashUInt(ref hash, item.linkMarkers);
+                int counters = Math.Min(
+                    item.counterTypes?.Length ?? 0,
+                    item.counterAmounts?.Length ?? 0);
+                HashInt(ref hash, counters);
+                for (int index = 0; index < counters; index++)
+                {
+                    HashUInt(ref hash, item.counterTypes[index]);
+                    HashUInt(ref hash, item.counterAmounts[index]);
+                }
+                HashULong(ref hash, item.equippedToRuntimeId);
+                HashULongArray(ref hash, item.targetRuntimeIds);
+                HashULongArray(ref hash, item.relationRuntimeIds);
+                HashByteArray(ref hash, item.hintTypes);
+                HashOrderedULongArray(ref hash, item.hintValues);
+                HashByte(ref hash, item.isTemporaryTarget ? (byte)1 : (byte)0);
+            }
+        }
+
+        private static void HashPlayerHints(
+            ref ulong hash,
+            IEnumerable<DuelNetworkPlayerHint> hints)
+        {
+            DuelNetworkPlayerHint[] values = hints?
+                .Where(hint => hint != null)
+                .OrderBy(hint => hint.player)
+                .ThenBy(hint => hint.hintType)
+                .ToArray() ?? Array.Empty<DuelNetworkPlayerHint>();
+            HashInt(ref hash, values.Length);
+            foreach (DuelNetworkPlayerHint hint in values)
+            {
+                HashByte(ref hash, hint.player);
+                HashByte(ref hash, hint.hintType);
+                HashULong(ref hash, hint.value);
+            }
+        }
+
+        private static void HashPrompt(
+            ref ulong hash,
+            DuelNetworkPrompt prompt,
+            byte recipient)
+        {
+            if (prompt == null)
+            {
+                HashByte(ref hash, 0);
+                return;
+            }
+            HashByte(ref hash, 1);
+            HashULong(ref hash, prompt.requestId);
+            HashByte(ref hash, prompt.message);
+            HashByte(ref hash, ToLogical(prompt.player, recipient));
+            HashString(ref hash, prompt.title);
+            HashByte(ref hash, prompt.forced ? (byte)1 : (byte)0);
+            HashByte(ref hash, prompt.cancelable ? (byte)1 : (byte)0);
+            HashUInt(ref hash, prompt.minimumSelections);
+            HashUInt(ref hash, prompt.maximumSelections);
+            HashUInt(ref hash, prompt.requiredSum);
+            HashByte(ref hash, prompt.sumAtLeast ? (byte)1 : (byte)0);
+            HashByte(
+                ref hash,
+                prompt.requiresOrderedSelection ? (byte)1 : (byte)0);
+            HashByte(
+                ref hash,
+                prompt.requiresMaskSelection ? (byte)1 : (byte)0);
+            HashUInt(ref hash, prompt.counterType);
+            HashUInt(ref hash, prompt.requiredCounterCount);
+            HashByte(ref hash, prompt.maskWidth);
+            HashUIntArray(ref hash, prompt.mandatorySums);
+
+            DuelNetworkChoice[] choices = prompt.choices ??
+                                          Array.Empty<DuelNetworkChoice>();
+            HashInt(ref hash, choices.Length);
+            foreach (DuelNetworkChoice choice in choices)
+            {
+                if (choice == null)
+                {
+                    HashByte(ref hash, 0);
+                    continue;
+                }
+                HashByte(ref hash, 1);
+                HashULong(ref hash, choice.runtimeId);
+                HashString(ref hash, choice.label);
+                HashUInt(ref hash, choice.cardCode);
+                HashString(ref hash, choice.responseBase64);
+                HashByte(ref hash, choice.hasLocation ? (byte)1 : (byte)0);
+                HashByte(
+                    ref hash,
+                    choice.hasLocation
+                        ? ToLogical(choice.controller, recipient)
+                        : choice.controller);
+                HashByte(ref hash, choice.location);
+                HashUInt(ref hash, choice.sequence);
+                HashUInt(ref hash, choice.position);
+                HashInt(ref hash, choice.choiceIndex);
+                HashULong(ref hash, choice.descriptionId);
+                HashUInt(ref hash, choice.sumValue);
+            }
         }
 
         private static void HashPublicField(
@@ -1024,6 +1689,44 @@ namespace ArcaneArena.Multiplayer
                 HashUInt(ref hash, values[index]);
         }
 
+        private static void HashULongArray(ref ulong hash, ulong[] values)
+        {
+            HashInt(ref hash, values?.Length ?? 0);
+            if (values == null)
+                return;
+            foreach (ulong value in values.OrderBy(value => value))
+                HashULong(ref hash, value);
+        }
+
+        private static void HashOrderedULongArray(
+            ref ulong hash,
+            ulong[] values)
+        {
+            HashInt(ref hash, values?.Length ?? 0);
+            if (values == null)
+                return;
+            foreach (ulong value in values)
+                HashULong(ref hash, value);
+        }
+
+        private static void HashIntArray(ref ulong hash, int[] values)
+        {
+            HashInt(ref hash, values?.Length ?? 0);
+            if (values == null)
+                return;
+            foreach (int value in values)
+                HashInt(ref hash, value);
+        }
+
+        private static void HashByteArray(ref ulong hash, byte[] values)
+        {
+            HashInt(ref hash, values?.Length ?? 0);
+            if (values == null)
+                return;
+            foreach (byte value in values)
+                HashByte(ref hash, value);
+        }
+
         private static byte ToLogical(byte perspectiveSide, byte recipient)
         {
             return perspectiveSide == 0 ? recipient : (byte)(1 - recipient);
@@ -1048,6 +1751,12 @@ namespace ArcaneArena.Multiplayer
             HashByte(ref hash, (byte)(value >> 8));
             HashByte(ref hash, (byte)(value >> 16));
             HashByte(ref hash, (byte)(value >> 24));
+        }
+
+        private static void HashULong(ref ulong hash, ulong value)
+        {
+            HashUInt(ref hash, unchecked((uint)value));
+            HashUInt(ref hash, unchecked((uint)(value >> 32)));
         }
 
         private static void HashByte(ref ulong hash, byte value)
@@ -1079,6 +1788,13 @@ namespace ArcaneArena.Multiplayer
         private static ulong[] Clone(ulong[] source)
         {
             return source == null ? Array.Empty<ulong>() : (ulong[])source.Clone();
+        }
+
+        private static ushort[] Clone(ushort[] source)
+        {
+            return source == null
+                ? Array.Empty<ushort>()
+                : (ushort[])source.Clone();
         }
 
         private static ulong[][] Clone(ulong[][] source)

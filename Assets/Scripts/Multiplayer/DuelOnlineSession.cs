@@ -32,7 +32,7 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelOnlineSession : MonoBehaviour
     {
         private const string DuelArenaScene = "DuelArena";
-        private const string ProtocolVersion = "arcane-duel-online-v8";
+        private const string ProtocolVersion = "arcane-duel-online-v10";
         private const string HelloMessage = "arcane.duel.hello.v4";
         private const string HelloRequestMessage = "arcane.duel.hello-request.v4";
         private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v4";
@@ -49,7 +49,7 @@ namespace ArcaneArena.Multiplayer
             "arcane.duel.presentation-event.v4";
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
-        private const ushort NgoProtocolVersion = 8;
+        private const ushort NgoProtocolVersion = 10;
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
@@ -805,7 +805,11 @@ namespace ArcaneArena.Multiplayer
                 DuelPlayerSide.PlayerOne);
             if (pendingReplicaState != null)
             {
-                ApplyReplicaState(pendingReplicaState);
+                if (!ApplyReplicaState(pendingReplicaState))
+                {
+                    RequestResync("arena-attach-snapshot-apply-failed");
+                    return;
+                }
                 SendStateAck(pendingReplicaState);
                 if (beginDuelApplied)
                 {
@@ -2236,7 +2240,11 @@ namespace ArcaneArena.Multiplayer
             }
             if (replicaController == null)
                 return;
-            ApplyReplicaState(networkState);
+            if (!ApplyReplicaState(networkState))
+            {
+                RequestResync("snapshot-apply-failed");
+                return;
+            }
             SendStateAck(networkState);
             if (beginDuelApplied &&
                 flowState != OnlineMatchFlowState.ResultScreen)
@@ -2449,6 +2457,16 @@ namespace ArcaneArena.Multiplayer
                 lastStateVersion = lastReplicaStateVersion,
                 reason = reason ?? "client-request"
             });
+            RuntimeDiagnosticRecorder.Record(
+                "F08",
+                "MultiplayerState",
+                nameof(DuelOnlineSession),
+                "The client requested an authoritative state repair.",
+                RuntimeDiagnosticSeverity.Warning,
+                mode: "online-client",
+                details: $"reason={reason}; " +
+                         $"stateVersion={lastReplicaStateVersion}; " +
+                         $"sequence={lastReplicaSequence}");
             Debug.LogWarning("[MP] stage=resync-request reason=" + reason);
         }
 
@@ -3038,11 +3056,12 @@ namespace ArcaneArena.Multiplayer
             stateHeartbeat = null;
         }
 
-        private void ApplyReplicaState(DuelNetworkState state)
+        private bool ApplyReplicaState(DuelNetworkState state)
         {
             if (replicaController == null)
-                return;
-            replicaController.ApplyNetworkState(state);
+                return false;
+            if (!replicaController.ApplyNetworkState(state))
+                return false;
             DrainPresentationEvents();
             bool hostAdvancedPrompt = state.prompt == null ||
                 state.prompt.requestId != pendingResponseRequestId;
@@ -3063,7 +3082,7 @@ namespace ArcaneArena.Multiplayer
                 }
                 replicaController.SetPresentationDecisionLocked(true);
                 status = "Resposta entregue ao Relay. Aguardando o host processar...";
-                return;
+                return true;
             }
             if (pendingResponseRequestId != 0)
             {
@@ -3080,10 +3099,11 @@ namespace ArcaneArena.Multiplayer
             {
                 replicaController.SetPresentationDecisionLocked(true);
                 status = "Snapshot aplicado. Aguardando o início autoritativo...";
-                return;
+                return true;
             }
             clientSynchronizing = false;
             replicaController.SetPresentationDecisionLocked(false);
+            return true;
         }
 
         private void MaintainPendingClientResponse(float now)

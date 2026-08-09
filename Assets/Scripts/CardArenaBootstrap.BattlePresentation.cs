@@ -720,7 +720,8 @@ namespace ArcaneArena
                          sequence,
                          FaceUpAttack),
                     SpriteFor(attack.Code),
-                    FaceUpAttack);
+                    FaceUpAttack,
+                    null);
                 card = attackerZone.transform.Find("Carta Invocada");
                 transientAttacker = card != null;
             }

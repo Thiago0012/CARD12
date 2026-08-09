@@ -40,6 +40,11 @@ namespace ArcaneDuel.DuelEngine.Diagnostics
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private static bool initialized;
+        private static DateTime lastBucketCleanupUtc = DateTime.UtcNow;
+        private static readonly object IOGate = new object();
+        private static readonly System.Collections.Concurrent.ConcurrentQueue<string> logQueue = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        private static bool isWriterRunning;
+
         private static string logDirectory = string.Empty;
         private static string currentLogPath = string.Empty;
         private static string sessionId = string.Empty;
@@ -103,11 +108,12 @@ namespace ArcaneDuel.DuelEngine.Diagnostics
                     cardCode);
                 DateTime utcNow = DateTime.UtcNow;
 
+                string line;
                 lock (Gate)
                 {
                     if (!CanWriteOccurrence(fingerprint, utcNow))
                         return;
-                    string line = BuildJsonLine(
+                    line = BuildJsonLine(
                         utcNow,
                         severity,
                         safeFailureCode,
@@ -120,8 +126,8 @@ namespace ArcaneDuel.DuelEngine.Diagnostics
                         cardCode,
                         seat,
                         RedactAndLimit(mode));
-                    WriteLineLocked(line);
                 }
+                EnqueueLog(line);
             }
             catch
             {
@@ -183,7 +189,7 @@ namespace ArcaneDuel.DuelEngine.Diagnostics
                         0,
                         -1,
                         "runtime");
-                    WriteLineLocked(line);
+                    EnqueueLog(line);
                 }
                 catch
                 {
@@ -328,6 +334,18 @@ namespace ArcaneDuel.DuelEngine.Diagnostics
             string fingerprint,
             DateTime utcNow)
         {
+            if (utcNow - lastBucketCleanupUtc >= TimeSpan.FromMinutes(5))
+            {
+                lastBucketCleanupUtc = utcNow;
+                var expired = new List<string>();
+                foreach (var kvp in RateBuckets)
+                {
+                    if (utcNow - kvp.Value.WindowStartedUtc >= TimeSpan.FromMinutes(5))
+                        expired.Add(kvp.Key);
+                }
+                foreach (string key in expired) RateBuckets.Remove(key);
+            }
+
             if (!RateBuckets.TryGetValue(fingerprint, out RateBucket bucket) ||
                 utcNow - bucket.WindowStartedUtc >= TimeSpan.FromMinutes(1))
             {
@@ -364,21 +382,63 @@ namespace ArcaneDuel.DuelEngine.Diagnostics
                     0,
                     -1,
                     "runtime");
-                WriteLineLocked(line);
+                EnqueueLog(line);
             }
             return false;
         }
 
-        private static void WriteLineLocked(string line)
+        private static void EnqueueLog(string line)
         {
             if (string.IsNullOrWhiteSpace(currentLogPath))
                 return;
-            Directory.CreateDirectory(logDirectory);
-            RotateIfNeeded(line);
-            File.AppendAllText(
-                currentLogPath,
-                line + Environment.NewLine,
-                new UTF8Encoding(false));
+            logQueue.Enqueue(line);
+            lock (IOGate)
+            {
+                if (!isWriterRunning)
+                {
+                    isWriterRunning = true;
+                    _ = Task.Run(ProcessLogQueue);
+                }
+            }
+        }
+
+        private static void ProcessLogQueue()
+        {
+            var sb = new StringBuilder();
+            while (logQueue.TryDequeue(out string line))
+            {
+                sb.AppendLine(line);
+            }
+
+            if (sb.Length > 0)
+            {
+                try
+                {
+                    string toWrite = sb.ToString();
+                    lock (IOGate)
+                    {
+                        Directory.CreateDirectory(logDirectory);
+                        RotateIfNeeded(toWrite);
+                        File.AppendAllText(
+                            currentLogPath,
+                            toWrite,
+                            new UTF8Encoding(false));
+                    }
+                }
+                catch { }
+            }
+
+            lock (IOGate)
+            {
+                if (logQueue.IsEmpty)
+                {
+                    isWriterRunning = false;
+                }
+                else
+                {
+                    _ = Task.Run(ProcessLogQueue);
+                }
+            }
         }
 
         private static void RotateIfNeeded(string nextLine)

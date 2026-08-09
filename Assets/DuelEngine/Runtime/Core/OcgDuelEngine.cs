@@ -1,4 +1,5 @@
 using System;
+using AOT;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -94,7 +95,18 @@ namespace ArcaneDuel.DuelEngine.Core
         public byte Owner { get; internal set; }
         public int Attack { get; internal set; }
         public int Defense { get; internal set; }
+        public CardLocation EquipTarget { get; internal set; }
+        public CardLocation[] TargetCards { get; internal set; } =
+            Array.Empty<CardLocation>();
         public uint[] OverlayCodes { get; internal set; } = Array.Empty<uint>();
+        public ushort[] CounterTypes { get; internal set; } =
+            Array.Empty<ushort>();
+        public uint[] CounterAmounts { get; internal set; } =
+            Array.Empty<uint>();
+        public uint Status { get; internal set; }
+        public bool IsPublic { get; internal set; }
+        public uint LinkRating { get; internal set; }
+        public uint LinkMarkers { get; internal set; }
     }
 
     public sealed class OcgDuelistFieldSnapshot
@@ -132,11 +144,19 @@ namespace ArcaneDuel.DuelEngine.Core
         private const uint QueryPosition = 0x2;
         private const uint QueryAttack = 0x100;
         private const uint QueryDefense = 0x200;
+        private const uint QueryEquipCard = 0x4000;
+        private const uint QueryTargetCard = 0x8000;
         private const uint QueryOverlayCard = 0x10000;
+        private const uint QueryCounters = 0x20000;
         private const uint QueryOwner = 0x40000;
+        private const uint QueryStatus = 0x80000;
+        private const uint QueryIsPublic = 0x100000;
+        private const uint QueryLink = 0x800000;
         private const uint QueryEnd = 0x80000000;
         private const uint FieldQueryFlags = QueryCode | QueryPosition |
-            QueryAttack | QueryDefense | QueryOverlayCard | QueryOwner;
+            QueryAttack | QueryDefense | QueryEquipCard | QueryTargetCard |
+            QueryOverlayCard | QueryCounters | QueryOwner | QueryStatus |
+            QueryIsPublic | QueryLink;
         private const int MaximumQueryBytes = 2 * 1024 * 1024;
 
         private readonly CardDatabase database;
@@ -156,6 +176,7 @@ namespace ArcaneDuel.DuelEngine.Core
         private bool disposed;
         private bool hasWinner;
         private ulong nextRequestId;
+        private DuelPrompt retryFallbackPrompt;
 
         public bool IsStarted { get; private set; }
         public bool IsFinished => hasWinner || Status == OcgDuelStatus.End;
@@ -193,41 +214,51 @@ namespace ArcaneDuel.DuelEngine.Core
             cardReaderDone = OnCardReadDone;
             scriptReader = OnScriptRead;
             logHandler = OnNativeLog;
+            // The native core only retains this GCHandle payload. It must be
+            // strong for the complete duel lifetime so callbacks can never
+            // observe a collected managed owner between frames.
             selfHandle = GCHandle.Alloc(this);
             IntPtr payload = GCHandle.ToIntPtr(selfHandle);
 
-            ulong seedState = configuration.Seed;
-            var options = new OcgDuelOptions
+            try
             {
-                Seed0 = SplitMix64(ref seedState),
-                Seed1 = SplitMix64(ref seedState),
-                Seed2 = SplitMix64(ref seedState),
-                Seed3 = SplitMix64(ref seedState),
-                Flags = RuleFlagsFor(configuration.RuleProfile) |
-                        (configuration.SimpleOpponentAi ? SimpleAi : 0),
-                Team1 = Player(configuration),
-                Team2 = Player(configuration),
-                CardReader = cardReader,
-                CardReaderPayload = payload,
-                ScriptReader = scriptReader,
-                ScriptReaderPayload = payload,
-                LogHandler = logHandler,
-                LogHandlerPayload = payload,
-                CardReaderDone = cardReaderDone,
-                CardReaderDonePayload = payload,
-                EnableUnsafeLibraries = 1
-            };
+                ulong seedState = configuration.Seed;
+                var options = new OcgDuelOptions
+                {
+                    Seed0 = SplitMix64(ref seedState),
+                    Seed1 = SplitMix64(ref seedState),
+                    Seed2 = SplitMix64(ref seedState),
+                    Seed3 = SplitMix64(ref seedState),
+                    Flags = RuleFlagsFor(configuration.RuleProfile) |
+                            (configuration.SimpleOpponentAi ? SimpleAi : 0),
+                    Team1 = Player(configuration),
+                    Team2 = Player(configuration),
+                    CardReader = cardReader,
+                    CardReaderPayload = payload,
+                    ScriptReader = scriptReader,
+                    ScriptReaderPayload = payload,
+                    LogHandler = logHandler,
+                    LogHandlerPayload = payload,
+                    CardReaderDone = cardReaderDone,
+                    CardReaderDonePayload = payload,
+                    EnableUnsafeLibraries = 1
+                };
 
-            int creation = OcgCoreNative.CreateDuel(out IntPtr nativeDuel, ref options);
-            if ((OcgDuelCreationStatus)creation != OcgDuelCreationStatus.Success || nativeDuel == IntPtr.Zero)
-            {
-                selfHandle.Free();
-                throw new InvalidOperationException($"ocgcore failed to create the duel: {(OcgDuelCreationStatus)creation}.");
+                int creation = OcgCoreNative.CreateDuel(out IntPtr nativeDuel, ref options);
+                if ((OcgDuelCreationStatus)creation != OcgDuelCreationStatus.Success || nativeDuel == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException($"ocgcore failed to create the duel: {(OcgDuelCreationStatus)creation}.");
+                }
+                duel.Initialize(nativeDuel);
+                LoadRequiredScript("constant.lua");
+                LoadRequiredScript("utility.lua");
+                ThrowCallbackFailure();
             }
-            duel.Initialize(nativeDuel);
-            LoadRequiredScript("constant.lua");
-            LoadRequiredScript("utility.lua");
-            ThrowCallbackFailure();
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         public static OcgDuelEngine CreateDefault(DuelConfiguration configuration = null)
@@ -441,6 +472,37 @@ namespace ArcaneDuel.DuelEngine.Core
                                 buffer,
                                 dataOffset);
                             break;
+                        case QueryEquipCard when dataLength == 10:
+                            current.EquipTarget = ReadQueryLocation(
+                                buffer,
+                                dataOffset);
+                            if (current.EquipTarget.Location == 0)
+                                current.EquipTarget = null;
+                            break;
+                        case QueryTargetCard
+                            when dataLength >= sizeof(uint):
+                            uint targetCount = BitConverter.ToUInt32(
+                                buffer,
+                                dataOffset);
+                            if (targetCount > 256 ||
+                                dataLength != sizeof(uint) +
+                                    checked((int)targetCount * 10))
+                            {
+                                return false;
+                            }
+                            current.TargetCards =
+                                new CardLocation[targetCount];
+                            for (int index = 0;
+                                 index < targetCount;
+                                 index++)
+                            {
+                                current.TargetCards[index] =
+                                    ReadQueryLocation(
+                                        buffer,
+                                        dataOffset + sizeof(uint) +
+                                        index * 10);
+                            }
+                            break;
                         case QueryOwner when dataLength >= sizeof(byte):
                             current.Owner = buffer[dataOffset];
                             break;
@@ -465,6 +527,51 @@ namespace ArcaneDuel.DuelEngine.Core
                                         index * sizeof(uint));
                             }
                             break;
+                        case QueryCounters
+                            when dataLength >= sizeof(uint):
+                            uint counterCount = BitConverter.ToUInt32(
+                                buffer,
+                                dataOffset);
+                            if (counterCount > 256 ||
+                                dataLength != sizeof(uint) +
+                                    checked((int)counterCount *
+                                            sizeof(uint)))
+                            {
+                                return false;
+                            }
+                            current.CounterTypes =
+                                new ushort[counterCount];
+                            current.CounterAmounts =
+                                new uint[counterCount];
+                            for (int index = 0;
+                                 index < counterCount;
+                                 index++)
+                            {
+                                uint packed = BitConverter.ToUInt32(
+                                    buffer,
+                                    dataOffset + sizeof(uint) +
+                                    index * sizeof(uint));
+                                current.CounterTypes[index] =
+                                    unchecked((ushort)packed);
+                                current.CounterAmounts[index] = packed >> 16;
+                            }
+                            break;
+                        case QueryStatus when dataLength >= sizeof(uint):
+                            current.Status = BitConverter.ToUInt32(
+                                buffer,
+                                dataOffset);
+                            break;
+                        case QueryIsPublic when dataLength >= sizeof(byte):
+                            current.IsPublic = buffer[dataOffset] != 0;
+                            break;
+                        case QueryLink when dataLength >= sizeof(uint) * 2:
+                            current.LinkRating = BitConverter.ToUInt32(
+                                buffer,
+                                dataOffset);
+                            current.LinkMarkers = BitConverter.ToUInt32(
+                                buffer,
+                                dataOffset + sizeof(uint));
+                            break;
                     }
                 }
                 offset += blockLength;
@@ -473,6 +580,19 @@ namespace ArcaneDuel.DuelEngine.Core
                 return false;
             cards = result.ToArray();
             return true;
+        }
+
+        private static CardLocation ReadQueryLocation(
+            byte[] buffer,
+            int offset)
+        {
+            return new CardLocation
+            {
+                Controller = buffer[offset],
+                Location = buffer[offset + 1],
+                Sequence = BitConverter.ToUInt32(buffer, offset + 2),
+                Position = BitConverter.ToUInt32(buffer, offset + 6)
+            };
         }
 
         private static bool TryReadCombatStats(
@@ -572,6 +692,7 @@ namespace ArcaneDuel.DuelEngine.Core
         {
             EnsureUsable();
             if (!IsStarted) throw new InvalidOperationException("Start the duel before processing it.");
+            retryFallbackPrompt = CurrentPrompt;
             CurrentPrompt = null;
             int iterations = 0;
             do
@@ -592,6 +713,7 @@ namespace ArcaneDuel.DuelEngine.Core
                 ThrowCallbackFailure();
             }
             while (Status == OcgDuelStatus.Continue);
+            retryFallbackPrompt = null;
             return Status;
         }
 
@@ -672,6 +794,39 @@ namespace ArcaneDuel.DuelEngine.Core
                          copy,
                          database.Cards))
             {
+                if (duelEvent.Message == CoreMessage.Retry &&
+                    retryFallbackPrompt != null)
+                {
+                    // Clone the prompt with a fresh RequestId so the UI
+                    // layer recognises it as a new prompt and redraws.
+                    DuelPrompt clone = new DuelPrompt
+                    {
+                        RequestId = ++nextRequestId,
+                        Message = retryFallbackPrompt.Message,
+                        Player = retryFallbackPrompt.Player,
+                        Title = retryFallbackPrompt.Title,
+                        Forced = retryFallbackPrompt.Forced,
+                        Cancelable = retryFallbackPrompt.Cancelable,
+                        MinimumSelections = retryFallbackPrompt.MinimumSelections,
+                        MaximumSelections = retryFallbackPrompt.MaximumSelections,
+                        RequiredSum = retryFallbackPrompt.RequiredSum,
+                        SumAtLeast = retryFallbackPrompt.SumAtLeast,
+                        RequiresOrderedSelection =
+                            retryFallbackPrompt.RequiresOrderedSelection,
+                        RequiresMaskSelection =
+                            retryFallbackPrompt.RequiresMaskSelection,
+                        CounterType = retryFallbackPrompt.CounterType,
+                        RequiredCounterCount =
+                            retryFallbackPrompt.RequiredCounterCount,
+                        MaskWidth = retryFallbackPrompt.MaskWidth
+                    };
+                    foreach (uint sum in retryFallbackPrompt.MandatorySums)
+                        clone.MandatorySums.Add(sum);
+                    foreach (DuelChoice choice in retryFallbackPrompt.Choices)
+                        clone.Choices.Add(CloneChoice(choice, clone.RequestId));
+                    duelEvent.Prompt = clone;
+                    duelEvent.Player = clone.Player;
+                }
                 Emit(duelEvent);
             }
         }
@@ -735,6 +890,29 @@ namespace ArcaneDuel.DuelEngine.Core
             return (OcgDuelEngine)GCHandle.FromIntPtr(payload).Target;
         }
 
+        private static DuelChoice CloneChoice(
+            DuelChoice source,
+            ulong requestId)
+        {
+            return new DuelChoice
+            {
+                RequestId = requestId,
+                Label = source.Label,
+                CardCode = source.CardCode,
+                Response = source.Response == null
+                    ? null
+                    : (byte[])source.Response.Clone(),
+                HasLocation = source.HasLocation,
+                Controller = source.Controller,
+                Location = source.Location,
+                Sequence = source.Sequence,
+                ChoiceIndex = source.ChoiceIndex,
+                DescriptionId = source.DescriptionId,
+                SumValue = source.SumValue
+            };
+        }
+
+        [MonoPInvokeCallback(typeof(OcgDataReader))]
         private static void OnCardRead(IntPtr payload, uint code, IntPtr data)
         {
             OcgDuelEngine owner = Owner(payload);
@@ -760,14 +938,26 @@ namespace ArcaneDuel.DuelEngine.Core
                 if (record.Setcodes != null && record.Setcodes.Length > 0)
                 {
                     setcodes = Marshal.AllocHGlobal((record.Setcodes.Length + 1) * sizeof(ushort));
-                    for (int i = 0; i < record.Setcodes.Length; i++)
+                    try
                     {
-                        Marshal.WriteInt16(setcodes, i * sizeof(ushort), unchecked((short)record.Setcodes[i]));
+                        for (int i = 0; i < record.Setcodes.Length; i++)
+                        {
+                            Marshal.WriteInt16(setcodes, i * sizeof(ushort), unchecked((short)record.Setcodes[i]));
+                        }
+                        Marshal.WriteInt16(setcodes, record.Setcodes.Length * sizeof(ushort), 0);
+                        Marshal.StructureToPtr(record.ToNative(setcodes), data, false);
+                        lock (owner.allocationGate) owner.setcodeAllocations[data] = setcodes;
+                        setcodes = IntPtr.Zero;
                     }
-                    Marshal.WriteInt16(setcodes, record.Setcodes.Length * sizeof(ushort), 0);
+                    finally
+                    {
+                        if (setcodes != IntPtr.Zero) Marshal.FreeHGlobal(setcodes);
+                    }
                 }
-                Marshal.StructureToPtr(record.ToNative(setcodes), data, false);
-                lock (owner.allocationGate) owner.setcodeAllocations[data] = setcodes;
+                else
+                {
+                    Marshal.StructureToPtr(record.ToNative(IntPtr.Zero), data, false);
+                }
             }
             catch (Exception exception)
             {
@@ -776,6 +966,7 @@ namespace ArcaneDuel.DuelEngine.Core
             }
         }
 
+        [MonoPInvokeCallback(typeof(OcgDataReaderDone))]
         private static void OnCardReadDone(IntPtr payload, IntPtr data)
         {
             OcgDuelEngine owner = Owner(payload);
@@ -796,6 +987,7 @@ namespace ArcaneDuel.DuelEngine.Core
             }
         }
 
+        [MonoPInvokeCallback(typeof(OcgScriptReader))]
         private static int OnScriptRead(IntPtr payload, IntPtr nativeDuel, IntPtr nativeName)
         {
             OcgDuelEngine owner = Owner(payload);
@@ -822,6 +1014,7 @@ namespace ArcaneDuel.DuelEngine.Core
             }
         }
 
+        [MonoPInvokeCallback(typeof(OcgLogHandler))]
         private static void OnNativeLog(IntPtr payload, IntPtr nativeMessage, int type)
         {
             OcgDuelEngine owner = Owner(payload);
@@ -835,9 +1028,24 @@ namespace ArcaneDuel.DuelEngine.Core
                     nameof(OcgDuelEngine),
                     "Core emitted an error log.",
                     details: message);
-                Debug.LogError($"[ocgcore] {message}");
+                TryWriteUnityLog(message, true);
             }
-            else Debug.Log($"[ocgcore] {message}");
+            else TryWriteUnityLog(message, false);
+        }
+
+        private static void TryWriteUnityLog(string message, bool error)
+        {
+            try
+            {
+                if (error) Debug.LogError($"[ocgcore] {message}");
+                else Debug.Log($"[ocgcore] {message}");
+            }
+            catch
+            {
+                // Logging is observational only. A platform logging backend,
+                // headless validation host or shutdown race must never escape
+                // through the native callback and interrupt a card effect.
+            }
         }
 
         private void ThrowCallbackFailure()

@@ -161,11 +161,12 @@ namespace ArcaneDuel.Tests.EditMode
             {
                 Seed = 0x200CA7A100000000UL + (uint)batchIndex,
                 StartingLifePoints = 20000,
+                StartingHand = 8,
                 PlayerDeck = main.Take(60).ToArray(),
                 OpponentDeck = main.Take(60).ToArray(),
                 PlayerExtraDeck = extra.Take(15).ToArray(),
                 OpponentExtraDeck = extra.Take(15).ToArray(),
-                SimpleOpponentAi = true,
+                SimpleOpponentAi = false,
                 ShuffleMainDecks = false
             };
             int turns = 0;
@@ -200,7 +201,7 @@ namespace ArcaneDuel.Tests.EditMode
                             " | ",
                             engine.NativeLogs.TakeLast(6)));
                     DuelChoice choice =
-                        DeterministicDuelPolicy.Choose(engine.CurrentPrompt);
+                        ChooseAggressive(engine.CurrentPrompt);
                     engine.SubmitResponse(choice.Response);
                 }
                 Assert.That(
@@ -216,7 +217,70 @@ namespace ArcaneDuel.Tests.EditMode
                     Is.Empty,
                     $"Batch {batchIndex} emitted unknown messages: " +
                     string.Join(",", unknown));
+                Assert.That(
+                    engine.NativeLogs.Where(log =>
+                        log.StartsWith("[0]", StringComparison.Ordinal)),
+                    Is.Empty,
+                    $"Batch {batchIndex} emitted a native script error.");
             }
+        }
+
+        private static DuelChoice ChooseAggressive(DuelPrompt prompt)
+        {
+            if (prompt.Message == CoreMessage.SelectEffectYesNo ||
+                prompt.Message == CoreMessage.SelectYesNo)
+            {
+                DuelChoice affirmative = prompt.Choices.FirstOrDefault(
+                    choice => choice.Response?.Length == sizeof(int) &&
+                              ReadInt32(choice.Response) != 0);
+                if (affirmative != null) return affirmative;
+            }
+
+            if (prompt.Message == CoreMessage.SelectChain)
+            {
+                DuelChoice activation = prompt.Choices.FirstOrDefault(
+                    choice => choice.Response?.Length == sizeof(int) &&
+                              ReadInt32(choice.Response) != -1);
+                if (activation != null) return activation;
+            }
+
+            if (prompt.Message == CoreMessage.SelectIdleCommand)
+            {
+                string[] priority =
+                {
+                    "Ativar", "Invocação especial", "Invocar",
+                    "Baixar magia/armadilha", "Baixar monstro"
+                };
+                foreach (string label in priority)
+                {
+                    DuelChoice candidate = prompt.Choices.FirstOrDefault(
+                        choice => string.Equals(
+                            choice.Label,
+                            label,
+                            StringComparison.OrdinalIgnoreCase));
+                    if (candidate != null) return candidate;
+                }
+            }
+
+            if (prompt.Message == CoreMessage.SelectBattleCommand)
+            {
+                DuelChoice activation = prompt.Choices.FirstOrDefault(
+                    choice => string.Equals(
+                        choice.Label,
+                        "Ativar",
+                        StringComparison.OrdinalIgnoreCase));
+                if (activation != null) return activation;
+            }
+
+            return DeterministicDuelPolicy.Choose(prompt);
+        }
+
+        private static int ReadInt32(byte[] bytes)
+        {
+            return bytes[0] |
+                   (bytes[1] << 8) |
+                   (bytes[2] << 16) |
+                   (bytes[3] << 24);
         }
 
         private static IEnumerable<int> PublishedBatchIndices()

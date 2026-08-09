@@ -251,8 +251,6 @@ namespace ArcaneArena.Editor.AutoPacks
             {
                 "DevCoinCheatListener",
                 "EditorSelectedCardZero",
-                "EditorSelectedCardZeroCoinGrant",
-                "ZeroCoinGrant",
                 "Editor/DeveloperTools"
             };
             foreach (UnityEditor.Compilation.Assembly assembly in

@@ -20,6 +20,10 @@ namespace ArcaneDuel.DuelEngine.State
         public int ExtraDeckCount { get; internal set; } = 3;
         internal List<uint> DeckContents { get; } = new List<uint>();
         internal List<uint> ExtraDeckContents { get; } = new List<uint>();
+        internal List<CardInstanceState> DeckInstances { get; } =
+            new List<CardInstanceState>();
+        public List<CardInstanceState> ExtraDeckInstances { get; } =
+            new List<CardInstanceState>();
         public IReadOnlyList<uint> ExtraDeckCards => ExtraDeckContents;
         public List<uint> Hand { get; } = new List<uint>();
         public List<CardInstanceState> HandInstances { get; } =
@@ -48,6 +52,7 @@ namespace ArcaneDuel.DuelEngine.State
         public int DeckCount { get; internal set; }
         public int ExtraDeckCount { get; internal set; }
         public uint[] ExtraDeck { get; internal set; }
+        public uint[] ExtraDeckPositions { get; internal set; }
         public uint[] Hand { get; internal set; }
         public uint[] MonsterZones { get; internal set; }
         public uint[] MonsterPositions { get; internal set; }
@@ -58,12 +63,14 @@ namespace ArcaneDuel.DuelEngine.State
         public uint[] BanishedPositions { get; internal set; }
         public uint[][] OverlayMaterials { get; internal set; }
         public ulong[] HandRuntimeIds { get; internal set; }
+        public ulong[] ExtraDeckRuntimeIds { get; internal set; }
         public ulong[] MonsterRuntimeIds { get; internal set; }
         public ulong[] SpellTrapRuntimeIds { get; internal set; }
         public ulong[] GraveyardRuntimeIds { get; internal set; }
         public ulong[] BanishedRuntimeIds { get; internal set; }
         public ulong[][] OverlayRuntimeIds { get; internal set; }
         public byte[] HandOwners { get; internal set; }
+        public byte[] ExtraDeckOwners { get; internal set; }
         public byte[] MonsterOwners { get; internal set; }
         public byte[] SpellTrapOwners { get; internal set; }
         public byte[] GraveyardOwners { get; internal set; }
@@ -78,12 +85,95 @@ namespace ArcaneDuel.DuelEngine.State
         public byte TurnPlayer { get; internal set; }
         public uint Phase { get; internal set; }
         public byte? Winner { get; internal set; }
+        public uint DisabledFieldMask { get; internal set; }
+        public DuelChainLinkSnapshot[] ChainLinks { get; internal set; }
+        public CardPresentationMetadataSnapshot[] CardMetadata
+        {
+            get;
+            internal set;
+        }
+        public PlayerHintSnapshot[] PlayerHints { get; internal set; }
+        public DuelSummonSnapshot PendingSummon { get; internal set; }
+        public DuelSummonSnapshot LastSummon { get; internal set; }
         public string[] Log { get; internal set; }
+    }
+
+    public enum DuelSummonStatus : byte
+    {
+        Pending = 0,
+        Confirmed = 1,
+        Negated = 2
+    }
+
+    /// <summary>
+    /// Presentation-only record of a summon announced by ocgcore. The Core
+    /// remains the sole authority: a Summoning message creates a pending
+    /// attempt and only the matching Summoned message confirms it.
+    /// </summary>
+    public sealed class DuelSummonSnapshot
+    {
+        public CoreMessage Message { get; internal set; }
+        public uint CardCode { get; internal set; }
+        public ulong RuntimeId { get; internal set; }
+        public byte Controller { get; internal set; }
+        public byte Location { get; internal set; }
+        public uint Sequence { get; internal set; }
+        public uint Position { get; internal set; }
+        public DuelSummonStatus Status { get; internal set; }
+    }
+
+    public enum DuelChainLinkStatus : byte
+    {
+        Chaining = 0,
+        Chained = 1,
+        Solving = 2,
+        Solved = 3,
+        Negated = 4,
+        Disabled = 5
+    }
+
+    public sealed class DuelChainLinkSnapshot
+    {
+        public uint ChainIndex { get; internal set; }
+        public byte Player { get; internal set; }
+        public uint CardCode { get; internal set; }
+        public ulong DescriptionId { get; internal set; }
+        public ulong RuntimeId { get; internal set; }
+        public byte Controller { get; internal set; }
+        public byte Location { get; internal set; }
+        public uint Sequence { get; internal set; }
+        public uint Position { get; internal set; }
+        public DuelChainLinkStatus Status { get; internal set; }
+    }
+
+    public sealed class CardPresentationMetadataSnapshot
+    {
+        public ulong RuntimeId { get; internal set; }
+        public uint CoreStatus { get; internal set; }
+        public bool IsPublic { get; internal set; }
+        public uint LinkRating { get; internal set; }
+        public uint LinkMarkers { get; internal set; }
+        public ushort[] CounterTypes { get; internal set; }
+        public uint[] CounterAmounts { get; internal set; }
+        public ulong EquippedToRuntimeId { get; internal set; }
+        public ulong[] TargetRuntimeIds { get; internal set; }
+        public ulong[] RelationRuntimeIds { get; internal set; }
+        public byte[] HintTypes { get; internal set; }
+        public ulong[] HintValues { get; internal set; }
+        public bool IsTemporaryTarget { get; internal set; }
+    }
+
+    public sealed class PlayerHintSnapshot
+    {
+        public byte Player { get; internal set; }
+        public byte HintType { get; internal set; }
+        public ulong Value { get; internal set; }
     }
 
     public sealed class DuelPresentationState
     {
         private readonly CardDatabase database;
+        private readonly Dictionary<int, ulong> playerHints = new();
         private ulong nextRuntimeId = 1;
 
         public DuelistState[] Players { get; } = { new DuelistState(), new DuelistState() };
@@ -91,6 +181,13 @@ namespace ArcaneDuel.DuelEngine.State
         public byte TurnPlayer { get; private set; }
         public uint Phase { get; private set; }
         public byte? Winner { get; private set; }
+        public uint DisabledFieldMask { get; private set; }
+        public List<DuelChainLinkSnapshot> ChainLinks { get; } = new();
+        public bool ChainEndPendingReconciliation { get; private set; }
+        public IReadOnlyList<PlayerHintSnapshot> PlayerHints =>
+            CapturePlayerHints();
+        public DuelSummonSnapshot PendingSummon { get; private set; }
+        public DuelSummonSnapshot LastSummon { get; private set; }
         public DuelPrompt Prompt { get; private set; }
         public List<string> Log { get; } = new List<string>();
 
@@ -111,8 +208,12 @@ namespace ArcaneDuel.DuelEngine.State
             Players[1].ExtraDeckCount = Math.Max(0, opponentExtra);
             Players[0].DeckContents.Clear();
             Players[0].ExtraDeckContents.Clear();
+            Players[0].DeckInstances.Clear();
+            Players[0].ExtraDeckInstances.Clear();
             Players[1].DeckContents.Clear();
             Players[1].ExtraDeckContents.Clear();
+            Players[1].DeckInstances.Clear();
+            Players[1].ExtraDeckInstances.Clear();
         }
 
         public void ConfigureDeckContents(
@@ -121,8 +222,8 @@ namespace ArcaneDuel.DuelEngine.State
             IEnumerable<uint> opponentMain,
             IEnumerable<uint> opponentExtra)
         {
-            ConfigureDeckContents(Players[0], playerMain, playerExtra);
-            ConfigureDeckContents(Players[1], opponentMain, opponentExtra);
+            ConfigureDeckContents(Players[0], 0, playerMain, playerExtra);
+            ConfigureDeckContents(Players[1], 1, opponentMain, opponentExtra);
         }
 
         public DuelPresentationSnapshot CaptureSnapshot()
@@ -138,6 +239,12 @@ namespace ArcaneDuel.DuelEngine.State
                 TurnPlayer = TurnPlayer,
                 Phase = Phase,
                 Winner = Winner,
+                DisabledFieldMask = DisabledFieldMask,
+                ChainLinks = ChainLinks.Select(CloneChainLink).ToArray(),
+                CardMetadata = CaptureCardMetadata(),
+                PlayerHints = CapturePlayerHints(),
+                PendingSummon = CloneSummon(PendingSummon),
+                LastSummon = CloneSummon(LastSummon),
                 Log = Log.ToArray()
             };
         }
@@ -157,10 +264,18 @@ namespace ArcaneDuel.DuelEngine.State
                         "The authoritative Core snapshot contains a null duelist.",
                         nameof(snapshot));
                 DuelistState destination = Players[controller];
-                ReplaceKnownContents(destination.DeckContents, source.Deck);
-                ReplaceKnownContents(
+                ReconcileList(
+                    destination.DeckContents,
+                    destination.DeckInstances,
+                    source.Deck,
+                    controller,
+                    (byte)DuelLocation.Deck);
+                ReconcileList(
                     destination.ExtraDeckContents,
-                    source.Extra);
+                    destination.ExtraDeckInstances,
+                    source.Extra,
+                    controller,
+                    (byte)DuelLocation.Extra);
                 destination.DeckCount = source.Deck?.Length ?? 0;
                 destination.ExtraDeckCount = source.Extra?.Length ?? 0;
                 ReconcileList(
@@ -197,6 +312,23 @@ namespace ArcaneDuel.DuelEngine.State
                     (byte)DuelLocation.SpellTrapZone);
                 ReconcileOverlays(destination, source.Monsters, controller);
             }
+            ReconcilePersistentMetadata(snapshot);
+            ReconcilePendingSummon();
+            BindPromptInstances(Prompt);
+        }
+
+        /// <summary>
+        /// Clears the transient chain overlay only after the caller has
+        /// reconciled the field against an authoritative Core snapshot.
+        /// Persistent card metadata is deliberately preserved.
+        /// </summary>
+        public void CompleteChainEndReconciliation()
+        {
+            if (!ChainEndPendingReconciliation)
+                return;
+            ChainLinks.Clear();
+            ClearTemporaryTargets();
+            ChainEndPendingReconciliation = false;
         }
 
         public void RestoreSnapshot(DuelPresentationSnapshot snapshot)
@@ -215,6 +347,24 @@ namespace ArcaneDuel.DuelEngine.State
             TurnPlayer = snapshot.TurnPlayer;
             Phase = snapshot.Phase;
             Winner = snapshot.Winner;
+            DisabledFieldMask = snapshot.DisabledFieldMask;
+            ChainEndPendingReconciliation = false;
+            ChainLinks.Clear();
+            ChainLinks.AddRange(
+                (snapshot.ChainLinks ?? Array.Empty<DuelChainLinkSnapshot>())
+                .Where(link => link != null)
+                .Select(CloneChainLink));
+            playerHints.Clear();
+            foreach (PlayerHintSnapshot hint in
+                     snapshot.PlayerHints ?? Array.Empty<PlayerHintSnapshot>())
+            {
+                if (hint != null)
+                    playerHints[PlayerHintKey(hint.Player, hint.HintType)] =
+                        hint.Value;
+            }
+            RestoreCardMetadata(snapshot.CardMetadata);
+            PendingSummon = CloneSummon(snapshot.PendingSummon);
+            LastSummon = CloneSummon(snapshot.LastSummon);
             Prompt = null;
             Log.Clear();
             if (snapshot.Log != null) Log.AddRange(snapshot.Log);
@@ -285,10 +435,86 @@ namespace ArcaneDuel.DuelEngine.State
                 case CoreMessage.Summoning:
                 case CoreMessage.SpecialSummoning:
                 case CoreMessage.FlipSummoning:
-                    AddLog($"{Name(duelEvent.Code)} está sendo invocado.");
+                    ApplySummonAttempt(duelEvent);
+                    break;
+                case CoreMessage.Summoned:
+                case CoreMessage.SpecialSummoned:
+                case CoreMessage.FlipSummoned:
+                    ApplySummonConfirmation(duelEvent.Message);
                     break;
                 case CoreMessage.Chaining:
+                    ApplyChaining(duelEvent);
                     AddLog($"Corrente {duelEvent.Value}: {Name(duelEvent.Code)}.");
+                    break;
+                case CoreMessage.Chained:
+                    SetChainStatus(
+                        duelEvent.Value,
+                        DuelChainLinkStatus.Chained);
+                    break;
+                case CoreMessage.ChainSolving:
+                    SetChainStatus(
+                        duelEvent.Value,
+                        DuelChainLinkStatus.Solving);
+                    break;
+                case CoreMessage.ChainSolved:
+                    SetChainStatus(
+                        duelEvent.Value,
+                        DuelChainLinkStatus.Solved);
+                    break;
+                case CoreMessage.ChainNegated:
+                    SetChainStatus(
+                        duelEvent.Value,
+                        DuelChainLinkStatus.Negated);
+                    break;
+                case CoreMessage.ChainDisabled:
+                    SetChainStatus(
+                        duelEvent.Value,
+                        DuelChainLinkStatus.Disabled);
+                    break;
+                case CoreMessage.ChainEnd:
+                    // Keep the resolved/negated/disabled links visible until
+                    // the field has been reconciled at the Core safe boundary.
+                    ChainEndPendingReconciliation = true;
+                    break;
+                case CoreMessage.FieldDisabled:
+                    DisabledFieldMask = duelEvent.Value;
+                    break;
+                case CoreMessage.AddCounter:
+                    ApplyCounter(duelEvent, true);
+                    break;
+                case CoreMessage.RemoveCounter:
+                    ApplyCounter(duelEvent, false);
+                    break;
+                case CoreMessage.Equip:
+                    ApplyEquip(duelEvent);
+                    break;
+                case CoreMessage.Unequip:
+                    ApplyUnequip(duelEvent);
+                    break;
+                case CoreMessage.CardTarget:
+                    ApplyTargetRelation(duelEvent, true);
+                    break;
+                case CoreMessage.CancelTarget:
+                    ApplyTargetRelation(duelEvent, false);
+                    break;
+                case CoreMessage.CreateRelation:
+                    ApplyGeneralRelation(duelEvent, true);
+                    break;
+                case CoreMessage.ReleaseRelation:
+                    ApplyGeneralRelation(duelEvent, false);
+                    break;
+                case CoreMessage.BecomeTarget:
+                    ApplyTemporaryTargets(duelEvent);
+                    break;
+                case CoreMessage.CardHint:
+                    ApplyCardHint(duelEvent);
+                    break;
+                case CoreMessage.PlayerHint:
+                    playerHints[
+                        PlayerHintKey(
+                            duelEvent.Player,
+                            unchecked((byte)duelEvent.Code))] =
+                        duelEvent.HintValue;
                     break;
                 case CoreMessage.Attack:
                     AddLog(
@@ -317,6 +543,7 @@ namespace ArcaneDuel.DuelEngine.State
                     // player-facing duel timeline.
                     break;
             }
+            BindPromptInstances(duelEvent.Prompt);
         }
 
         public void ClearPrompt()
@@ -329,18 +556,37 @@ namespace ArcaneDuel.DuelEngine.State
             DuelistState player = Players[duelEvent.Player];
             foreach (uint code in duelEvent.Codes ?? Array.Empty<uint>())
             {
-                RemoveKnownCard(player.DeckContents, code);
+                bool materialized = HasMaterializedPile(
+                    player.DeckContents,
+                    player.DeckCount);
+                CardInstanceState instance = materialized
+                    ? RemoveListCard(
+                        player.DeckContents,
+                        player.DeckInstances,
+                        code,
+                        uint.MaxValue,
+                        duelEvent.Player,
+                        (byte)DuelLocation.Deck)
+                    : null;
                 uint sequence = (uint)player.Hand.Count;
                 player.Hand.Add(code);
-                player.HandInstances.Add(
-                    CreateInstance(
+                instance ??= CreateInstance(
                         code,
                         duelEvent.Player,
                         duelEvent.Player,
                         (byte)DuelLocation.Hand,
                         sequence,
-                        0));
-                player.DeckCount = Math.Max(0, player.DeckCount - 1);
+                        0);
+                instance.DefinitionCode = code;
+                instance.UpdateAddress(
+                    duelEvent.Player,
+                    (byte)DuelLocation.Hand,
+                    sequence,
+                    0);
+                player.HandInstances.Add(instance);
+                player.DeckCount = materialized
+                    ? player.DeckContents.Count
+                    : Math.Max(0, player.DeckCount - 1);
             }
             AddLog($"Duelista {duelEvent.Player + 1} comprou {(duelEvent.Codes ?? Array.Empty<uint>()).Length} carta(s).");
         }
@@ -447,6 +693,101 @@ namespace ArcaneDuel.DuelEngine.State
             {
                 AddLog($"{Name(duelEvent.Code)} → {LocationName(duelEvent.Current.Location)}");
             }
+            DetectNegatedSummon(duelEvent);
+        }
+
+        private void ApplySummonAttempt(DuelEvent duelEvent)
+        {
+            CardLocation location = duelEvent.Current;
+            CardInstanceState instance = location == null
+                ? null
+                : InstanceAt(
+                    location.Controller,
+                    location.Location,
+                    location.Sequence);
+            PendingSummon = new DuelSummonSnapshot
+            {
+                Message = duelEvent.Message,
+                CardCode = duelEvent.Code,
+                RuntimeId = instance?.RuntimeId ?? 0UL,
+                Controller = location?.Controller ?? duelEvent.Player,
+                Location = location?.Location ?? 0,
+                Sequence = location?.Sequence ?? 0U,
+                Position = location?.Position ?? 0U,
+                Status = DuelSummonStatus.Pending
+            };
+            AddLog($"Tentativa de invocação: {Name(duelEvent.Code)}.");
+        }
+
+        private void ApplySummonConfirmation(CoreMessage confirmation)
+        {
+            if (PendingSummon == null ||
+                !MatchesSummonConfirmation(PendingSummon.Message, confirmation))
+            {
+                AddLog("Uma invocação foi confirmada pelo Core.");
+                return;
+            }
+            LastSummon = CloneSummon(PendingSummon);
+            LastSummon.Status = DuelSummonStatus.Confirmed;
+            PendingSummon = null;
+            AddLog($"Invocação confirmada: {Name(LastSummon.CardCode)}.");
+        }
+
+        private void DetectNegatedSummon(DuelEvent duelEvent)
+        {
+            if (PendingSummon == null || duelEvent?.Previous == null)
+                return;
+            CardLocation previous = duelEvent.Previous;
+            bool sameCard = duelEvent.Code == 0 ||
+                PendingSummon.CardCode == 0 ||
+                duelEvent.Code == PendingSummon.CardCode;
+            bool sameAddress = previous.Controller == PendingSummon.Controller &&
+                (previous.Location & PendingSummon.Location) != 0 &&
+                previous.Sequence == PendingSummon.Sequence;
+            bool remainsInMonsterZone = duelEvent.Current != null &&
+                (duelEvent.Current.Location & DuelLocation.MonsterZone) != 0;
+            if (!sameCard || !sameAddress || remainsInMonsterZone)
+                return;
+            MarkPendingSummonNegated();
+        }
+
+        private void ReconcilePendingSummon()
+        {
+            if (PendingSummon == null)
+                return;
+            CardInstanceState instance = InstanceAt(
+                PendingSummon.Controller,
+                PendingSummon.Location,
+                PendingSummon.Sequence);
+            if (instance != null &&
+                (PendingSummon.CardCode == 0 ||
+                 instance.DefinitionCode == PendingSummon.CardCode))
+            {
+                if (PendingSummon.RuntimeId == 0)
+                    PendingSummon.RuntimeId = instance.RuntimeId;
+                return;
+            }
+            MarkPendingSummonNegated();
+        }
+
+        private void MarkPendingSummonNegated()
+        {
+            LastSummon = CloneSummon(PendingSummon);
+            LastSummon.Status = DuelSummonStatus.Negated;
+            PendingSummon = null;
+            AddLog($"Invocação negada: {Name(LastSummon.CardCode)}.");
+        }
+
+        private static bool MatchesSummonConfirmation(
+            CoreMessage attempt,
+            CoreMessage confirmation)
+        {
+            return attempt == CoreMessage.Summoning &&
+                       confirmation == CoreMessage.Summoned ||
+                   attempt == CoreMessage.SpecialSummoning &&
+                       confirmation == CoreMessage.SpecialSummoned ||
+                   attempt == CoreMessage.FlipSummoning &&
+                       confirmation == CoreMessage.FlipSummoned;
         }
 
         private void ApplySwap(DuelEvent duelEvent)
@@ -565,20 +906,56 @@ namespace ArcaneDuel.DuelEngine.State
             uint[] oldDeck = player.DeckContents.Count == oldDeckCount
                 ? player.DeckContents.ToArray()
                 : new uint[Math.Max(0, oldDeckCount)];
+            CardInstanceState[] oldDeckInstances =
+                player.DeckInstances.ToArray();
             uint[] oldGrave = player.Graveyard.ToArray();
+            CardInstanceState[] oldGraveInstances =
+                player.GraveyardInstances.ToArray();
 
             player.DeckContents.Clear();
+            player.DeckInstances.Clear();
             for (int index = 0; index < oldGrave.Length; index++)
             {
                 uint code = oldGrave[index];
+                CardInstanceState instance = index < oldGraveInstances.Length
+                    ? oldGraveInstances[index]
+                    : null;
                 if (BitIsSet(duelEvent.Codes, index))
                 {
                     if (code != 0)
+                    {
                         player.ExtraDeckContents.Add(code);
+                        instance ??= CreateInstance(
+                            code,
+                            duelEvent.Player,
+                            duelEvent.Player,
+                            (byte)DuelLocation.Extra,
+                            (uint)player.ExtraDeckInstances.Count,
+                            0x1);
+                        instance.UpdateAddress(
+                            duelEvent.Player,
+                            (byte)DuelLocation.Extra,
+                            (uint)player.ExtraDeckInstances.Count,
+                            0x1);
+                        player.ExtraDeckInstances.Add(instance);
+                    }
                 }
                 else if (code != 0)
                 {
                     player.DeckContents.Add(code);
+                    instance ??= CreateInstance(
+                        code,
+                        duelEvent.Player,
+                        duelEvent.Player,
+                        (byte)DuelLocation.Deck,
+                        (uint)player.DeckInstances.Count,
+                        0);
+                    instance.UpdateAddress(
+                        duelEvent.Player,
+                        (byte)DuelLocation.Deck,
+                        (uint)player.DeckInstances.Count,
+                        0);
+                    player.DeckInstances.Add(instance);
                 }
             }
 
@@ -588,19 +965,25 @@ namespace ArcaneDuel.DuelEngine.State
             {
                 uint code = oldDeck[index];
                 player.Graveyard.Add(code);
-                player.GraveyardInstances.Add(
-                    CreateInstance(
+                CardInstanceState instance = index < oldDeckInstances.Length
+                    ? oldDeckInstances[index]
+                    : null;
+                instance ??= CreateInstance(
                         code,
                         duelEvent.Player,
                         duelEvent.Player,
                         (byte)DuelLocation.Graveyard,
                         (uint)index,
-                        0x1));
+                        0x1);
+                instance.UpdateAddress(
+                    duelEvent.Player,
+                    (byte)DuelLocation.Graveyard,
+                    (uint)index,
+                    0x1);
+                player.GraveyardInstances.Add(instance);
             }
-            player.DeckCount = oldGrave.Length -
-                CountSetBits(duelEvent.Codes, oldGrave.Length);
-            player.ExtraDeckCount +=
-                CountSetBits(duelEvent.Codes, oldGrave.Length);
+            player.DeckCount = player.DeckContents.Count;
+            player.ExtraDeckCount = player.ExtraDeckContents.Count;
             AddLog(
                 $"Duelista {duelEvent.Player + 1} trocou o Deck pelo Cemitério.");
         }
@@ -629,6 +1012,147 @@ namespace ArcaneDuel.DuelEngine.State
                 AddLog($"{removed} carta(s) foram removida(s) do duelo.");
         }
 
+        private void ApplyChaining(DuelEvent duelEvent)
+        {
+            ChainEndPendingReconciliation = false;
+            CardInstanceState instance = InstanceFor(duelEvent.Current);
+            uint chainIndex = duelEvent.Value != 0
+                ? duelEvent.Value
+                : (uint)ChainLinks.Count + 1;
+            ChainLinks.RemoveAll(link =>
+                link != null && link.ChainIndex == chainIndex);
+            ChainLinks.Add(new DuelChainLinkSnapshot
+            {
+                ChainIndex = chainIndex,
+                Player = duelEvent.Player,
+                CardCode = duelEvent.Code,
+                DescriptionId = duelEvent.DescriptionId,
+                RuntimeId = instance?.RuntimeId ?? 0UL,
+                Controller = duelEvent.Current?.Controller ??
+                             duelEvent.Player,
+                Location = duelEvent.Current?.Location ?? 0,
+                Sequence = duelEvent.Current?.Sequence ?? 0,
+                Position = duelEvent.Current?.Position ?? 0,
+                Status = DuelChainLinkStatus.Chaining
+            });
+            ChainLinks.Sort((left, right) =>
+                left.ChainIndex.CompareTo(right.ChainIndex));
+        }
+
+        private void SetChainStatus(
+            uint chainIndex,
+            DuelChainLinkStatus status)
+        {
+            DuelChainLinkSnapshot link = ChainLinks.LastOrDefault(candidate =>
+                candidate != null &&
+                (chainIndex == 0 || candidate.ChainIndex == chainIndex));
+            if (link != null)
+            {
+                link.Status = status;
+                string outcome = status switch
+                {
+                    DuelChainLinkStatus.Chained => "encadeado",
+                    DuelChainLinkStatus.Solving => "resolvendo",
+                    DuelChainLinkStatus.Solved => "resolvido",
+                    DuelChainLinkStatus.Negated => "ativação negada",
+                    DuelChainLinkStatus.Disabled => "efeito desabilitado",
+                    _ => "ativando"
+                };
+                AddLog($"CL{link.ChainIndex} · {outcome}: " +
+                       $"{Name(link.CardCode)}.");
+            }
+        }
+
+        private void ApplyCounter(DuelEvent duelEvent, bool add)
+        {
+            CardInstanceState instance = InstanceFor(duelEvent.Current);
+            if (instance == null)
+                return;
+            if (add)
+                instance.AddCounter(duelEvent.CounterType, duelEvent.Value);
+            else
+                instance.RemoveCounter(
+                    duelEvent.CounterType,
+                    duelEvent.Value);
+        }
+
+        private void ApplyEquip(DuelEvent duelEvent)
+        {
+            CardInstanceState source = InstanceFor(duelEvent.Previous);
+            CardInstanceState target = InstanceFor(duelEvent.Current);
+            if (source != null)
+                source.EquippedToRuntimeId = target?.RuntimeId ?? 0UL;
+        }
+
+        private void ApplyUnequip(DuelEvent duelEvent)
+        {
+            CardInstanceState source = InstanceFor(duelEvent.Previous);
+            if (source != null)
+                source.EquippedToRuntimeId = 0;
+        }
+
+        private void ApplyTargetRelation(DuelEvent duelEvent, bool add)
+        {
+            CardInstanceState source = InstanceFor(duelEvent.Previous);
+            CardInstanceState target = InstanceFor(duelEvent.Current);
+            if (source == null || target == null)
+                return;
+            if (add)
+                source.AddTarget(target.RuntimeId);
+            else
+                source.RemoveTarget(target.RuntimeId);
+        }
+
+        private void ApplyGeneralRelation(DuelEvent duelEvent, bool add)
+        {
+            CardInstanceState source = InstanceFor(duelEvent.Previous);
+            CardInstanceState target = InstanceFor(duelEvent.Current);
+            if (source == null || target == null)
+                return;
+            if (add)
+                source.AddRelation(target.RuntimeId);
+            else
+                source.RemoveRelation(target.RuntimeId);
+        }
+
+        private void ApplyTemporaryTargets(DuelEvent duelEvent)
+        {
+            ClearTemporaryTargets();
+            foreach (CardLocation location in
+                     duelEvent.CurrentLocations ??
+                     Array.Empty<CardLocation>())
+            {
+                CardInstanceState instance = InstanceFor(location);
+                if (instance != null)
+                    instance.IsTemporaryTarget = true;
+            }
+        }
+
+        private void ClearTemporaryTargets()
+        {
+            foreach (CardInstanceState instance in AllInstances())
+                instance.IsTemporaryTarget = false;
+        }
+
+        private void ApplyCardHint(DuelEvent duelEvent)
+        {
+            CardInstanceState instance = InstanceFor(duelEvent.Current);
+            instance?.SetHint(
+                unchecked((byte)duelEvent.Code),
+                duelEvent.HintValue);
+        }
+
+        private CardInstanceState InstanceFor(CardLocation location)
+        {
+            return location == null
+                ? null
+                : InstanceAt(
+                    location.Controller,
+                    location.Location,
+                    location.Sequence,
+                    location.Position);
+        }
+
         private CardInstanceState Remove(CardLocation location, uint code)
         {
             if (location.Controller >= Players.Length)
@@ -644,29 +1168,41 @@ namespace ArcaneDuel.DuelEngine.State
             }
             if ((location.Location & DuelLocation.Deck) != 0)
             {
-                RemoveKnownCard(player.DeckContents, code);
-                player.DeckCount = Math.Max(0, player.DeckCount - 1);
-                return CreateInstance(
-                    code,
-                    location.Controller,
-                    location.Controller,
-                    (byte)DuelLocation.Deck,
-                    location.Sequence,
-                    location.Position);
+                bool materialized = HasMaterializedPile(
+                    player.DeckContents,
+                    player.DeckCount);
+                CardInstanceState instance = materialized
+                    ? RemoveListCard(
+                        player.DeckContents,
+                        player.DeckInstances,
+                        code,
+                        location.Sequence,
+                        location.Controller,
+                        (byte)DuelLocation.Deck)
+                    : null;
+                player.DeckCount = materialized
+                    ? player.DeckContents.Count
+                    : Math.Max(0, player.DeckCount - 1);
+                return instance;
             }
             if ((location.Location & DuelLocation.Extra) != 0)
             {
-                RemoveKnownCard(player.ExtraDeckContents, code);
-                player.ExtraDeckCount = Math.Max(
-                    0,
-                    player.ExtraDeckCount - 1);
-                return CreateInstance(
-                    code,
-                    location.Controller,
-                    location.Controller,
-                    (byte)DuelLocation.Extra,
-                    location.Sequence,
-                    location.Position);
+                bool materialized = HasMaterializedPile(
+                    player.ExtraDeckContents,
+                    player.ExtraDeckCount);
+                CardInstanceState instance = materialized
+                    ? RemoveListCard(
+                        player.ExtraDeckContents,
+                        player.ExtraDeckInstances,
+                        code,
+                        location.Sequence,
+                        location.Controller,
+                        (byte)DuelLocation.Extra)
+                    : null;
+                player.ExtraDeckCount = materialized
+                    ? player.ExtraDeckContents.Count
+                    : Math.Max(0, player.ExtraDeckCount - 1);
+                return instance;
             }
             if ((location.Location & DuelLocation.Hand) != 0)
             {
@@ -728,16 +1264,50 @@ namespace ArcaneDuel.DuelEngine.State
             DuelistState player = Players[location.Controller];
             if ((location.Location & DuelLocation.Deck) != 0)
             {
-                if (code != 0)
-                    player.DeckContents.Add(code);
-                player.DeckCount++;
+                bool materialized = HasMaterializedPile(
+                    player.DeckContents,
+                    player.DeckCount);
+                if (materialized)
+                {
+                    InsertListCard(
+                        player.DeckContents,
+                        player.DeckInstances,
+                        location,
+                        code,
+                        instance,
+                        originalOwner);
+                    player.DeckCount = player.DeckContents.Count;
+                }
+                else
+                {
+                    // A remote/private pile intentionally has no per-card
+                    // list. Preserve that privacy boundary and update only
+                    // the authoritative count published by the Core.
+                    player.DeckCount++;
+                }
                 return;
             }
             if ((location.Location & DuelLocation.Extra) != 0)
             {
-                if (code != 0)
-                    player.ExtraDeckContents.Add(code);
-                player.ExtraDeckCount++;
+                bool materialized = HasMaterializedPile(
+                    player.ExtraDeckContents,
+                    player.ExtraDeckCount);
+                if (materialized)
+                {
+                    InsertListCard(
+                        player.ExtraDeckContents,
+                        player.ExtraDeckInstances,
+                        location,
+                        code,
+                        instance,
+                        originalOwner);
+                    player.ExtraDeckCount =
+                        player.ExtraDeckContents.Count;
+                }
+                else
+                {
+                    player.ExtraDeckCount++;
+                }
                 return;
             }
             instance ??= CreateInstance(
@@ -832,6 +1402,46 @@ namespace ArcaneDuel.DuelEngine.State
         private static void SetZone(uint[] zones, uint sequence, uint value)
         {
             if (sequence < zones.Length) zones[sequence] = value;
+        }
+
+        private static bool HasMaterializedPile(
+            IReadOnlyCollection<uint> contents,
+            int publishedCount)
+        {
+            return contents != null &&
+                   contents.Count == Math.Max(0, publishedCount);
+        }
+
+        private void InsertListCard(
+            List<uint> codes,
+            List<CardInstanceState> instances,
+            CardLocation location,
+            uint code,
+            CardInstanceState instance,
+            byte originalOwner)
+        {
+            int requested = location.Sequence > int.MaxValue
+                ? codes.Count
+                : (int)location.Sequence;
+            int index = Math.Min(codes.Count, requested);
+            instance ??= CreateInstance(
+                code,
+                originalOwner,
+                location.Controller,
+                location.Location,
+                (uint)index,
+                location.Position);
+            if (code != 0)
+                instance.DefinitionCode = code;
+            instance.IdentityOpaque = false;
+            instance.UpdateAddress(
+                location.Controller,
+                location.Location,
+                (uint)index,
+                location.Position);
+            codes.Insert(index, code);
+            instances.Insert(index, instance);
+            Reindex(instances, location.Controller, location.Location);
         }
 
         private void ReconcileList(
@@ -993,6 +1603,88 @@ namespace ArcaneDuel.DuelEngine.State
             }
         }
 
+        private void ReconcilePersistentMetadata(OcgFieldSnapshot snapshot)
+        {
+            for (byte controller = 0;
+                 controller < snapshot.Players.Length;
+                 controller++)
+            {
+                OcgDuelistFieldSnapshot player =
+                    snapshot.Players[controller];
+                ReconcileMetadataArray(
+                    controller,
+                    (byte)DuelLocation.Deck,
+                    player.Deck);
+                ReconcileMetadataArray(
+                    controller,
+                    (byte)DuelLocation.Hand,
+                    player.Hand);
+                ReconcileMetadataArray(
+                    controller,
+                    (byte)DuelLocation.MonsterZone,
+                    player.Monsters);
+                ReconcileMetadataArray(
+                    controller,
+                    (byte)DuelLocation.SpellTrapZone,
+                    player.Spells);
+                ReconcileMetadataArray(
+                    controller,
+                    (byte)DuelLocation.Graveyard,
+                    player.Graveyard);
+                ReconcileMetadataArray(
+                    controller,
+                    (byte)DuelLocation.Banished,
+                    player.Banished);
+                ReconcileMetadataArray(
+                    controller,
+                    (byte)DuelLocation.Extra,
+                    player.Extra);
+            }
+        }
+
+        private void ReconcileMetadataArray(
+            byte controller,
+            byte location,
+            IReadOnlyList<OcgFieldCardSnapshot> cards)
+        {
+            if (cards == null)
+                return;
+            for (int index = 0; index < cards.Count; index++)
+            {
+                OcgFieldCardSnapshot source = cards[index];
+                if (source == null)
+                    continue;
+                CardInstanceState instance = InstanceAt(
+                    controller,
+                    location,
+                    (uint)index);
+                if (instance == null)
+                    continue;
+                int count = Math.Min(
+                    source.CounterTypes?.Length ?? 0,
+                    source.CounterAmounts?.Length ?? 0);
+                var counters = new List<KeyValuePair<ushort, uint>>(count);
+                for (int counter = 0; counter < count; counter++)
+                {
+                    counters.Add(new KeyValuePair<ushort, uint>(
+                        source.CounterTypes[counter],
+                        source.CounterAmounts[counter]));
+                }
+                instance.ReplaceCounters(counters);
+                instance.CoreStatus = source.Status;
+                instance.IsPublic = source.IsPublic;
+                instance.LinkRating = source.LinkRating;
+                instance.LinkMarkers = source.LinkMarkers;
+                instance.EquippedToRuntimeId =
+                    InstanceFor(source.EquipTarget)?.RuntimeId ?? 0UL;
+                instance.ReplaceTargets(
+                    (source.TargetCards ?? Array.Empty<CardLocation>())
+                    .Select(InstanceFor)
+                    .Where(target => target != null)
+                    .Select(target => target.RuntimeId));
+            }
+        }
+
         private static CardInstanceState TakeReusableInstance(
             List<CardInstanceState> pool,
             CardInstanceState preferred,
@@ -1107,17 +1799,28 @@ namespace ArcaneDuel.DuelEngine.State
         public CardInstanceState InstanceAt(
             byte controller,
             byte location,
-            uint sequence)
+            uint sequence,
+            uint overlaySequence = uint.MaxValue)
         {
             if (controller >= Players.Length)
                 return null;
             DuelistState player = Players[controller];
+            if ((location & DuelLocation.Deck) != 0)
+                return sequence < player.DeckInstances.Count
+                    ? player.DeckInstances[(int)sequence]
+                    : null;
+            if ((location & DuelLocation.Extra) != 0)
+                return sequence < player.ExtraDeckInstances.Count
+                    ? player.ExtraDeckInstances[(int)sequence]
+                    : null;
             if ((location & DuelLocation.Overlay) != 0)
             {
                 if (sequence >= player.OverlayInstances.Length)
                     return null;
                 List<CardInstanceState> materials =
                     player.OverlayInstances[sequence];
+                if (overlaySequence < materials.Count)
+                    return materials[(int)overlaySequence];
                 return materials.Count > 0
                     ? materials[materials.Count - 1]
                     : null;
@@ -1145,12 +1848,51 @@ namespace ArcaneDuel.DuelEngine.State
             return null;
         }
 
+        /// <summary>
+        /// Binds every Core candidate to the stable physical instance at the
+        /// same authoritative address. CandidateIndex/response bytes remain
+        /// the rule authority; RuntimeId prevents equal printed cards from
+        /// collapsing into one visual or network choice.
+        /// </summary>
+        public void BindPromptInstances(DuelPrompt prompt)
+        {
+            if (prompt == null)
+                return;
+            foreach (DuelChoice choice in prompt.Choices)
+            {
+                if (choice == null || !choice.HasLocation ||
+                    choice.Controller >= Players.Length)
+                {
+                    continue;
+                }
+                CardInstanceState instance = InstanceAt(
+                    choice.Controller,
+                    choice.Location,
+                    choice.Sequence,
+                    choice.Position);
+                if (instance != null)
+                    choice.RuntimeId = instance.RuntimeId;
+            }
+        }
+
         public string[] ValidateInstanceConsistency()
         {
             var problems = new List<string>();
             for (byte controller = 0; controller < Players.Length; controller++)
             {
                 DuelistState player = Players[controller];
+                ValidateList(
+                    problems,
+                    controller,
+                    "deck",
+                    player.DeckContents,
+                    player.DeckInstances);
+                ValidateList(
+                    problems,
+                    controller,
+                    "extra",
+                    player.ExtraDeckContents,
+                    player.ExtraDeckInstances);
                 ValidateList(
                     problems,
                     controller,
@@ -1581,17 +2323,40 @@ namespace ArcaneDuel.DuelEngine.State
             return result;
         }
 
-        private static void ConfigureDeckContents(
+        private void ConfigureDeckContents(
             DuelistState player,
+            byte controller,
             IEnumerable<uint> main,
             IEnumerable<uint> extra)
         {
             player.DeckContents.Clear();
-            player.DeckContents.AddRange(
-                (main ?? Array.Empty<uint>()).Where(code => code != 0));
+            player.DeckInstances.Clear();
+            foreach (uint code in
+                     (main ?? Array.Empty<uint>()).Where(code => code != 0))
+            {
+                player.DeckContents.Add(code);
+                player.DeckInstances.Add(CreateInstance(
+                    code,
+                    controller,
+                    controller,
+                    (byte)DuelLocation.Deck,
+                    (uint)player.DeckInstances.Count,
+                    0));
+            }
             player.ExtraDeckContents.Clear();
-            player.ExtraDeckContents.AddRange(
-                (extra ?? Array.Empty<uint>()).Where(code => code != 0));
+            player.ExtraDeckInstances.Clear();
+            foreach (uint code in
+                     (extra ?? Array.Empty<uint>()).Where(code => code != 0))
+            {
+                player.ExtraDeckContents.Add(code);
+                player.ExtraDeckInstances.Add(CreateInstance(
+                    code,
+                    controller,
+                    controller,
+                    (byte)DuelLocation.Extra,
+                    (uint)player.ExtraDeckInstances.Count,
+                    0));
+            }
             player.DeckCount = player.DeckContents.Count;
             player.ExtraDeckCount = player.ExtraDeckContents.Count;
         }
@@ -1647,6 +2412,180 @@ namespace ArcaneDuel.DuelEngine.State
             while (Log.Count > 14) Log.RemoveAt(0);
         }
 
+        private IEnumerable<CardInstanceState> AllInstances()
+        {
+            return Players
+                .SelectMany(player =>
+                    player.DeckInstances
+                        .Concat(player.ExtraDeckInstances)
+                        .Concat(player.HandInstances)
+                        .Concat(player.MonsterInstances.Where(card =>
+                            card != null))
+                        .Concat(player.SpellTrapInstances.Where(card =>
+                            card != null))
+                        .Concat(player.GraveyardInstances)
+                        .Concat(player.BanishedInstances)
+                        .Concat(player.OverlayInstances.SelectMany(
+                            materials => materials)))
+                .Where(instance => instance != null &&
+                                   instance.RuntimeId != 0)
+                .GroupBy(instance => instance.RuntimeId)
+                .Select(group => group.First());
+        }
+
+        private CardPresentationMetadataSnapshot[] CaptureCardMetadata()
+        {
+            return AllInstances()
+                .Where(instance =>
+                    instance.Counters.Count > 0 ||
+                    instance.CoreStatus != 0 ||
+                    instance.IsPublic ||
+                    instance.LinkRating != 0 ||
+                    instance.LinkMarkers != 0 ||
+                    instance.EquippedToRuntimeId != 0 ||
+                    instance.TargetRuntimeIds.Count > 0 ||
+                    instance.RelationRuntimeIds.Count > 0 ||
+                    instance.Hints.Count > 0 ||
+                    instance.IsTemporaryTarget)
+                .Select(instance =>
+                {
+                    KeyValuePair<ushort, uint>[] counters =
+                        instance.Counters.OrderBy(item => item.Key).ToArray();
+                    KeyValuePair<byte, ulong>[] hints =
+                        instance.Hints.OrderBy(item => item.Key).ToArray();
+                    return new CardPresentationMetadataSnapshot
+                    {
+                        RuntimeId = instance.RuntimeId,
+                        CoreStatus = instance.CoreStatus,
+                        IsPublic = instance.IsPublic,
+                        LinkRating = instance.LinkRating,
+                        LinkMarkers = instance.LinkMarkers,
+                        CounterTypes = counters.Select(item => item.Key)
+                            .ToArray(),
+                        CounterAmounts = counters.Select(item => item.Value)
+                            .ToArray(),
+                        EquippedToRuntimeId = instance.EquippedToRuntimeId,
+                        TargetRuntimeIds = instance.TargetRuntimeIds
+                            .OrderBy(value => value)
+                            .ToArray(),
+                        RelationRuntimeIds = instance.RelationRuntimeIds
+                            .OrderBy(value => value)
+                            .ToArray(),
+                        HintTypes = hints.Select(item => item.Key).ToArray(),
+                        HintValues = hints.Select(item => item.Value).ToArray(),
+                        IsTemporaryTarget = instance.IsTemporaryTarget
+                    };
+                })
+                .ToArray();
+        }
+
+        private void RestoreCardMetadata(
+            IEnumerable<CardPresentationMetadataSnapshot> metadata)
+        {
+            Dictionary<ulong, CardInstanceState> instances = AllInstances()
+                .ToDictionary(instance => instance.RuntimeId);
+            foreach (CardPresentationMetadataSnapshot item in
+                     metadata ??
+                     Array.Empty<CardPresentationMetadataSnapshot>())
+            {
+                if (item == null || item.RuntimeId == 0 ||
+                    !instances.TryGetValue(
+                        item.RuntimeId,
+                        out CardInstanceState instance))
+                {
+                    continue;
+                }
+                int counterCount = Math.Min(
+                    item.CounterTypes?.Length ?? 0,
+                    item.CounterAmounts?.Length ?? 0);
+                var counters = new List<KeyValuePair<ushort, uint>>(
+                    counterCount);
+                for (int index = 0; index < counterCount; index++)
+                {
+                    counters.Add(new KeyValuePair<ushort, uint>(
+                        item.CounterTypes[index],
+                        item.CounterAmounts[index]));
+                }
+                int hintCount = Math.Min(
+                    item.HintTypes?.Length ?? 0,
+                    item.HintValues?.Length ?? 0);
+                var hints = new List<KeyValuePair<byte, ulong>>(hintCount);
+                for (int index = 0; index < hintCount; index++)
+                {
+                    hints.Add(new KeyValuePair<byte, ulong>(
+                        item.HintTypes[index],
+                        item.HintValues[index]));
+                }
+                instance.RestorePresentationMetadata(
+                    counters,
+                    item.EquippedToRuntimeId,
+                    item.TargetRuntimeIds,
+                    item.RelationRuntimeIds,
+                    hints,
+                    item.IsTemporaryTarget);
+                instance.CoreStatus = item.CoreStatus;
+                instance.IsPublic = item.IsPublic;
+                instance.LinkRating = item.LinkRating;
+                instance.LinkMarkers = item.LinkMarkers;
+            }
+        }
+
+        private static DuelChainLinkSnapshot CloneChainLink(
+            DuelChainLinkSnapshot source)
+        {
+            if (source == null)
+                return null;
+            return new DuelChainLinkSnapshot
+            {
+                ChainIndex = source.ChainIndex,
+                Player = source.Player,
+                CardCode = source.CardCode,
+                DescriptionId = source.DescriptionId,
+                RuntimeId = source.RuntimeId,
+                Controller = source.Controller,
+                Location = source.Location,
+                Sequence = source.Sequence,
+                Position = source.Position,
+                Status = source.Status
+            };
+        }
+
+        private static DuelSummonSnapshot CloneSummon(
+            DuelSummonSnapshot source)
+        {
+            if (source == null)
+                return null;
+            return new DuelSummonSnapshot
+            {
+                Message = source.Message,
+                CardCode = source.CardCode,
+                RuntimeId = source.RuntimeId,
+                Controller = source.Controller,
+                Location = source.Location,
+                Sequence = source.Sequence,
+                Position = source.Position,
+                Status = source.Status
+            };
+        }
+
+        private PlayerHintSnapshot[] CapturePlayerHints()
+        {
+            return playerHints
+                .OrderBy(item => item.Key)
+                .Select(item => new PlayerHintSnapshot
+                {
+                    Player = (byte)((item.Key >> 8) & 0xff),
+                    HintType = (byte)(item.Key & 0xff),
+                    Value = item.Value
+                })
+                .ToArray();
+        }
+
+        private static int PlayerHintKey(byte player, byte hintType)
+        {
+            return (player << 8) | hintType;
+        }
+
         private static DuelistPresentationSnapshot Capture(DuelistState player)
         {
             return new DuelistPresentationSnapshot
@@ -1655,6 +2594,9 @@ namespace ArcaneDuel.DuelEngine.State
                 DeckCount = player.DeckCount,
                 ExtraDeckCount = player.ExtraDeckCount,
                 ExtraDeck = player.ExtraDeckContents.ToArray(),
+                ExtraDeckPositions = player.ExtraDeckInstances
+                    .Select(instance => instance?.Position ?? 0U)
+                    .ToArray(),
                 Hand = player.Hand.ToArray(),
                 MonsterZones = (uint[])player.MonsterZones.Clone(),
                 MonsterPositions =
@@ -1668,11 +2610,14 @@ namespace ArcaneDuel.DuelEngine.State
                     .Select(instance => instance?.Position ?? 0U)
                     .ToArray(),
                 HandRuntimeIds = RuntimeIds(player.HandInstances),
+                ExtraDeckRuntimeIds = RuntimeIds(
+                    player.ExtraDeckInstances),
                 MonsterRuntimeIds = RuntimeIds(player.MonsterInstances),
                 SpellTrapRuntimeIds = RuntimeIds(player.SpellTrapInstances),
                 GraveyardRuntimeIds = RuntimeIds(player.GraveyardInstances),
                 BanishedRuntimeIds = RuntimeIds(player.BanishedInstances),
                 HandOwners = Owners(player.HandInstances),
+                ExtraDeckOwners = Owners(player.ExtraDeckInstances),
                 MonsterOwners = Owners(player.MonsterInstances),
                 SpellTrapOwners = Owners(player.SpellTrapInstances),
                 GraveyardOwners = Owners(player.GraveyardInstances),
@@ -1707,6 +2652,8 @@ namespace ArcaneDuel.DuelEngine.State
             destination.ExtraDeckCount = source.ExtraDeckCount;
             destination.DeckContents.Clear();
             destination.ExtraDeckContents.Clear();
+            destination.DeckInstances.Clear();
+            destination.ExtraDeckInstances.Clear();
             if (source.ExtraDeck != null)
                 destination.ExtraDeckContents.AddRange(source.ExtraDeck);
             Replace(destination.Hand, source.Hand);
@@ -1798,6 +2745,21 @@ namespace ArcaneDuel.DuelEngine.State
             DuelistPresentationSnapshot source,
             byte controller)
         {
+            player.ExtraDeckInstances.Clear();
+            for (int index = 0;
+                 index < player.ExtraDeckContents.Count;
+                 index++)
+            {
+                player.ExtraDeckInstances.Add(
+                    CreateInstanceWithRuntimeId(
+                        RuntimeIdAt(source.ExtraDeckRuntimeIds, index),
+                        player.ExtraDeckContents[index],
+                        OwnerAt(source.ExtraDeckOwners, index, controller),
+                        controller,
+                        (byte)DuelLocation.Extra,
+                        (uint)index,
+                        PositionAt(source.ExtraDeckPositions, index)));
+            }
             player.HandInstances.Clear();
             for (int index = 0; index < player.Hand.Count; index++)
             {

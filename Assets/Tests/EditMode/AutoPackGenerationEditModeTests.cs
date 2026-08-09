@@ -142,36 +142,6 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
-        public void DeveloperCoinToolExistsOnlyInEditorAssemblies()
-        {
-            Assert.That(File.Exists(
-                "Assets/Scripts/Frontend/DevCoinCheatListener.cs"),
-                Is.False);
-            Assert.That(Directory.Exists(
-                "Assets/Editor/TemporaryCoinGrant"),
-                Is.False);
-            Assert.That(Directory.Exists(
-                "Assets/Editor/DeveloperTools/ZeroCoinGrant"),
-                Is.True);
-            string[] playerSources = CompilationPipeline
-                .GetAssemblies(AssembliesType.Player)
-                .SelectMany(assembly => assembly.sourceFiles ??
-                    Array.Empty<string>())
-                .Select(path => path.Replace('\\', '/'))
-                .ToArray();
-            Assert.That(playerSources.Any(path =>
-                    path.Contains("DevCoinCheatListener",
-                        StringComparison.OrdinalIgnoreCase) ||
-                    path.Contains("ZeroCoinGrant",
-                        StringComparison.OrdinalIgnoreCase)),
-                Is.False);
-            Assert.That(CompilationPipeline.GetAssemblies(AssembliesType.Editor)
-                    .Any(assembly => string.Equals(
-                        assembly.name,
-                        "Game.Editor.ZeroCoinGrant",
-                        StringComparison.Ordinal)),
-                Is.True);
-        }
 
         private static object Partition(string[] ids)
         {

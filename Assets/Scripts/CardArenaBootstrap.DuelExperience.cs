@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Protocol;
+using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.UI;
@@ -41,6 +42,7 @@ namespace ArcaneArena
         private GameObject chainIndicator;
         private CanvasGroup chainIndicatorGroup;
         private Text chainIndicatorCount;
+        private Text chainIndicatorDetails;
         private int activeChainLinks;
         private float experiencePulse;
         private bool experienceObscured;
@@ -166,18 +168,29 @@ namespace ArcaneArena
         private void BuildChainIndicator()
         {
             chainIndicator = CreatePanel(frame, "Indicador de Corrente",
-                new Vector2(0.725f, 0.455f), new Vector2(0.795f, 0.565f),
+                new Vector2(0.700f, 0.390f), new Vector2(0.985f, 0.555f),
                 new Color(0.07f, 0.01f, 0.10f, 0.95f));
             AddOutline(chainIndicator, Red);
             chainIndicatorGroup = chainIndicator.AddComponent<CanvasGroup>();
             chainIndicatorGroup.interactable = false;
             chainIndicatorGroup.blocksRaycasts = false;
             CreateText(chainIndicator.transform, "CORRENTE", 9,
-                FontStyle.Bold, Red, new Vector2(0f, 0.63f), Vector2.one,
+                FontStyle.Bold, Red, new Vector2(0.02f, 0.63f),
+                new Vector2(0.24f, 1f),
                 TextAnchor.MiddleCenter);
             chainIndicatorCount = CreateText(chainIndicator.transform, "1", 28,
-                FontStyle.Bold, Color.white, Vector2.zero,
-                new Vector2(1f, 0.70f), TextAnchor.MiddleCenter);
+                FontStyle.Bold, Color.white, new Vector2(0.02f, 0f),
+                new Vector2(0.24f, 0.70f), TextAnchor.MiddleCenter);
+            chainIndicatorDetails = CreateText(
+                chainIndicator.transform,
+                string.Empty,
+                10,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.27f, 0.08f),
+                new Vector2(0.97f, 0.92f),
+                TextAnchor.MiddleLeft);
+            chainIndicatorDetails.supportRichText = true;
             chainIndicator.SetActive(false);
         }
 
@@ -193,6 +206,7 @@ namespace ArcaneArena
         private void RefreshDuelExperienceState()
         {
             if (state == null) return;
+            UpdateChainIndicator();
             int count = state.Players[1].Hand.Count;
             if (count != renderedOpponentHandCount)
             {
@@ -276,6 +290,18 @@ namespace ArcaneArena
                                 : "Você pode responder à corrente.";
                     UpdateDecisionRibbon(chainMessage, Red);
                     break;
+                case CoreMessage.SelectEffectYesNo:
+                    DuelChoice effectChoice =
+                        DuelPromptPresentationRules
+                            .ActionableResponseChoices(prompt)
+                            .FirstOrDefault();
+                    UpdateDecisionRibbon(
+                        effectChoice == null
+                            ? "Escolha se deseja ativar este efeito."
+                            : ChoiceLabel(effectChoice)
+                                .Replace("\n", " — "),
+                        EffectGlow);
+                    break;
                 case CoreMessage.SelectPosition:
                     UpdateDecisionRibbon(
                         "Escolha a posição de batalha.", Cyan);
@@ -336,26 +362,54 @@ namespace ArcaneArena
                 case CoreMessage.Summoning:
                 case CoreMessage.SpecialSummoning:
                 case CoreMessage.FlipSummoning:
-                    entry = $"Invocação: {SafeCardName(duelEvent.Code)}";
+                    entry = $"Tentativa de invocação: {SafeCardName(duelEvent.Code)}";
                     accent = Cyan;
+                    break;
+                case CoreMessage.Summoned:
+                case CoreMessage.SpecialSummoned:
+                case CoreMessage.FlipSummoned:
+                    entry = state?.LastSummon != null
+                        ? $"Invocação confirmada: {SafeCardName(state.LastSummon.CardCode)}"
+                        : "Invocação confirmada";
+                    accent = Lime;
                     break;
                 case CoreMessage.Chaining:
                     activeChainLinks = Mathf.Max(activeChainLinks + 1,
                         (int)duelEvent.Value);
                     UpdateChainIndicator();
                     entry = $"Corrente {activeChainLinks}: " +
-                        SafeCardName(duelEvent.Code);
+                        ChainEffectName(duelEvent);
+                    accent = Red;
+                    break;
+                case CoreMessage.Chained:
+                    UpdateChainIndicator();
+                    entry = $"CL{Mathf.Max(1, (int)duelEvent.Value)} encadeado";
                     accent = Red;
                     break;
                 case CoreMessage.ChainSolving:
+                    UpdateChainIndicator();
                     entry = "Resolvendo corrente " +
                         Mathf.Max(1, (int)duelEvent.Value);
                     accent = Gold;
                     break;
-                case CoreMessage.ChainEnd:
-                    activeChainLinks = 0;
+                case CoreMessage.ChainSolved:
                     UpdateChainIndicator();
-                    entry = "Corrente resolvida";
+                    entry = $"CL{Mathf.Max(1, (int)duelEvent.Value)} resolvido";
+                    accent = Lime;
+                    break;
+                case CoreMessage.ChainNegated:
+                    UpdateChainIndicator();
+                    entry = $"Ativação de CL{Mathf.Max(1, (int)duelEvent.Value)} negada";
+                    accent = Red;
+                    break;
+                case CoreMessage.ChainDisabled:
+                    UpdateChainIndicator();
+                    entry = $"Efeito de CL{Mathf.Max(1, (int)duelEvent.Value)} desabilitado";
+                    accent = Muted;
+                    break;
+                case CoreMessage.ChainEnd:
+                    UpdateChainIndicator();
+                    entry = "Corrente concluída · sincronizando campo";
                     accent = Lime;
                     break;
                 case CoreMessage.Attack:
@@ -383,6 +437,19 @@ namespace ArcaneArena
         private string SafeCardName(uint code)
         {
             return code == 0 ? "carta" : CardName(code);
+        }
+
+        private string ChainEffectName(DuelEvent duelEvent)
+        {
+            string cardName = SafeCardName(duelEvent.Code);
+            return DuelEffectDescriptionResolver.TryResolve(
+                duelEvent.DescriptionId,
+                database,
+                out string effectText,
+                out _,
+                out _)
+                ? cardName + " — " + effectText
+                : cardName;
         }
 
         private void PushDuelFeed(string value, Color accent)
@@ -424,11 +491,68 @@ namespace ArcaneArena
         private void UpdateChainIndicator()
         {
             if (chainIndicator == null) return;
+            if (state != null)
+                activeChainLinks = state.ChainLinks.Count;
             chainIndicator.SetActive(activeChainLinks > 0);
             if (chainIndicatorCount != null)
                 chainIndicatorCount.text =
                     Mathf.Max(1, activeChainLinks).ToString();
+            if (chainIndicatorDetails != null)
+            {
+                chainIndicatorDetails.text = state == null
+                    ? string.Empty
+                    : string.Join(
+                        "\n",
+                        state.ChainLinks
+                            .OrderBy(link => link.ChainIndex)
+                            .Select(ChainLinkPresentation));
+            }
             if (activeChainLinks > 0) chainIndicator.transform.SetAsLastSibling();
+        }
+
+        private string ChainLinkPresentation(DuelChainLinkSnapshot link)
+        {
+            if (link == null)
+                return string.Empty;
+            int effectNumber = 0;
+            DuelEffectDescriptionResolver.TryResolve(
+                link.DescriptionId,
+                database,
+                out _,
+                out effectNumber,
+                out _);
+            string effect = effectNumber > 0
+                ? $" · efeito {effectNumber}"
+                : string.Empty;
+            return $"<color={ChainStatusColor(link.Status)}>" +
+                   $"CL{link.ChainIndex} · {SafeCardName(link.CardCode)}" +
+                   $"{effect} · {ChainStatusLabel(link.Status)}</color>";
+        }
+
+        private static string ChainStatusLabel(DuelChainLinkStatus status)
+        {
+            return status switch
+            {
+                DuelChainLinkStatus.Chaining => "ATIVANDO",
+                DuelChainLinkStatus.Chained => "ENCADEADO",
+                DuelChainLinkStatus.Solving => "RESOLVENDO",
+                DuelChainLinkStatus.Solved => "RESOLVIDO",
+                DuelChainLinkStatus.Negated => "ATIVAÇÃO NEGADA",
+                DuelChainLinkStatus.Disabled => "EFEITO DESABILITADO",
+                _ => status.ToString().ToUpperInvariant()
+            };
+        }
+
+        private static string ChainStatusColor(DuelChainLinkStatus status)
+        {
+            return status switch
+            {
+                DuelChainLinkStatus.Solving => "#FFD166",
+                DuelChainLinkStatus.Solved => "#B8FF3D",
+                DuelChainLinkStatus.Negated => "#FF536B",
+                DuelChainLinkStatus.Disabled => "#9CAFC2",
+                _ => "#FFFFFF"
+            };
         }
 
         private void UpdateCardActionPresentation()

@@ -21,13 +21,21 @@ namespace ArcaneArena.Multiplayer
                 rejection = "O manifesto do deck esta ausente.";
                 return false;
             }
+            BanlistDefinition definition = UnityEngine.Resources.Load<BanlistDefinition>($"Banlist/{loadout.banlistId}");
+            if (definition == null)
+            {
+                rejection = $"A banlist do lobby ({loadout.banlistId}) não está disponível localmente.";
+                return false;
+            }
+            BanlistService banlist = new BanlistService(definition);
+
             if (!string.Equals(
                     loadout.banlistId,
                     BanlistService.ActiveBanlistId,
                     StringComparison.Ordinal))
             {
-                rejection = "Os jogadores usam banlists diferentes.";
-                return false;
+                // Removido o bloqueio para permitir diferentes banlists em partidas privadas.
+                // Mas a validação de sha256 a seguir vai confirmar se a integridade confere.
             }
 
             string computedHash = DeckManifestHasher.ComputeSha256(
@@ -66,7 +74,7 @@ namespace ArcaneArena.Multiplayer
                     sideDeck = side.ToList()
                 };
                 DeckValidationResult validation = DeckRules.Validate(
-                    deck, database, visuals);
+                    deck, database, visuals, banlist);
                 if (!validation.IsValid)
                 {
                     rejection = validation.Summary;

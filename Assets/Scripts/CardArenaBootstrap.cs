@@ -208,6 +208,10 @@ namespace ArcaneArena
             {
                 if (texture != null) Destroy(texture);
             }
+            foreach (Sprite sprite in runtimeSprites.Values)
+            {
+                if (sprite != null) Destroy(sprite);
+            }
             runtimeTextures.Clear();
             runtimeSprites.Clear();
         }
@@ -251,6 +255,10 @@ namespace ArcaneArena
                 actionPanel.transform.SetAsLastSibling();
             }
             UpdateFieldActionMenuPosition();
+            if (choiceModal?.activeInHierarchy == true)
+                choiceModal.transform.SetAsLastSibling();
+            else if (compactResponseBar?.activeInHierarchy == true)
+                compactResponseBar.transform.SetAsLastSibling();
         }
 
         public void StartLocalTestDuel(
@@ -529,6 +537,17 @@ namespace ArcaneArena
         {
             state = core.PresentationState;
             presentationReady = state != null && database != null;
+            if (duelEvent.Message == CoreMessage.Retry)
+            {
+                // The Core rejected the last response. Force the UI
+                // to redraw the prompt so the player can try again.
+                // Clear ALL presentation locks — the Core is waiting
+                // for a valid answer and no animation should block it.
+                criticalInteractionLocked = false;
+                ResetTurnFlowPresentation(true);
+                ResetCardSoundPresentation();
+                ResetPromptPresentationIdentity();
+            }
             PrepareTurnFlowPresentation(duelEvent);
             RefreshEverything(true);
             ValidatePresentationConsistency(duelEvent, true);
@@ -563,6 +582,7 @@ namespace ArcaneArena
                 observedFieldSignature = fieldSignature;
                 ReconcileField();
             }
+            RefreshAuthoritativeZoneState();
             if (force)
                 RefreshInspectedCombatStats();
 
@@ -580,6 +600,32 @@ namespace ArcaneArena
                     MarkPromptPresented(prompt);
             }
             RefreshDuelExperienceState();
+        }
+
+        private void RefreshAuthoritativeZoneState()
+        {
+            uint mask = state != null ? state.DisabledFieldMask : 0u;
+            foreach (DuelZone3D zone in AllZones())
+            {
+                if (zone == null)
+                    continue;
+                byte location = LocationFor(zone.Kind);
+                bool fieldZone =
+                    location == (byte)DuelLocation.MonsterZone ||
+                    location == (byte)DuelLocation.SpellTrapZone;
+                if (!fieldZone)
+                {
+                    zone.SetCoreDisabled(false);
+                    continue;
+                }
+
+                int sequence = Mathf.Clamp(SequenceFor(zone), 0, 7);
+                int bit = sequence;
+                if (location == (byte)DuelLocation.SpellTrapZone)
+                    bit += 8;
+                bit += StatePlayerForZone(zone) * 16;
+                zone.SetCoreDisabled((mask & (1u << bit)) != 0u);
+            }
         }
 
         private void BindAuthoredHierarchy()
@@ -1219,17 +1265,27 @@ namespace ArcaneArena
         private void SubmitSelectedAction(string label)
         {
             if (selectedCard == null) return;
-            DuelChoice choice = ChoicesForCard(
+            DuelPrompt prompt = core.CurrentPrompt;
+            List<DuelChoice> matchingChoices = ChoicesForCard(
                     core.CurrentPrompt,
                     selectedCard.InstanceKey)
-                .FirstOrDefault(candidate =>
+                .Where(candidate =>
                     label == "Invocar"
                         ? IsSummonChoice(candidate)
-                        : Contains(candidate.Label, label));
-            if (choice == null) return;
+                        : Contains(candidate.Label, label))
+                .ToList();
+            if (matchingChoices.Count == 0) return;
             actionPanel.SetActive(false);
             ClearHandSelection();
-            core.SubmitChoice(choice);
+            if (label == "Ativar" && matchingChoices.Count > 1)
+            {
+                OpenChoiceModal(prompt, matchingChoices);
+                SetStatus(
+                    "Escolha qual efeito deseja ativar.",
+                    EffectGlow);
+                return;
+            }
+            core.SubmitChoice(matchingChoices[0]);
             RefreshEverything(true);
         }
 
@@ -1462,13 +1518,33 @@ namespace ArcaneArena
                 return true;
             }
 
-            if (prompt.Player == 0 &&
-                DuelPromptPresentationRules.ShouldAutoPassEmptyChain(prompt))
+            byte? lastChainPlayer = state?.ChainLinks
+                .OrderBy(link => link.ChainIndex)
+                .LastOrDefault()
+                ?.Player;
+            if (DuelActivationPromptPolicy.TryGetAutomaticPass(
+                    prompt,
+                    lastChainPlayer,
+                    out DuelChoice automaticPass,
+                    out string automaticPassReason))
             {
                 ScheduleAutomaticPromptChoice(
                     prompt,
-                    prompt.Choices[0],
-                    "Nenhuma resposta disponível · continuando automaticamente.");
+                    automaticPass,
+                    automaticPassReason +
+                    " · continuando automaticamente.");
+                return true;
+            }
+
+            if (DuelActivationPromptPolicy.TryGetAutomaticSort(
+                    prompt,
+                    DuelActivationPreferences.ManualChainOrder,
+                    out DuelChoice automaticSort))
+            {
+                ScheduleAutomaticPromptChoice(
+                    prompt,
+                    automaticSort,
+                    "Ordem automática · mantendo a ordem autoritativa do Core.");
                 return true;
             }
 
@@ -1583,10 +1659,45 @@ namespace ArcaneArena
                 choice.Sequence == sequence);
             if (direct != null && !contextualCommand)
             {
+                List<DuelChoice> locatedEffects = prompt.Choices
+                    .Where(choice =>
+                        DuelPromptPresentationRules.IsEffectCandidate(
+                            prompt,
+                            choice) &&
+                        ((direct.RuntimeId != 0 &&
+                          choice.RuntimeId == direct.RuntimeId) ||
+                         (choice.HasLocation &&
+                          choice.Controller == controller &&
+                          (choice.Location & location) != 0 &&
+                          choice.Sequence == sequence)))
+                    .ToList();
+                if (locatedEffects.Count > 1)
+                {
+                    DuelChoice decline =
+                        DuelPromptPresentationRules.DeclineChoice(prompt);
+                    if (decline != null)
+                        locatedEffects.Add(decline);
+                    OpenChoiceModal(prompt, locatedEffects);
+                    SetStatus(
+                        "Escolha qual efeito deseja ativar.",
+                        EffectGlow);
+                    return;
+                }
+
                 if (IsMultiPlacePrompt(prompt))
                     StagePlaceChoice(prompt, direct);
                 else if (IsDirectSelectionPrompt(prompt))
+                {
                     SubmitSelectionChoice(direct);
+                    if (IsMultiChoicePrompt(prompt))
+                    {
+                        CloseCardDetails();
+                        HighlightPromptZones(prompt);
+                        if (choiceModal != null)
+                            choiceModal.transform.SetAsLastSibling();
+                        return;
+                    }
+                }
                 else
                     core.SubmitChoice(direct);
                 if (!IsMultiPlacePrompt(prompt))
@@ -1625,6 +1736,11 @@ namespace ArcaneArena
         {
             if (!hovered || zone == null || !presentationReady)
                 return;
+            if (choiceModal?.activeInHierarchy == true ||
+                compactResponseBar?.activeInHierarchy == true)
+            {
+                return;
+            }
             if (!zone.HasValidIdentity &&
                 !zone.EnsureIdentityFromHierarchy(false))
             {
@@ -1701,7 +1817,7 @@ namespace ArcaneArena
                 if (key == previous &&
                     HasWorldCardRepresentation(zone, key, code, occupied))
                 {
-                    ApplyWorldPosition(zone, code, position);
+                    ApplyWorldPosition(zone, code, position, instance);
                     continue;
                 }
 
@@ -1725,7 +1841,7 @@ namespace ArcaneArena
                             ? DuelMonsterPosition.FaceUpDefense
                             : DuelMonsterPosition.FaceDownDefense);
                 }
-                CreateWorldCard(zone, key, sprite, position);
+                CreateWorldCard(zone, key, sprite, position, instance);
             }
         }
 
@@ -1810,6 +1926,17 @@ namespace ArcaneArena
             {
                 if (zone == null || !zone.HasValidIdentity)
                     continue;
+                // Main/Extra Decks are represented by authored pile proxies,
+                // not by one WorldCardInstanceView per private card. Requiring
+                // an individual view here both creates false repair loops and
+                // risks coupling hidden identity to presentation. Field,
+                // Graveyard and Banished top cards still use runtime-bound
+                // world views and remain fully validated below.
+                if (zone.Kind == DuelZoneKind.MainDeck ||
+                    zone.Kind == DuelZoneKind.ExtraDeck)
+                {
+                    continue;
+                }
                 uint code = CodeAt(zone);
                 CardInstanceState instance = InstanceAt(zone);
                 bool occupied = code != 0 || instance != null;
@@ -1856,7 +1983,8 @@ namespace ArcaneArena
             DuelZone3D zone,
             CardInstanceKey instanceKey,
             Sprite sprite,
-            uint position)
+            uint position,
+            CardInstanceState instance)
         {
             uint code = instanceKey.DefinitionCode;
             bool faceUp = IsFaceUp(position);
@@ -1907,6 +2035,7 @@ namespace ArcaneArena
             front.gameObject.SetActive(faceUp || cardBackSprite == null);
             canvasObject.GetComponent<WorldCardInstanceView>()
                 .Bind(instanceKey, faceUp);
+            RefreshWorldMetadata(canvasObject.transform, instance, faceUp);
 
             if (monster && faceUp)
                 CreateCombatLabel(zone, code, position);
@@ -1975,7 +2104,8 @@ namespace ArcaneArena
         private void ApplyWorldPosition(
             DuelZone3D zone,
             uint code,
-            uint position)
+            uint position,
+            CardInstanceState instance)
         {
             Transform card = zone.FindPresentedCard();
             if (card == null) return;
@@ -1992,7 +2122,94 @@ namespace ArcaneArena
                 card.GetComponent<WorldCardInstanceView>();
             if (view != null)
                 view.Bind(view.InstanceKey, faceUp);
+            RefreshWorldMetadata(card, instance, faceUp);
             RefreshCombatLabel(zone, code, position, faceUp);
+        }
+
+        private void RefreshWorldMetadata(
+            Transform card,
+            CardInstanceState instance,
+            bool faceUp)
+        {
+            if (card == null)
+                return;
+            Transform existing = card.Find("Estado do Core");
+            int counterTotal = instance?.Counters.Values.Sum(
+                value => checked((int)value)) ?? 0;
+            bool equipped = instance?.EquippedToRuntimeId != 0;
+            bool targeted = instance != null &&
+                            (instance.TargetRuntimeIds.Count > 0 ||
+                             instance.IsTemporaryTarget);
+            bool related = instance?.RelationRuntimeIds.Count > 0;
+            bool linked = instance?.LinkRating > 0;
+            bool visible = faceUp &&
+                           (counterTotal > 0 || equipped || targeted ||
+                            related || linked);
+            if (!visible)
+            {
+                if (existing != null)
+                    existing.gameObject.SetActive(false);
+                return;
+            }
+
+            Text label;
+            if (existing == null)
+            {
+                label = CreateText(
+                    card,
+                    string.Empty,
+                    23,
+                    FontStyle.Bold,
+                    Color.white,
+                    new Vector2(0.52f, 0.68f),
+                    new Vector2(0.98f, 0.98f),
+                    TextAnchor.UpperRight);
+                label.gameObject.name = "Estado do Core";
+                var outline = label.gameObject.AddComponent<Outline>();
+                outline.effectColor = Color.black;
+                outline.effectDistance = new Vector2(2f, -2f);
+            }
+            else
+            {
+                existing.gameObject.SetActive(true);
+                label = existing.GetComponent<Text>();
+            }
+            if (label == null)
+                return;
+            var parts = new List<string>();
+            if (counterTotal > 0) parts.Add($"C:{counterTotal}");
+            if (linked)
+            {
+                string markers = FormatLinkMarkers(instance.LinkMarkers);
+                parts.Add(string.IsNullOrEmpty(markers)
+                    ? $"L:{instance.LinkRating}"
+                    : $"L:{instance.LinkRating} {markers}");
+            }
+            if (equipped) parts.Add("EQUIP");
+            if (targeted) parts.Add("ALVO");
+            if (related) parts.Add("REL");
+            label.text = string.Join("\n", parts);
+            label.color = targeted
+                ? Red
+                : equipped
+                    ? Cyan
+                    : counterTotal > 0
+                        ? Gold
+                        : Lime;
+        }
+
+        private static string FormatLinkMarkers(uint markers)
+        {
+            var arrows = new List<string>(8);
+            if ((markers & 0x001U) != 0) arrows.Add("↙");
+            if ((markers & 0x002U) != 0) arrows.Add("↓");
+            if ((markers & 0x004U) != 0) arrows.Add("↘");
+            if ((markers & 0x008U) != 0) arrows.Add("←");
+            if ((markers & 0x020U) != 0) arrows.Add("→");
+            if ((markers & 0x040U) != 0) arrows.Add("↖");
+            if ((markers & 0x080U) != 0) arrows.Add("↑");
+            if ((markers & 0x100U) != 0) arrows.Add("↗");
+            return string.Concat(arrows);
         }
 
         private void RefreshCombatLabel(
@@ -2115,6 +2332,9 @@ namespace ArcaneArena
                     hash = MixSignature(
                         hash,
                         duelist.MonsterPositions[index]);
+                    hash = MixInstanceMetadata(
+                        hash,
+                        duelist.MonsterInstances[index]);
                 }
                 for (int index = 0;
                      index < duelist.SpellTrapZones.Length;
@@ -2124,8 +2344,38 @@ namespace ArcaneArena
                     hash = MixSignature(
                         hash,
                         duelist.SpellTrapPositions[index]);
+                    hash = MixInstanceMetadata(
+                        hash,
+                        duelist.SpellTrapInstances[index]);
                 }
             }
+            return hash;
+        }
+
+        private static ulong MixInstanceMetadata(
+            ulong hash,
+            CardInstanceState instance)
+        {
+            if (instance == null)
+                return MixSignature(hash, 0);
+            hash = MixSignature(hash, instance.RuntimeId);
+            hash = MixSignature(hash, instance.CoreStatus);
+            hash = MixSignature(hash, instance.LinkRating);
+            hash = MixSignature(hash, instance.LinkMarkers);
+            hash = MixSignature(hash, instance.EquippedToRuntimeId);
+            hash = MixSignature(
+                hash,
+                instance.IsTemporaryTarget ? 1UL : 0UL);
+            foreach ((ushort type, uint amount) in
+                     instance.Counters.OrderBy(item => item.Key))
+            {
+                hash = MixSignature(hash, type);
+                hash = MixSignature(hash, amount);
+            }
+            foreach (ulong target in instance.TargetRuntimeIds.OrderBy(id => id))
+                hash = MixSignature(hash, target);
+            foreach (ulong relation in instance.RelationRuntimeIds.OrderBy(id => id))
+                hash = MixSignature(hash, relation);
             return hash;
         }
 
@@ -2175,6 +2425,11 @@ namespace ArcaneArena
 
         private void ShowInspector(uint code, DuelZone3D zone)
         {
+            if (choiceModal?.activeInHierarchy == true &&
+                IsDirectSelectionPrompt(core?.CurrentPrompt))
+            {
+                return;
+            }
             if (code == 0 || database == null ||
                 !database.TryGet(code, out CardRecord card))
             {
@@ -3577,11 +3832,11 @@ namespace ArcaneArena
             };
         }
 
-        private static string ChoiceLabel(DuelChoice choice)
+        private string ChoiceLabel(DuelChoice choice)
         {
-            return choice.CardCode == 0
-                ? choice.Label
-                : choice.Label;
+            return DuelEffectDescriptionResolver.ChoiceLabel(
+                choice,
+                database);
         }
 
         private void SetStatus(string value, Color color)

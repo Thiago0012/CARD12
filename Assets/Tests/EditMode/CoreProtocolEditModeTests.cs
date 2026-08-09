@@ -62,6 +62,104 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void DecoderReadsEquipMessageProperly()
+        {
+            var payload = new List<byte>();
+            Location(payload, 0, (byte)DuelLocation.SpellTrapZone, 0, 1);
+            Location(payload, 1, (byte)DuelLocation.MonsterZone, 2, 1);
+            var framed = new List<byte>();
+            Packet(framed, (byte)CoreMessage.Equip, payload.ToArray());
+
+            DuelEvent duelEvent = CoreMessageDecoder.Decode(framed.ToArray())[0];
+
+            Assert.That(duelEvent.Message, Is.EqualTo(CoreMessage.Equip));
+            Assert.That(duelEvent.Previous.Location, Is.EqualTo((byte)DuelLocation.SpellTrapZone));
+            Assert.That(duelEvent.Current.Location, Is.EqualTo((byte)DuelLocation.MonsterZone));
+        }
+
+        [Test]
+        public void DecoderReadsCounterMessageProperly()
+        {
+            var payload = new List<byte>();
+            UInt16(payload, 0x1015);
+            payload.Add(0);
+            payload.Add((byte)DuelLocation.MonsterZone);
+            payload.Add(2);
+            UInt16(payload, 2);
+            var framed = new List<byte>();
+            Packet(framed, (byte)CoreMessage.AddCounter, payload.ToArray());
+
+            DuelEvent duelEvent = CoreMessageDecoder.Decode(framed.ToArray())[0];
+
+            Assert.That(duelEvent.Message, Is.EqualTo(CoreMessage.AddCounter));
+            Assert.That(duelEvent.Code, Is.EqualTo(0x1015));
+            Assert.That(duelEvent.Current.Location, Is.EqualTo((byte)DuelLocation.MonsterZone));
+            Assert.That(duelEvent.Current.Sequence, Is.EqualTo(2));
+            Assert.That(duelEvent.Value, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void DecoderReadsBecomeTargetCountAtNativeWidth()
+        {
+            var payload = new List<byte>();
+            UInt32(payload, 2);
+            Location(payload, 0, (byte)DuelLocation.MonsterZone, 1, 1);
+            Location(payload, 1, (byte)DuelLocation.Graveyard, 3, 1);
+            var framed = new List<byte>();
+            Packet(framed, (byte)CoreMessage.BecomeTarget, payload.ToArray());
+
+            DuelEvent duelEvent = CoreMessageDecoder.Decode(framed.ToArray())[0];
+
+            Assert.That(duelEvent.CurrentLocations, Has.Length.EqualTo(2));
+            Assert.That(duelEvent.CurrentLocations[0].Sequence, Is.EqualTo(1));
+            Assert.That(duelEvent.CurrentLocations[1].Controller, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DecoderReadsHintsAndMissedEffectAtNativeLayout()
+        {
+            const ulong description = 0x1122334455667788UL;
+            var cardHintPayload = new List<byte>();
+            Location(cardHintPayload, 0, (byte)DuelLocation.MonsterZone, 4, 1);
+            cardHintPayload.Add(1);
+            UInt64(cardHintPayload, description);
+
+            var playerHintPayload = new List<byte> { 1, 2 };
+            UInt64(playerHintPayload, description);
+
+            var missedPayload = new List<byte>();
+            Location(missedPayload, 1, (byte)DuelLocation.Graveyard, 7, 1);
+            UInt32(missedPayload, 89631139);
+
+            var framed = new List<byte>();
+            Packet(framed, (byte)CoreMessage.CardHint, cardHintPayload.ToArray());
+            Packet(framed, (byte)CoreMessage.PlayerHint, playerHintPayload.ToArray());
+            Packet(framed, (byte)CoreMessage.MissedEffect, missedPayload.ToArray());
+
+            List<DuelEvent> events = CoreMessageDecoder.Decode(framed.ToArray());
+
+            Assert.That(events[0].Value, Is.EqualTo(0x55667788U));
+            Assert.That(events[1].Player, Is.EqualTo(1));
+            Assert.That(events[1].Value, Is.EqualTo(0x55667788U));
+            Assert.That(events[2].Current.Sequence, Is.EqualTo(7));
+            Assert.That(events[2].Code, Is.EqualTo(89631139));
+        }
+
+        [Test]
+        public void DecoderReadsRandomMessageProperly()
+        {
+            var payload = new List<byte> { 1, 3, 0, 1, 0 };
+            var framed = new List<byte>();
+            Packet(framed, (byte)CoreMessage.TossCoin, payload.ToArray());
+
+            DuelEvent duelEvent = CoreMessageDecoder.Decode(framed.ToArray())[0];
+
+            Assert.That(duelEvent.Message, Is.EqualTo(CoreMessage.TossCoin));
+            Assert.That(duelEvent.Player, Is.EqualTo(1));
+            Assert.That(duelEvent.Codes, Is.EqualTo(new uint[] { 0, 1, 0 }));
+        }
+
+        [Test]
         public void DecoderPreservesBattleValuesAndDestructionFlags()
         {
             var payload = new List<byte>();
@@ -178,6 +276,52 @@ namespace ArcaneDuel.Tests.EditMode
                         (byte)DuelLocation.MonsterZone,
                         3
                     }));
+        }
+
+        [Test]
+        public void PendulumExtraPlacementExposesOnlyCoreOfferedEmzOrLinkedZones()
+        {
+            var emzPayload = new List<byte> { 0, 1 };
+            uint onlyExtraMonsterZones = uint.MaxValue &
+                ~(1U << 5) & ~(1U << 6);
+            UInt32(emzPayload, onlyExtraMonsterZones);
+            var emzPacket = new List<byte>();
+            Packet(emzPacket, (byte)CoreMessage.SelectPlace,
+                emzPayload.ToArray());
+
+            DuelPrompt emzPrompt =
+                CoreMessageDecoder.Decode(emzPacket.ToArray())[0].Prompt;
+            Assert.That(
+                emzPrompt.Choices.Select(choice => choice.Sequence),
+                Is.EqualTo(new uint[] { 5, 6 }),
+                "With no Link-pointed MMZ, the UI must expose only the EMZ bits emitted by the Core.");
+            Assert.That(emzPrompt.Choices, Has.All.Matches<DuelChoice>(choice =>
+                choice.Controller == 0 &&
+                choice.Location == (byte)DuelLocation.MonsterZone));
+
+            var linkedPayload = new List<byte> { 0, 1 };
+            uint oneEmzAndLinkedMainZone = uint.MaxValue &
+                ~(1U << 5) & ~(1U << 2);
+            UInt32(linkedPayload, oneEmzAndLinkedMainZone);
+            var linkedPacket = new List<byte>();
+            Packet(linkedPacket, (byte)CoreMessage.SelectPlace,
+                linkedPayload.ToArray());
+
+            DuelPrompt linkedPrompt =
+                CoreMessageDecoder.Decode(linkedPacket.ToArray())[0].Prompt;
+            Assert.That(
+                linkedPrompt.Choices.Select(choice => choice.Sequence),
+                Is.EqualTo(new uint[] { 2, 5 }),
+                "A Link-pointed MMZ is clickable only when its exact bit is present in the Core prompt.");
+            Assert.That(
+                CoreMessageDecoder.PlaceSelectionResponse(
+                    linkedPrompt.Choices.Take(1)),
+                Is.EqualTo(new byte[]
+                {
+                    0,
+                    (byte)DuelLocation.MonsterZone,
+                    2
+                }));
         }
 
         [Test]
@@ -402,10 +546,87 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(
                 DuelPromptPresentationRules.DeclineChoice(prompt),
                 Is.Null);
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticPass(
+                    prompt,
+                    ActivationPromptMode.Off,
+                    false,
+                    0,
+                    out _,
+                    out _),
+                Is.False,
+                "A mandatory Core prompt must never be auto-answered.");
         }
 
         [Test]
-        public void EffectQuestionUsesCompactRespondOrPassControls()
+        public void ActivationModesOnlyUseTheExistingOptionalPassChoice()
+        {
+            var payload = new List<byte> { 0, 0, 0 };
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            UInt32(payload, 1);
+            UInt32(payload, 89631139);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.SpellTrapZone,
+                0,
+                8);
+            UInt64(payload, 0x1122334455667788UL);
+            payload.Add(0);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectChain,
+                payload.ToArray());
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+            DuelChoice decline =
+                DuelPromptPresentationRules.DeclineChoice(prompt);
+
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticPass(
+                    prompt,
+                    ActivationPromptMode.On,
+                    false,
+                    0,
+                    out _,
+                    out _),
+                Is.False);
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticPass(
+                    prompt,
+                    ActivationPromptMode.Auto,
+                    true,
+                    0,
+                    out _,
+                    out _),
+                Is.False,
+                "Self Chain ON must preserve the player's own window.");
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticPass(
+                    prompt,
+                    ActivationPromptMode.Auto,
+                    false,
+                    0,
+                    out DuelChoice automaticSelfPass,
+                    out _),
+                Is.True);
+            Assert.That(automaticSelfPass, Is.SameAs(decline));
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticPass(
+                    prompt,
+                    ActivationPromptMode.Off,
+                    false,
+                    1,
+                    out DuelChoice offPass,
+                    out _),
+                Is.True);
+            Assert.That(offPass, Is.SameAs(decline));
+        }
+
+        [Test]
+        public void EffectQuestionOpensTheCompleteDetailedChoice()
         {
             var payload = new List<byte> { 0 };
             UInt32(payload, 97268402);
@@ -427,7 +648,7 @@ namespace ArcaneDuel.Tests.EditMode
 
             Assert.That(
                 DuelPromptPresentationRules.ShouldUseCompactResponseBar(prompt),
-                Is.True);
+                Is.False);
             Assert.That(
                 DuelPromptPresentationRules.ActionableResponseChoices(prompt)
                     .Single().Label,
@@ -607,6 +828,55 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void SynchroAlternativeSumAcceptsOnlyCoreValidMaterialSets()
+        {
+            var payload = new List<byte> { 0, 0 };
+            UInt32(payload, 7);
+            UInt32(payload, 2);
+            UInt32(payload, 2);
+            UInt32(payload, 0);
+            UInt32(payload, 3);
+
+            UInt32(payload, 11111111);
+            Location(payload, 0, (byte)DuelLocation.MonsterZone, 0, 1);
+            UInt32(payload, 3U | (5U << 16));
+            UInt32(payload, 22222222);
+            Location(payload, 0, (byte)DuelLocation.MonsterZone, 1, 1);
+            UInt32(payload, 2);
+            UInt32(payload, 33333333);
+            Location(payload, 0, (byte)DuelLocation.MonsterZone, 2, 1);
+            UInt32(payload, 4);
+            var framed = new List<byte>();
+            Packet(framed, (byte)CoreMessage.SelectSum, payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt.RequiredSum, Is.EqualTo(7));
+            Assert.That(prompt.Choices[0].SumValue,
+                Is.EqualTo(3U | (5U << 16)));
+            Assert.That(
+                CoreMessageDecoder.IsValidSelection(prompt, new[] { 0, 1 }),
+                Is.True,
+                "The first material may contribute its Core-provided alternative value 5.");
+            Assert.That(
+                CoreMessageDecoder.IsValidSelection(prompt, new[] { 0, 2 }),
+                Is.True,
+                "The same material may contribute its Core-provided alternative value 3.");
+            Assert.That(
+                CoreMessageDecoder.IsValidSelection(prompt, new[] { 1, 2 }),
+                Is.False);
+            Assert.That(
+                CoreMessageDecoder.IsValidSelection(prompt, new[] { 0 }),
+                Is.False);
+            Assert.That(
+                DeterministicDuelPolicy.Choose(prompt).Response,
+                Is.EqualTo(CoreMessageDecoder.CardSelectionResponse(
+                    new uint[] { 0, 1 })),
+                "The UI response must contain only original Core candidate indexes.");
+        }
+
+        [Test]
         public void TributePromptUsesReleaseValueInsteadOfCardCount()
         {
             var payload = new List<byte> { 0, 0 };
@@ -650,6 +920,45 @@ namespace ArcaneDuel.Tests.EditMode
                 Is.EqualTo(
                     CoreMessageDecoder.CardSelectionResponse(
                         new uint[] { 0 })));
+        }
+
+        [Test]
+        public void SingleCardSelectionUsesNativeProgressiveBufferEnvelope()
+        {
+            var payload = new List<byte> { 0, 1 };
+            UInt32(payload, 1);
+            UInt32(payload, 1);
+            UInt32(payload, 2);
+
+            UInt32(payload, 89631139);
+            Location(payload, 0, (byte)DuelLocation.Hand, 0, 0);
+            UInt32(payload, 38517737);
+            Location(payload, 0, (byte)DuelLocation.Deck, 1, 0);
+
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectCard,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+            DuelChoice first = prompt.Choices.Single(choice =>
+                choice.ChoiceIndex == 0);
+            DuelChoice cancel = prompt.Choices.Single(choice =>
+                choice.Label == "Cancelar");
+
+            Assert.That(
+                first.Response,
+                Is.EqualTo(CoreMessageDecoder.CardSelectionResponse(
+                    new uint[] { 0 })),
+                "MSG_SELECT_CARD always uses the Core's typed/count/index " +
+                "ProgressiveBuffer envelope, even when max is one.");
+            Assert.That(first.Response, Has.Length.EqualTo(12));
+            Assert.That(
+                cancel.Response,
+                Is.EqualTo(CoreMessageDecoder.IntResponse(-1)));
+            Assert.That(cancel.Response, Has.Length.EqualTo(4));
         }
 
         [Test]
@@ -718,11 +1027,89 @@ namespace ArcaneDuel.Tests.EditMode
                 sortPayload.ToArray());
             DuelPrompt sortPrompt =
                 CoreMessageDecoder.Decode(sortPacket.ToArray())[0].Prompt;
-            Assert.That(sortPrompt.Choices, Has.Count.EqualTo(7));
+            Assert.That(sortPrompt.Choices, Has.Count.EqualTo(4));
+            Assert.That(sortPrompt.RequiresOrderedSelection, Is.True);
             Assert.That(
-                sortPrompt.Choices.Take(6)
-                    .All(choice => choice.Response.Length == 3),
+                CoreMessageDecoder.OrderedSelectionResponse(
+                    new[] { 2, 0, 1 }),
+                Is.EqualTo(new byte[] { 1, 2, 0 }));
+            Assert.Throws<System.ArgumentException>(() =>
+                CoreMessageDecoder.OrderedSelectionResponse(
+                    new[] { 2, 0, 0 }));
+        }
+
+        [Test]
+        public void SortChainCanKeepTheCoreOrderOrMapAManualOrder()
+        {
+            var payload = new List<byte> { 0 };
+            UInt32(payload, 3);
+            for (uint index = 0; index < 3; index++)
+            {
+                UInt32(payload, 10000000 + index);
+                payload.Add(0);
+                UInt32(payload, DuelLocation.Graveyard);
+                UInt32(payload, index);
+            }
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SortChain,
+                payload.ToArray());
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt.RequiresOrderedSelection, Is.True);
+            Assert.That(prompt.Choices.Skip(1).Select(
+                choice => choice.CandidateIndex),
+                Is.EqualTo(new[] { 0, 1, 2 }));
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticSort(
+                    prompt,
+                    false,
+                    out DuelChoice keepCoreOrder),
                 Is.True);
+            Assert.That(keepCoreOrder.Response,
+                Is.EqualTo(new byte[] { 0xFF }));
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticSort(
+                    prompt,
+                    true,
+                    out _),
+                Is.False);
+            Assert.That(
+                CoreMessageDecoder.OrderedSelectionResponse(
+                    new[] { 2, 0, 1 }),
+                Is.EqualTo(new byte[] { 1, 2, 0 }));
+        }
+
+        [Test]
+        public void ChainPromptPreservesConcreteEffectAndCardPosition()
+        {
+            const ulong descriptionId = 0x1122334455667788UL;
+            var payload = new List<byte> { 0, 0, 1 };
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            UInt32(payload, 1);
+            UInt32(payload, 92962242);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                2,
+                0x4);
+            UInt64(payload, descriptionId);
+            payload.Add(0);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectChain,
+                payload.ToArray());
+
+            DuelChoice choice = CoreMessageDecoder.Decode(
+                framed.ToArray())[0].Prompt.Choices[0];
+
+            Assert.That(choice.DescriptionId, Is.EqualTo(descriptionId));
+            Assert.That(choice.Position, Is.EqualTo(0x4));
         }
 
         [Test]
@@ -775,10 +1162,39 @@ namespace ArcaneDuel.Tests.EditMode
             DuelPrompt prompt =
                 CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
 
-            Assert.That(prompt.Choices, Has.Count.EqualTo(3));
-            Assert.That(prompt.Choices.Take(2).All(
-                choice => choice.Response.Length == count), Is.True);
-            Assert.That(prompt.Choices[2].Response, Is.EqualTo(new byte[] { 0xFF }));
+            Assert.That(prompt.RequiresOrderedSelection, Is.True);
+            Assert.That(prompt.MinimumSelections, Is.EqualTo(count));
+            Assert.That(prompt.MaximumSelections, Is.EqualTo(count));
+            Assert.That(prompt.Choices, Has.Count.EqualTo(count + 1));
+            Assert.That(prompt.Choices[0].Response,
+                Is.EqualTo(new byte[] { 0xFF }));
+            Assert.That(prompt.Choices.Skip(1).All(
+                choice => choice.Response.Length == 0), Is.True);
+        }
+
+        [Test]
+        public void MultiRaceAnnouncementExposesEveryBitWithoutCombinationCap()
+        {
+            var payload = new List<byte> { 0, 8 };
+            ulong available = (1UL << 26) - 1UL;
+            UInt64(payload, available);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.AnnounceRace,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+
+            Assert.That(prompt.RequiresMaskSelection, Is.True);
+            Assert.That(prompt.Choices, Has.Count.EqualTo(27));
+            byte[] response = CoreMessageDecoder.AnnounceMaskResponse(
+                prompt,
+                Enumerable.Range(0, 8));
+            Assert.That(response, Has.Length.EqualTo(8));
+            Assert.That(response,
+                Is.EqualTo(CoreMessageDecoder.UInt64Response(0xFFUL)));
         }
 
         [Test]
@@ -810,11 +1226,16 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(prompt, Is.Not.Null);
             Assert.That(prompt.Message, Is.EqualTo(CoreMessage.SelectCounter));
             Assert.That(prompt.Player, Is.Zero);
-            Assert.That(prompt.Choices, Is.Not.Empty);
-            Assert.That(prompt.Choices.All(choice =>
-                choice.Response.Length == 4), Is.True);
-            Assert.That(prompt.Choices.Select(choice => choice.Response),
-                Does.Contain(new byte[] { 2, 0, 1, 0 }));
+            Assert.That(prompt.CounterType, Is.EqualTo(0x1234));
+            Assert.That(prompt.RequiredCounterCount, Is.EqualTo(3));
+            Assert.That(prompt.Choices, Has.Count.EqualTo(3));
+            Assert.That(prompt.Choices[0].Response,
+                Is.EqualTo(new byte[] { 2, 0, 1, 0 }));
+            Assert.That(prompt.Choices.Skip(1).All(choice =>
+                choice.Response.Length == 0), Is.True);
+            Assert.That(
+                CoreMessageDecoder.CounterResponse(new ushort[] { 1, 2 }),
+                Is.EqualTo(new byte[] { 1, 0, 2, 0 }));
         }
 
         [Test]
@@ -858,6 +1279,66 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(duelEvent.Player, Is.EqualTo(1));
             Assert.That(duelEvent.Value, Is.EqualTo(4));
             Assert.That(duelEvent.Codes, Is.EqualTo(new uint[] { 0x05, 0x80 }));
+        }
+
+        [Test]
+        public void RockPaperScissorsIsATypedAnswerablePrompt()
+        {
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.RockPaperScissors,
+                new byte[] { 1 });
+
+            DuelEvent duelEvent =
+                CoreMessageDecoder.Decode(framed.ToArray())[0];
+
+            Assert.That(duelEvent.IsUnknown, Is.False);
+            Assert.That(duelEvent.Player, Is.EqualTo(1));
+            Assert.That(
+                duelEvent.Prompt.Message,
+                Is.EqualTo(CoreMessage.RockPaperScissors));
+            Assert.That(duelEvent.Prompt.Choices, Has.Count.EqualTo(3));
+            Assert.That(
+                duelEvent.Prompt.Choices.Select(choice => choice.Response),
+                Is.EquivalentTo(new[]
+                {
+                    new byte[] { 1, 0, 0, 0 },
+                    new byte[] { 2, 0, 0, 0 },
+                    new byte[] { 3, 0, 0, 0 }
+                }));
+        }
+
+        [Test]
+        public void MatchKillPreservesTheWinningCardCode()
+        {
+            var payload = new List<byte>();
+            UInt32(payload, 92962242);
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.MatchKill,
+                payload.ToArray());
+
+            DuelEvent duelEvent =
+                CoreMessageDecoder.Decode(framed.ToArray())[0];
+
+            Assert.That(duelEvent.IsUnknown, Is.False);
+            Assert.That(duelEvent.Code, Is.EqualTo(92962242));
+        }
+
+        [TestCase(CoreMessage.TagSwap)]
+        [TestCase(CoreMessage.ReloadField)]
+        public void CoreRecoveryPacketsRemainKnown(CoreMessage message)
+        {
+            var framed = new List<byte>();
+            Packet(framed, (byte)message, new byte[] { 1, 2, 3, 4 });
+
+            DuelEvent duelEvent =
+                CoreMessageDecoder.Decode(framed.ToArray())[0];
+
+            Assert.That(duelEvent.IsUnknown, Is.False);
+            Assert.That(duelEvent.Message, Is.EqualTo(message));
         }
 
         [Test]

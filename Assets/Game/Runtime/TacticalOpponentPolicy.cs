@@ -1061,8 +1061,8 @@ namespace ArcaneDuel.Game
         {
             if (descriptionId == 0 || database == null)
                 return string.Empty;
-            uint code = (uint)(descriptionId >> 4);
-            int index = (int)(descriptionId & 0x0F);
+            uint code = (uint)(descriptionId >> 20);
+            int index = checked((int)(descriptionId & 0xFFFFF));
             if (!database.TryGet(code, out CardRecord card) ||
                 card.Strings == null ||
                 index < 0 || index >= card.Strings.Length)

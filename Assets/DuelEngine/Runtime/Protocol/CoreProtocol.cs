@@ -93,7 +93,10 @@ namespace ArcaneDuel.DuelEngine.Protocol
         AnnounceCard = 142,
         AnnounceNumber = 143,
         CardHint = 160,
+        TagSwap = 161,
+        ReloadField = 162,
         PlayerHint = 165,
+        MatchKill = 170,
         RemoveCards = 190
     }
 
@@ -120,6 +123,13 @@ namespace ArcaneDuel.DuelEngine.Protocol
     public sealed class DuelChoice
     {
         public ulong RequestId { get; internal set; }
+        /// <summary>
+        /// Stable identity of the physical presentation instance associated
+        /// with this candidate. The Core still validates and consumes the
+        /// original response bytes/candidate index; RuntimeId only keeps the
+        /// UI and network replica bound to the same physical copy.
+        /// </summary>
+        public ulong RuntimeId { get; internal set; }
         public string Label { get; internal set; }
         public uint CardCode { get; internal set; }
         public byte[] Response { get; internal set; }
@@ -127,7 +137,14 @@ namespace ArcaneDuel.DuelEngine.Protocol
         public byte Controller { get; internal set; }
         public byte Location { get; internal set; }
         public uint Sequence { get; internal set; }
+        public uint Position { get; internal set; }
         public int ChoiceIndex { get; internal set; } = -1;
+        /// <summary>
+        /// Original candidate index emitted by ocgcore. This alias makes the
+        /// effect-selection contract explicit without changing the response
+        /// bytes used by existing prompt families.
+        /// </summary>
+        public int CandidateIndex => ChoiceIndex;
         public ulong DescriptionId { get; internal set; }
         public uint SumValue { get; internal set; }
     }
@@ -144,6 +161,11 @@ namespace ArcaneDuel.DuelEngine.Protocol
         public uint MaximumSelections { get; internal set; }
         public uint RequiredSum { get; internal set; }
         public bool SumAtLeast { get; internal set; }
+        public bool RequiresOrderedSelection { get; internal set; }
+        public bool RequiresMaskSelection { get; internal set; }
+        public ushort CounterType { get; internal set; }
+        public ushort RequiredCounterCount { get; internal set; }
+        public byte MaskWidth { get; internal set; }
         public List<uint> MandatorySums { get; } = new List<uint>();
         public List<DuelChoice> Choices { get; } = new List<DuelChoice>();
     }
@@ -158,6 +180,11 @@ namespace ArcaneDuel.DuelEngine.Protocol
         public uint PresentationPhase { get; internal set; }
         public uint Value { get; internal set; }
         public uint Code { get; internal set; }
+        public ushort CounterType { get; internal set; }
+        public ulong HintValue { get; internal set; }
+        // Stable effect description identifier emitted by ocgcore. Keeping
+        // it on the event preserves which concrete effect entered the chain.
+        public ulong DescriptionId { get; internal set; }
         public uint[] Codes { get; internal set; }
         public CardLocation Previous { get; internal set; }
         public CardLocation Current { get; internal set; }
@@ -365,7 +392,9 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 case CoreMessage.Chaining:
                     result.Code = reader.UInt32();
                     result.Current = reader.Location();
-                    reader.Skip(2 + 4 + 8);
+                    result.Player = result.Current.Controller;
+                    reader.Skip(2 + 4);
+                    result.DescriptionId = reader.UInt64();
                     result.Value = reader.UInt32();
                     break;
                 case CoreMessage.Chained:
@@ -482,29 +511,79 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 case CoreMessage.ShuffleExtra:
                 case CoreMessage.ConfirmExtraTop:
                 case CoreMessage.Set:
-                case CoreMessage.FieldDisabled:
                 case CoreMessage.CardSelected:
                 case CoreMessage.RandomSelected:
-                case CoreMessage.BecomeTarget:
-                case CoreMessage.Equip:
-                case CoreMessage.Unequip:
-                case CoreMessage.CardTarget:
-                case CoreMessage.CancelTarget:
-                case CoreMessage.AddCounter:
-                case CoreMessage.RemoveCounter:
                 case CoreMessage.DamageStepStart:
                 case CoreMessage.DamageStepEnd:
-                case CoreMessage.MissedEffect:
                 case CoreMessage.BeChainTarget:
-                case CoreMessage.CreateRelation:
-                case CoreMessage.ReleaseRelation:
-                case CoreMessage.TossCoin:
-                case CoreMessage.TossDice:
-                case CoreMessage.HandResult:
-                case CoreMessage.CardHint:
-                case CoreMessage.PlayerHint:
                     result.Detail = $"Evento de duelo {message}.";
                     reader.Skip(reader.Remaining);
+                    break;
+                case CoreMessage.FieldDisabled:
+                    DecodeFieldDisabled(reader, result);
+                    break;
+                case CoreMessage.BecomeTarget:
+                    DecodeBecomeTarget(reader, result);
+                    break;
+                case CoreMessage.Equip:
+                    DecodeEquip(reader, result);
+                    break;
+                case CoreMessage.Unequip:
+                    DecodeUnequip(reader, result);
+                    break;
+                case CoreMessage.CardTarget:
+                    DecodeCardTarget(reader, result, "selecionou como");
+                    break;
+                case CoreMessage.CancelTarget:
+                    DecodeCardTarget(reader, result, "cancelou");
+                    break;
+                case CoreMessage.AddCounter:
+                    DecodeCounter(reader, result, "adicionado(s)");
+                    break;
+                case CoreMessage.RemoveCounter:
+                    DecodeCounter(reader, result, "removido(s)");
+                    break;
+                case CoreMessage.MissedEffect:
+                    DecodeMissedEffect(reader, result);
+                    break;
+                case CoreMessage.CreateRelation:
+                    DecodeRelation(reader, result, "criada");
+                    break;
+                case CoreMessage.ReleaseRelation:
+                    DecodeRelation(reader, result, "removida");
+                    break;
+                case CoreMessage.TossCoin:
+                    DecodeRandom(reader, result, "moeda(s)");
+                    break;
+                case CoreMessage.TossDice:
+                    DecodeRandom(reader, result, "dado(s)");
+                    break;
+                case CoreMessage.HandResult:
+                    DecodeHandResult(reader, result);
+                    break;
+                case CoreMessage.RockPaperScissors:
+                    result.Prompt = DecodeRockPaperScissors(reader);
+                    result.Player = result.Prompt.Player;
+                    break;
+                case CoreMessage.CardHint:
+                    DecodeCardHint(reader, result);
+                    break;
+                case CoreMessage.PlayerHint:
+                    DecodePlayerHint(reader, result);
+                    break;
+                case CoreMessage.TagSwap:
+                case CoreMessage.ReloadField:
+                    // These synchronization packets belong to tag/reload
+                    // duel modes. Card12 is a two-seat Master Rule duel, but
+                    // decoding them as known packets keeps the protocol
+                    // complete if the pinned Core emits one during recovery.
+                    result.Detail = $"Evento de sincronização {message}.";
+                    reader.Skip(reader.Remaining);
+                    break;
+                case CoreMessage.MatchKill:
+                    result.Code = reader.UInt32();
+                    result.Detail =
+                        $"Vitória de Match causada por {result.Code:00000000}.";
                     break;
                 case CoreMessage.ShuffleHand:
                     DecodeShuffleHand(reader, result);
@@ -675,6 +754,129 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 $"A mão do Duelista {result.Player + 1} foi reordenada.";
         }
 
+        private static void DecodeEquip(PacketReader reader, DuelEvent result)
+        {
+            result.Previous = reader.Location();
+            result.Current = reader.Location();
+            result.Detail = $"Uma carta foi equipada.";
+        }
+
+        private static void DecodeUnequip(PacketReader reader, DuelEvent result)
+        {
+            result.Previous = reader.Location();
+            result.Detail = $"Uma carta foi desequipada.";
+        }
+
+        private static void DecodeCardTarget(PacketReader reader, DuelEvent result, string action)
+        {
+            result.Previous = reader.Location();
+            result.Current = reader.Location();
+            result.Detail = $"Uma carta {action} um alvo.";
+        }
+
+        private static void DecodeBecomeTarget(PacketReader reader, DuelEvent result)
+        {
+            uint count = GuardCount(
+                reader.UInt32(),
+                255,
+                "target cards");
+            result.CurrentLocations = new CardLocation[count];
+            for (int i = 0; i < count; i++)
+            {
+                result.CurrentLocations[i] = reader.Location();
+            }
+            result.Detail = $"{count} carta(s) se tornou/tornaram alvo.";
+        }
+
+        private static void DecodeCounter(PacketReader reader, DuelEvent result, string action)
+        {
+            result.CounterType = reader.UInt16();
+            result.Code = result.CounterType;
+            byte controller = reader.Byte();
+            byte location = reader.Byte();
+            byte sequence = reader.Byte();
+            result.Current = new CardLocation
+            {
+                Controller = controller,
+                Location = location,
+                Sequence = sequence,
+                Position = 0
+            };
+            result.Value = reader.UInt16();
+            result.Detail = $"{result.Value} marcador(es) ({result.Code:X4}) {action}.";
+        }
+
+        private static void DecodeFieldDisabled(PacketReader reader, DuelEvent result)
+        {
+            result.Value = reader.UInt32();
+            result.Detail = $"Zonas desativadas mask: {result.Value:X8}.";
+        }
+
+        private static void DecodeRelation(PacketReader reader, DuelEvent result, string action)
+        {
+            result.Previous = reader.Location();
+            result.Current = reader.Location();
+            result.Detail = $"Relação {action}.";
+        }
+
+        private static void DecodeRandom(PacketReader reader, DuelEvent result, string item)
+        {
+            result.Player = reader.Byte();
+            uint count = reader.Byte();
+            result.Codes = new uint[count];
+            for (int i = 0; i < count; i++)
+                result.Codes[i] = reader.Byte();
+            result.Detail = $"O Duelista {result.Player + 1} rolou {count} {item}.";
+        }
+
+        private static void DecodeHandResult(PacketReader reader, DuelEvent result)
+        {
+            result.Value = reader.Byte();
+            result.Detail = $"Resultado de Jankenpon: {result.Value}.";
+        }
+
+        private static DuelPrompt DecodeRockPaperScissors(
+            PacketReader reader)
+        {
+            byte player = reader.Byte();
+            var prompt = NewPrompt(
+                CoreMessage.RockPaperScissors,
+                player,
+                "Escolha pedra, papel ou tesoura");
+            prompt.Forced = true;
+            prompt.MinimumSelections = 1;
+            prompt.MaximumSelections = 1;
+            prompt.Choices.Add(Choice("Pedra", 0, IntResponse(1)));
+            prompt.Choices.Add(Choice("Tesoura", 0, IntResponse(2)));
+            prompt.Choices.Add(Choice("Papel", 0, IntResponse(3)));
+            return prompt;
+        }
+
+        private static void DecodeCardHint(PacketReader reader, DuelEvent result)
+        {
+            result.Current = reader.Location();
+            result.Code = reader.Byte();
+            result.HintValue = reader.UInt64();
+            result.Value = unchecked((uint)result.HintValue);
+            result.Detail = $"Hint ({result.Code}) aplicado na carta.";
+        }
+
+        private static void DecodePlayerHint(PacketReader reader, DuelEvent result)
+        {
+            result.Player = reader.Byte();
+            result.Code = reader.Byte();
+            result.HintValue = reader.UInt64();
+            result.Value = unchecked((uint)result.HintValue);
+            result.Detail = $"Hint ({result.Code}) aplicado ao jogador {result.Player + 1}.";
+        }
+
+        private static void DecodeMissedEffect(PacketReader reader, DuelEvent result)
+        {
+            result.Current = reader.Location();
+            result.Code = reader.UInt32();
+            result.Detail = $"Efeito {result.Code:00000000} perdido.";
+        }
+
         private static DuelPrompt DecodeIdle(PacketReader reader)
         {
             var prompt = NewPrompt(CoreMessage.SelectIdleCommand, reader.Byte(), "Escolha uma ação");
@@ -734,7 +936,9 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 IntResponse(1),
                 location.Controller,
                 location.Location,
-                location.Sequence);
+                location.Sequence,
+                0,
+                position: location.Position);
             activate.DescriptionId = description;
             prompt.Choices.Add(activate);
             DuelChoice decline = Choice(
@@ -743,8 +947,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 IntResponse(0),
                 location.Controller,
                 location.Location,
-                location.Sequence);
-            decline.DescriptionId = description;
+                location.Sequence,
+                position: location.Position);
             prompt.Choices.Add(decline);
             return prompt;
         }
@@ -752,9 +956,15 @@ namespace ArcaneDuel.DuelEngine.Protocol
         private static DuelPrompt DecodeYesNo(PacketReader reader)
         {
             byte player = reader.Byte();
-            reader.UInt64();
+            ulong description = reader.UInt64();
             var prompt = NewPrompt(CoreMessage.SelectYesNo, player, "Confirmar ação?");
-            prompt.Choices.Add(Choice("Sim", 0, IntResponse(1)));
+            DuelChoice confirm = Choice(
+                "Sim",
+                0,
+                IntResponse(1),
+                choiceIndex: 0);
+            confirm.DescriptionId = description;
+            prompt.Choices.Add(confirm);
             prompt.Choices.Add(Choice("Não", 0, IntResponse(0)));
             return prompt;
         }
@@ -815,11 +1025,18 @@ namespace ArcaneDuel.DuelEngine.Protocol
                     // value. A single card can contribute two or three.
                     choice.SumValue = selectionValue;
                 }
+                else
+                {
+                    choice.Position = selectionValue;
+                }
                 prompt.Choices.Add(choice);
             }
             if (minimum == 0 || cancelable)
             {
-                prompt.Choices.Add(Choice("Cancelar", 0, IntResponse(-1)));
+                prompt.Choices.Add(Choice(
+                    "Cancelar",
+                    0,
+                    IntResponse(-1)));
             }
             if (minimum > 1 && count >= minimum)
             {
@@ -862,7 +1079,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
                     location.Controller,
                     location.Location,
                     location.Sequence,
-                    index));
+                    index,
+                    location.Position));
             }
 
             uint selected = GuardCount(
@@ -880,7 +1098,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
                     location.Controller,
                     location.Location,
                     location.Sequence,
-                    checked((int)selectable + index)));
+                    checked((int)selectable + index),
+                    location.Position));
             }
 
             if (finishable)
@@ -946,7 +1165,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
                     location.Controller,
                     location.Location,
                     location.Sequence,
-                    index);
+                    index,
+                    location.Position);
                 choice.SumValue = sumValue;
                 prompt.Choices.Add(choice);
             }
@@ -996,84 +1216,103 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 player,
                 $"Distribua {required} contador(es) do tipo {counterType}");
             prompt.Forced = true;
-            prompt.MinimumSelections = 1;
-            prompt.MaximumSelections = 1;
+            prompt.CounterType = counterType;
+            prompt.RequiredCounterCount = required;
+            prompt.MinimumSelections = 0;
+            prompt.MaximumSelections = count;
 
-            var allocations = new List<ushort[]>();
-            BuildCounterAllocations(
-                capacities,
-                0,
-                required,
-                new ushort[capacities.Length],
-                allocations,
-                256);
-            for (int option = 0; option < allocations.Count; option++)
+            ushort[] automatic = new ushort[capacities.Length];
+            int remaining = required;
+            for (int index = 0;
+                 index < capacities.Length && remaining > 0;
+                 index++)
             {
-                ushort[] allocation = allocations[option];
-                var parts = new List<string>();
-                for (int index = 0; index < allocation.Length; index++)
-                {
-                    if (allocation[index] == 0)
-                        continue;
-                    CardLocation location = locations[index];
-                    parts.Add(
-                        $"{(location.Controller == player ? "Sua zona" : "Zona do rival")} " +
-                        $"{location.Sequence + 1}: {allocation[index]}");
-                }
-                prompt.Choices.Add(Choice(
-                    parts.Count == 0
-                        ? $"Distribuição {option + 1}"
-                        : string.Join(" • ", parts),
+                automatic[index] = (ushort)Math.Min(
+                    capacities[index],
+                    remaining);
+                remaining -= automatic[index];
+            }
+            prompt.Choices.Add(Choice(
+                "Distribuir automaticamente",
+                0,
+                CounterResponse(automatic)));
+            for (int index = 0; index < capacities.Length; index++)
+            {
+                CardLocation location = locations[index];
+                DuelChoice choice = Choice(
+                    $"{(location.Controller == player ? "Sua zona" : "Zona do rival")} " +
+                    $"{location.Sequence + 1} - capacidade {capacities[index]}",
                     0,
-                    CounterResponse(allocation),
-                    choiceIndex: option));
+                    Array.Empty<byte>(),
+                    location.Controller,
+                    location.Location,
+                    location.Sequence,
+                    index);
+                choice.SumValue = capacities[index];
+                prompt.Choices.Add(choice);
             }
             return prompt;
         }
 
-        private static void BuildCounterAllocations(
-            ushort[] capacities,
-            int index,
-            int remaining,
-            ushort[] current,
-            List<ushort[]> results,
-            int limit)
+        public static byte[] CounterResponse(
+            IReadOnlyList<ushort> allocation)
         {
-            if (results.Count >= limit)
-                return;
-            if (index >= capacities.Length)
-            {
-                if (remaining == 0)
-                    results.Add((ushort[])current.Clone());
-                return;
-            }
-
-            int maximum = Math.Min(capacities[index], remaining);
-            for (int amount = 0; amount <= maximum; amount++)
-            {
-                current[index] = (ushort)amount;
-                BuildCounterAllocations(
-                    capacities,
-                    index + 1,
-                    remaining - amount,
-                    current,
-                    results,
-                    limit);
-                if (results.Count >= limit)
-                    break;
-            }
-            current[index] = 0;
-        }
-
-        private static byte[] CounterResponse(ushort[] allocation)
-        {
-            var response = new byte[(allocation?.Length ?? 0) * 2];
-            for (int index = 0; index < (allocation?.Length ?? 0); index++)
+            var response = new byte[(allocation?.Count ?? 0) * 2];
+            for (int index = 0; index < (allocation?.Count ?? 0); index++)
             {
                 response[index * 2] = (byte)allocation[index];
                 response[index * 2 + 1] = (byte)(allocation[index] >> 8);
             }
             return response;
+        }
+
+        public static byte[] OrderedSelectionResponse(
+            IEnumerable<int> orderedIndexes)
+        {
+            int[] order = orderedIndexes?.ToArray() ?? Array.Empty<int>();
+            if (order.Length > byte.MaxValue ||
+                order.Any(index => index < 0 || index >= order.Length) ||
+                order.Distinct().Count() != order.Length)
+            {
+                throw new ArgumentException(
+                    "A sort response must contain each original candidate " +
+                    "index exactly once.",
+                    nameof(orderedIndexes));
+            }
+
+            // ocgcore's SortCard/SortChain response is indexed by the
+            // original candidate and stores that candidate's final rank.
+            // The presenter collects the inverse representation (candidate
+            // indexes in the desired visual order), so convert it here.
+            var rankByOriginalCandidate = new byte[order.Length];
+            for (int rank = 0; rank < order.Length; rank++)
+                rankByOriginalCandidate[order[rank]] = (byte)rank;
+            return rankByOriginalCandidate;
+        }
+
+        public static byte[] AnnounceMaskResponse(
+            DuelPrompt prompt,
+            IEnumerable<int> selectedBits)
+        {
+            if (prompt == null || !prompt.RequiresMaskSelection)
+                throw new ArgumentException(
+                    "The prompt does not require a combined announce mask.",
+                    nameof(prompt));
+            int[] bits = selectedBits?.Distinct().ToArray() ??
+                         Array.Empty<int>();
+            if (bits.Length != prompt.MaximumSelections ||
+                bits.Any(bit => bit < 0 || bit >= prompt.MaskWidth))
+            {
+                throw new ArgumentException(
+                    "The selected announce bits do not satisfy the prompt.",
+                    nameof(selectedBits));
+            }
+            ulong mask = 0;
+            foreach (int bit in bits)
+                mask |= 1UL << bit;
+            return prompt.Message == CoreMessage.AnnounceRace
+                ? UInt64Response(mask)
+                : IntResponse(unchecked((int)mask));
         }
 
         private static DuelPrompt DecodeSort(
@@ -1082,17 +1321,26 @@ namespace ArcaneDuel.DuelEngine.Protocol
         {
             byte player = reader.Byte();
             // The Core may legally ask to order more than eight cards (for
-            // example, a large Deck-bottom operation). Generation below is
-            // already bounded to two permutations for large lists.
+            // example, a large Deck-bottom operation). The typed presenter
+            // collects the requested order directly instead of enumerating
+            // every permutation.
             uint count = GuardCount(reader.UInt32(), 200, "sort cards");
             var names = new List<string>();
+            var cards = new List<uint>();
+            var controllers = new List<byte>();
+            var locations = new List<byte>();
+            var sequences = new List<uint>();
             for (int index = 0; index < count; index++)
             {
                 uint code = reader.UInt32();
-                reader.Byte();
-                reader.UInt32();
-                reader.UInt32();
+                byte controller = reader.Byte();
+                byte location = checked((byte)reader.UInt32());
+                uint sequence = reader.UInt32();
                 names.Add(code.ToString("00000000"));
+                cards.Add(code);
+                controllers.Add(controller);
+                locations.Add(location);
+                sequences.Add(sequence);
             }
 
             var prompt = NewPrompt(
@@ -1110,26 +1358,24 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 return prompt;
             }
 
-            int maximumPermutations = count <= 6 ? 720 : 2;
-            var permutations = new List<byte[]>();
-            BuildPermutations(
-                new List<byte>(),
-                new bool[checked((int)count)],
-                checked((int)count),
-                permutations,
-                maximumPermutations);
-            foreach (byte[] order in permutations)
-            {
-                string label = "ORDEM " +
-                               string.Join(
-                                   " - ",
-                                   order.Select(value => (value + 1).ToString()));
-                prompt.Choices.Add(Choice(label, 0, order));
-            }
+            prompt.RequiresOrderedSelection = true;
+            prompt.MinimumSelections = count;
+            prompt.MaximumSelections = count;
             prompt.Choices.Add(Choice(
                 "Manter ordem atual",
                 0,
                 new byte[] { 0xFF }));
+            for (int index = 0; index < count; index++)
+            {
+                prompt.Choices.Add(Choice(
+                    $"{index + 1}. {names[index]}",
+                    cards[index],
+                    Array.Empty<byte>(),
+                    controllers[index],
+                    locations[index],
+                    sequences[index],
+                    index));
+            }
             return prompt;
         }
 
@@ -1151,6 +1397,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
                     : "Declare um Atributo");
             prompt.MinimumSelections = count;
             prompt.MaximumSelections = count;
+            prompt.RequiresMaskSelection = count > 1;
+            prompt.MaskWidth = (byte)(race ? 64 : 32);
 
             string[] labels = race
                 ? new[]
@@ -1174,31 +1422,30 @@ namespace ArcaneDuel.DuelEngine.Protocol
             {
                 if ((available & (1UL << bit)) != 0) bits.Add(bit);
             }
-            var combinations = new List<ulong>();
-            BuildMaskCombinations(
-                bits,
-                0,
-                checked((int)count),
-                0,
-                combinations,
-                256);
-            foreach (ulong mask in combinations)
+            if (count > 1)
             {
-                var selectedLabels = new List<string>();
-                for (int bit = 0; bit < width; bit++)
-                {
-                    if ((mask & (1UL << bit)) == 0) continue;
-                    selectedLabels.Add(
-                        bit < labels.Length
-                            ? labels[bit]
-                            : $"TIPO {bit + 1}");
-                }
+                ulong automaticMask = 0;
+                foreach (int bit in bits.Take(checked((int)count)))
+                    automaticMask |= 1UL << bit;
                 prompt.Choices.Add(Choice(
-                    string.Join(" + ", selectedLabels),
+                    "Declarar primeira combinação válida",
+                    0,
+                    race
+                        ? UInt64Response(automaticMask)
+                        : IntResponse(unchecked((int)automaticMask))));
+            }
+            foreach (int bit in bits)
+            {
+                ulong mask = 1UL << bit;
+                prompt.Choices.Add(Choice(
+                    bit < labels.Length
+                        ? labels[bit]
+                        : $"TIPO {bit + 1}",
                     0,
                     race
                         ? UInt64Response(mask)
-                        : IntResponse(unchecked((int)mask))));
+                        : IntResponse(unchecked((int)mask)),
+                    choiceIndex: bit));
             }
             return prompt;
         }
@@ -1279,16 +1526,19 @@ namespace ArcaneDuel.DuelEngine.Protocol
             {
                 uint code = reader.UInt32();
                 CardLocation location = reader.Location();
-                reader.UInt64();
+                ulong description = reader.UInt64();
                 reader.Byte();
-                prompt.Choices.Add(Choice(
+                DuelChoice choice = Choice(
                     "Encadear efeito",
                     code,
                     IntResponse(i),
                     location.Controller,
                     location.Location,
                     location.Sequence,
-                    i));
+                    i,
+                    location.Position);
+                choice.DescriptionId = description;
+                prompt.Choices.Add(choice);
             }
             if (!forced) prompt.Choices.Add(Choice("Não responder", 0, IntResponse(-1)));
             return prompt;
@@ -1431,7 +1681,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
             byte controller = 0,
             byte location = 0,
             uint sequence = 0,
-            int choiceIndex = -1)
+            int choiceIndex = -1,
+            uint position = 0)
         {
             return new DuelChoice
             {
@@ -1442,6 +1693,7 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 Controller = controller,
                 Location = location,
                 Sequence = sequence,
+                Position = position,
                 ChoiceIndex = choiceIndex
             };
         }

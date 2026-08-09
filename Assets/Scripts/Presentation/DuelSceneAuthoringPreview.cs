@@ -13,6 +13,9 @@ namespace ArcaneArena.Presentation
     public sealed class DuelSceneAuthoringPreview : MonoBehaviour
     {
         private CanvasGroup group;
+#if UNITY_EDITOR
+        private bool validationRefreshScheduled;
+#endif
 
         private void OnEnable()
         {
@@ -26,8 +29,32 @@ namespace ArcaneArena.Presentation
 
         private void OnValidate()
         {
+#if UNITY_EDITOR
+            if (validationRefreshScheduled)
+                return;
+            validationRefreshScheduled = true;
+            UnityEditor.EditorApplication.delayCall +=
+                RefreshAfterValidation;
+#else
             RefreshVisibility();
+#endif
         }
+
+#if UNITY_EDITOR
+        private void RefreshAfterValidation()
+        {
+            validationRefreshScheduled = false;
+            if (this != null)
+                RefreshVisibility();
+        }
+
+        private void OnDisable()
+        {
+            UnityEditor.EditorApplication.delayCall -=
+                RefreshAfterValidation;
+            validationRefreshScheduled = false;
+        }
+#endif
 
         private void RefreshVisibility()
         {

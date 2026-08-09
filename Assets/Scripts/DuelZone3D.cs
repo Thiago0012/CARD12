@@ -31,6 +31,9 @@ namespace ArcaneArena
         private bool dropHighlighted;
         private Color dropHighlightColor =
             new Color(0.08f, 0.58f, 1f, 1f);
+        private bool disabledByCore;
+        private static readonly Color DisabledByCoreColor =
+            new Color(0.34f, 0.055f, 0.07f, 1f);
         private bool pointerFocused;
         private LineRenderer specialZoneOutline;
         private Material specialZoneOutlineMaterial;
@@ -44,6 +47,7 @@ namespace ArcaneArena
         public bool IsFaceUp => faceUp;
         public DuelMonsterPosition MonsterPosition => monsterPosition;
         public bool AcceptsLocalInput => acceptsLocalInput;
+        public bool IsDisabledByCore => disabledByCore;
         public Transform CardPresentationAnchor
         {
             get
@@ -258,6 +262,28 @@ namespace ArcaneArena
             {
                 dropSurfaceMaterial.color = enabled
                     ? dropHighlightColor
+                    : disabledByCore
+                        ? DisabledByCoreColor
+                        : dropSurfaceColor;
+            }
+        }
+
+        /// <summary>
+        /// Keeps MSG_FIELD_DISABLED visible independently from transient legal
+        /// action highlights. The Core remains the authority; this is only its
+        /// persistent presentation on the authored board.
+        /// </summary>
+        public void SetCoreDisabled(bool disabled)
+        {
+            if (disabledByCore == disabled)
+                return;
+            disabledByCore = disabled;
+            EnsureDropSurfaceMaterial();
+            RefreshExtraMonsterZoneSurface();
+            if (dropSurfaceMaterial != null && !dropHighlighted)
+            {
+                dropSurfaceMaterial.color = disabledByCore
+                    ? DisabledByCoreColor
                     : dropSurfaceColor;
             }
         }
@@ -267,7 +293,8 @@ namespace ArcaneArena
             if (Kind != DuelZoneKind.Monster || ZoneIndex < 5)
                 return;
             bool visibleOrInteractive =
-                dropHighlighted || !string.IsNullOrWhiteSpace(placedCardId);
+                dropHighlighted || disabledByCore ||
+                !string.IsNullOrWhiteSpace(placedCardId);
             Collider zoneCollider = GetComponent<Collider>();
             if (zoneCollider != null)
                 zoneCollider.enabled = visibleOrInteractive;
@@ -294,7 +321,7 @@ namespace ArcaneArena
 
         private void Update()
         {
-            if (!dropHighlighted && !pointerFocused)
+            if (!dropHighlighted && !pointerFocused && !disabledByCore)
                 return;
             UpdateSpecialZoneOutline();
             if (dropSurfaceMaterial == null)
@@ -316,10 +343,12 @@ namespace ArcaneArena
                     Color.Lerp(low, high, pulse);
                 return;
             }
-            dropSurfaceMaterial.color = Color.Lerp(
-                dropSurfaceColor,
-                new Color(0.10f, 0.34f, 0.38f, 1f),
-                0.56f);
+            dropSurfaceMaterial.color = disabledByCore
+                ? DisabledByCoreColor
+                : Color.Lerp(
+                    dropSurfaceColor,
+                    new Color(0.10f, 0.34f, 0.38f, 1f),
+                    0.56f);
         }
 
         private void RefreshSpecialZoneOutline(bool enabled)

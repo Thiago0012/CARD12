@@ -440,7 +440,12 @@ bool field::process(Processors::PhaseEvent& arg) {
 			else
 				message->write<uint64_t>(26);
 			if(tf_count == 0 && to_count == 1 && fc_count == 0 && cn_count == 0) {
-				emplace_process<Processors::SelectEffectYesNo>(check_player, 0, core.select_chains.front().triggering_effect->get_handler());
+				// Card12 presents the concrete effect text before the player
+				// answers. Preserve the standard yes/no response, but carry the
+				// selected effect's description instead of an anonymous prompt.
+				emplace_process<Processors::SelectEffectYesNo>(check_player,
+					core.select_chains.front().triggering_effect->description,
+					core.select_chains.front().triggering_effect->get_handler());
 				return FALSE;
 			} else {
 				emplace_process<Processors::SelectChain>(check_player, core.spe_effect[check_player], (tf_count + cn_count) > 0);
@@ -740,7 +745,12 @@ bool field::process(Processors::PointEvent& arg) {
 				core.select_chains.erase(endit, core.select_chains.end());
 			}
 			if(core.select_chains.size() == 1 && !core.current_chain.size()) {
-				emplace_process<Processors::SelectEffectYesNo>(core.current_player, 221, core.select_chains.front().triggering_effect->get_handler());
+				// The effect is already uniquely selected here. Sending its
+				// description lets the client distinguish multiple effects owned
+				// by the same card without changing activation legality.
+				emplace_process<Processors::SelectEffectYesNo>(core.current_player,
+					core.select_chains.front().triggering_effect->description,
+					core.select_chains.front().triggering_effect->get_handler());
 				return FALSE;
 			} else {
 				emplace_process<Processors::SelectChain>(core.current_player, 0x7f, false);

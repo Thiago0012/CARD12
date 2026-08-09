@@ -31,12 +31,26 @@ namespace ArcaneDuel.Game
 
             return prompt.Message == CoreMessage.SelectChain ||
                    prompt.Message == CoreMessage.SelectEffectYesNo ||
-                   prompt.Message == CoreMessage.SelectYesNo;
+                   prompt.Message == CoreMessage.SelectYesNo ||
+                   prompt.Message == CoreMessage.SelectPosition ||
+                   prompt.Message == CoreMessage.SelectOption ||
+                   prompt.Message == CoreMessage.AnnounceCard ||
+                   prompt.Message == CoreMessage.AnnounceAttribute ||
+                   prompt.Message == CoreMessage.AnnounceRace ||
+                   prompt.Message == CoreMessage.AnnounceNumber ||
+                   prompt.Message == CoreMessage.RockPaperScissors ||
+                   prompt.Message == CoreMessage.SelectCounter ||
+                   prompt.Message == CoreMessage.SortCard ||
+                   prompt.Message == CoreMessage.SortChain;
         }
 
         public static bool ShouldUseCompactResponseBar(DuelPrompt prompt)
         {
             return RequiresVisibleResponseTray(prompt) &&
+                   // A concrete effect question must show its full
+                   // description immediately. Hiding it behind a generic
+                   // RESPONDER button made legal trigger effects look absent.
+                   prompt.Message == CoreMessage.SelectChain &&
                    !prompt.Forced &&
                    DeclineChoice(prompt) != null &&
                    ActionableResponseChoices(prompt).Count == 1;
@@ -59,6 +73,40 @@ namespace ArcaneDuel.Game
             return prompt?.Choices
                 .Where(choice => choice != null && choice != decline)
                 .ToList() ?? new List<DuelChoice>();
+        }
+
+        /// <summary>
+        /// Returns only activation candidates explicitly offered by the Core.
+        /// Decline/pass choices and follow-up option/target prompts are not
+        /// effect candidates and must never be grouped into this list.
+        /// </summary>
+        public static List<DuelChoice> EffectCandidates(DuelPrompt prompt)
+        {
+            return prompt?.Choices
+                .Where(choice => IsEffectCandidate(prompt, choice))
+                .ToList() ?? new List<DuelChoice>();
+        }
+
+        public static bool IsEffectCandidate(
+            DuelPrompt prompt,
+            DuelChoice choice)
+        {
+            if (prompt == null || choice == null ||
+                IsNoResponseChoice(choice))
+            {
+                return false;
+            }
+
+            return prompt.Message switch
+            {
+                CoreMessage.SelectChain => true,
+                CoreMessage.SelectEffectYesNo =>
+                    Contains(choice.Label, "Ativar"),
+                CoreMessage.SelectIdleCommand or
+                    CoreMessage.SelectBattleCommand =>
+                    Contains(choice.Label, "Ativar"),
+                _ => false
+            };
         }
 
         public static List<DuelChoice> PhaseChoices(DuelPrompt prompt)

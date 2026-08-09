@@ -1,16 +1,16 @@
 ﻿{
     "schemaVersion":  1,
-    "generatedUtc":  "2026-07-28T22:23:04.6077195Z",
+    "generatedUtc":  "2026-08-09T00:29:20.9275839Z",
     "platform":  "Windows x64",
     "configuration":  "Release",
     "generator":  "gmake2",
-    "coreCommit":  "0764db0c75b3d1d574880d365aa3695ab1f13b43",
+    "coreCommit":  "869f7c0d33f1bf8a14af6e91a85f0e66759beffa",
     "unstrippedBuildOutput":  "ThirdParty/ygopro-core/bin/x64/release/ocgcore.dll",
-    "unstrippedSha256":  "0B998E463E0453B6DED2EB2138BAB8141ADC6F683B258C3404EDE2C61A9B17EE",
-    "unstrippedBytes":  204196033,
+    "unstrippedSha256":  "00277DFD6CEE41983B23D4E3837CFDF0C4A3D3C2FBC70063DCAD51E6B0D8078B",
+    "unstrippedBytes":  204209948,
     "output":  "Assets/Plugins/Windows/x86_64/ocgcore.dll",
-    "sha256":  "DD6FFC53CCBE9151A091C8972E003A1236A913527DEB7C29FA2431A3A71E9477",
-    "bytes":  1597854,
+    "sha256":  "D0DC3BB602007E17AAFE097570C4EBE6C19903ED7B3B791E2A862091BBD15817",
+    "bytes":  1598366,
     "dependencies":  [
                          "KERNEL32.dll",
                          "msvcrt.dll"
@@ -20,7 +20,7 @@
                       "make":  "GNU Make 4.4.1",
                       "premake":  "premake5 (Premake Build Script Generator) 5.0.0-beta2",
                       "root":  "D:\\JOGO Y\\Tools",
-                      "projectBuildAlias":  "D:\\JOGO_Y_PROJECT",
+                      "projectBuildAlias":  "D:\\JOGO_Y_PROJECT\\CARD12",
                       "toolBuildAlias":  "D:\\JOGO_Y_TOOLS"
                   }
 }

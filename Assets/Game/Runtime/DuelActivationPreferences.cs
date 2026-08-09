@@ -1,0 +1,195 @@
+using ArcaneDuel.DuelEngine.Protocol;
+using UnityEngine;
+
+namespace ArcaneDuel.Game
+{
+    public enum ActivationPromptMode
+    {
+        On = 0,
+        Auto = 1,
+        Off = 2
+    }
+
+    /// <summary>
+    /// Local response-presentation preferences. These values never add,
+    /// remove or validate Core candidates; they may only choose the pass
+    /// response already present in an optional prompt.
+    /// </summary>
+    public static class DuelActivationPreferences
+    {
+        private const string ModeKey = "ArcaneDuel.ActivationPromptMode";
+        private const string SelfChainKey = "ArcaneDuel.SelfChain";
+        private const string ManualOrderKey = "ArcaneDuel.ManualChainOrder";
+
+        public static ActivationPromptMode Mode
+        {
+            get
+            {
+                int stored = PlayerPrefs.GetInt(
+                    ModeKey,
+                    (int)ActivationPromptMode.Auto);
+                return stored >= (int)ActivationPromptMode.On &&
+                       stored <= (int)ActivationPromptMode.Off
+                    ? (ActivationPromptMode)stored
+                    : ActivationPromptMode.Auto;
+            }
+            set
+            {
+                PlayerPrefs.SetInt(ModeKey, (int)value);
+                PlayerPrefs.Save();
+            }
+        }
+
+        public static bool SelfChainEnabled
+        {
+            get => PlayerPrefs.GetInt(SelfChainKey, 1) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(SelfChainKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
+        public static bool ManualChainOrder
+        {
+            get => PlayerPrefs.GetInt(ManualOrderKey, 1) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(ManualOrderKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
+        public static string DisplayName(ActivationPromptMode mode)
+        {
+            return mode switch
+            {
+                ActivationPromptMode.On => "ON",
+                ActivationPromptMode.Off => "OFF",
+                _ => "AUTO"
+            };
+        }
+
+        public static void RestoreDefaults()
+        {
+            PlayerPrefs.SetInt(
+                ModeKey,
+                (int)ActivationPromptMode.Auto);
+            PlayerPrefs.SetInt(SelfChainKey, 1);
+            PlayerPrefs.SetInt(ManualOrderKey, 1);
+            PlayerPrefs.Save();
+        }
+    }
+
+    /// <summary>
+    /// Applies user notification preferences to an already legal prompt.
+    /// It can only return a decline/pass choice emitted by ocgcore.
+    /// </summary>
+    public static class DuelActivationPromptPolicy
+    {
+        public static bool TryGetAutomaticPass(
+            DuelPrompt prompt,
+            byte? lastChainPlayer,
+            out DuelChoice passChoice,
+            out string reason)
+        {
+            return TryGetAutomaticPass(
+                prompt,
+                DuelActivationPreferences.Mode,
+                DuelActivationPreferences.SelfChainEnabled,
+                lastChainPlayer,
+                out passChoice,
+                out reason);
+        }
+
+        public static bool TryGetAutomaticPass(
+            DuelPrompt prompt,
+            ActivationPromptMode mode,
+            bool selfChainEnabled,
+            byte? lastChainPlayer,
+            out DuelChoice passChoice,
+            out string reason)
+        {
+            passChoice = null;
+            reason = string.Empty;
+            if (prompt == null || prompt.Player != 0 || prompt.Forced ||
+                !IsOptionalActivationPrompt(prompt))
+            {
+                return false;
+            }
+
+            DuelChoice decline =
+                DuelPromptPresentationRules.DeclineChoice(prompt);
+            if (decline == null || decline.Response == null ||
+                decline.Response.Length == 0)
+            {
+                return false;
+            }
+
+            bool hasActionableCandidate =
+                DuelPromptPresentationRules
+                    .ActionableResponseChoices(prompt).Count > 0;
+            if (!hasActionableCandidate)
+            {
+                passChoice = decline;
+                reason = "Nenhuma resposta legal disponível";
+                return true;
+            }
+
+            bool selfChainOpportunity =
+                lastChainPlayer.HasValue &&
+                lastChainPlayer.Value == prompt.Player;
+            if (selfChainOpportunity && selfChainEnabled)
+                return false;
+
+            if (mode == ActivationPromptMode.On)
+                return false;
+            if (mode == ActivationPromptMode.Auto &&
+                !selfChainOpportunity)
+            {
+                // AUTO keeps ordinary legal response windows visible. Its
+                // only automatic candidate-bearing pass is the user's own
+                // follow-up window when Self Chain was explicitly disabled.
+                return false;
+            }
+
+            passChoice = decline;
+            reason = mode == ActivationPromptMode.Off
+                ? "Confirmação de efeitos em OFF"
+                : "Self Chain desativado";
+            return true;
+        }
+
+        public static bool TryGetAutomaticSort(
+            DuelPrompt prompt,
+            bool manualChainOrder,
+            out DuelChoice keepCoreOrder)
+        {
+            keepCoreOrder = null;
+            if (manualChainOrder || prompt == null || prompt.Player != 0 ||
+                prompt.Message != CoreMessage.SortChain ||
+                !prompt.RequiresOrderedSelection)
+            {
+                return false;
+            }
+
+            foreach (DuelChoice choice in prompt.Choices)
+            {
+                if (choice?.Response?.Length == 1 &&
+                    choice.Response[0] == 0xFF)
+                {
+                    keepCoreOrder = choice;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool IsOptionalActivationPrompt(DuelPrompt prompt)
+        {
+            return prompt.Message == CoreMessage.SelectChain ||
+                   prompt.Message == CoreMessage.SelectEffectYesNo ||
+                   prompt.Message == CoreMessage.SelectYesNo;
+        }
+    }
+}

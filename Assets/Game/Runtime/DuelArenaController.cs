@@ -6,6 +6,7 @@ using System.Linq;
 using ArcaneDuel.DuelEngine.Content;
 using ArcaneDuel.DuelEngine.Core;
 using ArcaneDuel.DuelEngine.Data;
+using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using UnityEngine;
@@ -50,6 +51,17 @@ namespace ArcaneDuel.Game
         private GUIStyle lifeStyle;
         private GUIStyle buttonStyle;
         private GUIStyle cardNameStyle;
+        private GUIStyle cachedZoneStyle;
+        private GUIStyle cachedCountStyle;
+        private GUIStyle cachedIconStyle;
+        private GUIStyle cachedReadableLocationStyle;
+        private GUIStyle cachedReadableStyle;
+        private GUIStyle cachedZoomTextStyle;
+        private GUIStyle cachedActivePhaseStyle;
+        private GUIStyle cachedInactivePhaseStyle;
+        private GUIStyle cachedActiveZoneStyle;
+        private GUIStyle cachedEffectPromptStyle;
+
         private string status = "Preparando arena...";
         private string deckStatus = string.Empty;
         private uint selectedCode;
@@ -61,6 +73,11 @@ namespace ArcaneDuel.Game
             new List<DuelChoice>();
         private readonly HashSet<int> selectedPromptIndexes =
             new HashSet<int>();
+        private readonly List<int> orderedPromptIndexes = new List<int>();
+        private readonly Dictionary<int, ushort> selectedPromptAmounts =
+            new Dictionary<int, ushort>();
+        private Vector2 structuredChoiceScroll;
+        private ulong structuredPromptRequestId;
         private readonly List<uint> playerExtraCards =
             new List<uint>();
         private readonly List<uint> zoneBrowserCards =
@@ -85,6 +102,15 @@ namespace ArcaneDuel.Game
         private bool remotePlayerOneAuthority;
         private byte networkLocalPlayer;
         private DuelPrompt replicaPrompt;
+        private ulong recordedEffectPromptRequestId;
+        private ulong recordedEffectTargetPromptRequestId;
+        private ulong resolvingEffectDescriptionId;
+        private uint resolvingEffectCardCode;
+        private int resolvingEffectPositionChanges;
+        private int resolvingEffectMoves;
+        private bool reconcileRequested;
+        private float nextReconcileAttemptTime;
+        private bool reconcileFailureRecorded;
         private IDuelNetworkState replicaNetworkState;
 
         public bool ExternalPresentation => externalPresentation;
@@ -144,8 +170,10 @@ namespace ArcaneDuel.Game
                 return false;
             }
             state.ReconcileFromCore(authoritative);
+            state.CompleteChainEndReconciliation();
             playerExtraCards.Clear();
             playerExtraCards.AddRange(state.Players[0].ExtraDeckCards);
+            reconcileFailureRecorded = false;
             PresentationStateChanged?.Invoke();
             return true;
         }
@@ -249,6 +277,32 @@ namespace ArcaneDuel.Game
         {
             TrySubmitDeferredCoreResponse();
             animationQueue.Tick(Time.unscaledDeltaTime);
+            if (reconcileRequested && !networkReplica &&
+                Time.unscaledTime >= nextReconcileAttemptTime)
+            {
+                if (ReconcilePresentationFromCore())
+                {
+                    reconcileRequested = false;
+                    reconcileFailureRecorded = false;
+                }
+                else
+                {
+                    // A safe Core query can be unavailable for one frame.
+                    // Keep the request pending instead of silently losing the
+                    // only reconciliation after CHAIN_END/NewPhase.
+                    nextReconcileAttemptTime = Time.unscaledTime + 0.25f;
+                    if (!reconcileFailureRecorded)
+                    {
+                        reconcileFailureRecorded = true;
+                        RuntimeDiagnosticRecorder.Record(
+                            "FIELD_RECONCILE_DEFERRED",
+                            "StateSync",
+                            nameof(DuelArenaController),
+                            "The authoritative field query was unavailable at a safe boundary; it will be retried.",
+                            RuntimeDiagnosticSeverity.Warning);
+                    }
+                }
+            }
             if (ArcaneInput.EscapePressedThisFrame)
             {
                 if (zoomCode != 0)
@@ -321,6 +375,7 @@ namespace ArcaneDuel.Game
         private void OnCoreEvent(DuelEvent duelEvent)
         {
             state.Apply(duelEvent);
+            RecordEffectResolutionEvent(duelEvent);
             CardInstanceState affectedInstance =
                 duelEvent.Current == null
                     ? null
@@ -334,7 +389,25 @@ namespace ArcaneDuel.Game
                 $"message={duelEvent.Message}; player={duelEvent.Player}; " +
                 $"priority={engine?.CurrentPrompt?.Player.ToString() ?? "-"}; " +
                 $"request={duelEvent.Prompt?.RequestId ?? 0}; " +
+                $"details={duelEvent.Detail}",
+                this);
+            if (duelEvent.Message == CoreMessage.Retry)
+            {
+                presentationDecisionLocked = false;
+            }
+            if (duelEvent.Message == CoreMessage.ChainEnd ||
+                duelEvent.Message == CoreMessage.NewPhase ||
+                duelEvent.Message == CoreMessage.Retry ||
+                duelEvent.Message == CoreMessage.ReloadField)
+            {
+                reconcileRequested = true;
+                nextReconcileAttemptTime = 0f;
+                reconcileFailureRecorded = false;
+            }
+            DuelDevelopmentLog.Write(
+                DuelLogCategory.CoreMessage,
                 $"code={duelEvent.Code:00000000}; " +
+                $"effect={duelEvent.DescriptionId}; " +
                 $"instance={affectedInstance?.Key.ToString() ?? "-"}; " +
                 $"from={FormatLocation(duelEvent.Previous)}; " +
                 $"to={FormatLocation(duelEvent.Current)}; " +
@@ -351,7 +424,12 @@ namespace ArcaneDuel.Game
                     this);
             }
             TrackPlayerExtraDeck(duelEvent);
-            choicePresenter.Rebuild(duelEvent.Prompt ?? engine?.CurrentPrompt);
+            DuelPrompt activePrompt =
+                duelEvent.Prompt ?? engine?.CurrentPrompt;
+            PrepareRequiredPromptVisibility(activePrompt);
+            choicePresenter.Rebuild(activePrompt);
+            RecordEffectPrompt(activePrompt);
+            RecordEffectTargetPrompt(activePrompt);
             contextualChoices.Clear();
             selectedPromptIndexes.Clear();
             if (DuelPresentationPreferences.TryResolve(
@@ -415,14 +493,14 @@ namespace ArcaneDuel.Game
             DrawField();
             DrawHand();
             DrawActionPanel();
-            DrawSelectionTray();
-            DrawGlobalChoices();
             DrawContextActions();
             if (showHistory) DrawTimeline();
             DrawInspector();
             DrawZoneBrowser();
             DrawCardZoom();
             DrawVisualCue();
+            DrawSelectionTray();
+            DrawGlobalChoices();
             DrawWinner();
             GUI.matrix = previous;
         }
@@ -596,13 +674,12 @@ namespace ArcaneDuel.Game
                     active
                         ? new Color(0.10f, 0.78f, 0.92f, 0.96f)
                         : new Color(0.015f, 0.04f, 0.08f, 0.88f));
-                GUIStyle style = new GUIStyle(tinyStyle)
-                {
-                    alignment = TextAnchor.MiddleCenter
-                };
-                style.normal.textColor =
-                    active ? new Color(0.01f, 0.04f, 0.07f) : new Color(0.58f, 0.72f, 0.80f);
-                GUI.Label(rect, phases[index].Label, style);
+                GUI.Label(
+                    rect,
+                    phases[index].Label,
+                    active
+                        ? cachedActivePhaseStyle
+                        : cachedInactivePhaseStyle);
             }
         }
 
@@ -756,21 +833,17 @@ namespace ArcaneDuel.Game
                 {
                     if (!immersive || legalZone)
                     {
-                        GUIStyle zoneStyle = new GUIStyle(tinyStyle)
-                        {
-                            alignment = TextAnchor.MiddleCenter
-                        };
-                        zoneStyle.normal.textColor = legalZone
-                            ? new Color(0.80f, 1f, 0.36f)
-                            : new Color(accent.r, accent.g, accent.b, 0.56f);
-                        GUI.Label(
-                            zone,
-                            legalZone
+                        string zoneStatus = legalZone
                                 ? "CLIQUE AQUI"
                                 : monster
                                     ? $"MONSTRO {index + 1}"
-                                    : $"MAGIA / ARM. {index + 1}",
-                            zoneStyle);
+                                    : $"MAGIA / ARM. {index + 1}";
+                        cachedZoneStyle.normal.textColor = new Color(
+                            accent.r,
+                            accent.g,
+                            accent.b,
+                            0.56f);
+                        GUI.Label(zone, zoneStatus, legalZone ? cachedActiveZoneStyle : cachedZoneStyle);
                     }
                     if (legalZone &&
                         GUI.Button(zone, GUIContent.none, GUIStyle.none))
@@ -822,11 +895,7 @@ namespace ArcaneDuel.Game
             Rect badge = new Rect(x + 50, y + 93, 48, 36);
             Fill(badge, new Color(0.005f, 0.02f, 0.045f, 0.95f));
             Stroke(badge, accent, 1);
-            GUIStyle countStyle = new GUIStyle(centeredStyle)
-            {
-                fontSize = 16
-            };
-            GUI.Label(badge, count.ToString(), countStyle);
+            GUI.Label(badge, count.ToString(), cachedCountStyle);
             GUI.Label(
                 new Rect(x - 10, y + 132, 112, 24),
                 name,
@@ -881,11 +950,7 @@ namespace ArcaneDuel.Game
                             ? new Color(0.66f, 0.26f, 0.55f, 0.62f)
                             : new Color(0.12f, 0.68f, 0.84f, 0.62f),
                         2);
-                    GUIStyle icon = new GUIStyle(centeredStyle)
-                    {
-                        fontSize = 30
-                    };
-                    GUI.Label(zone, "◇", icon);
+                    GUI.Label(zone, "◇", cachedIconStyle);
                 }
             }
             else
@@ -901,24 +966,15 @@ namespace ArcaneDuel.Game
                         : (byte)DuelLocation.Banished,
                     cards.Count - 1);
             }
-            GUI.Label(
-                new Rect(x - 12, y + 132, 126, 24),
-                $"{name} · {cards.Count}",
-                tinyStyle);
             Rect readableLocationLabel =
                 new Rect(x - 12, y + 130, 126, 27);
             Fill(
                 readableLocationLabel,
                 new Color(0.004f, 0.018f, 0.038f, 0.90f));
-            GUIStyle readableLocationStyle = new GUIStyle(tinyStyle)
-            {
-                fontSize = 12,
-                alignment = TextAnchor.MiddleCenter
-            };
             GUI.Label(
                 readableLocationLabel,
                 $"{name} · {cards.Count}",
-                readableLocationStyle);
+                cachedReadableLocationStyle);
             if (cards.Count > 0 &&
                 GUI.Button(
                     new Rect(x - 12, y + 128, 126, 30),
@@ -1179,14 +1235,9 @@ namespace ArcaneDuel.Game
                 new Rect(54, 519, 330, 28),
                 "DESCRICAO / EFEITO",
                 tinyStyle);
-            GUIStyle readable = new GUIStyle(bodyStyle)
-            {
-                fontSize = 17,
-                wordWrap = true
-            };
             float textHeight = Mathf.Max(
                 280f,
-                readable.CalcHeight(
+                cachedReadableStyle.CalcHeight(
                     new GUIContent(card.Description),
                     326f));
             inspectorScroll = GUI.BeginScrollView(
@@ -1196,7 +1247,7 @@ namespace ArcaneDuel.Game
             GUI.Label(
                 new Rect(0, 0, 326, textHeight),
                 card.Description,
-                readable);
+                cachedReadableStyle);
             GUI.EndScrollView();
         }
 
@@ -1231,14 +1282,10 @@ namespace ArcaneDuel.Game
             Fill(
                 new Rect(850, 390, 650, 2),
                 new Color(0.18f, 0.78f, 0.90f, 0.72f));
-            GUIStyle zoomText = new GUIStyle(bodyStyle)
-            {
-                fontSize = 18
-            };
             GUI.Label(
                 new Rect(850, 420, 650, 330),
                 card.Description,
-                zoomText);
+                cachedZoomTextStyle);
             if (GUI.Button(
                 new Rect(970, 814, 380, 64),
                 "FECHAR DETALHES",
@@ -1374,15 +1421,9 @@ namespace ArcaneDuel.Game
 
         private string ChoiceLabel(DuelChoice choice)
         {
-            if (choice.CardCode == 0 ||
-                !database.TryGet(choice.CardCode, out CardRecord card))
-            {
-                return choice.Label;
-            }
-            string name = card.Name.Length > 25
-                ? card.Name.Substring(0, 24) + "…"
-                : card.Name;
-            return $"{choice.Label}\n{name}";
+            return DuelEffectDescriptionResolver.ChoiceLabel(
+                choice,
+                database);
         }
 
         private void Submit(DuelChoice choice)
@@ -1417,7 +1458,153 @@ namespace ArcaneDuel.Game
                 $"location={choice.Location:X2}; sequence={choice.Sequence}; " +
                 $"response={responseHex}; legal=[{legalLabels}]",
                 this);
+            if (choice.DescriptionId != 0)
+            {
+                RuntimeDiagnosticRecorder.Record(
+                    "EFFECT_SELECTION",
+                    "EffectFlow",
+                    nameof(DuelArenaController),
+                    "A concrete effect choice was submitted.",
+                    RuntimeDiagnosticSeverity.Info,
+                    choice.CardCode,
+                    prompt?.Player ?? -1,
+                    networkReplica ? "online-replica" : "local",
+                    $"request={prompt?.RequestId ?? 0}; " +
+                    $"message={prompt?.Message}; " +
+                    $"descriptionId={choice.DescriptionId}; " +
+                    $"choiceIndex={choice.ChoiceIndex}; " +
+                    $"label={choice.Label}");
+            }
             SubmitRaw(choice.Response);
+        }
+
+        private void RecordEffectPrompt(DuelPrompt prompt)
+        {
+            if (prompt == null ||
+                prompt.RequestId == recordedEffectPromptRequestId)
+            {
+                return;
+            }
+            DuelChoice[] effects = prompt.Choices
+                .Where(choice => choice.DescriptionId != 0)
+                .ToArray();
+            if (effects.Length == 0)
+                return;
+            recordedEffectPromptRequestId = prompt.RequestId;
+            string effectIds = string.Join(
+                ",",
+                effects.Select(choice =>
+                    choice.DescriptionId + ":" + choice.CardCode));
+            RuntimeDiagnosticRecorder.Record(
+                "EFFECT_PROMPT",
+                "EffectFlow",
+                nameof(DuelArenaController),
+                "The Core offered one or more concrete effects.",
+                RuntimeDiagnosticSeverity.Info,
+                effects[0].CardCode,
+                prompt.Player,
+                networkReplica ? "online-replica" : "local",
+                $"request={prompt.RequestId}; message={prompt.Message}; " +
+                $"effects=[{effectIds}]");
+        }
+
+        private void RecordEffectTargetPrompt(DuelPrompt prompt)
+        {
+            if (prompt == null || resolvingEffectCardCode == 0 ||
+                prompt.RequestId == recordedEffectTargetPromptRequestId ||
+                (prompt.Message != CoreMessage.SelectCard &&
+                 prompt.Message != CoreMessage.SelectTribute &&
+                 prompt.Message != CoreMessage.SelectSum))
+            {
+                return;
+            }
+
+            recordedEffectTargetPromptRequestId = prompt.RequestId;
+            string candidates = string.Join(
+                ",",
+                prompt.Choices
+                    .Where(choice => choice.ChoiceIndex >= 0)
+                    .Select(choice =>
+                        $"{choice.ChoiceIndex}:{choice.CardCode}:" +
+                        $"P{choice.Controller}/L{choice.Location:X2}/" +
+                        $"S{choice.Sequence}"));
+            RuntimeDiagnosticRecorder.Record(
+                "EFFECT_TARGET_PROMPT",
+                "EffectFlow",
+                nameof(DuelArenaController),
+                "The Core requested targets or materials for the resolving effect.",
+                RuntimeDiagnosticSeverity.Info,
+                resolvingEffectCardCode,
+                prompt.Player,
+                networkReplica ? "online-replica" : "local",
+                $"effect={resolvingEffectDescriptionId}; " +
+                $"request={prompt.RequestId}; message={prompt.Message}; " +
+                $"minimum={prompt.MinimumSelections}; " +
+                $"maximum={prompt.MaximumSelections}; " +
+                $"candidates=[{candidates}]");
+        }
+
+        private void RecordEffectResolutionEvent(DuelEvent duelEvent)
+        {
+            if (duelEvent == null)
+                return;
+            if (duelEvent.Message == CoreMessage.Chaining &&
+                duelEvent.Code != 0 && duelEvent.DescriptionId != 0)
+            {
+                resolvingEffectCardCode = duelEvent.Code;
+                resolvingEffectDescriptionId = duelEvent.DescriptionId;
+                resolvingEffectPositionChanges = 0;
+                resolvingEffectMoves = 0;
+                recordedEffectTargetPromptRequestId = 0;
+                return;
+            }
+
+            if (resolvingEffectCardCode == 0)
+                return;
+            if (duelEvent.Message == CoreMessage.PositionChange)
+                resolvingEffectPositionChanges++;
+            else if (duelEvent.Message == CoreMessage.Move)
+                resolvingEffectMoves++;
+
+            if (duelEvent.Message != CoreMessage.ChainEnd)
+                return;
+            RuntimeDiagnosticRecorder.Record(
+                "EFFECT_RESOLUTION_COMPLETE",
+                "EffectFlow",
+                nameof(DuelArenaController),
+                "The effect chain finished and its visible state changes were counted.",
+                RuntimeDiagnosticSeverity.Info,
+                resolvingEffectCardCode,
+                -1,
+                networkReplica ? "online-replica" : "local",
+                $"effect={resolvingEffectDescriptionId}; " +
+                $"positionChanges={resolvingEffectPositionChanges}; " +
+                $"moves={resolvingEffectMoves}");
+            resolvingEffectCardCode = 0;
+            resolvingEffectDescriptionId = 0;
+            resolvingEffectPositionChanges = 0;
+            resolvingEffectMoves = 0;
+        }
+
+        private void PrepareRequiredPromptVisibility(DuelPrompt prompt)
+        {
+            if (prompt == null ||
+                (!DuelPromptPresentationRules.RequiresVisibleResponseTray(
+                     prompt) &&
+                 !IsCardSelectionPrompt(prompt)))
+            {
+                return;
+            }
+
+            // A pergunta do Core nunca pode ficar escondida por uma camada
+            // apenas informativa. Enquanto ela estiver invisivel, o Core
+            // permanece aguardando e o duelo aparenta ter congelado.
+            zoomCode = 0;
+            zoneBrowserCards.Clear();
+            zoneBrowserTitle = string.Empty;
+            zoneBrowserScroll = Vector2.zero;
+            showHistory = false;
+            contextualChoices.Clear();
         }
 
         public void SubmitChoice(DuelChoice choice)
@@ -1455,10 +1642,16 @@ namespace ArcaneDuel.Game
             {
                 state = new DuelPresentationState(database);
             }
+            playerExtraCards.Clear();
             choicePresenter.Rebuild(null);
             contextualChoices.Clear();
             selectedPromptIndexes.Clear();
             status = "Conectado à autoridade da sala. Aguardando o duelo.";
+            // CardArenaBootstrap caches the presentation-state reference.
+            // Rebinding it here prevents the network controller from writing
+            // into a new state while the visible hand and field still read
+            // the disposed local-Core state.
+            PresentationStateChanged?.Invoke();
         }
 
         /// <summary>
@@ -1470,10 +1663,10 @@ namespace ArcaneDuel.Game
             remotePlayerOneAuthority = enabled;
         }
 
-        public void ApplyNetworkState(IDuelNetworkState networkState)
+        public bool ApplyNetworkState(IDuelNetworkState networkState)
         {
             if (!networkReplica || networkState == null || database == null)
-                return;
+                return false;
 
             try
             {
@@ -1495,7 +1688,9 @@ namespace ArcaneDuel.Game
                         state.Players[0].ExtraDeckCards);
                 if (promptChanged)
                 {
+                    PrepareRequiredPromptVisibility(replicaPrompt);
                     choicePresenter.Rebuild(replicaPrompt);
+                    RecordEffectPrompt(replicaPrompt);
                     contextualChoices.Clear();
                     selectedPromptIndexes.Clear();
                     showPhaseChoices = false;
@@ -1510,13 +1705,24 @@ namespace ArcaneDuel.Game
                 // Notify it after replacing a replica snapshot so it rebinds
                 // without fabricating a Core event on this assembly boundary.
                 PresentationStateChanged?.Invoke();
+                return true;
             }
             catch (Exception exception)
             {
                 string failure = exception.GetBaseException().Message;
                 status = $"Falha de sincronização online: {failure}";
+                status = "Sincronizando o estado do duelo...";
+                RuntimeDiagnosticRecorder.Record(
+                    "F08",
+                    "Multiplayer",
+                    nameof(DuelArenaController),
+                    "A replica could not apply an authoritative snapshot.",
+                    RuntimeDiagnosticSeverity.Error,
+                    mode: "online-replica",
+                    details: failure,
+                    exception: exception);
                 CoreFailure?.Invoke(failure);
-                Debug.LogException(exception);
+                return false;
             }
         }
 
@@ -1676,6 +1882,10 @@ namespace ArcaneDuel.Game
                 playerExtra,
                 opponentMain,
                 opponentExtra);
+            // The authored arena also caches this reference during offline
+            // and legacy restarts. Rebind it before engine.Start emits any
+            // synchronous Core event for the replacement duel.
+            PresentationStateChanged?.Invoke();
 
             DuelConfiguration configuration =
                 DuelConfiguration.VerticalSlice(DuelConfiguration.FreshSeed());
@@ -1718,6 +1928,9 @@ namespace ArcaneDuel.Game
                 choicePresenter.Rebuild(null);
                 contextualChoices.Clear();
                 selectedPromptIndexes.Clear();
+                orderedPromptIndexes.Clear();
+                selectedPromptAmounts.Clear();
+                structuredPromptRequestId = 0;
                 showPhaseChoices = false;
                 engine.SubmitResponse(response);
                 status = engine.IsFinished
@@ -1730,8 +1943,17 @@ namespace ArcaneDuel.Game
                 string failure = exception.GetBaseException().Message;
                 status =
                     $"O duelo foi interrompido pelo Core: {failure}";
+                status = "Revalidando a jogada com o motor...";
+                RuntimeDiagnosticRecorder.Record(
+                    "F03",
+                    "Protocol",
+                    nameof(DuelArenaController),
+                    "The Core rejected or failed to process a submitted response.",
+                    RuntimeDiagnosticSeverity.Error,
+                    mode: networkReplica ? "online-replica" : "local",
+                    details: failure,
+                    exception: exception);
                 CoreFailure?.Invoke(failure);
-                Debug.LogException(exception);
                 return false;
             }
         }
@@ -1971,7 +2193,7 @@ namespace ArcaneDuel.Game
                     62f);
                 if (GUI.Button(
                     action,
-                    ShortActionLabel(choice.Label).Replace("\n", " "),
+                    ShortActionLabel(ChoiceLabel(choice)).Replace("\n", " "),
                     buttonStyle))
                 {
                     Submit(choice);
@@ -2113,10 +2335,13 @@ namespace ArcaneDuel.Game
 
         private void DrawGlobalChoices()
         {
-            DuelPrompt prompt = engine?.CurrentPrompt;
+            DuelPrompt prompt = CurrentPrompt;
+            bool requiredPrompt =
+                DuelPromptPresentationRules.RequiresVisibleResponseTray(
+                    prompt);
             if (prompt == null ||
-                zoneBrowserCards.Count > 0 ||
-                zoomCode != 0)
+                (!requiredPrompt &&
+                 (zoneBrowserCards.Count > 0 || zoomCode != 0)))
             {
                 return;
             }
@@ -2126,6 +2351,7 @@ namespace ArcaneDuel.Game
                 prompt.Message == CoreMessage.SelectYesNo ||
                 prompt.Message == CoreMessage.SelectOption ||
                 prompt.Message == CoreMessage.SelectPosition ||
+                prompt.Message == CoreMessage.SelectCounter ||
                 prompt.Message == CoreMessage.SortCard ||
                 prompt.Message == CoreMessage.SortChain ||
                 prompt.Message == CoreMessage.AnnounceRace ||
@@ -2153,7 +2379,13 @@ namespace ArcaneDuel.Game
 
             if (modal)
             {
+                if (prompt.Message == CoreMessage.SelectEffectYesNo)
+                {
+                    DrawEffectActivationModal(prompt, choices);
+                    return;
+                }
                 bool grid =
+                    prompt.Message == CoreMessage.SelectCounter ||
                     prompt.Message == CoreMessage.SortCard ||
                     prompt.Message == CoreMessage.SortChain ||
                     prompt.Message == CoreMessage.AnnounceRace ||
@@ -2209,7 +2441,7 @@ namespace ArcaneDuel.Game
                         contextualChoices.Count > 0 ? 685 : 752,
                         widthEach,
                         54),
-                    choice.Label.ToUpperInvariant(),
+                    ChoiceLabel(choice).ToUpperInvariant(),
                     buttonStyle))
                 {
                     Submit(choice);
@@ -2218,10 +2450,66 @@ namespace ArcaneDuel.Game
             }
         }
 
+        private void DrawEffectActivationModal(
+            DuelPrompt prompt,
+            List<DuelChoice> choices)
+        {
+            Fill(
+                new Rect(0, 0, DesignWidth, DesignHeight),
+                new Color(0f, 0f, 0.02f, 0.68f));
+            Rect panel = new Rect(420, 225, 1080, 610);
+            Panel(panel, 0.995f);
+            Stroke(panel, new Color(0.68f, 1f, 0.04f), 3);
+
+            DuelChoice decline =
+                DuelPromptPresentationRules.DeclineChoice(prompt);
+            DuelChoice activate = choices.FirstOrDefault(choice =>
+                choice != decline) ?? choices.FirstOrDefault();
+            GUI.Label(
+                new Rect(500, 270, 920, 58),
+                "ATIVAR ESTE EFEITO?",
+                titleStyle);
+            GUI.Label(
+                new Rect(515, 350, 890, 230),
+                activate == null
+                    ? prompt.Title
+                    : ChoiceLabel(activate),
+                cachedEffectPromptStyle);
+
+            GUI.enabled = activate != null;
+            if (GUI.Button(
+                    new Rect(570, 665, 360, 78),
+                    "ATIVAR EFEITO",
+                    buttonStyle))
+            {
+                Submit(activate);
+                GUI.enabled = true;
+                return;
+            }
+            GUI.enabled = decline != null;
+            if (GUI.Button(
+                    new Rect(990, 665, 360, 78),
+                    "NÃO ATIVAR",
+                    buttonStyle))
+            {
+                Submit(decline);
+                GUI.enabled = true;
+                return;
+            }
+            GUI.enabled = true;
+        }
+
         private void DrawChoiceGrid(
             DuelPrompt prompt,
             List<DuelChoice> choices)
         {
+            if (prompt.RequiresOrderedSelection ||
+                prompt.RequiresMaskSelection ||
+                prompt.Message == CoreMessage.SelectCounter)
+            {
+                DrawStructuredChoiceGrid(prompt, choices);
+                return;
+            }
             Fill(
                 new Rect(0, 0, DesignWidth, DesignHeight),
                 new Color(0f, 0f, 0.02f, 0.68f));
@@ -2259,6 +2547,178 @@ namespace ArcaneDuel.Game
                     return;
                 }
             }
+        }
+
+        private void DrawStructuredChoiceGrid(
+            DuelPrompt prompt,
+            IReadOnlyList<DuelChoice> choices)
+        {
+            if (structuredPromptRequestId != prompt.RequestId)
+            {
+                structuredPromptRequestId = prompt.RequestId;
+                orderedPromptIndexes.Clear();
+                selectedPromptAmounts.Clear();
+                selectedPromptIndexes.Clear();
+                structuredChoiceScroll = Vector2.zero;
+            }
+
+            Fill(
+                new Rect(0, 0, DesignWidth, DesignHeight),
+                new Color(0f, 0f, 0.02f, 0.68f));
+            Rect panel = new Rect(350, 130, 1220, 820);
+            Panel(panel, 0.995f);
+            Stroke(panel, new Color(0.68f, 1f, 0.04f), 3);
+            GUI.Label(
+                new Rect(410, 170, 1100, 58),
+                prompt.Title.ToUpperInvariant(),
+                titleStyle);
+
+            DuelChoice shortcut = choices.FirstOrDefault(choice =>
+                choice.ChoiceIndex < 0 &&
+                choice.Response != null &&
+                choice.Response.Length > 0);
+            if (shortcut != null && GUI.Button(
+                    new Rect(420, 235, 1080, 48),
+                    ChoiceLabel(shortcut).ToUpperInvariant(),
+                    buttonStyle))
+            {
+                Submit(shortcut);
+                return;
+            }
+
+            DuelChoice[] candidates = choices
+                .Where(choice => choice.ChoiceIndex >= 0)
+                .ToArray();
+            const int columns = 4;
+            const float width = 245f;
+            const float height = 68f;
+            const float horizontalGap = 18f;
+            const float verticalGap = 14f;
+            int rows = Mathf.CeilToInt(candidates.Length / (float)columns);
+            Rect viewport = new Rect(405, 300, 1110, 520);
+            float contentHeight = Mathf.Max(
+                viewport.height - 8f,
+                rows * (height + verticalGap) + 10f);
+            structuredChoiceScroll = GUI.BeginScrollView(
+                viewport,
+                structuredChoiceScroll,
+                new Rect(0, 0, viewport.width - 24f, contentHeight));
+            for (int index = 0; index < candidates.Length; index++)
+            {
+                DuelChoice choice = candidates[index];
+                int column = index % columns;
+                int row = index / columns;
+                string suffix = string.Empty;
+                if (prompt.RequiresOrderedSelection)
+                {
+                    int order = orderedPromptIndexes.IndexOf(
+                        choice.ChoiceIndex);
+                    if (order >= 0)
+                        suffix = $"  [{order + 1}]";
+                }
+                else if (prompt.Message == CoreMessage.SelectCounter &&
+                         selectedPromptAmounts.TryGetValue(
+                             choice.ChoiceIndex,
+                             out ushort amount))
+                {
+                    suffix = $"  [{amount}]";
+                }
+                else if (selectedPromptIndexes.Contains(choice.ChoiceIndex))
+                {
+                    suffix = "  [X]";
+                }
+                if (!GUI.Button(
+                        new Rect(
+                            column * (width + horizontalGap),
+                            row * (height + verticalGap),
+                            width,
+                            height),
+                        (ChoiceLabel(choice) + suffix).ToUpperInvariant(),
+                        buttonStyle))
+                {
+                    continue;
+                }
+
+                if (prompt.RequiresOrderedSelection)
+                {
+                    if (orderedPromptIndexes.Contains(choice.ChoiceIndex))
+                        orderedPromptIndexes.Remove(choice.ChoiceIndex);
+                    else
+                        orderedPromptIndexes.Add(choice.ChoiceIndex);
+                }
+                else if (prompt.Message == CoreMessage.SelectCounter)
+                {
+                    selectedPromptAmounts.TryGetValue(
+                        choice.ChoiceIndex,
+                        out ushort current);
+                    ushort capacity = (ushort)Math.Min(
+                        ushort.MaxValue,
+                        choice.SumValue);
+                    ushort next = current >= capacity
+                        ? (ushort)0
+                        : (ushort)(current + 1);
+                    int other = selectedPromptAmounts.Values.Sum(
+                        value => (int)value) - current;
+                    if (other + next > prompt.RequiredCounterCount)
+                        next = 0;
+                    if (next == 0)
+                        selectedPromptAmounts.Remove(choice.ChoiceIndex);
+                    else
+                        selectedPromptAmounts[choice.ChoiceIndex] = next;
+                }
+                else if (!selectedPromptIndexes.Add(choice.ChoiceIndex))
+                {
+                    selectedPromptIndexes.Remove(choice.ChoiceIndex);
+                }
+            }
+            GUI.EndScrollView();
+
+            bool valid;
+            byte[] response = null;
+            if (prompt.RequiresOrderedSelection)
+            {
+                valid = orderedPromptIndexes.Count ==
+                        prompt.MaximumSelections;
+                if (valid)
+                    response = CoreMessageDecoder.OrderedSelectionResponse(
+                        orderedPromptIndexes);
+            }
+            else if (prompt.Message == CoreMessage.SelectCounter)
+            {
+                valid = selectedPromptAmounts.Values.Sum(
+                    value => (int)value) == prompt.RequiredCounterCount;
+                if (valid)
+                {
+                    var allocation = new ushort[
+                        checked((int)prompt.MaximumSelections)];
+                    foreach ((int choiceIndex, ushort amount) in
+                             selectedPromptAmounts)
+                    {
+                        allocation[choiceIndex] = amount;
+                    }
+                    response = CoreMessageDecoder.CounterResponse(allocation);
+                }
+            }
+            else
+            {
+                valid = CoreMessageDecoder.IsValidSelection(
+                    prompt,
+                    selectedPromptIndexes);
+                if (valid)
+                    response = CoreMessageDecoder.AnnounceMaskResponse(
+                        prompt,
+                        selectedPromptIndexes);
+            }
+
+            GUI.enabled = valid;
+            if (GUI.Button(
+                    new Rect(700, 850, 520, 62),
+                    "CONFIRMAR SELECAO",
+                    buttonStyle))
+            {
+                SubmitRaw(response);
+            }
+            GUI.enabled = true;
         }
 
         private void DrawPhaseSelection(List<DuelChoice> choices)
@@ -2730,6 +3190,25 @@ namespace ArcaneDuel.Game
             buttonStyle.normal.background = buttonNormal;
             buttonStyle.hover.background = buttonHover;
             buttonStyle.active.background = buttonActive;
+
+            cachedZoneStyle = new GUIStyle(tinyStyle) { alignment = TextAnchor.MiddleCenter };
+            cachedCountStyle = new GUIStyle(centeredStyle) { fontSize = 16 };
+            cachedIconStyle = new GUIStyle(centeredStyle) { fontSize = 30 };
+            cachedReadableLocationStyle = new GUIStyle(tinyStyle) { fontSize = 12, alignment = TextAnchor.MiddleCenter };
+            cachedReadableStyle = new GUIStyle(bodyStyle) { fontSize = 17, wordWrap = true };
+            cachedZoomTextStyle = new GUIStyle(bodyStyle) { fontSize = 18 };
+            cachedActivePhaseStyle = new GUIStyle(tinyStyle) { alignment = TextAnchor.MiddleCenter };
+            cachedActivePhaseStyle.normal.textColor = new Color(0.01f, 0.04f, 0.07f);
+            cachedInactivePhaseStyle = new GUIStyle(tinyStyle) { alignment = TextAnchor.MiddleCenter };
+            cachedInactivePhaseStyle.normal.textColor = new Color(0.58f, 0.72f, 0.80f);
+            cachedActiveZoneStyle = new GUIStyle(tinyStyle) { alignment = TextAnchor.MiddleCenter };
+            cachedActiveZoneStyle.normal.textColor = new Color(0.80f, 1f, 0.36f);
+            cachedEffectPromptStyle = new GUIStyle(bodyStyle)
+            {
+                fontSize = 19,
+                wordWrap = true,
+                alignment = TextAnchor.MiddleCenter
+            };
         }
 
         private static GUIStyle Style(
