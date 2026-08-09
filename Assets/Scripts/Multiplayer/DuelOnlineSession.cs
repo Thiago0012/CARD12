@@ -32,7 +32,7 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelOnlineSession : MonoBehaviour
     {
         private const string DuelArenaScene = "DuelArena";
-        private const string ProtocolVersion = "arcane-duel-online-v10";
+        private const string ProtocolVersion = "arcane-duel-online-v11";
         private const string HelloMessage = "arcane.duel.hello.v4";
         private const string HelloRequestMessage = "arcane.duel.hello-request.v4";
         private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v4";
@@ -49,7 +49,7 @@ namespace ArcaneArena.Multiplayer
             "arcane.duel.presentation-event.v4";
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
-        private const ushort NgoProtocolVersion = 10;
+        private const ushort NgoProtocolVersion = 11;
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
@@ -2127,7 +2127,7 @@ namespace ArcaneArena.Multiplayer
         {
             const string reason =
                 "A sala usa conteúdo incompatível. Instale a mesma versão " +
-                "ONLINE v8 no PC e no celular e crie um novo código.";
+                "ONLINE v11 no PC e no celular e crie um novo código.";
             ResetAfterFailedConnection(reason);
             showPanel = true;
         }
@@ -2198,6 +2198,13 @@ namespace ArcaneArena.Multiplayer
             if (computedHash == 0 ||
                 computedHash != networkState.publicStateHash)
             {
+                Debug.LogWarning(
+                    $"[MP] stage=state-hash-rejected " +
+                    $"sequence={networkState.sequence} " +
+                    $"version={networkState.stateVersion} " +
+                    $"expected={networkState.publicStateHash:x16} " +
+                    $"computed={computedHash:x16} " +
+                    $"recipient={networkState.recipientSeat}");
                 RequestResync("public-hash-mismatch");
                 return;
             }
@@ -3287,14 +3294,14 @@ namespace ArcaneArena.Multiplayer
                 hello.protocolVersion != ProtocolVersion)
             {
                 rejection = "O rival usa um protocolo online incompatível. " +
-                    "Ambos precisam instalar a versão ONLINE v8.";
+                    "Ambos precisam instalar a versão ONLINE v11.";
                 return false;
             }
             if (hello.compatibility !=
                 ProjectIdentity.MultiplayerCompatibility)
             {
                 rejection = "O conteúdo do jogo é diferente entre os dois " +
-                    "dispositivos. Instale a mesma versão ONLINE v8 no PC " +
+                    "dispositivos. Instale a mesma versão ONLINE v11 no PC " +
                     "e no celular para usar todos os decks corretamente.";
                 return false;
             }
@@ -4767,14 +4774,14 @@ namespace ArcaneArena.Multiplayer
         {
             if (!IsOnlineDuelActive)
             {
-                return "ONLINE v8 • Sessions escolhe a melhor região Relay.";
+                return "ONLINE v11 • Sessions escolhe a melhor região Relay.";
             }
 
             int roundTrip = RelayRoundTripTimeMs;
             string rtt = roundTrip < 0
                 ? "medindo RTT..."
                 : $"RTT real: {roundTrip} ms";
-            return $"ONLINE v8 • Relay: {GetRelayRegionLabel()}  •  {rtt}";
+            return $"ONLINE v11 • Relay: {GetRelayRegionLabel()}  •  {rtt}";
         }
 
         private string GetRelayRegionLabel()

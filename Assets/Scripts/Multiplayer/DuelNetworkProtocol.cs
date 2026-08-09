@@ -785,7 +785,7 @@ namespace ArcaneArena.Multiplayer
 
         private static DuelSummonSnapshot ToSummon(DuelNetworkSummon source)
         {
-            if (source == null)
+            if (IsEmptySummon(source))
                 return null;
             return new DuelSummonSnapshot
             {
@@ -1245,7 +1245,7 @@ namespace ArcaneArena.Multiplayer
 
         private static DuelPrompt ToPrompt(DuelNetworkPrompt source)
         {
-            if (source == null)
+            if (IsEmptyPrompt(source))
                 return null;
 
             var prompt = new DuelPrompt
@@ -1516,7 +1516,7 @@ namespace ArcaneArena.Multiplayer
             DuelNetworkSummon summon,
             byte recipient)
         {
-            if (summon == null)
+            if (IsEmptySummon(summon))
             {
                 HashByte(ref hash, 0);
                 return;
@@ -1589,7 +1589,7 @@ namespace ArcaneArena.Multiplayer
             DuelNetworkPrompt prompt,
             byte recipient)
         {
-            if (prompt == null)
+            if (IsEmptyPrompt(prompt))
             {
                 HashByte(ref hash, 0);
                 return;
@@ -1644,6 +1644,42 @@ namespace ArcaneArena.Multiplayer
                 HashULong(ref hash, choice.descriptionId);
                 HashUInt(ref hash, choice.sumValue);
             }
+        }
+
+        private static bool IsEmptySummon(DuelNetworkSummon summon)
+        {
+            return summon == null ||
+                   summon.message == 0 &&
+                   summon.cardCode == 0 &&
+                   summon.runtimeId == 0 &&
+                   summon.controller == 0 &&
+                   summon.location == 0 &&
+                   summon.sequence == 0 &&
+                   summon.position == 0 &&
+                   summon.status == 0;
+        }
+
+        private static bool IsEmptyPrompt(DuelNetworkPrompt prompt)
+        {
+            return prompt == null ||
+                   prompt.requestId == 0 &&
+                   prompt.message == 0 &&
+                   prompt.player == 0 &&
+                   string.IsNullOrEmpty(prompt.title) &&
+                   !prompt.forced &&
+                   !prompt.cancelable &&
+                   prompt.minimumSelections == 0 &&
+                   prompt.maximumSelections == 0 &&
+                   prompt.requiredSum == 0 &&
+                   !prompt.sumAtLeast &&
+                   !prompt.requiresOrderedSelection &&
+                   !prompt.requiresMaskSelection &&
+                   prompt.counterType == 0 &&
+                   prompt.requiredCounterCount == 0 &&
+                   prompt.maskWidth == 0 &&
+                   (prompt.mandatorySums == null ||
+                    prompt.mandatorySums.Length == 0) &&
+                   (prompt.choices == null || prompt.choices.Length == 0);
         }
 
         private static void HashPublicField(

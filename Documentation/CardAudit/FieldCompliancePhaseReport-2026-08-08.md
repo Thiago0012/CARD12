@@ -23,8 +23,8 @@ sendo a única autoridade de regras; nenhuma regra oficial foi recriada na UI.
 | 6 - Invocações | PASS de implementação e gate | Normal/Tributo/Ritual/Fusão/Sincro/Xyz/Pêndulo/Link usam candidatos, materiais, somas e zonas do Core. Tentativa, confirmação e negação de invocação são estados distintos também no online. | Manter os golden traces durante a Fase 7. |
 | 7 - Batalha/Damage | PARTIAL | Eventos existentes continuam compilando no presenter. | Fixtures attack target/direct/replay, Damage Step, destruição e LP. |
 | 8 - Estado raro | PASS nesta etapa | Counters, equip, targets, relations, hints, status, public, link, disable field, sort e announce múltiplo são preservados e apresentados. | Cobrir mudança de controle/reveal com golden traces dedicados. |
-| 9 - Multiplayer/resync | PASS estrutural | Snapshot filtrado por destinatário tem hash completo; ack só ocorre após aplicação; falha solicita resync; protocolo v10 rejeita builds antigos. | Smoke real PC/Android, reconnect no meio de prompt e de corrente. |
-| 10 - Gates | PASS para as Fases 3-6 / PARTIAL global | A Unity 6000.5.0f1 compilou e executou 102/102 testes EditMode e 46/46 PlayMode no gate atual, sem erro C# ou falha. | Builds Windows x64/Android ARM64 e aparelhos reais permanecem no gate global posterior. |
+| 9 - Multiplayer/resync | PASS estrutural | Snapshot filtrado por destinatário tem hash completo; `null` e placeholders vazios do JsonUtility são normalizados; ack só ocorre após aplicação; falha solicita resync; protocolo v11 rejeita builds antigos. | Smoke real PC/Android, reconnect no meio de prompt e de corrente. |
+| 10 - Gates | PASS para as Fases 3-6 / PARTIAL global | A Unity 6000.5.0f1 compilou e executou 104/104 testes EditMode e 46/46 PlayMode no gate atual, sem erro C# ou falha. | Builds Windows x64/Android ARM64 e aparelhos reais permanecem no gate global posterior. |
 
 ## Golden fixtures adicionadas/ajustadas
 
@@ -126,7 +126,7 @@ primeiro evento do novo duelo.
 
 ## Compatibilidade online
 
-O protocolo agora é `arcane-duel-online-v10`/NGO 10. PC e Android precisam ser
+O protocolo agora é `arcane-duel-online-v11`/NGO 11. PC e Android precisam ser
 gerados a partir desta mesma revisão. A rejeição imediata de um cliente antigo é
 intencional: misturar o schema anterior perderia RuntimeId/metadados e poderia
 reproduzir campo vazio, prompt travado ou confirmação incorreta de estado.
@@ -134,7 +134,7 @@ reproduzir campo vazio, prompt travado ou confirmação incorreta de estado.
 ## Validação executada
 
 - Unity Editor `6000.5.0f1`: compilação concluída sem erro C#;
-- EditMode do gate das Fases 3-6: **102 executados, 102 aprovados, 0 falhas, 0 ignorados**;
+- EditMode do gate das Fases 3-6: **104 executados, 104 aprovados, 0 falhas, 0 ignorados**;
 - PlayMode do gate das Fases 3-6: **46 executados, 46 aprovados, 0 falhas, 0 ignorados**;
 - log final: zero `NullReferenceException`, `ObjectDisposedException`,
   `OverflowException`, erro de compilação ou chamada proibida em `OnValidate`;

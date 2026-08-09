@@ -421,6 +421,43 @@ namespace ArcaneDuel.Tests.EditMode
                 Is.EqualTo(expectedIds));
         }
 
+        [TestCase((byte)0)]
+        [TestCase((byte)1)]
+        public void JsonRoundTripPreservesProjectionHashForEachRecipient(
+            byte recipient)
+        {
+            DuelPresentationState host = CreatePopulatedHostState();
+            object original = CreateState(host, null, recipient);
+            original.GetType().GetField("matchId")
+                ?.SetValue(original, "crossplay-hash-round-trip");
+            MethodInfo computeHash = protocolType.GetMethod(
+                "ComputePublicProjectionHash",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(computeHash, Is.Not.Null);
+            ulong expected = (ulong)computeHash.Invoke(null, new[] { original });
+            original.GetType().GetField("publicStateHash")
+                ?.SetValue(original, expected);
+
+            string json = JsonUtility.ToJson(original);
+            object received = JsonUtility.FromJson(json, original.GetType());
+            ulong transported = Field<ulong>(received, "publicStateHash");
+            ulong recomputed = (ulong)computeHash.Invoke(
+                null,
+                new[] { received });
+
+            Assert.That(transported, Is.EqualTo(expected),
+                "The integrity value itself must survive PC/Android JSON transport.");
+            Assert.That(recomputed, Is.EqualTo(expected),
+                "The received snapshot must hash exactly like the host payload.");
+
+            var replica = new DuelPresentationState(null);
+            DuelPrompt restoredPrompt = Apply(received, replica);
+            Assert.That(restoredPrompt, Is.Null,
+                "JsonUtility's empty placeholder must not become a phantom prompt.");
+            Assert.That(replica.PendingSummon, Is.Null);
+            Assert.That(replica.LastSummon, Is.Null);
+        }
+
         [Test]
         public void PrivatePromptRedactsMetadataButPreservesResponseBytes()
         {
