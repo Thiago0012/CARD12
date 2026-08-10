@@ -52,6 +52,7 @@ namespace ArcaneArena.Multiplayer.Tournaments
             public string appVersion;
             public string protocolVersion;
             public string platform;
+            public bool usesRandomDeck;
             public TournamentDeckManifest deck;
         }
 
@@ -186,7 +187,8 @@ namespace ArcaneArena.Multiplayer.Tournaments
                         localProfile.deck,
                         true,
                         localProfile.avatarId,
-                        false);
+                        false,
+                        localProfile.usesRandomDeck);
                 if (!participant.Success &&
                     state.FindPlayer(LocalPlayerId) == null)
                 {
@@ -413,7 +415,8 @@ namespace ArcaneArena.Multiplayer.Tournaments
                         localProfile.deck,
                         true,
                         localProfile.avatarId,
-                        ready);
+                        ready,
+                        localProfile.usesRandomDeck);
                     state = manager.State;
                     await PublishStateAsync(true);
                 }
@@ -433,6 +436,45 @@ namespace ArcaneArena.Multiplayer.Tournaments
             {
                 operationInProgress = false;
             }
+        }
+
+        public async Task<TournamentOperationResult> UpdateDeckSelectionAsync(
+            bool useRandomDeck,
+            string manualDeckId)
+        {
+            if (lobby == null)
+            {
+                return TournamentOperationResult.Fail(
+                    "Entre em um torneio antes de escolher o deck.");
+            }
+            if (operationInProgress)
+            {
+                return TournamentOperationResult.Fail(
+                    "Outra operação do torneio está em andamento.");
+            }
+
+            GameFrontendBootstrap frontend = GameFrontendBootstrap.Instance;
+            string rejection = string.Empty;
+            if (frontend == null || !frontend.SetTournamentDeckPreference(
+                    useRandomDeck,
+                    manualDeckId,
+                    out rejection))
+            {
+                return TournamentOperationResult.Fail(
+                    string.IsNullOrWhiteSpace(rejection)
+                        ? "Não foi possível aplicar a escolha de deck."
+                        : rejection);
+            }
+
+            TournamentOperationResult result = await SetReadyAsync(false);
+            if (!result.Success)
+                return result;
+
+            statusMessage = useRandomDeck
+                ? "Deck aleatório confirmado entre os decks desbloqueados. Confirme PRONTO quando estiver preparado."
+                : "Deck do torneio atualizado. Confirme PRONTO quando estiver preparado.";
+            RaiseStateChanged();
+            return TournamentOperationResult.Ok(statusMessage);
         }
 
         public async Task<TournamentOperationResult> StartTournamentAsync()
@@ -877,7 +919,8 @@ namespace ArcaneArena.Multiplayer.Tournaments
                         profile.deck,
                         organizer,
                         profile.avatarId,
-                        profile.ready);
+                        profile.ready,
+                        profile.usesRandomDeck);
                 }
                 else if (existing != null && !existing.isOnline)
                 {
@@ -1049,38 +1092,59 @@ namespace ArcaneArena.Multiplayer.Tournaments
             profile = null;
             error = string.Empty;
             GameFrontendBootstrap frontend = GameFrontendBootstrap.Instance;
-            if (frontend == null || !frontend.TryGetSelectedDuelLoadout(
-                    out DuelDeckLoadout loadout,
-                    out error))
+            if (frontend == null)
+            {
+                error = "A interface do perfil ainda não foi carregada.";
+                return false;
+            }
+
+            bool hasLoadout = frontend.TryGetTournamentDuelLoadout(
+                state?.config?.tournamentId ?? string.Empty,
+                out DuelDeckLoadout loadout,
+                out bool usesRandomDeck,
+                out error);
+            if (!hasLoadout && ready)
             {
                 error = string.IsNullOrWhiteSpace(error)
-                    ? "Selecione um deck válido antes de entrar no torneio."
+                    ? "Escolha um deck válido antes de confirmar presença."
                     : error;
                 return false;
             }
-            var manifest = new TournamentDeckManifest
-            {
-                deckId = loadout.deckId,
-                displayName = loadout.displayName,
-                banListId = loadout.banlistId,
-                sha256 = loadout.normalizedDeckSha256,
-                mainDeckCardIds = new List<string>(loadout.mainDeckCardIds),
-                extraDeckCardIds = new List<string>(loadout.extraDeckCardIds),
-                sideDeckCardIds = new List<string>(loadout.sideDeckCardIds)
-            };
+
+            var manifest = hasLoadout
+                ? new TournamentDeckManifest
+                {
+                    deckId = loadout.deckId,
+                    displayName = loadout.displayName,
+                    banListId = loadout.banlistId,
+                    sha256 = loadout.normalizedDeckSha256,
+                    mainDeckCardIds = new List<string>(loadout.mainDeckCardIds),
+                    extraDeckCardIds = new List<string>(loadout.extraDeckCardIds),
+                    sideDeckCardIds = new List<string>(loadout.sideDeckCardIds)
+                }
+                : new TournamentDeckManifest
+                {
+                    displayName = "Aguardando escolha de deck"
+                };
             manifest.Normalize();
+            string displayName = hasLoadout
+                ? loadout.playerDisplayName
+                : frontend.LocalTournamentPlayerDisplayName;
             profile = new PlayerProfileEnvelope
             {
-                displayName = string.IsNullOrWhiteSpace(loadout.playerDisplayName)
+                displayName = string.IsNullOrWhiteSpace(displayName)
                     ? "DUELISTA " + ShortPlayerId(LocalPlayerId)
-                    : loadout.playerDisplayName.Trim(),
+                    : displayName.Trim(),
                 avatarId = "default",
                 ready = ready,
                 appVersion = ProjectIdentity.ProjectVersion,
                 protocolVersion = ProtocolVersion,
                 platform = Application.platform.ToString(),
+                usesRandomDeck = usesRandomDeck,
                 deck = manifest
             };
+            if (!hasLoadout)
+                error = string.Empty;
             return true;
         }
 
@@ -1165,6 +1229,7 @@ namespace ArcaneArena.Multiplayer.Tournaments
                        StringComparison.Ordinal) ||
                    !string.Equals(existing.deckHash, profile.deck.sha256,
                        StringComparison.OrdinalIgnoreCase) ||
+                   existing.usesRandomDeck != profile.usesRandomDeck ||
                    existing.isReady != profile.ready ||
                    existing.isOrganizer != organizer;
         }

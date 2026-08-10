@@ -19,6 +19,7 @@ namespace ArcaneArena.Frontend
             CreateBasics,
             CreateRules,
             Lobby,
+            DeckSelection,
             Overview,
             Bracket,
             Standings,
@@ -56,9 +57,225 @@ namespace ArcaneArena.Frontend
         private string _tournamentPassword = string.Empty;
         private string _tournamentCustomBan = string.Empty;
         private string _tournamentPool = string.Empty;
+        private GameObject _tournamentHelpPanel;
+
+        private const string TournamentRandomDeckPreferenceKey =
+            "ArcaneTournament.RandomDeck";
+        private const string TournamentManualDeckPreferenceKey =
+            "ArcaneTournament.ManualDeckId";
 
         private TournamentOnlineSession TournamentSession =>
             TournamentOnlineSession.EnsureInstance();
+
+        public bool TournamentUsesRandomDeck =>
+            PlayerPrefs.GetInt(TournamentRandomDeckPreferenceKey, 0) != 0;
+
+        public string LocalTournamentPlayerDisplayName
+        {
+            get
+            {
+                EnsureTournamentRepository();
+                return _repository?.PlayerDisplayName ?? string.Empty;
+            }
+        }
+
+        public bool SetTournamentDeckPreference(
+            bool useRandomDeck,
+            string manualDeckId,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            EnsureTournamentRepository();
+            if (_repository == null)
+            {
+                rejection = "A coleção de decks ainda não foi carregada.";
+                return false;
+            }
+
+            if (useRandomDeck)
+            {
+                bool hasEligibleDeck = _repository.GetDuelEligibleDecks()
+                    .Any(deck => TryCreateTournamentLoadout(
+                        deck.deckId,
+                        out _,
+                        out _));
+                if (!hasEligibleDeck)
+                {
+                    rejection =
+                        "Você ainda não possui um deck completo, desbloqueado e permitido pelas regras deste torneio.";
+                    return false;
+                }
+            }
+            else
+            {
+                string requested = string.IsNullOrWhiteSpace(manualDeckId)
+                    ? PlayerPrefs.GetString(
+                        TournamentManualDeckPreferenceKey,
+                        _repository.State?.selectedDeckId ?? string.Empty)
+                    : manualDeckId.Trim();
+                if (!TryCreateTournamentLoadout(
+                        requested,
+                        out _,
+                        out rejection))
+                {
+                    return false;
+                }
+                PlayerPrefs.SetString(
+                    TournamentManualDeckPreferenceKey,
+                    requested);
+            }
+
+            PlayerPrefs.SetInt(
+                TournamentRandomDeckPreferenceKey,
+                useRandomDeck ? 1 : 0);
+            PlayerPrefs.Save();
+            return true;
+        }
+
+        public bool TryGetTournamentDuelLoadout(
+            string tournamentId,
+            out DuelDeckLoadout loadout,
+            out bool usesRandomDeck,
+            out string rejection)
+        {
+            loadout = null;
+            rejection = string.Empty;
+            usesRandomDeck = TournamentUsesRandomDeck;
+            EnsureTournamentRepository();
+            if (_repository == null)
+            {
+                rejection = "A coleção de decks ainda não foi carregada.";
+                return false;
+            }
+
+            if (usesRandomDeck)
+            {
+                IReadOnlyList<DeckRecord> eligible = _repository
+                    .GetDuelEligibleDecks()
+                    .Where(deck => TryCreateTournamentLoadout(
+                        deck.deckId,
+                        out _,
+                        out _))
+                    .ToArray();
+                if (eligible.Count == 0)
+                {
+                    rejection =
+                        "Nenhum deck desbloqueado atende às regras básicas de duelo.";
+                    return false;
+                }
+
+                int index = StableTournamentDeckIndex(
+                    tournamentId,
+                    _repository.State?.localProfileId,
+                    eligible.Count);
+                return TryCreateTournamentLoadout(
+                    eligible[index].deckId,
+                    out loadout,
+                    out rejection);
+            }
+
+            string manualDeckId = PlayerPrefs.GetString(
+                TournamentManualDeckPreferenceKey,
+                _repository.State?.selectedDeckId ?? string.Empty);
+            if (TryCreateTournamentLoadout(
+                    manualDeckId,
+                    out loadout,
+                    out rejection))
+            {
+                return true;
+            }
+
+            string selectedDeckId = _repository.State?.selectedDeckId ??
+                string.Empty;
+            if (!string.Equals(
+                    selectedDeckId,
+                    manualDeckId,
+                    StringComparison.Ordinal) &&
+                TryCreateTournamentLoadout(
+                    selectedDeckId,
+                    out loadout,
+                    out rejection))
+            {
+                PlayerPrefs.SetString(
+                    TournamentManualDeckPreferenceKey,
+                    selectedDeckId);
+                PlayerPrefs.Save();
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryCreateTournamentLoadout(
+            string deckId,
+            out DuelDeckLoadout loadout,
+            out string rejection)
+        {
+            loadout = null;
+            rejection = string.Empty;
+            if (_repository == null || !_repository.TryCreateLoadout(
+                    deckId,
+                    out loadout,
+                    out rejection))
+            {
+                return false;
+            }
+
+            TournamentConfig config = TournamentOnlineSession.Instance?
+                .State?.config;
+            if (config == null)
+                return true;
+
+            var manifest = new TournamentDeckManifest
+            {
+                deckId = loadout.deckId,
+                displayName = loadout.displayName,
+                banListId = loadout.banlistId,
+                sha256 = loadout.normalizedDeckSha256,
+                mainDeckCardIds = new List<string>(loadout.mainDeckCardIds),
+                extraDeckCardIds = new List<string>(loadout.extraDeckCardIds),
+                sideDeckCardIds = new List<string>(loadout.sideDeckCardIds)
+            };
+            TournamentDeckValidationResult validation =
+                TournamentDeckRulesValidator.Validate(manifest, config);
+            if (validation.IsValid)
+                return true;
+
+            rejection = validation.Summary;
+            loadout = null;
+            return false;
+        }
+
+        private void EnsureTournamentRepository()
+        {
+            if (_repository != null)
+                return;
+            ResolveProjectReferences();
+            _repository = new DeckRepository();
+            _repository.Load(_catalog);
+            InitializeCoinRewardAuthorization();
+        }
+
+        private static int StableTournamentDeckIndex(
+            string tournamentId,
+            string profileId,
+            int count)
+        {
+            if (count <= 1)
+                return 0;
+            unchecked
+            {
+                uint hash = 2166136261;
+                string source = (tournamentId ?? string.Empty) + ":" +
+                    (profileId ?? string.Empty);
+                foreach (char value in source)
+                {
+                    hash ^= value;
+                    hash *= 16777619;
+                }
+                return (int)(hash % (uint)count);
+            }
+        }
 
         private void ShowTournamentHub()
         {
@@ -83,7 +300,8 @@ namespace ArcaneArena.Frontend
             }
             if (_tournamentPage == TournamentPage.CreateBasics ||
                 _tournamentPage == TournamentPage.CreateRules ||
-                _tournamentPage == TournamentPage.Join)
+                _tournamentPage == TournamentPage.Join ||
+                _tournamentPage == TournamentPage.DeckSelection)
             {
                 return;
             }
@@ -110,6 +328,9 @@ namespace ArcaneArena.Frontend
                 case TournamentPage.Lobby:
                     BuildTournamentLobby();
                     break;
+                case TournamentPage.DeckSelection:
+                    BuildTournamentDeckSelection();
+                    break;
                 case TournamentPage.Overview:
                     BuildTournamentOverview();
                     break;
@@ -135,6 +356,7 @@ namespace ArcaneArena.Frontend
                     BuildTournamentFinal();
                     break;
             }
+            AttachTournamentHelpToVisibleControls();
         }
 
         private void BuildTournamentShell(
@@ -152,7 +374,7 @@ namespace ArcaneArena.Frontend
             CreateText(
                 _screenRoot,
                 subtitle,
-                16,
+                18,
                 FontStyle.Normal,
                 Muted,
                 new Vector2(0.08f, 0.855f),
@@ -336,7 +558,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.63f, 0.65f),
                 new Color(0.045f, 0.075f, 0.025f, 0.98f));
             AddOutline(participants.gameObject, Lime, new Vector2(2f, -2f));
-            CreateText(participants.transform, "PARTICIPANTES", 13,
+            CreateText(participants.transform, "PARTICIPANTES", 16,
                 FontStyle.Bold, Color.white, new Vector2(0.05f, 0.62f),
                 new Vector2(0.95f, 0.95f), TextAnchor.MiddleCenter);
             CreateButton(participants.transform, "−", new Vector2(0.04f, 0.08f),
@@ -361,7 +583,7 @@ namespace ArcaneArena.Frontend
             CreateText(panel.transform,
                 "Mata-mata elimina quem perde a série. Pontos libera rodadas " +
                 "e ordena por pontos, vitórias, confronto direto, saldo e dano.",
-                15, FontStyle.Normal, Muted, new Vector2(0.06f, 0.28f),
+                18, FontStyle.Normal, Muted, new Vector2(0.06f, 0.28f),
                 new Vector2(0.65f, 0.44f), TextAnchor.MiddleLeft);
             SelectionButton(panel.transform,
                 "INÍCIO COM MAIORIA\n" +
@@ -559,7 +781,7 @@ namespace ArcaneArena.Frontend
                 BuildTournamentPlayerTile(list, player, true);
 
             Image summary = CreatePanel(_screenRoot, "Resumo do Torneio",
-                new Vector2(0.67f, 0.35f), new Vector2(0.94f, 0.75f),
+                new Vector2(0.67f, 0.48f), new Vector2(0.94f, 0.75f),
                 new Color(0.01f, 0.045f, 0.08f, 0.97f));
             AddOutline(summary.gameObject, Gold, new Vector2(2f, -2f));
             CreateText(summary.transform, "RESUMO", 23, FontStyle.Bold,
@@ -567,11 +789,12 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleLeft);
             CreateText(summary.transform, TournamentRulesSummary(current.config),
                 17, FontStyle.Normal, Color.white,
-                new Vector2(0.08f, 0.20f), new Vector2(0.92f, 0.81f),
+                new Vector2(0.08f, 0.10f), new Vector2(0.92f, 0.81f),
                 TextAnchor.UpperLeft);
 
             TournamentPlayer local = current.FindPlayer(
                 TournamentSession.LocalPlayerId);
+            BuildTournamentDeckControls(local);
             CreateButton(_screenRoot,
                 local?.isReady == true ? "RETIRAR PRONTO" : "CONFIRMAR PRONTO",
                 new Vector2(0.055f, 0.14f), new Vector2(0.30f, 0.22f),
@@ -603,6 +826,151 @@ namespace ArcaneArena.Frontend
                     new Vector2(0.70f, 0.14f), new Vector2(0.94f, 0.22f),
                     Danger, LeaveTournamentFromUi);
                 CreateTournamentFeedback(TournamentSession.StatusMessage);
+            }
+        }
+
+        private void BuildTournamentDeckControls(TournamentPlayer local)
+        {
+            bool random = local?.usesRandomDeck == true ||
+                TournamentUsesRandomDeck;
+            string deckName = local?.deckValid == true
+                ? local.deckName
+                : "AGUARDANDO ESCOLHA";
+            Image panel = CreatePanel(_screenRoot, "Deck do Torneio",
+                new Vector2(0.67f, 0.25f), new Vector2(0.94f, 0.46f),
+                new Color(0.01f, 0.045f, 0.08f, 0.98f));
+            AddOutline(panel.gameObject, random ? Gold : Cyan,
+                new Vector2(2f, -2f));
+            CreateText(panel.transform,
+                "DECK DO TORNEIO  •  " + (random ? "ALEATÓRIO" : "MANUAL"),
+                16, FontStyle.Bold, random ? Gold : Cyan,
+                new Vector2(0.05f, 0.73f), new Vector2(0.95f, 0.94f),
+                TextAnchor.MiddleLeft);
+            CreateText(panel.transform, deckName, 17, FontStyle.Bold,
+                local?.deckValid == true ? Color.white : Muted,
+                new Vector2(0.05f, 0.51f), new Vector2(0.95f, 0.73f),
+                TextAnchor.MiddleLeft);
+
+            CreateButton(panel.transform,
+                "ALEATÓRIO\n" + YesNo(random),
+                new Vector2(0.04f, 0.08f), new Vector2(0.47f, 0.47f),
+                random ? Gold : Blue,
+                () => ChangeTournamentDeckModeFromUi(!random));
+            if (random)
+            {
+                CreateText(panel.transform,
+                    "Sorteio entre seus decks válidos e desbloqueados.",
+                    14, FontStyle.Bold, Muted,
+                    new Vector2(0.51f, 0.08f), new Vector2(0.96f, 0.47f),
+                    TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                CreateButton(panel.transform, "ESCOLHER DECK",
+                    new Vector2(0.51f, 0.08f), new Vector2(0.96f, 0.47f),
+                    Lime,
+                    () => RenderTournamentPage(
+                        TournamentPage.DeckSelection));
+            }
+        }
+
+        private void BuildTournamentDeckSelection()
+        {
+            TournamentState current = TournamentSession.State;
+            if (current?.config == null)
+            {
+                RenderTournamentPage(TournamentPage.Hub);
+                return;
+            }
+
+            EnsureTournamentRepository();
+            BuildTournamentShell(
+                "ESCOLHER DECK DO TORNEIO",
+                "Somente decks deste perfil, desbloqueados, completos e válidos podem ser confirmados.",
+                () => RenderTournamentPage(TournamentPage.Lobby));
+
+            List<DeckRecord> decks = _repository?.State?.decks?
+                .Where(deck => deck != null)
+                .OrderBy(deck => deck.displayName,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? new List<DeckRecord>();
+            if (decks.Count == 0)
+            {
+                CreateText(_screenRoot,
+                    "Você ainda não possui decks neste perfil. Adquira ou monte um deck antes de confirmar presença.",
+                    23, FontStyle.Bold, Gold,
+                    new Vector2(0.16f, 0.38f), new Vector2(0.84f, 0.66f),
+                    TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                RectTransform grid = CreateScrollGrid(_screenRoot,
+                    "Decks disponíveis para o torneio",
+                    new Vector2(0.055f, 0.16f),
+                    new Vector2(0.945f, 0.82f),
+                    new Vector2(390f, 235f),
+                    new Vector2(14f, 14f),
+                    3);
+                foreach (DeckRecord deck in decks)
+                    BuildTournamentDeckChoiceTile(grid, deck);
+            }
+
+            CreateButton(_screenRoot, "VOLTAR AO LOBBY",
+                new Vector2(0.055f, 0.07f), new Vector2(0.30f, 0.14f),
+                Blue, () => RenderTournamentPage(TournamentPage.Lobby));
+            CreateTournamentFeedback(
+                "A seleção do torneio não altera o deck ativo dos outros modos.");
+        }
+
+        private void BuildTournamentDeckChoiceTile(
+            Transform parent,
+            DeckRecord deck)
+        {
+            bool eligible = TryCreateTournamentLoadout(
+                deck.deckId,
+                out _,
+                out string rejection);
+            string currentManualId = PlayerPrefs.GetString(
+                TournamentManualDeckPreferenceKey,
+                _repository.State?.selectedDeckId ?? string.Empty);
+            bool selected = !TournamentUsesRandomDeck && string.Equals(
+                currentManualId,
+                deck.deckId,
+                StringComparison.Ordinal);
+            Color accent = selected ? Lime : eligible ? Cyan : Danger;
+            Image tile = CreatePanel(parent, "Deck " + deck.deckId,
+                Vector2.zero, Vector2.one,
+                new Color(0.008f, 0.032f, 0.06f, 0.98f));
+            AddOutline(tile.gameObject, accent,
+                selected ? new Vector2(4f, -4f) : new Vector2(2f, -2f));
+            CreateFeaturedCards(tile.transform, deck,
+                new Vector2(0.03f, 0.24f), new Vector2(0.49f, 0.91f));
+            CreateText(tile.transform, deck.displayName, 20,
+                FontStyle.Bold, Color.white,
+                new Vector2(0.51f, 0.69f), new Vector2(0.96f, 0.92f),
+                TextAnchor.MiddleCenter);
+            CreateText(tile.transform,
+                $"PRINCIPAL {deck.mainDeckCardIds.Count}  •  EXTRA {deck.extraDeckCardIds.Count}",
+                14, FontStyle.Bold, eligible ? Lime : Gold,
+                new Vector2(0.51f, 0.52f), new Vector2(0.96f, 0.69f),
+                TextAnchor.MiddleCenter);
+            if (eligible)
+            {
+                CreateButton(tile.transform,
+                    selected ? "SELECIONADO" : "USAR NO TORNEIO",
+                    new Vector2(0.52f, 0.12f), new Vector2(0.95f, 0.43f),
+                    selected ? Lime : Cyan,
+                    () => SelectTournamentDeckFromUi(deck.deckId));
+            }
+            else
+            {
+                CreateText(tile.transform,
+                    string.IsNullOrWhiteSpace(rejection)
+                        ? "Deck indisponível neste perfil."
+                        : rejection,
+                    13, FontStyle.Bold, Danger,
+                    new Vector2(0.51f, 0.08f), new Vector2(0.96f, 0.49f),
+                    TextAnchor.MiddleCenter);
             }
         }
 
@@ -1253,11 +1621,12 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.95f, 0.92f), TextAnchor.MiddleLeft);
             CreateText(tile.transform,
                 $"{PlayerStatusLabel(player)}  •  " +
-                $"DECK: {player.deckName ?? "AGUARDANDO"}" +
+                $"DECK{(player.usesRandomDeck ? " ALEATÓRIO" : string.Empty)}: " +
+                $"{player.deckName ?? "AGUARDANDO"}" +
                 (showValidation && !player.deckValid
                     ? "\n" + player.deckValidationMessage
                     : string.Empty),
-                14, FontStyle.Normal,
+                15, FontStyle.Normal,
                 player.deckValid ? accent : Danger,
                 new Vector2(0.05f, 0.08f), new Vector2(0.95f, 0.64f),
                 TextAnchor.MiddleLeft);
@@ -1406,6 +1775,35 @@ namespace ArcaneArena.Frontend
                 await TournamentSession.SetReadyAsync(ready);
             if (!result.Success)
                 SetTournamentFeedback(result.Message, true);
+        }
+
+        private async void ChangeTournamentDeckModeFromUi(
+            bool useRandomDeck)
+        {
+            SetTournamentFeedback(useRandomDeck
+                ? "Selecionando um deck aleatório entre os decks disponíveis..."
+                : "Restaurando a seleção manual do torneio...");
+            TournamentOperationResult result = await TournamentSession
+                .UpdateDeckSelectionAsync(useRandomDeck, string.Empty);
+            if (!result.Success)
+            {
+                SetTournamentFeedback(result.Message, true);
+                return;
+            }
+            RenderTournamentPage(TournamentPage.Lobby);
+        }
+
+        private async void SelectTournamentDeckFromUi(string deckId)
+        {
+            SetTournamentFeedback("Validando propriedade e regras do deck...");
+            TournamentOperationResult result = await TournamentSession
+                .UpdateDeckSelectionAsync(false, deckId);
+            if (!result.Success)
+            {
+                SetTournamentFeedback(result.Message, true);
+                return;
+            }
+            RenderTournamentPage(TournamentPage.Lobby);
         }
 
         private async void StartTournamentFromUi()
@@ -1704,7 +2102,8 @@ namespace ArcaneArena.Frontend
             Vector2 min,
             Vector2 max)
         {
-            CreateText(parent, label, 13, FontStyle.Bold, Muted, min, max,
+            CreateText(parent, label, 16, FontStyle.Bold,
+                new Color(0.76f, 0.84f, 0.90f, 1f), min, max,
                 TextAnchor.MiddleLeft);
         }
 
@@ -1722,8 +2121,229 @@ namespace ArcaneArena.Frontend
         private void CreateTournamentFeedback(string message)
         {
             _tournamentFeedback = CreateText(_screenRoot, message ?? string.Empty,
-                14, FontStyle.Bold, Muted, new Vector2(0.08f, 0.035f),
+                16, FontStyle.Bold, Muted, new Vector2(0.08f, 0.035f),
                 new Vector2(0.92f, 0.095f), TextAnchor.MiddleCenter);
+        }
+
+        private void AttachTournamentHelpToVisibleControls()
+        {
+            if (_screenRoot == null)
+                return;
+
+            foreach (Button button in _screenRoot.GetComponentsInChildren<Button>(
+                         true))
+            {
+                Text label = button.GetComponentInChildren<Text>(true);
+                if (label == null || !TryGetTournamentButtonHelp(
+                        label.text,
+                        out string title,
+                        out string body))
+                {
+                    continue;
+                }
+                AttachTournamentHelp(button.gameObject, title, body);
+            }
+
+            foreach (InputField input in _screenRoot
+                         .GetComponentsInChildren<InputField>(true))
+            {
+                string placeholder = (input.placeholder as Text)?.text ??
+                    input.gameObject.name;
+                if (!TryGetTournamentInputHelp(
+                        placeholder,
+                        out string title,
+                        out string body))
+                {
+                    continue;
+                }
+                AttachTournamentHelp(input.gameObject, title, body);
+            }
+        }
+
+        private void AttachTournamentHelp(
+            GameObject target,
+            string title,
+            string body)
+        {
+            if (target == null || string.IsNullOrWhiteSpace(body))
+                return;
+            TournamentHelpTrigger trigger =
+                target.GetComponent<TournamentHelpTrigger>() ??
+                target.AddComponent<TournamentHelpTrigger>();
+            trigger.Configure(
+                title,
+                body,
+                ShowTournamentHelp,
+                HideTournamentHelp);
+        }
+
+        private void ShowTournamentHelp(
+            RectTransform owner,
+            string title,
+            string body)
+        {
+            HideTournamentHelp();
+            if (_screenRoot == null)
+                return;
+
+            Image panel = CreatePanel(_screenRoot,
+                "Ajuda do Torneio",
+                new Vector2(0.24f, 0.61f),
+                new Vector2(0.76f, 0.82f),
+                new Color(0.008f, 0.022f, 0.045f, 0.985f));
+            panel.raycastTarget = false;
+            AddOutline(panel.gameObject, Gold, new Vector2(3f, -3f));
+            CreateText(panel.transform, title, 22, FontStyle.Bold, Gold,
+                new Vector2(0.055f, 0.67f), new Vector2(0.945f, 0.93f),
+                TextAnchor.MiddleLeft);
+            CreateText(panel.transform, body, 17, FontStyle.Normal,
+                Color.white,
+                new Vector2(0.055f, 0.12f), new Vector2(0.945f, 0.67f),
+                TextAnchor.UpperLeft);
+            _tournamentHelpPanel = panel.gameObject;
+            _tournamentHelpPanel.transform.SetAsLastSibling();
+        }
+
+        private void HideTournamentHelp()
+        {
+            if (_tournamentHelpPanel != null)
+                Destroy(_tournamentHelpPanel);
+            _tournamentHelpPanel = null;
+        }
+
+        private static bool TryGetTournamentButtonHelp(
+            string label,
+            out string title,
+            out string body)
+        {
+            string key = (label ?? string.Empty)
+                .Replace("\n", " ")
+                .Trim()
+                .ToUpperInvariant();
+            title = key.Length == 0 ? "AJUDA" : key;
+            body = string.Empty;
+            if (key.Length == 0)
+                return false;
+
+            if (key == "+" || key == "−" || key == "-")
+            {
+                title = "PARTICIPANTES";
+                body = "Aumenta ou reduz a capacidade máxima do torneio. O início com maioria pode liberar o campeonato antes de todas as vagas serem preenchidas.";
+            }
+            else if (key.Contains("FORMATO"))
+                body = "Alterna entre mata-mata e pontos. Mata-mata elimina quem perde a série; pontos usa rodadas e classificação.";
+            else if (key.Contains("CONFRONTO") || key.StartsWith("BO"))
+                body = "Define quantos duelos formam cada confronto. Bo3, por exemplo, exige duas vitórias para vencer a série.";
+            else if (key.Contains("INÍCIO COM MAIORIA"))
+                body = "Permite iniciar quando houver mais da metade da capacidade ocupada, desde que todos os presentes tenham deck válido e estejam prontos.";
+            else if (key.Contains("BAN LIST"))
+                body = "Escolhe a lista de restrições das cartas: padrão, personalizada ou sem lista adicional.";
+            else if (key.Contains("DECK BLOQUEADO"))
+                body = "Quando ativado, o hash do deck é fixado no início. O jogador não poderá trocar cartas durante o campeonato.";
+            else if (key.Contains("PRIVACIDADE"))
+                body = "Torneios privados exigem código e podem usar senha. Torneios públicos podem ser encontrados pelos serviços online habilitados.";
+            else if (key == "WO SIM" || key == "WO NÃO" || key.StartsWith("WO "))
+                body = "Autoriza vitória por ausência quando um participante não puder concluir o confronto.";
+            else if (key.Contains("ALEATÓRIO"))
+                body = "Em SIM, o jogo sorteia somente entre seus decks completos, desbloqueados e válidos. Em NÃO, você escolhe manualmente.";
+            else if (key.Contains("ESCOLHER DECK") ||
+                     key.Contains("USAR NO TORNEIO") ||
+                     key.Contains("SELECIONADO"))
+                body = "Abre ou confirma o deck exclusivo deste torneio. A escolha não altera o deck ativo dos outros modos.";
+            else if (key.Contains("CONFIRMAR PRONTO"))
+                body = "Valida novamente o deck e informa ao organizador que você está preparado para iniciar.";
+            else if (key.Contains("RETIRAR PRONTO"))
+                body = "Retira sua confirmação para permitir uma nova escolha ou correção antes do início.";
+            else if (key.Contains("INICIAR TORNEIO") ||
+                     key.StartsWith("INICIAR COM"))
+                body = "Cria a chave ou as rodadas usando apenas os participantes online, prontos e com decks válidos.";
+            else if (key.Contains("COPIAR"))
+                body = "Copia o código do lobby para a área de transferência, facilitando o envio aos demais participantes.";
+            else if (key.Contains("PRÓXIMO"))
+                body = "Salva os dados desta etapa e abre as regras avançadas do campeonato.";
+            else if (key.Contains("CRIAR LOBBY"))
+                body = "Valida todas as regras e cria o lobby online. Depois disso os participantes poderão entrar pelo código.";
+            else if (key == "ENTRAR" || key.Contains("ABRIR ENTRADA"))
+                body = "Entra no torneio usando o código e a senha informados, sem exigir que você saia para escolher um deck.";
+            else if (key.Contains("ENTRAR NO DUELO"))
+                body = "Abre a sala do confronto que foi atribuída a você nesta rodada.";
+            else if (key.Contains("EDITAR"))
+                body = "Retorna às etapas de criação para ajustar regras enquanto o torneio ainda está no lobby.";
+            else if (key.Contains("CANCELAR"))
+                body = "Cancela esta operação. Se o torneio já existir, o organizador poderá encerrá-lo para todos.";
+            else if (key.Contains("SAIR DO TORNEIO"))
+                body = "Remove você do lobby antes do início e preserva seus decks e sua coleção local.";
+            else if (key.Contains("VOLTAR"))
+                body = "Retorna à tela anterior sem apagar seus decks ou sua coleção.";
+            else if (key.Contains("CLASSIFICAÇÃO"))
+                body = "Mostra posição, partidas, vitórias, derrotas, pontos e critérios de desempate.";
+            else if (key.Contains("CHAVE"))
+                body = "Mostra confrontos, rodadas, resultados e progressão do campeonato.";
+            else if (key.Contains("MÉTRICAS"))
+                body = "Exibe estatísticas consolidadas do torneio, jogadores, partidas e cartas.";
+            else if (key.Contains("REGRAS"))
+                body = "Mostra o resumo das regras que estão valendo neste campeonato.";
+            else
+                body = "Executa a ação “" + (label ?? string.Empty).Trim() + "”. Mantenha o cursor ou o toque sobre outras opções para conhecer cada regra antes de confirmar.";
+            return true;
+        }
+
+        private static bool TryGetTournamentInputHelp(
+            string placeholder,
+            out string title,
+            out string body)
+        {
+            string key = (placeholder ?? string.Empty).Trim().ToUpperInvariant();
+            title = "CAMPO DO TORNEIO";
+            body = string.Empty;
+            if (key.Contains("NOME"))
+            {
+                title = "NOME DO TORNEIO";
+                body = "Nome público apresentado aos participantes e no histórico do campeonato.";
+            }
+            else if (key.Contains("DESCRI"))
+            {
+                title = "DESCRIÇÃO";
+                body = "Resumo opcional para explicar o objetivo, horário ou regras especiais do evento.";
+            }
+            else if (key.Contains("2") && key.Contains("32"))
+            {
+                title = "CAPACIDADE";
+                body = "Quantidade máxima, sempre par, entre 2 e 32 participantes.";
+            }
+            else if (key.Contains("SENHA"))
+            {
+                title = "SENHA PRIVADA";
+                body = "Proteção opcional de 8 a 64 caracteres. O código sozinho não permitirá entrar quando houver senha.";
+            }
+            else if (key == "45")
+            {
+                title = "TIMEOUT";
+                body = "Tempo máximo em minutos para concluir cada confronto antes de intervenção do organizador.";
+            }
+            else if (key.StartsWith("EX.:"))
+            {
+                title = "BAN LIST PERSONALIZADA";
+                body = "Informe ID:limite separados por vírgula. Limite 0 proíbe; 1 limita; 2 permite até duas cópias.";
+            }
+            else if (key.Contains("TODAS AS CARTAS"))
+            {
+                title = "POOL PERMITIDO";
+                body = "Deixe vazio para usar toda a coleção ou informe IDs separados por vírgula para restringir as cartas permitidas.";
+            }
+            else if (key == "ABC123")
+            {
+                title = "CÓDIGO DO TORNEIO";
+                body = "Código compartilhado pelo organizador para localizar o lobby online correto.";
+            }
+            else if (key == "V" || key == "D" || key == "WO" || key == "R")
+            {
+                title = "PONTUAÇÃO E RODADAS";
+                body = "Define, respectivamente, pontos por vitória, derrota, WO e quantidade de rodadas no formato por pontos.";
+            }
+            else
+                return false;
+            return true;
         }
 
         private void SetTournamentFeedback(string message, bool error = false)

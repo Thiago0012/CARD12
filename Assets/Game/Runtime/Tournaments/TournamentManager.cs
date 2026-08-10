@@ -113,7 +113,8 @@ namespace ArcaneDuel.Game.Tournaments
             TournamentDeckManifest deck,
             bool organizer = false,
             string avatarId = "default",
-            bool ready = true)
+            bool ready = true,
+            bool usesRandomDeck = false)
         {
             playerId = playerId?.Trim() ?? string.Empty;
             displayName = CollapseWhitespace(displayName);
@@ -169,6 +170,7 @@ namespace ArcaneDuel.Game.Tournaments
             existing.deckId = existing.deck.deckId;
             existing.deckName = existing.deck.displayName;
             existing.deckHash = existing.deck.sha256;
+            existing.usesRandomDeck = usesRandomDeck;
             existing.deckValid = validation.IsValid;
             existing.deckValidationMessage = validation.Summary;
             existing.isReady = validation.IsValid && ready;

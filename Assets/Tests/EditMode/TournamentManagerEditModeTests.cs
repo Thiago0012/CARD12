@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ArcaneDuel.Game;
 using ArcaneDuel.Game.Tournaments;
 using NUnit.Framework;
 
@@ -9,6 +10,46 @@ namespace ArcaneDuel.Tests.EditMode
 {
     public sealed class TournamentManagerEditModeTests
     {
+        [Test]
+        public void RandomDeckModeIsStoredByTheAuthoritativeManager()
+        {
+            TournamentManager manager = TournamentManager.Create(
+                Config(2, TournamentFormatType.SingleElimination));
+            TournamentOperationResult added = manager.AddOrUpdateParticipant(
+                "random-player",
+                "Random Player",
+                ValidDeck(91000000),
+                ready: false,
+                usesRandomDeck: true);
+
+            Assert.That(added.Success, Is.True, added.Message);
+            TournamentPlayer player = manager.State.FindPlayer(
+                "random-player");
+            Assert.That(player, Is.Not.Null);
+            Assert.That(player.usesRandomDeck, Is.True);
+            Assert.That(player.isReady, Is.False);
+        }
+
+        [Test]
+        public void TextSizePreferenceExposesThreePredictableScales()
+        {
+            Assert.That(
+                ArcaneUiTextPreferences.MultiplierFor(
+                    ArcaneUiTextSize.Small),
+                Is.EqualTo(0.90f));
+            Assert.That(
+                ArcaneUiTextPreferences.MultiplierFor(
+                    ArcaneUiTextSize.Medium),
+                Is.EqualTo(1f));
+            Assert.That(
+                ArcaneUiTextPreferences.MultiplierFor(
+                    ArcaneUiTextSize.Large),
+                Is.EqualTo(1.20f));
+            Assert.That(
+                ArcaneUiTextPreferences.Next(ArcaneUiTextSize.Large),
+                Is.EqualTo(ArcaneUiTextSize.Small));
+        }
+
         [Test]
         public void ConfigAcceptsEveryEvenParticipantCountAndRejectsOddCapacity()
         {

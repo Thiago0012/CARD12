@@ -217,6 +217,7 @@ namespace ArcaneDuel.Game.Tournaments
         public string deckName;
         public string deckHash;
         public string lockedDeckHash;
+        public bool usesRandomDeck;
         public bool deckValid;
         public string deckValidationMessage;
         public bool isReady;

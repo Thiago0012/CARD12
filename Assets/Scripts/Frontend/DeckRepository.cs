@@ -393,12 +393,58 @@ namespace ArcaneArena.Frontend
             out DuelDeckLoadout loadout,
             out string rejection)
         {
-            loadout = null;
             var selected = SelectedDeck;
             if (selected == null)
             {
+                loadout = null;
                 rejection =
                     "Nenhum deck foi selecionado para este perfil.";
+                return false;
+            }
+
+            return TryCreateLoadout(
+                selected.deckId,
+                out loadout,
+                out rejection);
+        }
+
+        public IReadOnlyList<DeckRecord> GetDuelEligibleDecks()
+        {
+            if (State?.decks == null)
+                return Array.Empty<DeckRecord>();
+
+            return State.decks
+                .Where(deck =>
+                    deck != null &&
+                    TryValidateForDuel(deck, _catalog, out _) &&
+                    TryValidateOwnership(deck, out _))
+                .OrderBy(deck => deck.displayName, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(deck => deck.deckId, StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        public bool TryCreateLoadout(
+            string deckId,
+            out DuelDeckLoadout loadout,
+            out string rejection)
+        {
+            loadout = null;
+            rejection = string.Empty;
+            if (State?.decks == null)
+            {
+                rejection = "A coleção de decks ainda não foi carregada.";
+                return false;
+            }
+
+            DeckRecord selected = State.decks.Find(deck =>
+                deck != null &&
+                string.Equals(
+                    deck.deckId,
+                    deckId ?? string.Empty,
+                    StringComparison.Ordinal));
+            if (selected == null)
+            {
+                rejection = "O deck escolhido não pertence a este perfil.";
                 return false;
             }
 
@@ -416,7 +462,11 @@ namespace ArcaneArena.Frontend
                 State.localProfileId,
                 selected,
                 PlayerDisplayName);
-            return loadout != null;
+            if (loadout != null)
+                return true;
+
+            rejection = "Não foi possível preparar uma cópia segura do deck.";
+            return false;
         }
 
         public static bool TryValidateForDuel(

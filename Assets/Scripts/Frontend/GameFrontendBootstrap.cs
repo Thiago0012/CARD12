@@ -1370,22 +1370,36 @@ namespace ArcaneArena.Frontend
             CreateButton(
                 panel.transform,
                 "PERFIL DO DUELISTA",
-                new Vector2(0.11f, 0.025f),
-                new Vector2(0.35f, 0.095f),
+                new Vector2(0.055f, 0.025f),
+                new Vector2(0.265f, 0.095f),
                 Cyan,
                 () => ShowPlayerProfileSetup(true));
             CreateButton(
                 panel.transform,
                 "RESPOSTAS",
-                new Vector2(0.38f, 0.025f),
-                new Vector2(0.62f, 0.095f),
+                new Vector2(0.285f, 0.025f),
+                new Vector2(0.495f, 0.095f),
                 Lime,
                 ShowDuelResponseOptions);
             CreateButton(
                 panel.transform,
+                "TEXTO\n" + ArcaneUiTextPreferences.DisplayName(
+                    ArcaneUiTextPreferences.Current),
+                new Vector2(0.515f, 0.025f),
+                new Vector2(0.725f, 0.095f),
+                Blue,
+                () =>
+                {
+                    ArcaneUiTextPreferences.Set(
+                        ArcaneUiTextPreferences.Next(
+                            ArcaneUiTextPreferences.Current));
+                    ShowAnimationOptions();
+                });
+            CreateButton(
+                panel.transform,
                 "RESTAURAR PADRÃO",
-                new Vector2(0.65f, 0.025f),
-                new Vector2(0.89f, 0.095f),
+                new Vector2(0.745f, 0.025f),
+                new Vector2(0.945f, 0.095f),
                 Gold,
                 () =>
                 {
@@ -1394,6 +1408,7 @@ namespace ArcaneArena.Frontend
                     DuelActivationPreferences.RestoreDefaults();
                     ArcaneAudioPreferences.ResetToDefaults();
                     ArcaneGraphicsPreferences.ResetToAutomatic();
+                    ArcaneUiTextPreferences.ResetToDefault();
                     ShowAnimationOptions();
                 });
         }
@@ -4652,6 +4667,7 @@ namespace ArcaneArena.Frontend
             text.resizeTextMinSize = 9;
             text.resizeTextMaxSize = size;
             text.raycastTarget = false;
+            ArcaneUiTextScaleRuntime.Register(text, size);
             return text;
         }
 
