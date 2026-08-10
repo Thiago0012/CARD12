@@ -1393,6 +1393,7 @@ namespace ArcaneArena.Frontend
                         .ResetToDefaults();
                     DuelActivationPreferences.RestoreDefaults();
                     ArcaneAudioPreferences.ResetToDefaults();
+                    ArcaneMusicPreferences.ResetToDefaults();
                     ArcaneGraphicsPreferences.ResetToAutomatic();
                     ShowAnimationOptions();
                 });
@@ -1623,7 +1624,7 @@ namespace ArcaneArena.Frontend
         {
             var row = CreatePanel(
                 parent,
-                "Volume dos efeitos",
+                "Volumes de audio",
                 new Vector2(0.055f, yMin),
                 new Vector2(0.945f, yMin + 0.13f),
                 new Color(0.025f, 0.09f, 0.135f, 0.94f));
@@ -1633,34 +1634,77 @@ namespace ArcaneArena.Frontend
                 new Vector2(2f, -2f));
             CreateText(
                 row.transform,
-                $"VOLUME DOS EFEITOS · {ArcaneAudioPreferences.Volume:P0}",
-                19,
+                $"EFEITOS · {ArcaneAudioPreferences.Volume:P0}",
+                17,
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.025f, 0.18f),
-                new Vector2(0.35f, 0.84f),
+                new Vector2(0.245f, 0.84f),
                 TextAnchor.MiddleLeft);
+            CreateButton(
+                row.transform,
+                "−",
+                new Vector2(0.255f, 0.18f),
+                new Vector2(0.335f, 0.82f),
+                ArcaneAudioPreferences.Volume > 0f ? Cyan : Muted,
+                () => AdjustEffectsVolume(-1));
+            CreateButton(
+                row.transform,
+                "+",
+                new Vector2(0.35f, 0.18f),
+                new Vector2(0.43f, 0.82f),
+                ArcaneAudioPreferences.Volume < 1f ? Lime : Muted,
+                () => AdjustEffectsVolume(1));
 
-            float[] volumes = { 0f, 0.25f, 0.50f, 0.75f, 1f };
-            for (int index = 0; index < volumes.Length; index++)
-            {
-                float volume = volumes[index];
-                float xMin = 0.39f + index * 0.116f;
-                bool selected = Mathf.Abs(
-                    ArcaneAudioPreferences.Volume - volume) < 0.01f;
-                CreateButton(
-                    row.transform,
-                    $"{volume:P0}",
-                    new Vector2(xMin, 0.18f),
-                    new Vector2(xMin + 0.098f, 0.82f),
-                    selected ? Lime : Cyan,
-                    () =>
-                    {
-                        ArcaneAudioPreferences.Volume = volume;
-                        ArcaneAudioPreferences.Enabled = volume > 0f;
-                        ShowAnimationOptions();
-                    });
-            }
+            CreateText(
+                row.transform,
+                $"MÚSICA · {ArcaneMusicPreferences.Volume:P0}",
+                17,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.50f, 0.18f),
+                new Vector2(0.73f, 0.84f),
+                TextAnchor.MiddleLeft);
+            CreateButton(
+                row.transform,
+                "−",
+                new Vector2(0.745f, 0.18f),
+                new Vector2(0.825f, 0.82f),
+                ArcaneMusicPreferences.Volume > 0f ? Cyan : Muted,
+                () => AdjustMusicVolume(-1));
+            CreateButton(
+                row.transform,
+                "+",
+                new Vector2(0.84f, 0.18f),
+                new Vector2(0.92f, 0.82f),
+                ArcaneMusicPreferences.Volume < 1f ? Lime : Muted,
+                () => AdjustMusicVolume(1));
+        }
+
+        private void AdjustEffectsVolume(int steps)
+        {
+            float currentStep = Mathf.Round(
+                ArcaneAudioPreferences.Volume /
+                ArcaneMusicPreferences.VolumeStep);
+            ArcaneAudioPreferences.Volume =
+                (currentStep + steps) *
+                ArcaneMusicPreferences.VolumeStep;
+            RefreshMasterAudioState();
+            ShowAnimationOptions();
+        }
+
+        private void AdjustMusicVolume(int steps)
+        {
+            ArcaneMusicPreferences.AdjustVolume(steps);
+            RefreshMasterAudioState();
+            ShowAnimationOptions();
+        }
+
+        private static void RefreshMasterAudioState()
+        {
+            ArcaneAudioPreferences.Enabled =
+                ArcaneAudioPreferences.Volume > 0.0001f ||
+                ArcaneMusicPreferences.Volume > 0.0001f;
         }
 
         private void BuildAnimationOptionRow(
