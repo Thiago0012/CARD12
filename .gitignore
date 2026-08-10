@@ -2,6 +2,7 @@
 [Ll]ibrary/
 [Tt]emp/
 [Tt]mp/
+.utmp/
 [Tt]est[Rr]esults/codex-phase3-6*
 [Oo]bj/
 [Bb]uild/
@@ -10,6 +11,12 @@
 [Uu]ser[Ss]ettings/
 [Mm]emoryCaptures/
 [Rr]ecordings/
+
+# Unity Performance Test Framework generates these transient Resources assets
+Assets/Resources/PerformanceTestRunInfo.json
+Assets/Resources/PerformanceTestRunInfo.json.meta
+Assets/Resources/PerformanceTestRunSettings.json
+Assets/Resources/PerformanceTestRunSettings.json.meta
 
 # IDE and tooling
 .vs/
