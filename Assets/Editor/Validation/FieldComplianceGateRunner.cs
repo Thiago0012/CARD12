@@ -29,7 +29,8 @@ namespace ArcaneDuel.Editor.Validation
             "ArcaneDuel.Tests.EditMode.MultiplayerCrossplayEditModeTests",
             "ArcaneDuel.Tests.EditMode.DuelEffectDescriptionResolverEditModeTests",
             "ArcaneDuel.Tests.EditMode.NinjaCardEffectSemanticsEditModeTests",
-            "ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests"
+            "ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests",
+            "ArcaneDuel.Tests.EditMode.TournamentManagerEditModeTests"
         };
 
         private static readonly string[] PlayModeGateTests =

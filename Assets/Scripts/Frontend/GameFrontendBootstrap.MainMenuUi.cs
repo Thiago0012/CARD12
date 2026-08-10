@@ -29,6 +29,7 @@ namespace ArcaneArena.Frontend
 
         public void ShowMainMenu()
         {
+            _tournamentPage = TournamentPage.None;
             if (_repository != null && _repository.NeedsStarterDeckSelection)
             {
                 ShowStarterDeckSelection();
@@ -242,17 +243,24 @@ namespace ArcaneArena.Frontend
             CreateButton(
                 panel.transform,
                 "CRIAR SALA PRIVADA",
-                new Vector2(0.14f, 0.34f),
-                new Vector2(0.86f, 0.49f),
+                new Vector2(0.14f, 0.39f),
+                new Vector2(0.86f, 0.51f),
                 Cyan,
                 () => OpenMultiplayerPanel(false));
             CreateButton(
                 panel.transform,
                 "ENTRAR COM CÓDIGO",
-                new Vector2(0.14f, 0.14f),
-                new Vector2(0.86f, 0.29f),
+                new Vector2(0.14f, 0.23f),
+                new Vector2(0.86f, 0.35f),
                 Blue,
                 () => OpenMultiplayerPanel(true));
+            CreateButton(
+                panel.transform,
+                "TORNEIOS ONLINE",
+                new Vector2(0.14f, 0.07f),
+                new Vector2(0.86f, 0.19f),
+                Gold,
+                ShowTournamentHub);
         }
 
         private void OpenMultiplayerPanel(bool focusJoinCode)

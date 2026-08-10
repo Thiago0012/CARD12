@@ -7,9 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using ArcaneArena;
 using ArcaneArena.Frontend;
+using ArcaneArena.Multiplayer.Tournaments;
 using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Tournaments;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -420,6 +422,10 @@ namespace ArcaneArena.Multiplayer
             localRewardEligibilityAtMatchStart;
         private string rewardResultMessage = string.Empty;
         private float rewardResultVisibleUntil;
+        private TournamentDuelContext activeTournamentContext;
+        private TournamentDuelMetricsCollector tournamentMetricsCollector;
+        private Task tournamentResultReportTask;
+        private bool tournamentLaunchRequested;
 
         public bool IsOnlineDuelActive =>
             role != SessionRole.None && networkManager != null &&
@@ -499,6 +505,37 @@ namespace ArcaneArena.Multiplayer
         internal void BeginMatchForDiagnostics()
         {
             BeginHostMatch();
+        }
+
+        public void BeginTournamentHosting(TournamentDuelContext context)
+        {
+            if (context == null || !context.IsValid ||
+                !context.LocalPlayerHosts)
+            {
+                status = "Contexto do confronto de torneio inválido.";
+                return;
+            }
+            activeTournamentContext = context;
+            tournamentLaunchRequested = true;
+            showPanel = false;
+            BeginHosting();
+        }
+
+        public void BeginTournamentJoining(
+            TournamentDuelContext context,
+            string code)
+        {
+            if (context == null || !context.IsValid ||
+                context.LocalPlayerHosts)
+            {
+                status = "Contexto do confronto de torneio inválido.";
+                return;
+            }
+            activeTournamentContext = context;
+            tournamentLaunchRequested = true;
+            showPanel = false;
+            joinCode = (code ?? string.Empty).Trim().ToUpperInvariant();
+            BeginJoining();
         }
 
         /// <summary>
@@ -713,6 +750,19 @@ namespace ArcaneArena.Multiplayer
         {
             try
             {
+                if (tournamentResultReportTask != null)
+                {
+                    try
+                    {
+                        await tournamentResultReportTask;
+                    }
+                    catch (Exception reportException)
+                    {
+                        Debug.LogWarning(
+                            "[Tournament] Resultado pendente ao sair: " +
+                            reportException.GetBaseException().Message);
+                    }
+                }
                 await LeaveRoomAsync();
                 if (SceneManager.GetActiveScene().name !=
                         ProjectIdentity.MainMenuScene &&
@@ -1034,6 +1084,10 @@ namespace ArcaneArena.Multiplayer
 
         private async void BeginHosting()
         {
+            bool tournamentLaunch = tournamentLaunchRequested;
+            tournamentLaunchRequested = false;
+            if (!tournamentLaunch)
+                ClearTournamentDuelContext();
             if (connectionOperationInProgress)
             {
                 status = "Uma conexão já está sendo preparada. Aguarde.";
@@ -1071,6 +1125,14 @@ namespace ArcaneArena.Multiplayer
                     localLoadout,
                     ProtocolVersion);
                 roomCode = session.Code;
+                if (activeTournamentContext != null)
+                {
+                    tournamentResultReportTask = TournamentOnlineSession
+                        .EnsureInstance()
+                        .NotifyDuelRoomCreatedAsync(
+                            activeTournamentContext,
+                            roomCode);
+                }
                 relayRegion = "QoS automatico";
                 relayRegionDescription =
                     "melhor regiao escolhida automaticamente";
@@ -1079,7 +1141,7 @@ namespace ArcaneArena.Multiplayer
 
                 status = $"Sala criada na região Relay {GetRelayRegionLabel()}. " +
                     "Compartilhe o código e aguarde o rival.";
-                showPanel = true;
+                showPanel = activeTournamentContext == null;
             }
             catch (Exception exception)
             {
@@ -1101,6 +1163,10 @@ namespace ArcaneArena.Multiplayer
 
         private async void BeginJoining()
         {
+            bool tournamentLaunch = tournamentLaunchRequested;
+            tournamentLaunchRequested = false;
+            if (!tournamentLaunch)
+                ClearTournamentDuelContext();
             if (connectionOperationInProgress)
             {
                 status = "Uma conexão já está sendo preparada. Aguarde.";
@@ -1920,6 +1986,10 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
+            // Every duel in a Best-of series needs its own immutable id.
+            // The tournament confrontation id remains in activeTournamentContext;
+            // reusing it here would make rewards and transport acknowledgements
+            // from game 1 collide with games 2/3/5.
             currentMatchId = Guid.NewGuid().ToString("N");
             currentTransitionEpoch = ++transitionEpochCounter;
             if (currentTransitionEpoch == 0)
@@ -1927,6 +1997,12 @@ namespace ArcaneArena.Multiplayer
             readinessBarrier.Begin(currentMatchId, currentTransitionEpoch);
             localRewardEligibilityAtMatchStart =
                 CaptureLocalRewardEligibility();
+            tournamentMetricsCollector = activeTournamentContext == null
+                ? null
+                : new TournamentDuelMetricsCollector(
+                    currentMatchId,
+                    activeTournamentContext.playerAId,
+                    activeTournamentContext.playerBId);
             matchStarted = true;
             clientSynchronizing = true;
             hostCoreStarted = false;
@@ -2078,6 +2154,12 @@ namespace ArcaneArena.Multiplayer
 
             if (!matchStarted && clientDeckReady)
             {
+                if (activeTournamentContext != null)
+                {
+                    status = "Os dois decks foram confirmados. Iniciando o confronto...";
+                    BeginHostMatch();
+                    return;
+                }
                 status = "Os dois decks foram confirmados. O anfitriao pode iniciar.";
                 return;
             }
@@ -2718,6 +2800,7 @@ namespace ArcaneArena.Multiplayer
 
         private void OnHostCoreEvent(DuelEvent duelEvent)
         {
+            tournamentMetricsCollector?.Capture(duelEvent);
             TrackAndFinalizeOnlineReward(duelEvent);
             if (duelEvent != null && IsHost && matchStarted &&
                 remoteClientId != ulong.MaxValue)
@@ -2850,6 +2933,19 @@ namespace ArcaneArena.Multiplayer
                 draw = draw
             };
             lastAuthoritativeResult = result;
+            if (activeTournamentContext != null && winnerSeat >= 0)
+            {
+                TournamentDuelStatsSnapshot tournamentStats =
+                    tournamentMetricsCollector?.Finish();
+                tournamentResultReportTask = TournamentOnlineSession
+                    .EnsureInstance()
+                    .ReportDuelResultAsync(
+                        activeTournamentContext,
+                        winnerSeat,
+                        false,
+                        false,
+                        tournamentStats);
+            }
             HandleAuthoritativeResult(result, 0, hostDetail);
 
             if (remoteClientId != ulong.MaxValue)
@@ -4471,6 +4567,7 @@ namespace ArcaneArena.Multiplayer
             }
             finally
             {
+                ClearTournamentDuelContext();
                 connectionOperationInProgress = false;
                 focusJoinCode = false;
                 requestJoinFocus = false;
@@ -4526,6 +4623,15 @@ namespace ArcaneArena.Multiplayer
                 networkManager.Shutdown();
             }
             await EnsureNetworkStoppedAfterLeaveAsync();
+            ClearTournamentDuelContext();
+        }
+
+        private void ClearTournamentDuelContext()
+        {
+            activeTournamentContext = null;
+            tournamentMetricsCollector = null;
+            tournamentResultReportTask = null;
+            tournamentLaunchRequested = false;
         }
 
         private static string DescribeJoinFailure(Exception exception)
