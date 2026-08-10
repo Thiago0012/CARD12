@@ -18,4 +18,8 @@ MonoBehaviour:
   shopButton: {fileID: 2800000, guid: 2c8f933f88edbcb409d75af88d158779, type: 3}
   multiplayerButton: {fileID: 2800000, guid: 6b2941ca5656fd14c88c14e6328c0465, type: 3}
   settingsButton: {fileID: 2800000, guid: aae72d9725a08614192ca79033982470, type: 3}
+  multiplayerLobby: {fileID: 2800000, guid: c8c606e839324f5b85e81bb27872324f, type: 3}
+  rankedModeButton: {fileID: 2800000, guid: 258ee253b0f044fe8dd44a713967d055, type: 3}
+  casualModeButton: {fileID: 2800000, guid: 6c615abcd3174620892c059bac3f82e2, type: 3}
+  tournamentModeButton: {fileID: 2800000, guid: 62d2a368e122459aa6df9c7853ac8fce, type: 3}
   interfaceClick: {fileID: 8300000, guid: 9cc97c109bfb9b44999e899e8af01fb4, type: 3}

@@ -15,6 +15,12 @@ namespace ArcaneArena.Frontend
         public Texture2D multiplayerButton;
         public Texture2D settingsButton;
 
+        [Header("Lobby multiplayer")]
+        public Texture2D multiplayerLobby;
+        public Texture2D rankedModeButton;
+        public Texture2D casualModeButton;
+        public Texture2D tournamentModeButton;
+
         [Header("Áudio")]
         public AudioClip interfaceClick;
 
@@ -29,5 +35,11 @@ namespace ArcaneArena.Frontend
             settingsButton != null;
 
         public bool HasConfirmationSound => interfaceClick != null;
+
+        public bool HasMultiplayerLobby =>
+            multiplayerLobby != null &&
+            rankedModeButton != null &&
+            casualModeButton != null &&
+            tournamentModeButton != null;
     }
 }

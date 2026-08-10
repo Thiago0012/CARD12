@@ -207,6 +207,76 @@ namespace ArcaneArena.Frontend
         {
             SetDuelPresentation(false);
             ClearScreen();
+
+            _mainMenuAssets ??=
+                Resources.Load<MainMenuUiAssets>(MainMenuAssetsPath);
+            if (_mainMenuAssets == null ||
+                !_mainMenuAssets.HasMultiplayerLobby)
+            {
+                ShowLegacyMultiplayerRoom();
+                return;
+            }
+
+            CreateFullCanvasArtwork(
+                "Lobby Multiplayer",
+                _mainMenuAssets.multiplayerLobby);
+
+            CreateMultiplayerLobbyButton(
+                "RANQUEADA",
+                _mainMenuAssets.rankedModeButton,
+                new Vector2(0.0084f, 0.6532f),
+                new Vector2(0.2195f, 0.8138f),
+                ShowRankedModeNotice);
+            CreateMultiplayerLobbyButton(
+                "CASUAL",
+                _mainMenuAssets.casualModeButton,
+                new Vector2(0.0078f, 0.4606f),
+                new Vector2(0.2189f, 0.6298f),
+                () => OpenMultiplayerPanel(false));
+            CreateMultiplayerLobbyButton(
+                "TORNEIOS",
+                _mainMenuAssets.tournamentModeButton,
+                new Vector2(0.0078f, 0.2766f),
+                new Vector2(0.2183f, 0.4457f),
+                ShowTournamentHub);
+
+            CreateText(
+                _screenRoot,
+                "‹",
+                44,
+                FontStyle.Bold,
+                Gold,
+                new Vector2(0.022f, 0.892f),
+                new Vector2(0.064f, 0.982f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                _screenRoot,
+                "MULTIPLAYER",
+                30,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.067f, 0.898f),
+                new Vector2(0.292f, 0.976f),
+                TextAnchor.MiddleLeft);
+            CreateInvisibleButton(
+                "VOLTAR DO MULTIPLAYER",
+                new Vector2(0.014f, 0.882f),
+                new Vector2(0.305f, 0.988f),
+                ShowMainMenu);
+
+            _duelRoomStatus = CreateText(
+                _screenRoot,
+                string.Empty,
+                20,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.035f, 0.018f),
+                new Vector2(0.965f, 0.104f),
+                TextAnchor.MiddleCenter);
+        }
+
+        private void ShowLegacyMultiplayerRoom()
+        {
             BuildSharedBackground("MULTIPLAYER");
             BuildHeader("MULTIPLAYER", ShowMainMenu);
 
@@ -261,6 +331,53 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.86f, 0.19f),
                 Gold,
                 ShowTournamentHub);
+        }
+
+        private void CreateMultiplayerLobbyButton(
+            string label,
+            Texture texture,
+            Vector2 min,
+            Vector2 max,
+            System.Action action)
+        {
+            RawImage artwork = CreateFullCanvasArtwork(
+                $"Arte Botão {label}",
+                texture);
+
+            var hitArea = CreatePanel(
+                _screenRoot,
+                $"Ação {label}",
+                min,
+                max,
+                Color.clear);
+            hitArea.raycastTarget = true;
+
+            var button = hitArea.gameObject.AddComponent<Button>();
+            button.targetGraphic = artwork;
+            button.transition = Selectable.Transition.ColorTint;
+            var colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1f, 0.88f, 0.58f, 1f);
+            colors.pressedColor = new Color(0.62f, 0.82f, 1f, 1f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.fadeDuration = 0.08f;
+            button.colors = colors;
+            button.onClick.AddListener(() =>
+            {
+                FrontendClickAudio.Play();
+                action?.Invoke();
+            });
+        }
+
+        private void ShowRankedModeNotice()
+        {
+            if (_duelRoomStatus == null)
+                return;
+
+            _duelRoomStatus.text =
+                "RANQUEADA • O matchmaking competitivo ainda não está " +
+                "disponível nesta versão.";
+            _duelRoomStatus.color = Gold;
         }
 
         private void OpenMultiplayerPanel(bool focusJoinCode)
