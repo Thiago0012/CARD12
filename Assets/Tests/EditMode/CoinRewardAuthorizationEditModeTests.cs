@@ -182,6 +182,8 @@ namespace ArcaneDuel.Tests.EditMode
             try
             {
                 object repository = CreateRepository(path);
+                int startingCoins = (int)repository.GetType()
+                    .GetProperty("CoinBalance").GetValue(repository);
                 SetPlayerName(repository, "KimDelas");
                 Configure(repository, catalog, path + ".install-a");
                 object startSnapshot = Capture(repository);
@@ -213,7 +215,7 @@ namespace ArcaneDuel.Tests.EditMode
                 Assert.That(Field(arguments[1], "status").ToString(),
                     Is.EqualTo("BlockedRevoked"));
                 Assert.That(repository.GetType().GetProperty("CoinBalance")
-                    .GetValue(repository), Is.EqualTo(0));
+                    .GetValue(repository), Is.EqualTo(startingCoins));
             }
             finally
             {
@@ -243,8 +245,9 @@ namespace ArcaneDuel.Tests.EditMode
                 object repository = CreateRepository(path);
                 object state = repository.GetType().GetProperty("State")
                     .GetValue(repository);
-                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(6));
-                Assert.That(Field(state, "coinBalance"), Is.EqualTo(77));
+                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(8));
+                Assert.That(Field(state, "coinBalance"), Is.EqualTo(117),
+                    "A economia legada deve ser preservada e receber apenas a recompensa inicial de Madeira.");
                 object[] quantities = Values(Field(state, "cardQuantities"));
                 Assert.That(quantities, Has.Length.EqualTo(1));
                 Assert.That(Field(quantities[0], "quantity"), Is.EqualTo(2));

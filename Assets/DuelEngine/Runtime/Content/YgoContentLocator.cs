@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace ArcaneDuel.DuelEngine.Content
@@ -13,6 +14,16 @@ namespace ArcaneDuel.DuelEngine.Content
     {
         private const string ContentFolder = "Ygo";
         private const string MarkerFile = ".arcane-content-build";
+        private const string AndroidMirrorSchema = "essential-v3";
+        private const string AndroidMirrorClass =
+            "com.arcaneduel.content.StreamingAssetsMirror";
+        private static readonly string[] AndroidEagerDirectories =
+        {
+            "Data",
+            "Scripts",
+            "CustomScripts",
+            "Visual"
+        };
         private static readonly object Sync = new object();
         private static string cachedRoot;
 
@@ -45,9 +56,25 @@ namespace ArcaneDuel.DuelEngine.Content
             foreach (string segment in relativeSegments)
             {
                 if (string.IsNullOrWhiteSpace(segment)) continue;
+                ValidateRelativeSegment(segment);
                 path = Path.Combine(path, segment);
             }
+#if UNITY_ANDROID && !UNITY_EDITOR
+            EnsureAndroidAssetAvailable(path, relativeSegments);
+#endif
             return path;
+        }
+
+        private static void ValidateRelativeSegment(string segment)
+        {
+            if (Path.IsPathRooted(segment) ||
+                segment.IndexOf("..", StringComparison.Ordinal) >= 0 ||
+                segment.IndexOfAny(new[] { '/', '\\' }) >= 0)
+            {
+                throw new ArgumentException(
+                    "YGO content paths must contain only safe relative segments.",
+                    nameof(segment));
+            }
         }
 
         private static void ValidateEssentialContent(string root)
@@ -83,12 +110,14 @@ namespace ArcaneDuel.DuelEngine.Content
             string buildIdentity = string.IsNullOrWhiteSpace(Application.buildGUID)
                 ? Application.version
                 : Application.buildGUID;
+            buildIdentity = AndroidMirrorSchema + ":" + buildIdentity;
 
             if (File.Exists(marker) &&
                 string.Equals(
                     File.ReadAllText(marker),
                     buildIdentity,
-                    StringComparison.Ordinal))
+                    StringComparison.Ordinal) &&
+                TryValidateAndroidMirror(destination))
             {
                 return destination;
             }
@@ -108,16 +137,26 @@ namespace ArcaneDuel.DuelEngine.Content
                 using (AndroidJavaObject activity =
                        unityPlayer.GetStatic<AndroidJavaObject>(
                            "currentActivity"))
-                using (AndroidJavaObject assets =
-                       activity.Call<AndroidJavaObject>("getAssets"))
+                using (var mirror = new AndroidJavaClass(AndroidMirrorClass))
                 {
-                    CopyAssetDirectory(assets, ContentFolder, staging);
+                    foreach (string directory in AndroidEagerDirectories)
+                    {
+                        string assetDirectory = ContentFolder + "/" + directory;
+                        string destinationDirectory = Path.Combine(staging, directory);
+                        Directory.CreateDirectory(destinationDirectory);
+                        mirror.CallStatic<long>(
+                            "copyDirectory",
+                            activity,
+                            assetDirectory,
+                            destinationDirectory);
+                    }
                 }
 
                 File.WriteAllText(
                     Path.Combine(staging, MarkerFile),
                     buildIdentity);
                 ValidateEssentialContent(staging);
+                ValidateCardDatabaseHeader(staging);
 
                 if (Directory.Exists(destination))
                     Directory.Delete(destination, true);
@@ -137,68 +176,91 @@ namespace ArcaneDuel.DuelEngine.Content
             }
         }
 
-        private static void CopyAssetDirectory(
-            AndroidJavaObject assets,
-            string assetDirectory,
-            string destinationDirectory)
+        private static void EnsureAndroidAssetAvailable(
+            string resolvedPath,
+            string[] relativeSegments)
         {
-            string[] children =
-                assets.Call<string[]>("list", assetDirectory) ??
-                Array.Empty<string>();
-            foreach (string child in children)
+            if (relativeSegments == null || relativeSegments.Length == 0 ||
+                File.Exists(resolvedPath) || Directory.Exists(resolvedPath))
             {
-                string assetPath = assetDirectory + "/" + child;
-                string destinationPath =
-                    Path.Combine(destinationDirectory, child);
-                string[] nested =
-                    assets.Call<string[]>("list", assetPath) ??
-                    Array.Empty<string>();
-                if (nested.Length > 0)
-                {
-                    Directory.CreateDirectory(destinationPath);
-                    CopyAssetDirectory(
-                        assets,
-                        assetPath,
-                        destinationPath);
-                    continue;
-                }
+                return;
+            }
 
-                CopyAssetFile(assets, assetPath, destinationPath);
+            string[] safeSegments = relativeSegments
+                .Where(segment => !string.IsNullOrWhiteSpace(segment))
+                .ToArray();
+            if (safeSegments.Length == 0) return;
+            foreach (string segment in safeSegments)
+                ValidateRelativeSegment(segment);
+
+            string assetPath = ContentFolder + "/" +
+                               string.Join("/", safeSegments);
+            lock (Sync)
+            {
+                if (File.Exists(resolvedPath)) return;
+                try
+                {
+                    using (var unityPlayer = new AndroidJavaClass(
+                               "com.unity3d.player.UnityPlayer"))
+                    using (AndroidJavaObject activity =
+                           unityPlayer.GetStatic<AndroidJavaObject>(
+                               "currentActivity"))
+                    using (var mirror = new AndroidJavaClass(AndroidMirrorClass))
+                    {
+                        mirror.CallStatic<long>(
+                            "copyFile",
+                            activity,
+                            assetPath,
+                            resolvedPath);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    // Art and UI files are optional presentation content. The
+                    // caller can keep its existing File.Exists fallback. Core
+                    // data and scripts are copied eagerly and validated above.
+                    Debug.LogWarning(
+                        $"ARCANE_ANDROID_OPTIONAL_CONTENT_MISSING " +
+                        $"asset={assetPath} reason={exception.GetBaseException().Message}");
+                }
             }
         }
 
-        private static void CopyAssetFile(
-            AndroidJavaObject assets,
-            string assetPath,
-            string destinationPath)
+        private static bool TryValidateAndroidMirror(string root)
         {
-            string directory = Path.GetDirectoryName(destinationPath);
-            if (!string.IsNullOrEmpty(directory))
-                Directory.CreateDirectory(directory);
-
-            using (AndroidJavaObject input =
-                   assets.Call<AndroidJavaObject>("open", assetPath))
-            using (var output = new FileStream(
-                       destinationPath,
-                       FileMode.Create,
-                       FileAccess.Write,
-                       FileShare.None))
+            try
             {
-                var buffer = new byte[64 * 1024];
-                while (true)
+                ValidateEssentialContent(root);
+                ValidateCardDatabaseHeader(root);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "ARCANE_ANDROID_CONTENT_REBUILD reason=" +
+                    exception.GetBaseException().Message);
+                return false;
+            }
+        }
+
+        private static void ValidateCardDatabaseHeader(string root)
+        {
+            string cardsPath = Path.Combine(root, "Data", "cards.bin");
+            using (var stream = new FileStream(
+                       cardsPath,
+                       FileMode.Open,
+                       FileAccess.Read,
+                       FileShare.Read))
+            {
+                if (stream.Length < 12 ||
+                    stream.ReadByte() != 'A' ||
+                    stream.ReadByte() != 'D' ||
+                    stream.ReadByte() != 'C' ||
+                    stream.ReadByte() != 'B')
                 {
-                    int read = input.Call<int>("read", buffer);
-                    if (read < 0) break;
-                    if (read == 0)
-                    {
-                        int single = input.Call<int>("read");
-                        if (single < 0) break;
-                        output.WriteByte((byte)single);
-                        continue;
-                    }
-                    output.Write(buffer, 0, read);
+                    throw new InvalidDataException(
+                        "The mirrored Android card database is incomplete or corrupted.");
                 }
-                input.Call("close");
             }
         }
 #endif

@@ -204,7 +204,7 @@ namespace ArcaneArena.Frontend
         {
             if (CanStartWithSelectedDeck())
             {
-                ShowBotDeckSelection();
+                ShowCasualBotDeckSelection();
                 return;
             }
 
@@ -447,11 +447,17 @@ namespace ArcaneArena.Frontend
             CreateText(center, progress, 16, FontStyle.Bold, Color.white,
                 new Vector2(0.12f, 0.10f), new Vector2(0.88f, 0.18f),
                 TextAnchor.MiddleCenter);
+            string reward = rank.IsMaximum
+                ? $"RECOMPENSA DO ELO · {RankPromotionRewards.CoinsFor(rank.Tier):N0} MOEDAS"
+                : $"PRÓXIMA PROMOÇÃO · {RankPromotionRewards.CoinsFor(rank.NextTier):N0} MOEDAS";
+            CreateText(center, reward, 14, FontStyle.Bold, Gold,
+                new Vector2(0.12f, 0.035f), new Vector2(0.88f, 0.10f),
+                TextAnchor.MiddleCenter);
             if (rank.ShieldActive)
             {
                 CreateText(center, "PROTEÇÃO CONTRA QUEDA ATIVA", 14,
                     FontStyle.Bold, new Color(0.30f, 0.90f, 1f, 1f),
-                    new Vector2(0.18f, 0.03f), new Vector2(0.82f, 0.10f),
+                    new Vector2(0.18f, 0.00f), new Vector2(0.82f, 0.04f),
                     TextAnchor.MiddleCenter);
             }
 
@@ -469,11 +475,11 @@ namespace ArcaneArena.Frontend
             CreateButton(side, "RIVAL ALEATÓRIO",
                 new Vector2(0.09f, 0.28f), new Vector2(0.91f, 0.40f), Cyan,
                 ArcaneArenaMultiplayerController.StartRankedMatchmaking);
-            CreateButton(side, "TREINO COM BOT",
+            CreateButton(side, "BUSCAR RIVAL IA",
                 new Vector2(0.09f, 0.13f), new Vector2(0.91f, 0.25f), Blue,
-                StartRandomBotDuel);
+                ShowRankedBotDeckSelection);
             CreateText(side,
-                "O treino com bot não altera PE nem elo.",
+                "O rival é escolhido automaticamente por proximidade de PE.",
                 13, FontStyle.Normal, Muted, new Vector2(0.10f, 0.02f),
                 new Vector2(0.90f, 0.11f), TextAnchor.MiddleCenter);
         }
@@ -567,7 +573,9 @@ namespace ArcaneArena.Frontend
             Image image = item.GetComponent<Image>();
             image.sprite = RankBadgeCatalog.Get(tier);
             image.preserveAspect = true;
-            image.color = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
+            image.color = tier == RankTier.Bronze
+                ? new Color(0.72f, 0.34f, 0.12f, Mathf.Clamp01(alpha))
+                : new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
             image.raycastTarget = false;
             return image;
         }

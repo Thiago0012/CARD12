@@ -5,6 +5,7 @@ using ArcaneArena.Cards;
 using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -87,6 +88,10 @@ namespace ArcaneArena.Frontend
         private static PendingDuelMode _pendingDuelMode;
         private static DuelDeckLoadout _pendingBotLoadout;
         private static DuelDeckLoadout _pendingPlayerLoadout;
+        private static bool _pendingRankedBotDuel;
+        private static RankedMatchSnapshot _activeRankedBotMatch;
+        private static BotProfile _activeRankedBotProfile;
+        private static bool _activeRankedBotResultCommitted;
         private Canvas _canvas;
         private RectTransform _canvasRect;
         private RectTransform _screenRoot;
@@ -993,6 +998,7 @@ namespace ArcaneArena.Frontend
                 {
                     if (canStartDuel)
                     {
+                        _pendingRankedBotDuel = false;
                         StartRandomBotDuel();
                         return;
                     }
@@ -1832,7 +1838,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.14f, 0.44f),
                 new Vector2(0.86f, 0.56f),
                 Lime,
-                ShowBotDeckSelection);
+                ShowCasualBotDeckSelection);
             CreateButton(
                 panel.transform,
                 "CRIAR SALA PRIVADA",
@@ -1858,6 +1864,60 @@ namespace ArcaneArena.Frontend
                 StartLocalDuel);
         }
 
+        private void ShowCasualBotDeckSelection()
+        {
+            _pendingRankedBotDuel = false;
+            ShowBotDeckSelection();
+        }
+
+        private void ShowRankedBotDeckSelection()
+        {
+            if (!CanStartWithSelectedDeck())
+                return;
+
+            ulong selector = BitConverter.ToUInt64(
+                Guid.NewGuid().ToByteArray(), 0);
+            int matchmakingSeed = unchecked(
+                (int)(selector ^ (selector >> 32)));
+            var botRepository = new BotStateRepository();
+            BotProfile profile = botRepository.SelectRankedOpponent(
+                _repository.CaptureRankSnapshot().rankedPoints,
+                matchmakingSeed,
+                BotRuntimeSelection.RecentRankedBotIds);
+            DeckRecord botDeck = null;
+            string deckRejection = string.Empty;
+            if (profile != null)
+            {
+                TryChooseLegalOpponentDeck(
+                    _repository.SelectedDeck?.deckId,
+                    selector ^ StableTextHash(profile.botId),
+                    out botDeck,
+                    out deckRejection);
+            }
+            if (profile == null || botDeck == null)
+            {
+                Debug.LogError(
+                    "[Ranked bot] Não foi possível formar um confronto legal. " +
+                    deckRejection);
+                _pendingRankedBotDuel = false;
+                RenderMultiplayerRoom(MultiplayerHubMode.Ranked);
+                if (_duelRoomStatus != null)
+                {
+                    _duelRoomStatus.text =
+                        "RIVAL IA INDISPONÍVEL\n" +
+                        (string.IsNullOrWhiteSpace(deckRejection)
+                            ? "Nenhum deck automático válido foi encontrado."
+                            : deckRejection);
+                    _duelRoomStatus.color = Danger;
+                }
+                return;
+            }
+
+            _pendingRankedBotDuel = true;
+            BotRuntimeSelection.RememberRankedOpponent(profile.botId);
+            StartBotDuel(botDeck, profile, matchmakingSeed);
+        }
+
         private void ShowBotDeckSelection()
         {
             if (!CanStartWithSelectedDeck())
@@ -1867,12 +1927,16 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             BuildSharedBackground("DECK DO BOT");
             BuildHeader(
-                "ESCOLHA O DECK DO BOT",
+                _pendingRankedBotDuel
+                    ? "ESCOLHA O RIVAL RANQUEADO"
+                    : "ESCOLHA O DECK DO BOT",
                 ShowMainMenu);
 
             CreateText(
                 _screenRoot,
-                "ESCOLHA UM DECK TEMÁTICO COMPLETO OU SORTEIE UM OPONENTE",
+                _pendingRankedBotDuel
+                    ? "ESCOLHA UM BOT · O RESULTADO ALTERA PE E ELO"
+                    : "ESCOLHA UM DECK TEMÁTICO COMPLETO OU SORTEIE UM OPONENTE",
                 20,
                 FontStyle.Bold,
                 Cyan,
@@ -1894,8 +1958,12 @@ namespace ArcaneArena.Frontend
             CreateRandomBotDeckChoiceTile(
                 content,
                 opponentDecks.Count);
-            foreach (DeckRecord deck in opponentDecks)
-                CreateBotDeckChoiceTile(content, deck);
+            for (int index = 0; index < opponentDecks.Count; index++)
+            {
+                BotProfile profile = DynamicBotCatalog.All[
+                    index % DynamicBotCatalog.All.Count];
+                CreateBotDeckChoiceTile(content, opponentDecks[index], profile);
+            }
         }
 
         private void CreateRandomBotDeckChoiceTile(
@@ -1932,7 +2000,9 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleCenter);
             CreateText(
                 tile.transform,
-                "IA TÁTICA  •  SEM MISTURAR ARQUÉTIPOS",
+                _pendingRankedBotDuel
+                    ? "IA DINÂMICA  •  PARTIDA RANQUEADA"
+                    : "IA TÁTICA  •  SEM MISTURAR ARQUÉTIPOS",
                 11,
                 FontStyle.Bold,
                 Lime,
@@ -1946,7 +2016,8 @@ namespace ArcaneArena.Frontend
 
         private void CreateBotDeckChoiceTile(
             Transform parent,
-            DeckRecord deck)
+            DeckRecord deck,
+            BotProfile profile)
         {
             if (deck == null)
                 return;
@@ -1982,7 +2053,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.85f, 0.88f));
             CreateText(
                 tile.transform,
-                deck.displayName,
+                $"{profile.displayName}\n{deck.displayName}",
                 20,
                 FontStyle.Bold,
                 Color.white,
@@ -1992,9 +2063,11 @@ namespace ArcaneArena.Frontend
             CreateText(
                 tile.transform,
                 valid
-                    ? $"{deck.mainDeckCardIds.Count} PRINCIPAL  •  {deck.extraDeckCardIds.Count} EXTRA"
+                    ? $"{DynamicBotCatalog.SkillName(profile.skill)} · " +
+                      $"{profile.initialRankPoints} PE\n" +
+                      $"{deck.mainDeckCardIds.Count} PRINCIPAL  •  {deck.extraDeckCardIds.Count} EXTRA"
                     : rejection,
-                valid ? 12 : 10,
+                valid ? 11 : 10,
                 FontStyle.Bold,
                 valid ? Lime : Danger,
                 new Vector2(0.05f, 0.01f),
@@ -2005,7 +2078,7 @@ namespace ArcaneArena.Frontend
             {
                 AddButtonBehaviour(
                     tile,
-                    () => StartBotDuel(deck));
+                    () => StartBotDuel(deck, profile));
             }
         }
 
@@ -3575,19 +3648,85 @@ namespace ArcaneArena.Frontend
                 ShowBotDeckSelection();
                 return;
             }
-            StartBotDuel(botDeck);
+            int profileIndex = (int)(selector %
+                (ulong)DynamicBotCatalog.All.Count);
+            StartBotDuel(botDeck, DynamicBotCatalog.All[profileIndex]);
         }
 
-        private void StartBotDuel(DeckRecord botDeck)
+        private bool TryChooseLegalOpponentDeck(
+            string playerDeckId,
+            ulong selector,
+            out DeckRecord selected,
+            out string rejection)
+        {
+            selected = null;
+            rejection = "Nenhum deck temático do bot está apto para duelo.";
+            IReadOnlyList<DeckRecord> roster =
+                DeckShopCatalog.CreateOpponentRoster();
+            var candidates = new List<DeckRecord>(roster.Count);
+            for (int index = 0; index < roster.Count; index++)
+            {
+                DeckRecord deck = roster[index];
+                if (deck != null &&
+                    !string.Equals(
+                        deck.deckId,
+                        playerDeckId,
+                        StringComparison.Ordinal))
+                {
+                    candidates.Add(deck);
+                }
+            }
+            if (candidates.Count == 0)
+            {
+                for (int index = 0; index < roster.Count; index++)
+                {
+                    if (roster[index] != null)
+                        candidates.Add(roster[index]);
+                }
+            }
+            if (candidates.Count == 0) return false;
+
+            int first = (int)(selector % (ulong)candidates.Count);
+            for (int offset = 0; offset < candidates.Count; offset++)
+            {
+                DeckRecord candidate = candidates[
+                    (first + offset) % candidates.Count];
+                if (DeckRepository.TryValidateForDuel(
+                        candidate,
+                        _catalog,
+                        out string candidateRejection))
+                {
+                    selected = candidate;
+                    rejection = string.Empty;
+                    return true;
+                }
+                rejection = candidateRejection;
+            }
+            return false;
+        }
+
+        private void StartBotDuel(
+            DeckRecord botDeck,
+            BotProfile botProfile = null,
+            int? requestedDecisionSeed = null)
         {
             if (!CanStartWithSelectedDeck())
                 return;
+            bool rankedRequest = _pendingRankedBotDuel;
             if (!DeckRepository.TryValidateForDuel(
                     botDeck,
                     _catalog,
                     out var rejection))
             {
-                ShowBotDeckSelection();
+                _pendingRankedBotDuel = false;
+                if (rankedRequest)
+                {
+                    RenderMultiplayerRoom(MultiplayerHubMode.Ranked);
+                }
+                else
+                {
+                    ShowBotDeckSelection();
+                }
                 if (_duelRoomStatus != null)
                 {
                     _duelRoomStatus.text =
@@ -3603,7 +3742,107 @@ namespace ArcaneArena.Frontend
             _pendingBotLoadout = DuelDeckLoadout.Create(
                 _repository.State.localProfileId,
                 botDeck);
+            botProfile ??= DynamicBotCatalog.Find("BOT_017");
+            int decisionSeed = requestedDecisionSeed ?? unchecked(
+                (int)BitConverter.ToUInt64(
+                    Guid.NewGuid().ToByteArray(), 0));
+            BotRuntimeSelection.Select(botProfile.botId, decisionSeed);
+            var botRepository = new BotStateRepository();
+            botRepository.GetOrCreate(botProfile);
+            if (_pendingRankedBotDuel)
+            {
+                RankPlayerSnapshot playerSnapshot =
+                    _repository.CaptureRankSnapshot();
+                RankPlayerSnapshot botSnapshot =
+                    botRepository.CaptureRankSnapshot(botProfile);
+                _activeRankedBotMatch = new RankedMatchSnapshot
+                {
+                    matchId = "bot-" + Guid.NewGuid().ToString("N"),
+                    policy = CompetitivePolicy.Ranked,
+                    source = CompetitiveMatchSource.Matchmaking,
+                    rulesVersion = RankRules.RulesVersion,
+                    rulesHash = RankRules.RulesHash,
+                    sealedAtUtcTicks = DateTime.UtcNow.Ticks,
+                    seat0 = playerSnapshot,
+                    seat1 = botSnapshot
+                };
+                _activeRankedBotProfile = botProfile;
+                _activeRankedBotResultCommitted = false;
+            }
+            else
+            {
+                _activeRankedBotMatch = null;
+                _activeRankedBotProfile = null;
+                _activeRankedBotResultCommitted = false;
+            }
+            _pendingRankedBotDuel = false;
             OpenDuelArenaScene(PendingDuelMode.Bot);
+        }
+
+        private static ulong StableTextHash(string text)
+        {
+            unchecked
+            {
+                ulong value = 14695981039346656037UL;
+                string source = text ?? string.Empty;
+                for (int index = 0; index < source.Length; index++)
+                {
+                    value ^= source[index];
+                    value *= 1099511628211UL;
+                }
+                return value;
+            }
+        }
+
+        public void CompleteActiveBotDuel(byte winner)
+        {
+            if (_activeRankedBotResultCommitted ||
+                _activeRankedBotMatch == null ||
+                _activeRankedBotProfile == null ||
+                winner > 1)
+            {
+                return;
+            }
+
+            RankedOutcome playerOutcome = winner == 0
+                ? RankedOutcome.Win
+                : RankedOutcome.Loss;
+            RankedOutcome botOutcome = winner == 1
+                ? RankedOutcome.Win
+                : RankedOutcome.Loss;
+            if (!RankPointService.TryCreateReceipt(
+                    _activeRankedBotMatch, 0, playerOutcome,
+                    out RankChangeReceipt playerReceipt,
+                    out string playerRejection) ||
+                !_repository.TryCommitRankReceipt(
+                    playerReceipt, out _, out playerRejection))
+            {
+                Debug.LogError(
+                    "[Ranked bot] Resultado local rejeitado: " +
+                    playerRejection);
+                return;
+            }
+            if (!RankPointService.TryCreateReceipt(
+                    _activeRankedBotMatch, 1, botOutcome,
+                    out RankChangeReceipt botReceipt,
+                    out string botRejection) ||
+                !new BotStateRepository().TryCommitRankReceipt(
+                    _activeRankedBotProfile, botReceipt,
+                    out botRejection))
+            {
+                Debug.LogError(
+                    "[Ranked bot] Resultado do bot rejeitado: " +
+                    botRejection);
+                return;
+            }
+
+            _activeRankedBotResultCommitted = true;
+            Debug.Log(
+                $"[Ranked bot] Partida {_activeRankedBotMatch.matchId} " +
+                $"confirmada. Jogador {playerReceipt.oldPoints} -> " +
+                $"{playerReceipt.newPoints} PE; " +
+                $"{_activeRankedBotProfile.displayName} " +
+                $"{botReceipt.oldPoints} -> {botReceipt.newPoints} PE.");
         }
 
         public bool TryGetSelectedDuelLoadout(
@@ -3715,11 +3954,35 @@ namespace ArcaneArena.Frontend
             // CardArenaBootstrap limpa os previews da Scene no primeiro frame.
             // O comando de início só é enviado depois desse reset, preservando
             // a mesma fronteira que será usada pelo host autoritativo.
-            yield return null;
-            yield return null;
+            const int maximumReadyFrames = 300;
+            int readyFrames = 0;
+            do
+            {
+                yield return null;
+                ResolveProjectReferences();
+                readyFrames++;
+            }
+            while ((_duelArena == null ||
+                    !_duelArena.IsPresentationReady) &&
+                   readyFrames < maximumReadyFrames);
 
-            ResolveProjectReferences();
             SetDuelPresentation(true);
+
+            if (_duelArena == null || !_duelArena.IsPresentationReady)
+            {
+                string failure = _duelArena == null
+                    ? "A interface da arena não foi encontrada."
+                    : string.IsNullOrWhiteSpace(
+                        _duelArena.InitializationFailure)
+                        ? "O Core do duelo não ficou pronto a tempo."
+                        : _duelArena.InitializationFailure;
+                Debug.LogError(
+                    "[Duel startup] Arena indisponível: " + failure);
+                _pendingDuelMode = PendingDuelMode.None;
+                _pendingPlayerLoadout = null;
+                _pendingBotLoadout = null;
+                yield break;
+            }
 
             var online = DuelOnlineSession.Instance;
             if (DuelOnlineBridge.OnlineArenaTransitionPending ||

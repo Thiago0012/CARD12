@@ -102,6 +102,7 @@ namespace ArcaneDuel.Tests.EditMode
             try
             {
                 object repository = CreateRepository(path, null);
+                int startingCoins = CoinBalance(repository);
                 ConfigureAuthorization(
                     repository,
                     path,
@@ -125,7 +126,7 @@ namespace ArcaneDuel.Tests.EditMode
                 Assert.That((int)Field(repeated, "coins"), Is.EqualTo(53));
                 Assert.That(Field(repeated, "status").ToString(),
                     Is.EqualTo("AlreadyProcessed"));
-                Assert.That(CoinBalance(repository), Is.EqualTo(53));
+                Assert.That(CoinBalance(repository), Is.EqualTo(startingCoins + 53));
             }
             finally
             {
@@ -140,6 +141,7 @@ namespace ArcaneDuel.Tests.EditMode
             try
             {
                 object repository = CreateRepository(path, null);
+                int startingCoins = CoinBalance(repository);
                 ConfigureAuthorization(
                     repository,
                     path,
@@ -160,7 +162,7 @@ namespace ArcaneDuel.Tests.EditMode
                 object blocked = ClaimReward(repository, blockedRequest);
                 Assert.That(Field(blocked, "status").ToString(),
                     Is.EqualTo("BlockedNotAuthorized"));
-                Assert.That(CoinBalance(repository), Is.Zero);
+                Assert.That(CoinBalance(repository), Is.EqualTo(startingCoins));
 
                 SetPlayerName(repository, "Nyarlathotep");
                 object authorizedSnapshot = repository.GetType()
@@ -180,7 +182,7 @@ namespace ArcaneDuel.Tests.EditMode
                     Is.EqualTo("AlreadyProcessed"));
                 Assert.That(Field(repeated, "originalStatus").ToString(),
                     Is.EqualTo("BlockedNotAuthorized"));
-                Assert.That(CoinBalance(repository), Is.Zero);
+                Assert.That(CoinBalance(repository), Is.EqualTo(startingCoins));
             }
             finally
             {
@@ -195,6 +197,7 @@ namespace ArcaneDuel.Tests.EditMode
             try
             {
                 object repository = CreateRepository(path, null);
+                int startingCoins = CoinBalance(repository);
                 ConfigureAuthorization(
                     repository,
                     path,
@@ -216,7 +219,7 @@ namespace ArcaneDuel.Tests.EditMode
                 object receipt = ClaimReward(repository, request);
                 Assert.That(Field(receipt, "status").ToString(),
                     Is.EqualTo("BlockedNotAuthorized"));
-                Assert.That(CoinBalance(repository), Is.Zero);
+                Assert.That(CoinBalance(repository), Is.EqualTo(startingCoins));
             }
             finally
             {
@@ -231,6 +234,7 @@ namespace ArcaneDuel.Tests.EditMode
             try
             {
                 object repository = CreateRepository(path, null);
+                int startingCoins = CoinBalance(repository);
                 ConfigureAuthorization(
                     repository,
                     path,
@@ -253,7 +257,7 @@ namespace ArcaneDuel.Tests.EditMode
                 object receipt = ClaimReward(repository, request);
                 Assert.That(Field(receipt, "status").ToString(),
                     Is.EqualTo("BlockedOfflineMode"));
-                Assert.That(CoinBalance(repository), Is.Zero);
+                Assert.That(CoinBalance(repository), Is.EqualTo(startingCoins));
             }
             finally
             {

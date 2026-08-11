@@ -8,11 +8,12 @@ namespace ArcaneDuel.Game.Competitive
         Wood = 0,
         Stone = 1,
         Iron = 2,
-        Silver = 3,
-        Gold = 4,
-        Platinum = 5,
-        Diamond = 6,
-        GrandMaster = 7
+        Bronze = 3,
+        Silver = 4,
+        Gold = 5,
+        Platinum = 6,
+        Diamond = 7,
+        GrandMaster = 8
     }
 
     public enum CompetitivePolicy
@@ -234,9 +235,9 @@ namespace ArcaneDuel.Game.Competitive
 
     public static class RankRules
     {
-        public const int RulesVersion = 1;
+        public const int RulesVersion = 2;
         public const string RulesHash =
-            "57cb374d97b869911816a8855252837cd630424c46254ddf8c3455b53e08ad33";
+            "rank-v2-nine-leagues-2026-08-11";
         public const int MinimumPoints = 0;
         public const int MaximumPoints = 200;
         public const int PointsPerTier = 25;
@@ -246,11 +247,12 @@ namespace ArcaneDuel.Game.Competitive
             new RankDefinition(RankTier.Wood, 0, 24, 7, 0),
             new RankDefinition(RankTier.Stone, 25, 49, 6, -1),
             new RankDefinition(RankTier.Iron, 50, 74, 5, -2),
-            new RankDefinition(RankTier.Silver, 75, 99, 5, -3),
-            new RankDefinition(RankTier.Gold, 100, 124, 4, -4),
-            new RankDefinition(RankTier.Platinum, 125, 149, 3, -4),
-            new RankDefinition(RankTier.Diamond, 150, 174, 3, -5),
-            new RankDefinition(RankTier.GrandMaster, 175, 200, 2, -6)
+            new RankDefinition(RankTier.Bronze, 75, 99, 5, -3),
+            new RankDefinition(RankTier.Silver, 100, 124, 4, -4),
+            new RankDefinition(RankTier.Gold, 125, 149, 3, -4),
+            new RankDefinition(RankTier.Platinum, 150, 174, 3, -5),
+            new RankDefinition(RankTier.Diamond, 175, 199, 2, -6),
+            new RankDefinition(RankTier.GrandMaster, 200, 200, 2, -6)
         };
 
         public static int ClampPoints(int points) =>
@@ -259,9 +261,9 @@ namespace ArcaneDuel.Game.Competitive
         public static RankTier ResolveTier(int points)
         {
             int clamped = ClampPoints(points);
-            int index = Math.Min(
-                (int)RankTier.GrandMaster,
-                clamped / PointsPerTier);
+            int index = clamped >= MaximumPoints
+                ? (int)RankTier.GrandMaster
+                : Math.Min((int)RankTier.Diamond, clamped / PointsPerTier);
             return (RankTier)index;
         }
 
@@ -278,6 +280,7 @@ namespace ArcaneDuel.Game.Competitive
                 RankTier.Wood => "MADEIRA",
                 RankTier.Stone => "PEDRA",
                 RankTier.Iron => "FERRO",
+                RankTier.Bronze => "BRONZE",
                 RankTier.Silver => "PRATA",
                 RankTier.Gold => "OURO",
                 RankTier.Platinum => "PLATINA",
@@ -292,9 +295,7 @@ namespace ArcaneDuel.Game.Competitive
             int clamped = ClampPoints(points);
             RankDefinition definition = Definition(ResolveTier(clamped));
             if (definition.Tier == RankTier.GrandMaster)
-                return clamped >= MaximumPoints ? 1f :
-                    (clamped - definition.Minimum) /
-                    (float)(definition.Maximum - definition.Minimum);
+                return 1f;
             return (clamped - definition.Minimum) / (float)PointsPerTier;
         }
 
@@ -303,12 +304,33 @@ namespace ArcaneDuel.Game.Competitive
             int clamped = ClampPoints(points);
             RankTier tier = ResolveTier(clamped);
             if (tier == RankTier.GrandMaster)
-                return Math.Max(0, MaximumPoints - clamped);
+                return 0;
             return Definition(tier).Maximum + 1 - clamped;
         }
 
         public static bool CanReceivePromotionShield(RankTier tier) =>
             tier >= RankTier.Stone && tier <= RankTier.Diamond;
+    }
+
+    /// <summary>
+    /// Catálogo normativo de recompensas. A concessão é persistida por uma
+    /// chave idempotente; portanto uma promoção nunca pode pagar duas vezes.
+    /// </summary>
+    public static class RankPromotionRewards
+    {
+        private static readonly int[] Coins =
+        {
+            40, 60, 80, 120, 180, 300, 500, 1000, 1875
+        };
+
+        public static int CoinsFor(RankTier tier)
+        {
+            int index = Math.Max(0, Math.Min(Coins.Length - 1, (int)tier));
+            return Coins[index];
+        }
+
+        public static string TransactionId(string profileId, RankTier tier) =>
+            $"rank-promotion:v1:{profileId?.Trim()}:{(int)tier}";
     }
 
     public static class RankPointService

@@ -8,7 +8,7 @@ namespace ArcaneDuel.Game.Competitive
     /// </summary>
     public static class RankBadgeCatalog
     {
-        private static readonly Sprite[] Cache = new Sprite[8];
+        private static readonly Sprite[] Cache = new Sprite[9];
 
         public static Sprite Get(RankTier tier)
         {
@@ -25,6 +25,10 @@ namespace ArcaneDuel.Game.Competitive
                 RankTier.Wood => "Frontend/Ranked/Badges/Wood",
                 RankTier.Stone => "Frontend/Ranked/Badges/Stone",
                 RankTier.Iron => "Frontend/Ranked/Badges/Iron",
+                // O pacote visual ainda não possui um emblema Bronze
+                // dedicado. O desenho de Ouro é reutilizado e tingido pela
+                // apresentação, sem usar texto ou nome como identidade.
+                RankTier.Bronze => "Frontend/Ranked/Badges/Gold",
                 RankTier.Silver => "Frontend/Ranked/Badges/Silver",
                 RankTier.Gold => "Frontend/Ranked/Badges/Gold",
                 RankTier.Platinum => "Frontend/Ranked/Badges/Platinum",

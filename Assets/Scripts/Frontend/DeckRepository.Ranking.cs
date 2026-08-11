@@ -23,8 +23,18 @@ namespace ArcaneArena.Frontend
                 // Madeira, sem tocar em decks, cartas, moedas ou identidade.
                 State.rankData = new PlayerRankData();
             }
+            else if (loadedSchemaVersion < 8 &&
+                     State.rankData.promotionShieldActive)
+            {
+                // A v8 insere Bronze. Corrige apenas o enum serializado do
+                // escudo antigo; PE, recibos e demais dados permanecem.
+                State.rankData.promotionShieldTier = RankRules.ResolveTier(
+                    State.rankData.rankedPoints);
+            }
             State.rankData.Normalize();
             TrimRankReceipts(State.rankData);
+            GrantMissingRankRewardsThrough(
+                RankRules.ResolveTier(State.rankData.rankedPoints));
         }
 
         public RankPlayerSnapshot CaptureRankSnapshot()
@@ -191,6 +201,7 @@ namespace ArcaneArena.Frontend
                 current.receipts.Add(proposed.CopyWithStatus(
                     RankReceiptStatus.Applied));
                 TrimRankReceipts(current);
+                GrantMissingRankRewardsThrough(proposed.newTier);
                 Save();
                 receipt = current.receipts[current.receipts.Count - 1];
                 return true;
@@ -211,6 +222,35 @@ namespace ArcaneArena.Frontend
             int excess = data.receipts.Count - MaximumRankReceipts;
             if (excess > 0)
                 data.receipts.RemoveRange(0, excess);
+        }
+
+        private void GrantMissingRankRewardsThrough(RankTier tier)
+        {
+            if (State == null || State.processedShopTransactions == null)
+                return;
+
+            int highest = Math.Max(0, Math.Min((int)RankTier.GrandMaster,
+                (int)tier));
+            for (int value = 0; value <= highest; value++)
+            {
+                RankTier rewardTier = (RankTier)value;
+                string transactionId = RankPromotionRewards.TransactionId(
+                    State.localProfileId,
+                    rewardTier);
+                if (FindTransaction(transactionId) != null)
+                    continue;
+
+                int coins = RankPromotionRewards.CoinsFor(rewardTier);
+                State.coinBalance = checked(State.coinBalance + coins);
+                ShopTransactionRecord record = CreateTransaction(
+                    transactionId,
+                    "rank-promotion",
+                    RankRules.DisplayName(rewardTier),
+                    coins,
+                    Array.Empty<string>());
+                record.rewardStatus = RewardReceiptStatus.Granted;
+                State.processedShopTransactions.Add(record);
+            }
         }
     }
 }

@@ -16,6 +16,8 @@ namespace ArcaneDuel.Game
     /// </summary>
     public sealed class TacticalOpponentAgent
     {
+        private readonly BotDecisionService decisionService =
+            new BotDecisionService();
         private readonly Dictionary<string, int> repetitions =
             new Dictionary<string, int>(StringComparer.Ordinal);
         private readonly Dictionary<string, int> stateVisits =
@@ -25,6 +27,24 @@ namespace ArcaneDuel.Game
         private string sourceLabel = string.Empty;
         private string previousState = string.Empty;
         private int noProgressDecisions;
+        private BotProfile profile;
+        private int decisionSeed;
+
+        public void Configure(BotProfile botProfile, int seed)
+        {
+            profile = botProfile ?? DynamicBotCatalog.Find("BOT_017");
+            decisionSeed = seed;
+            decisionService.Configure(profile, seed);
+            ResetMemory();
+        }
+
+        public float DecisionDelay(DuelPrompt prompt)
+        {
+            BotDifficultySettings settings = DynamicBotCatalog.Settings(
+                (profile ?? DynamicBotCatalog.Find("BOT_017")).skill);
+            return TacticalOpponentPolicy.DecisionDelay(prompt) *
+                   settings.DelayMultiplier;
+        }
 
         public DuelChoice Choose(
             DuelPrompt prompt,
@@ -66,7 +86,10 @@ namespace ArcaneDuel.Game
                 stateSignature,
                 visits,
                 noProgressDecisions);
-            DuelChoice choice = TacticalOpponentPolicy.Choose(
+            if (profile == null)
+                Configure(BotRuntimeSelection.CurrentProfile,
+                    BotRuntimeSelection.CurrentSeed);
+            DuelChoice choice = decisionService.Choose(
                 prompt,
                 state,
                 database,
@@ -116,6 +139,14 @@ namespace ArcaneDuel.Game
         }
 
         public void Reset()
+        {
+            ResetMemory();
+            decisionService.Configure(
+                profile ?? DynamicBotCatalog.Find("BOT_017"),
+                decisionSeed);
+        }
+
+        private void ResetMemory()
         {
             repetitions.Clear();
             stateVisits.Clear();

@@ -15,15 +15,16 @@ namespace ArcaneDuel.Tests.EditMode
         [TestCase(49, RankTier.Stone)]
         [TestCase(50, RankTier.Iron)]
         [TestCase(74, RankTier.Iron)]
-        [TestCase(75, RankTier.Silver)]
-        [TestCase(99, RankTier.Silver)]
-        [TestCase(100, RankTier.Gold)]
-        [TestCase(124, RankTier.Gold)]
-        [TestCase(125, RankTier.Platinum)]
-        [TestCase(149, RankTier.Platinum)]
-        [TestCase(150, RankTier.Diamond)]
-        [TestCase(174, RankTier.Diamond)]
-        [TestCase(175, RankTier.GrandMaster)]
+        [TestCase(75, RankTier.Bronze)]
+        [TestCase(99, RankTier.Bronze)]
+        [TestCase(100, RankTier.Silver)]
+        [TestCase(124, RankTier.Silver)]
+        [TestCase(125, RankTier.Gold)]
+        [TestCase(149, RankTier.Gold)]
+        [TestCase(150, RankTier.Platinum)]
+        [TestCase(174, RankTier.Platinum)]
+        [TestCase(175, RankTier.Diamond)]
+        [TestCase(199, RankTier.Diamond)]
         [TestCase(200, RankTier.GrandMaster)]
         public void ResolveTier_UsesNormativeThresholds(
             int points,
@@ -35,21 +36,42 @@ namespace ArcaneDuel.Tests.EditMode
         [TestCase(RankTier.Wood, 7, 0)]
         [TestCase(RankTier.Stone, 6, -1)]
         [TestCase(RankTier.Iron, 5, -2)]
-        [TestCase(RankTier.Silver, 5, -3)]
-        [TestCase(RankTier.Gold, 4, -4)]
-        [TestCase(RankTier.Platinum, 3, -4)]
-        [TestCase(RankTier.Diamond, 3, -5)]
+        [TestCase(RankTier.Bronze, 5, -3)]
+        [TestCase(RankTier.Silver, 4, -4)]
+        [TestCase(RankTier.Gold, 3, -4)]
+        [TestCase(RankTier.Platinum, 3, -5)]
+        [TestCase(RankTier.Diamond, 2, -6)]
         [TestCase(RankTier.GrandMaster, 2, -6)]
         public void SameTier_UsesNormativeBaseDeltas(
             RankTier tier,
             int expectedWin,
             int expectedLoss)
         {
-            int points = RankRules.Definition(tier).Minimum + 10;
+            int points = tier == RankTier.GrandMaster
+                ? RankRules.MaximumPoints
+                : RankRules.Definition(tier).Minimum + 10;
             RankChangeReceipt win = Create(points, points, RankedOutcome.Win);
             RankChangeReceipt loss = Create(points, points, RankedOutcome.Loss);
-            Assert.That(win.delta, Is.EqualTo(expectedWin));
+            Assert.That(win.delta, Is.EqualTo(
+                tier == RankTier.GrandMaster ? 0 : expectedWin));
             Assert.That(loss.delta, Is.EqualTo(expectedLoss));
+        }
+
+        [TestCase(RankTier.Wood, 40)]
+        [TestCase(RankTier.Stone, 60)]
+        [TestCase(RankTier.Iron, 80)]
+        [TestCase(RankTier.Bronze, 120)]
+        [TestCase(RankTier.Silver, 180)]
+        [TestCase(RankTier.Gold, 300)]
+        [TestCase(RankTier.Platinum, 500)]
+        [TestCase(RankTier.Diamond, 1000)]
+        [TestCase(RankTier.GrandMaster, 1875)]
+        public void PromotionRewards_MatchTheNormativeTable(
+            RankTier tier,
+            int expectedCoins)
+        {
+            Assert.That(RankPromotionRewards.CoinsFor(tier),
+                Is.EqualTo(expectedCoins));
         }
 
         [Test]
@@ -65,7 +87,7 @@ namespace ArcaneDuel.Tests.EditMode
         public void Promotion_GrantsShield_AndNextNormalLossProtectsFloor()
         {
             RankChangeReceipt promotion = Create(124, 124, RankedOutcome.Win);
-            Assert.That(promotion.newTier, Is.EqualTo(RankTier.Platinum));
+            Assert.That(promotion.newTier, Is.EqualTo(RankTier.Gold));
             Assert.That(promotion.shieldGranted, Is.True);
             Assert.That(promotion.shieldActiveAfter, Is.True);
 
@@ -74,7 +96,7 @@ namespace ArcaneDuel.Tests.EditMode
                 125,
                 RankedOutcome.Loss,
                 shield: true,
-                shieldTier: RankTier.Platinum);
+                shieldTier: RankTier.Gold);
             Assert.That(protectedLoss.newPoints, Is.EqualTo(125));
             Assert.That(protectedLoss.shieldConsumed, Is.True);
             Assert.That(protectedLoss.shieldPreventedDemotion, Is.True);
@@ -89,9 +111,9 @@ namespace ArcaneDuel.Tests.EditMode
                 125,
                 RankedOutcome.ConfirmedAbandonment,
                 shield: true,
-                shieldTier: RankTier.Platinum);
+                shieldTier: RankTier.Gold);
             Assert.That(receipt.delta, Is.EqualTo(-5));
-            Assert.That(receipt.newTier, Is.EqualTo(RankTier.Gold));
+            Assert.That(receipt.newTier, Is.EqualTo(RankTier.Silver));
             Assert.That(receipt.shieldConsumed, Is.True);
             Assert.That(receipt.shieldPreventedDemotion, Is.False);
             Assert.That(receipt.abandonmentPenaltyApplied, Is.True);
@@ -115,7 +137,7 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
-        public void GrandMasterProgress_UsesTheFull175To200Span()
+        public void DiamondProgress_UsesTheFull175To200Span()
         {
             Assert.That(RankRules.TierProgress01(175), Is.EqualTo(0f));
             Assert.That(RankRules.TierProgress01(199), Is.EqualTo(24f / 25f));

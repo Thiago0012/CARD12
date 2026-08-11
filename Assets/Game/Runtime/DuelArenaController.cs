@@ -7,6 +7,7 @@ using ArcaneDuel.DuelEngine.Content;
 using ArcaneDuel.DuelEngine.Core;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Diagnostics;
+using ArcaneDuel.DuelEngine.Interop;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using UnityEngine;
@@ -112,8 +113,11 @@ namespace ArcaneDuel.Game
         private float nextReconcileAttemptTime;
         private bool reconcileFailureRecorded;
         private IDuelNetworkState replicaNetworkState;
+        private bool completionNotified;
 
         public bool ExternalPresentation => externalPresentation;
+        public bool IsCoreReady => database != null;
+        public string InitializationFailure { get; private set; }
         public bool IsNetworkReplica => networkReplica;
         public byte NetworkLocalPlayer => networkLocalPlayer;
         public DuelPrompt CurrentPrompt => networkReplica
@@ -130,6 +134,7 @@ namespace ArcaneDuel.Game
         public event Action<DuelEvent> CoreEventPresented;
         public event Action<string> CoreFailure;
         public event Action PresentationStateChanged;
+        public event Action<byte> DuelCompleted;
 
         public bool TryGetCurrentCombatStats(
             byte controller,
@@ -207,6 +212,7 @@ namespace ArcaneDuel.Game
                 PlayerPrefs.GetInt("ArcaneAutoStart", 0) != 0;
             try
             {
+                InitializationFailure = string.Empty;
                 database = CardDatabase.LoadDefault();
                 visuals = CardVisualCatalog.LoadDefault();
                 cardViews = new CardViewRegistry(visuals);
@@ -238,13 +244,19 @@ namespace ArcaneDuel.Game
 
                 audioDirector = GetComponent<ArcaneAudioDirector>() ??
                                 gameObject.AddComponent<ArcaneAudioDirector>();
-                if (externalPresentation &&
-                    DuelOnlineBridge.OnlineArenaTransitionPending)
+                // The authored DuelArena receives the confirmed decks from the
+                // frontend (offline, bot or online). Do not create a throwaway
+                // native duel here and immediately dispose/recreate it when the
+                // frontend calls RestartExternalDuel. Besides wasting work, two
+                // native Core lifetimes during one Android scene transition can
+                // leave the presentation bound to the provisional duel.
+                if (externalPresentation)
                 {
-                    status =
-                        "Arena online pronta. Aguardando a autoridade da sala.";
+                    status = DuelOnlineBridge.OnlineArenaTransitionPending
+                        ? "Arena online pronta. Aguardando a autoridade da sala."
+                        : "Arena pronta. Aguardando os decks confirmados.";
                     Debug.Log(
-                        "[MP] stage=local-core-deferred scene=" +
+                        "[Arcane Duel] stage=external-core-deferred scene=" +
                         SceneManager.GetActiveScene().name,
                         this);
                     return;
@@ -267,8 +279,8 @@ namespace ArcaneDuel.Game
             }
             catch (Exception exception)
             {
-                status =
-                    $"Falha ao iniciar: {exception.GetBaseException().Message}";
+                InitializationFailure = exception.GetBaseException().Message;
+                status = $"Falha ao iniciar: {InitializationFailure}";
                 Debug.LogException(exception);
             }
         }
@@ -342,7 +354,7 @@ namespace ArcaneDuel.Game
             nextAutoDecision =
                 Time.unscaledTime +
                 (opponentPrompt
-                    ? TacticalOpponentPolicy.DecisionDelay(
+                    ? tacticalOpponent.DecisionDelay(
                         engine.CurrentPrompt)
                     : 0.32f);
             Submit(
@@ -375,6 +387,11 @@ namespace ArcaneDuel.Game
         private void OnCoreEvent(DuelEvent duelEvent)
         {
             state.Apply(duelEvent);
+            if (state.Winner.HasValue && !completionNotified)
+            {
+                completionNotified = true;
+                DuelCompleted?.Invoke(state.Winner.Value);
+            }
             RecordEffectResolutionEvent(duelEvent);
             CardInstanceState affectedInstance =
                 duelEvent.Current == null
@@ -1842,17 +1859,28 @@ namespace ArcaneDuel.Game
                   $"S{location.Sequence}/P{location.Position:X2}";
         }
 
-        public void RestartExternalDuel(
+        public bool RestartExternalDuel(
             uint[] playerMain,
             uint[] playerExtra,
             uint[] opponentMain,
             uint[] opponentExtra)
         {
+            completionNotified = false;
             presentationDecisionLocked = false;
             deferredCoreResponse = null;
             deferredCoreResponseRequestId = 0;
-            if (!externalPresentation || database == null)
-                return;
+            if (!externalPresentation)
+            {
+                throw new InvalidOperationException(
+                    "A arena ativa não aceita apresentação externa.");
+            }
+            if (database == null)
+            {
+                throw new InvalidOperationException(
+                    string.IsNullOrWhiteSpace(InitializationFailure)
+                        ? "O banco de cartas ainda não foi inicializado."
+                        : $"O banco de cartas não pôde ser inicializado: {InitializationFailure}");
+            }
             if (playerMain == null || playerMain.Length < 40)
                 throw new ArgumentException(
                     "O Deck Principal do jogador precisa ter ao menos 40 cartas.",
@@ -1896,14 +1924,42 @@ namespace ArcaneDuel.Game
             configuration.OpponentExtraDeck =
                 opponentExtra?.ToArray() ?? Array.Empty<uint>();
             configuration.SimpleOpponentAi = false;
-            tacticalOpponent.Reset();
+            tacticalOpponent.Configure(
+                BotRuntimeSelection.CurrentProfile,
+                BotRuntimeSelection.CurrentSeed);
             engine = OcgDuelEngine.CreateDefault(configuration);
             engine.EventReceived += OnCoreEvent;
             choicePresenter.Rebuild(null);
             contextualChoices.Clear();
             selectedPromptIndexes.Clear();
             nextAutoDecision = Time.unscaledTime + 0.22f;
-            engine.Start();
+            try
+            {
+                engine.Start();
+                if (!engine.IsStarted)
+                {
+                    throw new InvalidOperationException(
+                        "O ygopro-core não confirmou o início do duelo.");
+                }
+                if (engine.IsFinished)
+                {
+                    throw new InvalidOperationException(
+                        "O ygopro-core encerrou o duelo durante a inicialização.");
+                }
+                if (engine.Status == OcgDuelStatus.Awaiting &&
+                    engine.CurrentPrompt == null)
+                {
+                    throw new InvalidOperationException(
+                        "O ygopro-core aguardou uma resposta sem emitir uma escolha válida.");
+                }
+            }
+            catch
+            {
+                engine.EventReceived -= OnCoreEvent;
+                engine.Dispose();
+                engine = null;
+                throw;
+            }
             status =
                 "Duelo reiniciado com os decks selecionados na interface antiga.";
             Debug.Log(
@@ -1911,6 +1967,7 @@ namespace ArcaneDuel.Game
                 $"playerMain={playerMain.Length}, playerExtra={playerExtra?.Length ?? 0}, " +
                 $"opponentMain={opponentMain.Length}, opponentExtra={opponentExtra?.Length ?? 0}, "+
                 $"seed={configuration.Seed:X16}.");
+            return true;
         }
 
         private bool SubmitRaw(byte[] response)

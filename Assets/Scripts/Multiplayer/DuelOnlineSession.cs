@@ -437,6 +437,7 @@ namespace ArcaneArena.Multiplayer
         private CompetitivePolicy competitivePolicy =
             CompetitivePolicy.Unranked;
         private bool automaticRankedMatchmaking;
+        private bool rankedRoomCreationPanel;
         private RankPlayerSnapshot localRankHandshake;
         private RankPlayerSnapshot remoteRankHandshake;
         private RankedMatchSnapshot sealedRankedMatch;
@@ -735,6 +736,8 @@ namespace ArcaneArena.Multiplayer
             }
             showPanel = true;
             competitivePolicy = policy;
+            rankedRoomCreationPanel =
+                policy == CompetitivePolicy.Ranked && !join;
             if (!IsOnlineDuelActive)
                 automaticRankedMatchmaking = false;
             focusJoinCode = join;
@@ -754,6 +757,11 @@ namespace ArcaneArena.Multiplayer
             }
             competitivePolicy = CompetitivePolicy.Ranked;
             showPanel = true;
+            rankedRoomCreationPanel = false;
+            // Select the dedicated queue presentation before validation or
+            // asynchronous service setup. A validation error must never fall
+            // back to the create/join-room window.
+            automaticRankedMatchmaking = true;
             focusJoinCode = false;
             requestJoinFocus = false;
             status = "Preparando a busca por um rival ranqueado...";
@@ -2969,11 +2977,15 @@ namespace ArcaneArena.Multiplayer
                     "Sincronizando partida...",
                     "Preparando o snapshot inicial de cada jogador.");
                 hostController.ConfigureRemotePlayerOneAuthority(true);
-                hostController.RestartExternalDuel(
-                    localMain,
-                    localExtra,
-                    remoteMain,
-                    remoteExtra);
+                if (!hostController.RestartExternalDuel(
+                        localMain,
+                        localExtra,
+                        remoteMain,
+                        remoteExtra))
+                {
+                    throw new InvalidOperationException(
+                        "O ygopro-core não confirmou o início do duelo online.");
+                }
                 hostCoreStarted = true;
                 hostAwaitingStateAckUnlock = true;
                 hostController.SetPresentationDecisionLocked(true);
@@ -5168,10 +5180,15 @@ namespace ArcaneArena.Multiplayer
             bool roomActive = IsOnlineDuelActive;
             bool automaticQueue = automaticRankedMatchmaking &&
                 competitivePolicy == CompetitivePolicy.Ranked;
+            bool rankedRoomSetup = rankedRoomCreationPanel &&
+                competitivePolicy == CompetitivePolicy.Ranked &&
+                !automaticQueue;
             string code = roomActive ? roomCode : string.Empty;
             GUI.Label(new Rect(margin, 140f, contentWidth, 34f),
                 automaticQueue
                     ? "RANQUEADO  •  BUSCA AUTOMATICA"
+                    : rankedRoomSetup
+                        ? "RANQUEADO  •  CRIAR SALA PRIVADA"
                     : $"CODIGO DA SALA  •  {(string.IsNullOrWhiteSpace(code) ? "—" : code)}",
                 lobbyCodeStyle);
 
@@ -5191,6 +5208,28 @@ namespace ArcaneArena.Multiplayer
                         "PROCURANDO UM JOGADOR COM A MESMA VERSAO, " +
                         "REGRAS E BAN LIST...",
                         lobbyDeckStyle);
+                }
+                else if (rankedRoomSetup)
+                {
+                    GUI.Label(
+                        new Rect(margin, 174f, contentWidth, 36f),
+                        "CRIE UMA SALA RANQUEADA COM CODIGO. " +
+                        "O RESULTADO ALTERA PE E ELO.",
+                        lobbyDeckStyle);
+                    bool canStartConnection = !connectionOperationInProgress &&
+                        (networkManager == null ||
+                         !networkManager.ShutdownInProgress);
+                    GUI.enabled = canStartConnection;
+                    GUI.backgroundColor =
+                        new Color(0.78f, 0.56f, 0.08f, 1f);
+                    if (GUI.Button(
+                            new Rect(margin, 212f, contentWidth, 42f),
+                            "CRIAR SALA RANQUEADA",
+                            lobbyButtonStyle))
+                    {
+                        BeginHosting();
+                    }
+                    GUI.enabled = true;
                 }
                 else
                 {

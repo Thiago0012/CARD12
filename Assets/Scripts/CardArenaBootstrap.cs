@@ -147,6 +147,9 @@ namespace ArcaneArena
             (core != null && core.PresentationDecisionLocked);
 
         public bool IsPrimaryDuelInterface => primaryDuelInterface;
+        public bool IsPresentationReady => presentationReady;
+        public string InitializationFailure =>
+            core?.InitializationFailure ?? string.Empty;
         public CardCatalog CardCatalog => cardCatalog;
         public bool NeedsEditorRebuild => false;
 
@@ -178,11 +181,18 @@ namespace ArcaneArena
             if (core == null) core = gameObject.AddComponent<DuelArenaController>();
             core.CoreEventPresented += OnCoreEvent;
             core.CoreFailure += OnCoreFailure;
+            core.DuelCompleted += OnDuelCompleted;
             core.PresentationStateChanged += OnPresentationStateChanged;
 
             yield return null;
             state = core.PresentationState;
             database = core.Database;
+            if (!core.IsCoreReady)
+            {
+                presentationReady = false;
+                OnCoreFailure(core.InitializationFailure);
+                yield break;
+            }
             visualCatalog = CardVisualCatalog.LoadDefault();
             presentationReady = state != null && database != null;
             RefreshEverything(true);
@@ -201,6 +211,7 @@ namespace ArcaneArena
                 core.CoreEventPresented -= OnCoreEvent;
                 core.CoreFailure -= OnCoreFailure;
                 core.PresentationStateChanged -= OnPresentationStateChanged;
+                core.DuelCompleted -= OnDuelCompleted;
             }
             DisposeArenaPresentation();
             ResetCardSoundPresentation();
@@ -223,13 +234,21 @@ namespace ArcaneArena
             string detail = string.IsNullOrWhiteSpace(failure)
                 ? "Falha inesperada nos dados do duelo."
                 : failure;
+            string compactDetail = detail.Length > 92
+                ? detail.Substring(0, 89) + "..."
+                : detail;
             SetStatus(
                 $"DUELO INTERROMPIDO · {detail} · Retorne ao menu para reiniciar.",
                 Red);
             UpdateDecisionRibbon(
-                "O DUELO FOI INTERROMPIDO · RETORNE AO MENU",
+                $"DUELO INTERROMPIDO · {compactDetail}",
                 Red);
             PushDuelFeed("Falha de dados do duelo", Red);
+        }
+
+        private void OnDuelCompleted(byte winner)
+        {
+            GameFrontendBootstrap.Instance?.CompleteActiveBotDuel(winner);
         }
 
         private void Update()
@@ -270,7 +289,6 @@ namespace ArcaneArena
                 $"[Arcane legacy bridge] StartLocalTestDuel requested: " +
                 $"{playerLoadout?.displayName ?? "deck ativo persistido"}.");
             StartSelectedDuel(null, false, playerLoadout);
-            SetStatus("Duelo local iniciado pelo ygopro-core.", Cyan);
         }
 
         public void StartDuelAgainstBot(
@@ -282,9 +300,6 @@ namespace ArcaneArena
                 $"player={playerLoadout?.displayName ?? "deck ativo persistido"}; " +
                 $"bot={loadout?.displayName ?? "deck espelhado"}.");
             StartSelectedDuel(loadout, true, playerLoadout);
-            SetStatus(
-                "Duelo contra IA tática iniciado pelo ygopro-core.",
-                Lime);
         }
 
         public void Build()
@@ -297,7 +312,7 @@ namespace ArcaneArena
             // Preview generation belongs to the original editor tooling only.
         }
 
-        private void StartSelectedDuel(
+        private bool StartSelectedDuel(
             DuelDeckLoadout requestedOpponent,
             bool versusBot,
             DuelDeckLoadout requestedPlayer)
@@ -331,7 +346,7 @@ namespace ArcaneArena
                             ? "O deck selecionado não pôde ser carregado."
                             : rejection,
                         Gold);
-                    return;
+                    return false;
                     }
                 }
             }
@@ -356,7 +371,7 @@ namespace ArcaneArena
                 SetStatus(
                     "O catálogo não resolveu 40 cartas válidas para um dos duelistas.",
                     Gold);
-                return;
+                return false;
             }
 
             try
@@ -368,11 +383,18 @@ namespace ArcaneArena
                     $"extra={playerExtra.Length}; " +
                     $"opponent='{opponent.displayName}' main={opponentMain.Length} " +
                     $"extra={opponentExtra.Length}.");
-                core.RestartExternalDuel(
-                    playerMain,
-                    playerExtra,
-                    opponentMain,
-                    opponentExtra);
+                if (core == null)
+                    throw new InvalidOperationException(
+                        "O controlador do duelo ainda não foi inicializado.");
+                if (!core.RestartExternalDuel(
+                        playerMain,
+                        playerExtra,
+                        opponentMain,
+                        opponentExtra))
+                {
+                    throw new InvalidOperationException(
+                        "O ygopro-core não confirmou o início do duelo.");
+                }
                 state = core.PresentationState;
                 observedPrompt = null;
                 ResetPromptPresentationIdentity();
@@ -384,6 +406,7 @@ namespace ArcaneArena
                         ? "DUELO CONTRA IA TÁTICA · REGRAS PELO YGOPRO-CORE"
                         : "TREINO LOCAL P1 / P2 · REGRAS PELO YGOPRO-CORE",
                     Lime);
+                return true;
             }
             catch (Exception exception)
             {
@@ -391,6 +414,7 @@ namespace ArcaneArena
                     $"Não foi possível iniciar o duelo: {exception.GetBaseException().Message}",
                     Gold);
                 Debug.LogException(exception);
+                return false;
             }
         }
 

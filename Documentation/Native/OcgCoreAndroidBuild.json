@@ -1,12 +1,12 @@
 ﻿{
     "schemaVersion":  1,
-    "generatedUtc":  "2026-08-09T00:29:20.9275839Z",
+    "generatedUtc":  "2026-08-11T14:13:26.8834564Z",
     "platform":  "Android",
     "architecture":  "arm64-v8a",
     "minimumApi":  26,
     "configuration":  "Release",
     "output":  "Assets/Plugins/Android/arm64-v8a/libocgcore.so",
-    "sha256":  "4AD9B82E4EE9935DE6B0F239BF79E4AB49A769E820C481F2F28D25A0EFDFAFEE",
+    "sha256":  "06EF666C51F60ABF2D3E5123118EAAC1AEC84B85B095C567081C72D68DA8842F",
     "bytes":  1703040,
     "ndkRevision":  "27.2.12479018"
 }
