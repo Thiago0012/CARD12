@@ -617,7 +617,8 @@ namespace ArcaneArena.Multiplayer.Tournaments
                 bestOf = match.bestOf,
                 playerAId = match.playerAId,
                 playerBId = match.playerBId,
-                localPlayerId = LocalPlayerId
+                localPlayerId = LocalPlayerId,
+                competitivePolicy = state.config.competitivePolicy
             };
             DuelOnlineSession duel = DuelOnlineSession.EnsureInstance();
             if (context.LocalPlayerHosts)

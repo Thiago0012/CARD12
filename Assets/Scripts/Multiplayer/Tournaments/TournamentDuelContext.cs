@@ -1,4 +1,5 @@
 using System;
+using ArcaneDuel.Game.Competitive;
 
 namespace ArcaneArena.Multiplayer.Tournaments
 {
@@ -14,6 +15,8 @@ namespace ArcaneArena.Multiplayer.Tournaments
         public string playerAId;
         public string playerBId;
         public string localPlayerId;
+        public CompetitivePolicy competitivePolicy =
+            CompetitivePolicy.Unranked;
 
         public bool IsValid =>
             !string.IsNullOrWhiteSpace(tournamentId) &&

@@ -15,7 +15,8 @@ namespace ArcaneArena.Frontend
     /// </summary>
     public sealed partial class DeckRepository
     {
-        private const int CurrentSchemaVersion = 6;
+        private const int CurrentSchemaVersion = 7;
+        private const int StarterOnboardingSchemaVersion = 6;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
         private const int ExtraDeckMaximum = 15;
@@ -89,6 +90,7 @@ namespace ArcaneArena.Frontend
             if (string.IsNullOrWhiteSpace(State.localProfileId))
                 State.localProfileId = Guid.NewGuid().ToString("N");
             NormalizeCoinRewardAuthorizationState(loadedSchemaVersion);
+            NormalizeRankState(loadedSchemaVersion);
             MigrateStarterOnboarding(loadedSchemaVersion);
 
             State.decks.RemoveAll(deck => deck == null);
@@ -113,7 +115,7 @@ namespace ArcaneArena.Frontend
 
         private void MigrateStarterOnboarding(int loadedSchemaVersion)
         {
-            if (loadedSchemaVersion >= CurrentSchemaVersion ||
+            if (loadedSchemaVersion >= StarterOnboardingSchemaVersion ||
                 State.starterDeckClaimed ||
                 !HasPlayerProfile)
             {

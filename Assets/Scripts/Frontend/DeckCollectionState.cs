@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using ArcaneDuel.Game.Competitive;
 
 namespace ArcaneArena.Frontend
 {
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 6;
+        public int schemaVersion = 7;
         public string localProfileId;
         public string playerDisplayName;
         public bool starterDeckClaimed;
@@ -30,6 +31,7 @@ namespace ArcaneArena.Frontend
             new List<ShopTransactionRecord>();
         public CoinRewardAuthorizationState coinRewardAuthorization =
             new CoinRewardAuthorizationState();
+        public PlayerRankData rankData = new PlayerRankData();
     }
 
     [Serializable]

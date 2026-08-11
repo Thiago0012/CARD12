@@ -11,6 +11,7 @@ using ArcaneArena.Multiplayer.Tournaments;
 using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Competitive;
 using ArcaneDuel.Game.Tournaments;
 using Unity.Collections;
 using Unity.Netcode;
@@ -124,6 +125,8 @@ namespace ArcaneArena.Multiplayer
             public string coreApiVersion;
             public string coreCommit;
             public DuelDeckLoadout loadout;
+            public CompetitivePolicy competitivePolicy;
+            public RankPlayerSnapshot rankPlayer;
         }
 
         [Serializable]
@@ -175,6 +178,7 @@ namespace ArcaneArena.Multiplayer
             public int completedRounds;
             public bool winner;
             public bool draw;
+            public RankChangeReceipt rankReceipt;
         }
 
         [Serializable]
@@ -193,6 +197,7 @@ namespace ArcaneArena.Multiplayer
             public string matchId;
             public uint transitionEpoch;
             public bool duelAlreadyBegun;
+            public RankedMatchSnapshot rankedMatch;
         }
 
         [Serializable]
@@ -222,6 +227,7 @@ namespace ArcaneArena.Multiplayer
             public bool startReceived;
             public bool arenaReady;
             public bool beginApplied;
+            public RankPlayerSnapshot rankPlayer;
         }
 
         [Serializable]
@@ -231,6 +237,8 @@ namespace ArcaneArena.Multiplayer
             public string compatibility;
             public string hostPlayerDisplayName;
             public string hostDeckDisplayName;
+            public CompetitivePolicy competitivePolicy;
+            public RankPlayerSnapshot rankPlayer;
         }
 
         [Serializable]
@@ -426,12 +434,20 @@ namespace ArcaneArena.Multiplayer
         private TournamentDuelMetricsCollector tournamentMetricsCollector;
         private Task tournamentResultReportTask;
         private bool tournamentLaunchRequested;
+        private CompetitivePolicy competitivePolicy =
+            CompetitivePolicy.Unranked;
+        private bool automaticRankedMatchmaking;
+        private RankPlayerSnapshot localRankHandshake;
+        private RankPlayerSnapshot remoteRankHandshake;
+        private RankedMatchSnapshot sealedRankedMatch;
+        private RankChangeReceipt localRankResultReceipt;
 
         public bool IsOnlineDuelActive =>
             role != SessionRole.None && networkManager != null &&
             (networkManager.IsClient || networkManager.IsServer);
 
         public bool IsHost => role == SessionRole.Host;
+        public CompetitivePolicy CompetitivePolicy => competitivePolicy;
         public string Status => status;
         public string RoomCode => roomCode;
         public string RelayRegion => relayRegion;
@@ -516,6 +532,7 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
             activeTournamentContext = context;
+            competitivePolicy = context.competitivePolicy;
             tournamentLaunchRequested = true;
             showPanel = false;
             BeginHosting();
@@ -532,6 +549,7 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
             activeTournamentContext = context;
+            competitivePolicy = context.competitivePolicy;
             tournamentLaunchRequested = true;
             showPanel = false;
             joinCode = (code ?? string.Empty).Trim().ToUpperInvariant();
@@ -705,7 +723,9 @@ namespace ArcaneArena.Multiplayer
                 Instance = null;
         }
 
-        public void ShowPanel(bool join = false)
+        public void ShowPanel(
+            bool join = false,
+            CompetitivePolicy policy = CompetitivePolicy.Unranked)
         {
             if (matchStarted &&
                 SceneManager.GetActiveScene().name == DuelArenaScene)
@@ -714,11 +734,30 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
             showPanel = true;
+            competitivePolicy = policy;
+            if (!IsOnlineDuelActive)
+                automaticRankedMatchmaking = false;
             focusJoinCode = join;
             requestJoinFocus = join;
             status = IsOnlineDuelActive
                 ? status
                 : "Escolha um deck válido e conecte-se por Relay.";
+        }
+
+        public void StartRankedMatchmaking()
+        {
+            if (IsOnlineDuelActive)
+            {
+                showPanel = true;
+                status = "Ja existe uma sessao online em andamento.";
+                return;
+            }
+            competitivePolicy = CompetitivePolicy.Ranked;
+            showPanel = true;
+            focusJoinCode = false;
+            requestJoinFocus = false;
+            status = "Preparando a busca por um rival ranqueado...";
+            BeginAutomaticRankedMatchmaking();
         }
 
         public void LeaveRoom()
@@ -1118,6 +1157,14 @@ namespace ArcaneArena.Multiplayer
                 disconnectReason = string.Empty;
                 status = "Autenticando na Unity e criando a sala...";
                 localLoadout = loadout;
+                localRankHandshake = CaptureLocalRankSnapshot();
+                if (competitivePolicy == CompetitivePolicy.Ranked &&
+                    (localRankHandshake == null ||
+                     !localRankHandshake.IsValid))
+                {
+                    status = "O perfil ranqueado local não pôde ser carregado.";
+                    return;
+                }
                 await InitializeServices();
                 ConfigureConnectionIdentity();
                 role = SessionRole.Host;
@@ -1203,6 +1250,14 @@ namespace ArcaneArena.Multiplayer
                 disconnectReason = string.Empty;
                 status = "Autenticando e entrando na sala...";
                 localLoadout = loadout;
+                localRankHandshake = CaptureLocalRankSnapshot();
+                if (competitivePolicy == CompetitivePolicy.Ranked &&
+                    (localRankHandshake == null ||
+                     !localRankHandshake.IsValid))
+                {
+                    status = "O perfil ranqueado local não pôde ser carregado.";
+                    return;
+                }
                 await InitializeServices();
                 ConfigureConnectionIdentity();
                 roomCode = normalizedCode;
@@ -1234,6 +1289,105 @@ namespace ArcaneArena.Multiplayer
                     exception: exception);
                 ResetAfterFailedConnection(
                     DescribeJoinFailure(exception));
+            }
+            finally
+            {
+                connectionOperationInProgress = false;
+            }
+        }
+
+        private async void BeginAutomaticRankedMatchmaking()
+        {
+            ClearTournamentDuelContext();
+            if (connectionOperationInProgress)
+            {
+                status = "Uma conexao ja esta sendo preparada. Aguarde.";
+                return;
+            }
+            if (!TryGetLocalLoadout(out DuelDeckLoadout loadout, out string error))
+            {
+                status = error;
+                return;
+            }
+            if (IsOnlineDuelActive)
+            {
+                status = "Ja existe uma sessao online em andamento.";
+                return;
+            }
+            if (networkManager != null && networkManager.ShutdownInProgress)
+            {
+                status = "A sessao anterior ainda esta sendo encerrada. Aguarde.";
+                return;
+            }
+
+            connectionOperationInProgress = true;
+            try
+            {
+                ResetMatchState(true);
+                automaticRankedMatchmaking = true;
+                competitivePolicy = CompetitivePolicy.Ranked;
+                ClearReconnectTicket();
+                roomCode = string.Empty;
+                disconnectReason = string.Empty;
+                status = "Buscando um rival compativel no ranqueado...";
+                localLoadout = loadout;
+                localRankHandshake = CaptureLocalRankSnapshot();
+                if (localRankHandshake == null ||
+                    !localRankHandshake.IsValid)
+                {
+                    automaticRankedMatchmaking = false;
+                    status = "O perfil ranqueado local nao pode ser carregado.";
+                    return;
+                }
+
+                await InitializeServices();
+                ConfigureConnectionIdentity();
+                ISession session = await sessionCoordinator
+                    .MatchmakeRankedAsync(localLoadout, ProtocolVersion);
+                role = session.IsHost
+                    ? SessionRole.Host
+                    : SessionRole.Client;
+                roomCode = session.Code;
+                relayRegion = "QoS automatico";
+                relayRegionDescription = session.IsHost
+                    ? "melhor regiao escolhida automaticamente"
+                    : "regiao Relay definida pelo matchmaking";
+                RegisterHandlers();
+
+                if (session.IsHost)
+                {
+                    await sessionCoordinator.SetPlayerStateAsync(
+                        "connected",
+                        true);
+                    status = "Fila ranqueada criada. Aguardando um rival " +
+                        "compativel...";
+                }
+                else
+                {
+                    helloAccepted = false;
+                    await sessionCoordinator.SetPlayerStateAsync(
+                        "connected",
+                        false);
+                    status = "Rival encontrado. Validando os dois decks...";
+                    PersistReconnectTicket();
+                    if (networkManager.IsConnectedClient)
+                        StartClientDeckHandshake();
+                }
+                showPanel = true;
+            }
+            catch (Exception exception)
+            {
+                RuntimeDiagnosticRecorder.Record(
+                    "F08",
+                    "RankedMatchmaking",
+                    nameof(DuelOnlineSession),
+                    "Automatic ranked matchmaking failed.",
+                    mode: "ranked-matchmaking",
+                    exception: exception);
+                ResetAfterFailedConnection(
+                    "Nao foi possivel iniciar o ranqueado: " +
+                    exception.GetBaseException().Message);
+                showPanel = true;
             }
             finally
             {
@@ -1663,7 +1817,9 @@ namespace ArcaneArena.Multiplayer
                 compatibility = ProjectIdentity.MultiplayerCompatibility,
                 coreApiVersion = ProjectIdentity.CoreApiVersion,
                 coreCommit = ProjectIdentity.CoreCommit,
-                loadout = localLoadout
+                loadout = localLoadout,
+                competitivePolicy = competitivePolicy,
+                rankPlayer = localRankHandshake ?? CaptureLocalRankSnapshot()
             });
         }
 
@@ -1875,6 +2031,7 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
             remoteLoadout = hello.loadout;
+            remoteRankHandshake = hello.rankPlayer;
             if (helloRequestRetry != null)
             {
                 StopCoroutine(helloRequestRetry);
@@ -1888,7 +2045,9 @@ namespace ArcaneArena.Multiplayer
                     compatibility = ProjectIdentity.MultiplayerCompatibility,
                     hostPlayerDisplayName = localLoadout?.playerDisplayName ??
                         string.Empty,
-                    hostDeckDisplayName = localLoadout?.displayName ?? string.Empty
+                    hostDeckDisplayName = localLoadout?.displayName ?? string.Empty,
+                    competitivePolicy = competitivePolicy,
+                    rankPlayer = localRankHandshake ?? CaptureLocalRankSnapshot()
                 },
                 NetworkDelivery.ReliableSequenced);
         }
@@ -1905,7 +2064,10 @@ namespace ArcaneArena.Multiplayer
             }
             if (accepted.protocolVersion != ProtocolVersion ||
                 accepted.compatibility !=
-                    ProjectIdentity.MultiplayerCompatibility)
+                    ProjectIdentity.MultiplayerCompatibility ||
+                accepted.competitivePolicy != competitivePolicy ||
+                competitivePolicy == CompetitivePolicy.Ranked &&
+                (accepted.rankPlayer == null || !accepted.rankPlayer.IsValid))
             {
                 RejectIncompatibleHost();
                 return;
@@ -1914,6 +2076,7 @@ namespace ArcaneArena.Multiplayer
             helloAccepted = true;
             hostPlayerDisplayName = accepted.hostPlayerDisplayName ?? string.Empty;
             hostDeckDisplayName = accepted.hostDeckDisplayName ?? string.Empty;
+            remoteRankHandshake = accepted.rankPlayer;
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
@@ -1991,6 +2154,13 @@ namespace ArcaneArena.Multiplayer
             // reusing it here would make rewards and transport acknowledgements
             // from game 1 collide with games 2/3/5.
             currentMatchId = Guid.NewGuid().ToString("N");
+            if (competitivePolicy == CompetitivePolicy.Ranked &&
+                !TrySealRankedMatchSnapshot(currentMatchId, out string rankError))
+            {
+                currentMatchId = string.Empty;
+                status = rankError;
+                return;
+            }
             currentTransitionEpoch = ++transitionEpochCounter;
             if (currentTransitionEpoch == 0)
                 currentTransitionEpoch = ++transitionEpochCounter;
@@ -2046,6 +2216,30 @@ namespace ArcaneArena.Multiplayer
                 start.transitionEpoch == 0)
             {
                 RejectIncompatibleHost();
+                return;
+            }
+
+            if (start.rankedMatch != null)
+            {
+                string rankRejection =
+                    "O snapshot ranqueado não pertence a esta partida.";
+                if (!string.Equals(
+                        start.rankedMatch.matchId,
+                        start.matchId,
+                        StringComparison.Ordinal) ||
+                    !TryAcceptRankedMatchSnapshot(start.rankedMatch,
+                        out rankRejection))
+                {
+                    ResetAfterFailedConnection(rankRejection);
+                    showPanel = true;
+                    return;
+                }
+            }
+            else if (competitivePolicy == CompetitivePolicy.Ranked)
+            {
+                ResetAfterFailedConnection(
+                    "O anfitrião não enviou o snapshot da partida ranqueada.");
+                showPanel = true;
                 return;
             }
 
@@ -2121,7 +2315,8 @@ namespace ArcaneArena.Multiplayer
                 deckReady = helloAccepted,
                 startReceived = startReceived,
                 arenaReady = arenaReady,
-                beginApplied = beginDuelApplied
+                beginApplied = beginDuelApplied,
+                rankPlayer = CaptureLocalRankSnapshot()
             }, NetworkDelivery.ReliableSequenced);
         }
 
@@ -2140,6 +2335,21 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
+            if (competitivePolicy == CompetitivePolicy.Ranked)
+            {
+                if (ready.rankPlayer == null || !ready.rankPlayer.IsValid ||
+                    !string.Equals(
+                        ready.rankPlayer.stablePlayerId,
+                        remoteLoadout?.profileId,
+                        StringComparison.Ordinal))
+                {
+                    clientDeckReady = false;
+                    status = "O snapshot ranqueado do rival é inválido ou incompatível.";
+                    return;
+                }
+                remoteRankHandshake = ready.rankPlayer;
+            }
+
             clientDeckReady |= ready.deckReady;
             clientReceivedStart |= ready.startReceived;
             clientArenaReady |= ready.arenaReady;
@@ -2154,7 +2364,8 @@ namespace ArcaneArena.Multiplayer
 
             if (!matchStarted && clientDeckReady)
             {
-                if (activeTournamentContext != null)
+                if (activeTournamentContext != null ||
+                    automaticRankedMatchmaking)
                 {
                     status = "Os dois decks foram confirmados. Iniciando o confronto...";
                     BeginHostMatch();
@@ -2239,7 +2450,8 @@ namespace ArcaneArena.Multiplayer
                     compatibility = ProjectIdentity.MultiplayerCompatibility,
                     matchId = currentMatchId,
                     transitionEpoch = currentTransitionEpoch,
-                    duelAlreadyBegun = beginDuelApplied
+                    duelAlreadyBegun = beginDuelApplied,
+                    rankedMatch = sealedRankedMatch
                 }, NetworkDelivery.ReliableSequenced);
 
                 if (clientReceivedStart)
@@ -2914,6 +3126,54 @@ namespace ArcaneArena.Multiplayer
             string hostDetail = hostReceipt != null
                 ? FormatRewardStatus(hostReceipt, draw)
                 : "Resultado confirmado. A recompensa ficará pendente para uma nova tentativa.";
+            RankChangeReceipt clientRankReceipt = null;
+            localRankResultReceipt = null;
+            if (competitivePolicy == CompetitivePolicy.Ranked &&
+                sealedRankedMatch != null)
+            {
+                RankedOutcome hostOutcome = draw
+                    ? RankedOutcome.Draw
+                    : hostWon ? RankedOutcome.Win : RankedOutcome.Loss;
+                RankedOutcome clientOutcome = draw
+                    ? RankedOutcome.Draw
+                    : clientWon ? RankedOutcome.Win : RankedOutcome.Loss;
+                if (RankPointService.TryCreateReceipt(
+                        sealedRankedMatch,
+                        0,
+                        hostOutcome,
+                        out RankChangeReceipt proposedHostRank,
+                        out string hostRankError) &&
+                    frontend != null && frontend.TryApplyRankReceipt(
+                        proposedHostRank,
+                        out localRankResultReceipt,
+                        out hostRankError))
+                {
+                    hostDetail = AppendRankStatus(
+                        hostDetail,
+                        localRankResultReceipt);
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        "[MP] stage=rank-host-commit result=blocked reason=" +
+                        (hostRankError ?? "frontend unavailable"));
+                    hostDetail += "\nO ranque nao foi alterado: " +
+                        (hostRankError ?? "perfil indisponivel");
+                }
+
+                if (!RankPointService.TryCreateReceipt(
+                        sealedRankedMatch,
+                        1,
+                        clientOutcome,
+                        out clientRankReceipt,
+                        out string clientRankError))
+                {
+                    Debug.LogWarning(
+                        "[MP] stage=rank-client-receipt result=blocked reason=" +
+                        clientRankError);
+                    clientRankReceipt = null;
+                }
+            }
             var result = new MatchRewardPayload
             {
                 protocolVersion = ProtocolVersion,
@@ -2930,7 +3190,8 @@ namespace ArcaneArena.Multiplayer
                 damageDealt = clientRewardDamage,
                 completedRounds = completedRewardRounds,
                 winner = clientWon,
-                draw = draw
+                draw = draw,
+                rankReceipt = clientRankReceipt
             };
             lastAuthoritativeResult = result;
             if (activeTournamentContext != null && winnerSeat >= 0)
@@ -2946,7 +3207,11 @@ namespace ArcaneArena.Multiplayer
                         false,
                         tournamentStats);
             }
-            HandleAuthoritativeResult(result, 0, hostDetail);
+            HandleAuthoritativeResult(
+                result,
+                0,
+                hostDetail,
+                localRankResultReceipt);
 
             if (remoteClientId != ulong.MaxValue)
             {
@@ -3028,13 +3293,35 @@ namespace ArcaneArena.Multiplayer
             string detail = receipt != null
                 ? FormatRewardStatus(receipt, reward.draw)
                 : "Resultado confirmado. A recompensa ficará pendente para uma nova tentativa.";
-            HandleAuthoritativeResult(reward, 1, detail);
+            RankChangeReceipt committedRank = null;
+            if (reward.rankReceipt != null)
+            {
+                string rankRejection = "frontend indisponível";
+                if (frontend != null && frontend.TryApplyRankReceipt(
+                        reward.rankReceipt,
+                        out committedRank,
+                        out rankRejection))
+                {
+                    detail = AppendRankStatus(detail, committedRank);
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        "[MP] stage=rank-client-commit result=blocked reason=" +
+                        (rankRejection ?? "frontend unavailable"));
+                    detail += "\nO ranque nao foi alterado: " +
+                        (rankRejection ?? "perfil indisponivel");
+                }
+            }
+            localRankResultReceipt = committedRank;
+            HandleAuthoritativeResult(reward, 1, detail, committedRank);
         }
 
         private void HandleAuthoritativeResult(
             MatchRewardPayload result,
             byte localSeat,
-            string detail)
+            string detail,
+            RankChangeReceipt rankReceipt = null)
         {
             if (result == null || result.resultSequence == 0 ||
                 result.resultSequence <= lastAppliedResultSequence)
@@ -3055,7 +3342,22 @@ namespace ArcaneArena.Multiplayer
                 result.endReason);
             SetFlowState(OnlineMatchFlowState.ResultScreen);
             status = detail ?? string.Empty;
-            resultPresenter?.Show(kind, detail, ReturnToMenuAfterOnlineMatch);
+            if (rankReceipt != null &&
+                rankReceipt.status == RankReceiptStatus.Applied)
+            {
+                resultPresenter?.ShowRanked(
+                    kind,
+                    detail,
+                    rankReceipt,
+                    ReturnToMenuAfterOnlineMatch);
+            }
+            else
+            {
+                resultPresenter?.Show(
+                    kind,
+                    detail,
+                    ReturnToMenuAfterOnlineMatch);
+            }
             Debug.Log(
                 $"[MP] stage=result-applied sequence={result.resultSequence} " +
                 $"kind={kind} role={role} state={result.finalStateVersion}");
@@ -3090,6 +3392,20 @@ namespace ArcaneArena.Multiplayer
             return draw
                 ? "Duelo concluído. Empate não concede moedas."
                 : $"Duelo concluído. Recompensa: {receipt.coins} moedas.";
+        }
+
+        private static string AppendRankStatus(
+            string detail,
+            RankChangeReceipt receipt)
+        {
+            if (receipt == null)
+                return detail ?? string.Empty;
+            string delta = receipt.delta > 0
+                ? $"+{receipt.delta} PE"
+                : $"{receipt.delta} PE";
+            return (detail ?? string.Empty) + "\nRanqueada: " + delta +
+                   $" · {RankRules.DisplayName(receipt.newTier)} " +
+                   $"({receipt.newPoints} PE)";
         }
 
         private IEnumerator BroadcastLatestStateAtEndOfFrame()
@@ -3383,7 +3699,7 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
-        private static bool ValidateHello(HelloPayload hello, out string rejection)
+        private bool ValidateHello(HelloPayload hello, out string rejection)
         {
             rejection = string.Empty;
             if (hello == null || hello.loadout == null ||
@@ -3399,6 +3715,21 @@ namespace ArcaneArena.Multiplayer
                 rejection = "O conteúdo do jogo é diferente entre os dois " +
                     "dispositivos. Instale a mesma versão ONLINE v11 no PC " +
                     "e no celular para usar todos os decks corretamente.";
+                return false;
+            }
+            if (hello.competitivePolicy != competitivePolicy)
+            {
+                rejection = "A sala mudou de modo competitivo. Feche o painel e entre novamente.";
+                return false;
+            }
+            if (competitivePolicy == CompetitivePolicy.Ranked &&
+                (hello.rankPlayer == null || !hello.rankPlayer.IsValid ||
+                 !string.Equals(
+                     hello.rankPlayer.stablePlayerId,
+                     hello.loadout.profileId,
+                     StringComparison.Ordinal)))
+            {
+                rejection = "O perfil ranqueado do rival é inválido ou usa regras diferentes.";
                 return false;
             }
             if (!string.IsNullOrWhiteSpace(hello.coreApiVersion) &&
@@ -3480,6 +3811,92 @@ namespace ArcaneArena.Multiplayer
                     string.Empty,
                     0,
                     RewardReceiptStatus.BlockedInvalidMatch);
+        }
+
+        private static RankPlayerSnapshot CaptureLocalRankSnapshot()
+        {
+            return GameFrontendBootstrap.Instance?.CaptureRankPlayerSnapshot();
+        }
+
+        private bool TrySealRankedMatchSnapshot(
+            string matchId,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            localRankHandshake = CaptureLocalRankSnapshot();
+            if (localRankHandshake == null || !localRankHandshake.IsValid ||
+                remoteRankHandshake == null || !remoteRankHandshake.IsValid)
+            {
+                rejection = "Não foi possível selar os dois perfis ranqueados. Reconecte a sala.";
+                return false;
+            }
+            if (!string.Equals(
+                    localRankHandshake.stablePlayerId,
+                    localLoadout?.profileId,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    remoteRankHandshake.stablePlayerId,
+                    remoteLoadout?.profileId,
+                    StringComparison.Ordinal))
+            {
+                rejection = "A identidade ranqueada não corresponde aos decks confirmados.";
+                return false;
+            }
+
+            sealedRankedMatch = new RankedMatchSnapshot
+            {
+                matchId = matchId,
+                policy = CompetitivePolicy.Ranked,
+                source = activeTournamentContext != null
+                    ? CompetitiveMatchSource.Tournament
+                    : automaticRankedMatchmaking
+                        ? CompetitiveMatchSource.Matchmaking
+                        : CompetitiveMatchSource.PrivateRoom,
+                rulesVersion = RankRules.RulesVersion,
+                rulesHash = RankRules.RulesHash,
+                sealedAtUtcTicks = DateTime.UtcNow.Ticks,
+                seat0 = localRankHandshake,
+                seat1 = remoteRankHandshake
+            };
+            if (sealedRankedMatch.IsValid)
+                return true;
+
+            sealedRankedMatch = null;
+            rejection = "O snapshot ranqueado final não passou na validação.";
+            return false;
+        }
+
+        private bool TryAcceptRankedMatchSnapshot(
+            RankedMatchSnapshot snapshot,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            if (competitivePolicy != CompetitivePolicy.Ranked ||
+                snapshot == null || !snapshot.IsValid ||
+                snapshot.policy != CompetitivePolicy.Ranked)
+            {
+                rejection = "O snapshot da partida ranqueada é incompatível.";
+                return false;
+            }
+
+            RankPlayerSnapshot current = CaptureLocalRankSnapshot();
+            RankPlayerSnapshot client = snapshot.seat1;
+            if (current == null || !current.IsValid || client == null ||
+                !string.Equals(
+                    current.stablePlayerId,
+                    client.stablePlayerId,
+                    StringComparison.Ordinal) ||
+                current.rankedPoints != client.rankedPoints ||
+                current.stateVersion != client.stateVersion)
+            {
+                rejection = "Seu perfil ranqueado mudou depois da entrada na sala. Entre novamente.";
+                return false;
+            }
+
+            sealedRankedMatch = snapshot;
+            remoteRankHandshake = snapshot.seat0;
+            localRankHandshake = snapshot.seat1;
+            return true;
         }
 
         private bool SendToServer<T>(
@@ -4533,6 +4950,11 @@ namespace ArcaneArena.Multiplayer
             pendingTerminalEvent = null;
             lastAuthoritativeResult = null;
             localRewardEligibilityAtMatchStart = null;
+            localRankHandshake = null;
+            remoteRankHandshake = null;
+            sealedRankedMatch = null;
+            localRankResultReceipt = null;
+            automaticRankedMatchmaking = false;
             rewardResultMessage = string.Empty;
             rewardResultVisibleUntil = 0f;
         }
@@ -4744,12 +5166,16 @@ namespace ArcaneArena.Multiplayer
                 status ?? string.Empty, lobbyStatusStyle);
 
             bool roomActive = IsOnlineDuelActive;
+            bool automaticQueue = automaticRankedMatchmaking &&
+                competitivePolicy == CompetitivePolicy.Ranked;
             string code = roomActive ? roomCode : string.Empty;
             GUI.Label(new Rect(margin, 140f, contentWidth, 34f),
-                $"CODIGO DA SALA  •  {(string.IsNullOrWhiteSpace(code) ? "—" : code)}",
+                automaticQueue
+                    ? "RANQUEADO  •  BUSCA AUTOMATICA"
+                    : $"CODIGO DA SALA  •  {(string.IsNullOrWhiteSpace(code) ? "—" : code)}",
                 lobbyCodeStyle);
 
-            if (!string.IsNullOrWhiteSpace(code))
+            if (!automaticQueue && !string.IsNullOrWhiteSpace(code))
             {
                 GUI.backgroundColor = new Color(0.22f, 0.52f, 1f, 1f);
                 if (GUI.Button(new Rect(458f, 178f, 144f, 38f), "COPIAR", lobbyButtonStyle))
@@ -4758,42 +5184,53 @@ namespace ArcaneArena.Multiplayer
 
             if (!roomActive)
             {
-                GUI.Label(new Rect(margin, 180f, 260f, 22f),
-                    "CODIGO PARA ENTRAR", lobbySmallLabelStyle);
-                if (requestJoinFocus)
+                if (automaticQueue)
                 {
-                    GUI.SetNextControlName("ArcaneJoinCode");
-                    requestJoinFocus = false;
+                    GUI.Label(
+                        new Rect(margin, 188f, contentWidth, 58f),
+                        "PROCURANDO UM JOGADOR COM A MESMA VERSAO, " +
+                        "REGRAS E BAN LIST...",
+                        lobbyDeckStyle);
                 }
-                bool canStartConnection = !connectionOperationInProgress &&
-                    (networkManager == null ||
-                     !networkManager.ShutdownInProgress);
-                GUI.enabled = canStartConnection;
-                joinCode = GUI.TextField(
-                    new Rect(margin, 204f, 412f, 42f),
-                    joinCode ?? string.Empty,
-                    lobbyInputStyle).Trim().ToUpperInvariant();
-                if (focusJoinCode)
-                    GUI.FocusControl("ArcaneJoinCode");
+                else
+                {
+                    GUI.Label(new Rect(margin, 180f, 260f, 22f),
+                        "CODIGO PARA ENTRAR", lobbySmallLabelStyle);
+                    if (requestJoinFocus)
+                    {
+                        GUI.SetNextControlName("ArcaneJoinCode");
+                        requestJoinFocus = false;
+                    }
+                    bool canStartConnection = !connectionOperationInProgress &&
+                        (networkManager == null ||
+                         !networkManager.ShutdownInProgress);
+                    GUI.enabled = canStartConnection;
+                    joinCode = GUI.TextField(
+                        new Rect(margin, 204f, 412f, 42f),
+                        joinCode ?? string.Empty,
+                        lobbyInputStyle).Trim().ToUpperInvariant();
+                    if (focusJoinCode)
+                        GUI.FocusControl("ArcaneJoinCode");
 
-                GUI.backgroundColor =
-                    new Color(0.22f, 0.82f, 0.90f, 1f);
-                if (GUI.Button(
-                        new Rect(464f, 204f, 138f, 42f),
-                        "CRIAR SALA",
-                        lobbyButtonStyle))
-                {
-                    BeginHosting();
+                    GUI.backgroundColor =
+                        new Color(0.22f, 0.82f, 0.90f, 1f);
+                    if (GUI.Button(
+                            new Rect(464f, 204f, 138f, 42f),
+                            "CRIAR SALA",
+                            lobbyButtonStyle))
+                    {
+                        BeginHosting();
+                    }
+                    GUI.backgroundColor = new Color(0.68f, 1f, 0.16f, 1f);
+                    if (GUI.Button(
+                            new Rect(464f, 254f, 138f, 42f),
+                            "ENTRAR",
+                            lobbyButtonStyle))
+                    {
+                        BeginJoining();
+                    }
+                    GUI.enabled = true;
                 }
-                GUI.backgroundColor = new Color(0.68f, 1f, 0.16f, 1f);
-                if (GUI.Button(
-                        new Rect(464f, 254f, 138f, 42f),
-                        "ENTRAR",
-                        lobbyButtonStyle))
-                {
-                    BeginJoining();
-                }
-                GUI.enabled = true;
             }
 
             GUI.backgroundColor = new Color(0.035f, 0.12f, 0.21f, 1f);
@@ -4831,12 +5268,16 @@ namespace ArcaneArena.Multiplayer
                 remoteLoadout != null && clientDeckReady && !matchStarted;
             string matchButtonLabel = matchStarted
                 ? "DUELO ONLINE EM ANDAMENTO"
+                : automaticQueue && canStartMatch
+                    ? "INICIANDO DUELO RANQUEADO"
                 : canStartMatch
                     ? "INICIAR DUELO ONLINE"
                     : roomActive
                         ? "AGUARDANDO JOGADORES E DECKS"
-                        : "CRIE OU ENTRE EM UMA SALA";
-            GUI.enabled = canStartMatch;
+                        : automaticQueue
+                            ? "BUSCANDO RIVAL RANQUEADO"
+                            : "CRIE OU ENTRE EM UMA SALA";
+            GUI.enabled = canStartMatch && !automaticQueue;
             GUI.backgroundColor = GUI.enabled
                 ? new Color(0.78f, 0.56f, 0.08f, 1f)
                 : new Color(0.22f, 0.20f, 0.14f, 1f);
@@ -4851,7 +5292,9 @@ namespace ArcaneArena.Multiplayer
             {
                 GUI.backgroundColor = new Color(0.95f, 0.25f, 0.35f, 1f);
                 if (GUI.Button(new Rect(margin, 420f, 220f, 34f),
-                        matchStarted ? "ENCERRAR PARTIDA" : "SAIR DA SALA",
+                        matchStarted
+                            ? "ENCERRAR PARTIDA"
+                            : automaticQueue ? "SAIR DA FILA" : "SAIR DA SALA",
                         lobbyButtonStyle))
                 {
                     LeaveRoom();
@@ -4867,6 +5310,8 @@ namespace ArcaneArena.Multiplayer
                 {
                     status = matchStarted
                         ? "A partida continua ativa. Use ENCERRAR PARTIDA para sair."
+                        : automaticQueue
+                        ? "A fila ranqueada continua ativa. Reabra o painel para acompanhar a busca."
                         : IsHost
                         ? "Sala continua ativa. Reabra o painel para copiar o código ou iniciar o duelo."
                         : "Conexão continua ativa. Aguarde o anfitrião iniciar o duelo.";

@@ -20,6 +20,9 @@ namespace ArcaneArena.Multiplayer
     internal sealed class MultiplayerSessionCoordinator
     {
         internal const string SessionType = "arcane-duel-private-v5";
+        internal const string PrivateDuelMode = "private-duel-1v1";
+        internal const string RankedMatchmakingMode =
+            "ranked-matchmaking-1v1";
 
         private const string AppVersionKey = "appVersion";
         private const string ProtocolVersionKey = "protocolVersion";
@@ -32,6 +35,7 @@ namespace ArcaneArena.Multiplayer
         private const string JoinableKey = "joinable";
         private const string MatchIdKey = "matchId";
         private const string HostEpochKey = "hostEpoch";
+        private const string CompatibilityKey = "compatibility";
 
         private ISession currentSession;
         private Task leaveTask;
@@ -55,7 +59,10 @@ namespace ArcaneArena.Multiplayer
                 MaxPlayers = 2,
                 IsPrivate = true,
                 IsLocked = false,
-                SessionProperties = CreateSessionProperties(protocolVersion),
+                SessionProperties = CreateSessionProperties(
+                    protocolVersion,
+                    PrivateDuelMode,
+                    false),
                 PlayerProperties = CreatePlayerProperties(loadout, 0)
             };
             options.WithRelayNetwork();
@@ -97,10 +104,93 @@ namespace ArcaneArena.Multiplayer
                     options),
                 false);
             Bind(joined);
-            ValidateCompatibility(protocolVersion);
+            ValidateCompatibility(protocolVersion, PrivateDuelMode);
             Debug.Log("[MP] stage=session-ready role=client members=" +
                 joined.PlayerCount);
             return joined;
+        }
+
+        public async Task<ISession> MatchmakeRankedAsync(
+            DuelDeckLoadout loadout,
+            string protocolVersion)
+        {
+            await LeaveAsync();
+
+            var options = new SessionOptions
+            {
+                Type = SessionType,
+                Name = "Arcane Duel Ranked 1v1",
+                MaxPlayers = 2,
+                IsPrivate = false,
+                IsLocked = false,
+                SessionProperties = CreateSessionProperties(
+                    protocolVersion,
+                    RankedMatchmakingMode,
+                    true),
+                // Quick Join can either create or join. The definitive seat
+                // is written immediately after the service returns.
+                PlayerProperties = CreatePlayerProperties(loadout, -1)
+            };
+            options.WithRelayNetwork();
+            options.WithNetworkOptions(new NetworkOptions
+            {
+                RelayProtocol = RelayProtocol.DTLS
+            });
+
+            var quickJoin = new QuickJoinOptions
+            {
+                CreateSession = true,
+                Timeout = TimeSpan.FromSeconds(
+                    ComputeQuickJoinTimeoutSeconds()),
+                Filters = new List<FilterOption>
+                {
+                    new FilterOption(
+                        FilterField.StringIndex1,
+                        RankedMatchmakingMode,
+                        FilterOperation.Equal),
+                    new FilterOption(
+                        FilterField.StringIndex2,
+                        protocolVersion,
+                        FilterOperation.Equal),
+                    new FilterOption(
+                        FilterField.StringIndex3,
+                        ComputeCompatibilityHash(),
+                        FilterOperation.Equal),
+                    new FilterOption(
+                        FilterField.AvailableSlots,
+                        "1",
+                        FilterOperation.GreaterOrEqual),
+                    new FilterOption(
+                        FilterField.IsLocked,
+                        "false",
+                        FilterOperation.Equal)
+                }
+            };
+
+            Debug.Log(
+                "[MP] stage=ranked-matchmaking transport=relay " +
+                "protocol=dtls capacity=2");
+            ISession matched = await ConnectWithLobbyEventRetryAsync(
+                () => MultiplayerService.Instance.MatchmakeSessionAsync(
+                    quickJoin,
+                    options),
+                null);
+            Bind(matched);
+            ValidateCompatibility(
+                protocolVersion,
+                RankedMatchmakingMode);
+            if (matched.CurrentPlayer != null)
+            {
+                matched.CurrentPlayer.SetProperty(
+                    "seat",
+                    MemberPlayerProperty(matched.IsHost ? "0" : "1"));
+                await matched.SaveCurrentPlayerDataAsync();
+            }
+            Debug.Log(
+                "[MP] stage=ranked-match-ready role=" +
+                (matched.IsHost ? "host" : "client") +
+                " members=" + matched.PlayerCount);
+            return matched;
         }
 
         public async Task<ISession> ReconnectAsync(
@@ -203,12 +293,26 @@ namespace ArcaneArena.Multiplayer
         }
 
         private static Dictionary<string, SessionProperty>
-            CreateSessionProperties(string protocolVersion)
+            CreateSessionProperties(
+                string protocolVersion,
+                string mode,
+                bool indexedForMatchmaking)
         {
+            PropertyIndex modeIndex = indexedForMatchmaking
+                ? PropertyIndex.String1
+                : PropertyIndex.None;
+            PropertyIndex protocolIndex = indexedForMatchmaking
+                ? PropertyIndex.String2
+                : PropertyIndex.None;
+            PropertyIndex compatibilityIndex = indexedForMatchmaking
+                ? PropertyIndex.String3
+                : PropertyIndex.None;
             return new Dictionary<string, SessionProperty>
             {
                 [AppVersionKey] = PublicProperty(ProjectIdentity.ProjectVersion),
-                [ProtocolVersionKey] = PublicProperty(protocolVersion),
+                [ProtocolVersionKey] = PublicProperty(
+                    protocolVersion,
+                    protocolIndex),
                 [EngineVersionKey] = PublicProperty(
                     ProjectIdentity.CoreApiVersion + "|" +
                     ProjectIdentity.CoreCommit),
@@ -218,7 +322,10 @@ namespace ArcaneArena.Multiplayer
                     ProjectIdentity.BabelCdbCommit),
                 [BanlistVersionKey] = PublicProperty(
                     BanlistService.ActiveBanlistId),
-                [ModeKey] = PublicProperty("private-duel-1v1"),
+                [ModeKey] = PublicProperty(mode, modeIndex),
+                [CompatibilityKey] = PublicProperty(
+                    ComputeCompatibilityHash(),
+                    compatibilityIndex),
                 [StatusKey] = PublicProperty("waiting"),
                 [JoinableKey] = PublicProperty("true"),
                 [MatchIdKey] = MemberSessionProperty(string.Empty),
@@ -228,7 +335,7 @@ namespace ArcaneArena.Multiplayer
 
         private static async Task<TSession> ConnectWithLobbyEventRetryAsync<TSession>(
             Func<Task<TSession>> connect,
-            bool createdByLocalPlayer)
+            bool? createdByLocalPlayer)
             where TSession : class, ISession
         {
             HashSet<string> membershipsBefore =
@@ -278,7 +385,7 @@ namespace ArcaneArena.Multiplayer
 
         private static async Task CleanupNewLobbyMembershipsAsync(
             HashSet<string> membershipsBefore,
-            bool createdByLocalPlayer)
+            bool? createdByLocalPlayer)
         {
             HashSet<string> current = await JoinedSessionIdsOrEmptyAsync();
             foreach (string lobbyId in current)
@@ -290,7 +397,26 @@ namespace ArcaneArena.Multiplayer
                 }
                 try
                 {
-                    if (createdByLocalPlayer)
+                    bool deleteLobby = createdByLocalPlayer == true;
+                    if (!createdByLocalPlayer.HasValue)
+                    {
+                        try
+                        {
+                            var lobby = await LobbyService.Instance
+                                .GetLobbyAsync(lobbyId);
+                            deleteLobby = string.Equals(
+                                lobby?.HostId,
+                                AuthenticationService.Instance.PlayerId,
+                                StringComparison.Ordinal);
+                        }
+                        catch (Exception lookupException)
+                        {
+                            Debug.LogWarning(
+                                "[MP] stage=lobby-ownership-read result=" +
+                                lookupException.GetBaseException().Message);
+                        }
+                    }
+                    if (deleteLobby)
                     {
                         await LobbyService.Instance.DeleteLobbyAsync(lobbyId);
                     }
@@ -348,7 +474,9 @@ namespace ArcaneArena.Multiplayer
             };
         }
 
-        private void ValidateCompatibility(string protocolVersion)
+        private void ValidateCompatibility(
+            string protocolVersion,
+            string expectedMode)
         {
             if (currentSession == null)
                 throw new InvalidOperationException("Sessao ausente apos entrada.");
@@ -364,7 +492,7 @@ namespace ArcaneArena.Multiplayer
                 ProjectIdentity.BabelCdbCommit);
             RequireProperty(BanlistVersionKey,
                 BanlistService.ActiveBanlistId);
-            RequireProperty(ModeKey, "private-duel-1v1");
+            RequireProperty(ModeKey, expectedMode);
         }
 
         private void RequireProperty(string key, string expected)
@@ -414,11 +542,14 @@ namespace ArcaneArena.Multiplayer
             Debug.LogWarning("[MP] stage=host-changed action=end-match");
         }
 
-        private static SessionProperty PublicProperty(string value)
+        private static SessionProperty PublicProperty(
+            string value,
+            PropertyIndex index = PropertyIndex.None)
         {
             return new SessionProperty(
                 value ?? string.Empty,
-                VisibilityPropertyOptions.Public);
+                VisibilityPropertyOptions.Public,
+                index);
         }
 
         private static SessionProperty MemberSessionProperty(string value)
@@ -457,6 +588,23 @@ namespace ArcaneArena.Multiplayer
         internal static string ComputeCompatibilityHash()
         {
             return ComputeStableHash(ProjectIdentity.MultiplayerCompatibility);
+        }
+
+        private static double ComputeQuickJoinTimeoutSeconds()
+        {
+            // Different deterministic timeouts prevent two players who press
+            // the button together from both creating an empty room on the
+            // same retry tick. One becomes host while the other is still
+            // querying and joins it.
+            string playerId = AuthenticationService.Instance.PlayerId ??
+                string.Empty;
+            uint hash = 2166136261u;
+            for (int i = 0; i < playerId.Length; i++)
+            {
+                hash ^= playerId[i];
+                hash *= 16777619u;
+            }
+            return 2.0d + hash % 2500u / 1000d;
         }
 
         private static string ComputeStableHash(string value)

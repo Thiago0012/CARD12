@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ArcaneArena.Cards;
 using ArcaneArena.Multiplayer.Tournaments;
+using ArcaneDuel.Game.Competitive;
 using ArcaneDuel.Game.Tournaments;
 using UnityEngine;
 using UnityEngine.UI;
@@ -627,11 +628,11 @@ namespace ArcaneArena.Frontend
 
             SelectionButton(panel.transform,
                 "BAN LIST\n" + BanListLabel(_tournamentDraft.banListMode),
-                new Vector2(0.035f, 0.73f), new Vector2(0.24f, 0.91f),
+                new Vector2(0.025f, 0.73f), new Vector2(0.205f, 0.91f),
                 Gold, CycleTournamentBanList);
             SelectionButton(panel.transform,
                 "DECK BLOQUEADO\n" + YesNo(_tournamentDraft.deckLocked),
-                new Vector2(0.265f, 0.73f), new Vector2(0.47f, 0.91f),
+                new Vector2(0.215f, 0.73f), new Vector2(0.395f, 0.91f),
                 Lime, () =>
                 {
                     SaveTournamentRuleFields();
@@ -639,9 +640,26 @@ namespace ArcaneArena.Frontend
                     RenderTournamentPage(TournamentPage.CreateRules);
                 });
             SelectionButton(panel.transform,
+                "PONTOS DE ELO\n" +
+                (_tournamentDraft.competitivePolicy == CompetitivePolicy.Ranked
+                    ? "RANQUEADO" : "DESATIVADO"),
+                new Vector2(0.405f, 0.73f), new Vector2(0.585f, 0.91f),
+                _tournamentDraft.competitivePolicy == CompetitivePolicy.Ranked
+                    ? Gold : Blue,
+                () =>
+                {
+                    SaveTournamentRuleFields();
+                    _tournamentDraft.competitivePolicy =
+                        _tournamentDraft.competitivePolicy ==
+                            CompetitivePolicy.Ranked
+                            ? CompetitivePolicy.Unranked
+                            : CompetitivePolicy.Ranked;
+                    RenderTournamentPage(TournamentPage.CreateRules);
+                });
+            SelectionButton(panel.transform,
                 "PRIVACIDADE\n" +
                 (_tournamentDraft.privateRoom ? "PRIVADO" : "PÚBLICO"),
-                new Vector2(0.50f, 0.73f), new Vector2(0.705f, 0.91f),
+                new Vector2(0.595f, 0.73f), new Vector2(0.775f, 0.91f),
                 Blue, () =>
                 {
                     SaveTournamentRuleFields();
@@ -651,7 +669,7 @@ namespace ArcaneArena.Frontend
                 });
             SelectionButton(panel.transform,
                 "WO\n" + YesNo(_tournamentDraft.allowWalkover),
-                new Vector2(0.735f, 0.73f), new Vector2(0.94f, 0.91f),
+                new Vector2(0.785f, 0.73f), new Vector2(0.965f, 0.91f),
                 Cyan, () =>
                 {
                     SaveTournamentRuleFields();
@@ -2387,6 +2405,7 @@ namespace ArcaneArena.Frontend
             return $"FORMATO: {FormatLabel(config.formatType)}\n" +
                    $"PARTICIPANTES: {config.participantLimit}\n" +
                    $"CONFRONTO: BO{config.bestOf}\n" +
+                   $"PONTOS DE ELO: {(config.competitivePolicy == CompetitivePolicy.Ranked ? "RANQUEADO" : "DESATIVADO")}\n" +
                    $"DECK BLOQUEADO: {YesNo(config.deckLocked)}\n" +
                    $"BAN LIST: {BanListLabel(config.banListMode)}\n" +
                    $"POOL: {(config.allowedCardPoolMode == TournamentCardPoolMode.AllCards ? "TODAS" : config.allowedCardIds.Count + " CARTAS")}\n" +

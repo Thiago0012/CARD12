@@ -1,4 +1,5 @@
 using UnityEngine;
+using ArcaneDuel.Game.Competitive;
 
 namespace ArcaneArena.Multiplayer
 {
@@ -32,9 +33,18 @@ namespace ArcaneArena.Multiplayer
                 Instance = null;
         }
 
-        public static void ShowPanel(bool focusJoinCode = false)
+        public static void ShowPanel(
+            bool focusJoinCode = false,
+            CompetitivePolicy policy = CompetitivePolicy.Unranked)
         {
-            DuelOnlineSession.EnsureInstance().ShowPanel(focusJoinCode);
+            DuelOnlineSession.EnsureInstance().ShowPanel(
+                focusJoinCode,
+                policy);
+        }
+
+        public static void StartRankedMatchmaking()
+        {
+            DuelOnlineSession.EnsureInstance().StartRankedMatchmaking();
         }
 
         public void AttachOnlineArena(CardArenaBootstrap arena)

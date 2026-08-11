@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneDuel.Game.Competitive;
 
 namespace ArcaneDuel.Game.Tournaments
 {
@@ -118,6 +119,8 @@ namespace ArcaneDuel.Game.Tournaments
         public bool allowSpectators;
         public bool allowWalkover = true;
         public bool allowEarlyStart = true;
+        public CompetitivePolicy competitivePolicy =
+            CompetitivePolicy.Unranked;
         public int matchTimeoutMinutes = 45;
         public TournamentStatus status = TournamentStatus.Draft;
         public int bracketSeed;
