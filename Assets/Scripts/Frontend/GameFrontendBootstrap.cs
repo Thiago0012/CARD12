@@ -668,6 +668,7 @@ namespace ArcaneArena.Frontend
             _canvas = null;
             _canvasRect = null;
             _screenRoot = null;
+            _shopSceneView = null;
             _dragGhost = null;
             _mainDropZone = null;
             _extraDropZone = null;
@@ -5086,6 +5087,11 @@ namespace ArcaneArena.Frontend
             _deckEditorSelectedCardId = string.Empty;
             if (_mainMenuSceneView != null)
                 _mainMenuSceneView.SetMainMenuVisible(false);
+            if (_shopSceneView != null)
+            {
+                _shopSceneView.SetVisible(false);
+                _shopSceneView.ClearCatalog();
+            }
             _mainDropZone = null;
             _extraDropZone = null;
             _catalogContent = null;

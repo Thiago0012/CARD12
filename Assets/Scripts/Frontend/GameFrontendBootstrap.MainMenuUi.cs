@@ -76,6 +76,16 @@ namespace ArcaneArena.Frontend
                 return false;
             }
 
+            _shopSceneView = FindAnyObjectByType<ShopSceneView>(
+                FindObjectsInactive.Include);
+            if (_shopSceneView != null && !_shopSceneView.IsConfigured)
+            {
+                Debug.LogWarning(
+                    "A Shop View da MainMenu está incompleta. " +
+                    "A loja usará o layout de compatibilidade em runtime.");
+                _shopSceneView = null;
+            }
+
             _font = Resources.GetBuiltinResource<Font>(
                 "LegacyRuntime.ttf");
             _canvas = _mainMenuSceneView.SceneCanvas;

@@ -12,26 +12,35 @@ namespace ArcaneArena.Editor
     {
         private const string MainMenuScenePath = "Assets/Scenes/MainMenu.unity";
 
-        [MenuItem("Card Game/Loja/Selecionar ajustes visuais do pacote")]
-        public static void OpenMainMenuAndSelectFrontend()
+        [MenuItem("Card Game/Loja/Selecionar Shop View na Hierarchy")]
+        public static void OpenMainMenuAndSelectShopView()
         {
-            if (Application.isPlaying)
+            if (!OpenMainMenuForEditing())
+                return;
+
+            ShopSceneView view =
+                UnityEngine.Object.FindAnyObjectByType<ShopSceneView>(
+                    FindObjectsInactive.Include);
+            if (view == null || !view.IsConfigured)
             {
-                Debug.LogWarning(
-                    "Pare o Play antes de editar o layout permanente da loja.");
+                Debug.LogError(
+                    "A Shop View permanente nao foi encontrada. Use " +
+                    "Card Game/Loja/Instalar Shop View editavel na Scene.");
                 return;
             }
 
-            Scene activeScene = SceneManager.GetActiveScene();
-            if (!string.Equals(activeScene.path, MainMenuScenePath,
-                    System.StringComparison.OrdinalIgnoreCase))
-            {
-                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                    return;
-                EditorSceneManager.OpenScene(
-                    MainMenuScenePath,
-                    OpenSceneMode.Single);
-            }
+            Selection.activeGameObject = view.Root.gameObject;
+            EditorGUIUtility.PingObject(view.Root.gameObject);
+            Debug.Log(
+                "SHOP_SCENE_VIEW=READY; edite LOJA EDITAVEL e seus filhos " +
+                "diretamente na Hierarchy e no Inspector.");
+        }
+
+        [MenuItem("Card Game/Loja/Selecionar ajustes das cartas do pacote")]
+        public static void OpenMainMenuAndSelectFrontend()
+        {
+            if (!OpenMainMenuForEditing())
+                return;
 
             GameFrontendBootstrap frontend =
                 UnityEngine.Object.FindAnyObjectByType<GameFrontendBootstrap>(
@@ -47,7 +56,29 @@ namespace ArcaneArena.Editor
             EditorGUIUtility.PingObject(frontend.gameObject);
             Debug.Log(
                 "SHOP_LAYOUT_INSPECTOR=READY; selecione a seção " +
-                "'Loja - pacote editável no Inspector'.");
+                "'Loja - cartas dos pacotes editáveis no Inspector'.");
+        }
+
+        private static bool OpenMainMenuForEditing()
+        {
+            if (Application.isPlaying)
+            {
+                Debug.LogWarning(
+                    "Pare o Play antes de editar o layout permanente da loja.");
+                return false;
+            }
+
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (!string.Equals(activeScene.path, MainMenuScenePath,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                    return false;
+                EditorSceneManager.OpenScene(
+                    MainMenuScenePath,
+                    OpenSceneMode.Single);
+            }
+            return true;
         }
 
         [MenuItem("Card Game/Ferramentas/Reabrir aba Game")]

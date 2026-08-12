@@ -71,14 +71,15 @@ namespace ArcaneDuel.Tests.EditMode
                     "Assets/Cards/CardCatalog.asset");
                 Assert.That(catalog, Is.Not.Null);
                 object repository = CreateRepository(path, catalog);
-                SetCoinBalance(repository, 70);
+                int packPrice = FirstPackPrice();
+                SetCoinBalance(repository, packPrice * 2);
                 string packId = FirstPackId();
                 object[] first = { packId, "tx-pack-1", null, null, null };
                 bool purchased = (bool)repository.GetType()
                     .GetMethod("TryPurchasePack")
                     .Invoke(repository, first);
                 Assert.That(purchased, Is.True, first[4] as string);
-                Assert.That(CoinBalance(repository), Is.EqualTo(35));
+                Assert.That(CoinBalance(repository), Is.EqualTo(packPrice));
                 Assert.That(Values(Field(first[2], "cardIds")), Has.Length.EqualTo(5));
 
                 object[] repeated = { packId, "tx-pack-1", null, null, null };
@@ -86,7 +87,7 @@ namespace ArcaneDuel.Tests.EditMode
                     .GetMethod("TryPurchasePack")
                     .Invoke(repository, repeated);
                 Assert.That(replayed, Is.True, repeated[4] as string);
-                Assert.That(CoinBalance(repository), Is.EqualTo(35),
+                Assert.That(CoinBalance(repository), Is.EqualTo(packPrice),
                     "A repetição do mesmo request não pode cobrar novamente.");
             }
             finally
@@ -366,6 +367,13 @@ namespace ArcaneDuel.Tests.EditMode
             Type type = FindType("ArcaneArena.Frontend.ShopPackCatalog");
             object pack = Values(type.GetProperty("Packs").GetValue(null))[0];
             return Property(pack, "PackId") as string;
+        }
+
+        private static int FirstPackPrice()
+        {
+            Type type = FindType("ArcaneArena.Frontend.ShopPackCatalog");
+            object pack = Values(type.GetProperty("Packs").GetValue(null))[0];
+            return (int)Property(pack, "PriceCoins");
         }
 
         private static Type FindType(string fullName)

@@ -29,12 +29,12 @@ namespace ArcaneArena.Frontend
         [SerializeField] private GridLayoutGroup catalogGrid;
 
         [Header("Layout de pacotes e decks")]
-        [SerializeField] private Vector2 productCellSize = new Vector2(510f, 210f);
+        [SerializeField] private Vector2 productCellSize = new Vector2(500f, 210f);
         [SerializeField] private Vector2 productSpacing = new Vector2(24f, 20f);
         [SerializeField, Min(1)] private int productColumns = 3;
 
         [Header("Layout de icones")]
-        [SerializeField] private Vector2 iconCellSize = new Vector2(385f, 210f);
+        [SerializeField] private Vector2 iconCellSize = new Vector2(370f, 210f);
         [SerializeField] private Vector2 iconSpacing = new Vector2(18f, 20f);
         [SerializeField, Min(1)] private int iconColumns = 4;
 
@@ -45,6 +45,8 @@ namespace ArcaneArena.Frontend
 
         public RectTransform Root => root;
         public RectTransform CatalogContent => catalogContent;
+        public ScrollRect CatalogScroll => catalogScroll;
+        public GridLayoutGroup CatalogGrid => catalogGrid;
         public bool IsConfigured =>
             root != null &&
             backButton != null &&
@@ -52,6 +54,7 @@ namespace ArcaneArena.Frontend
             structureDecksButton != null &&
             profileIconsButton != null &&
             coinBalanceText != null &&
+            feedbackText != null &&
             catalogScroll != null &&
             catalogContent != null &&
             catalogGrid != null;
@@ -169,9 +172,6 @@ namespace ArcaneArena.Frontend
         {
             if (button == null)
                 return;
-            Graphic graphic = button.targetGraphic;
-            if (graphic != null)
-                graphic.color = new Color(0.015f, 0.06f, 0.075f, 0.98f);
             Outline outline = button.GetComponent<Outline>();
             if (outline != null)
                 outline.effectColor = color;

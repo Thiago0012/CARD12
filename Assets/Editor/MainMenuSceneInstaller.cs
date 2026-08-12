@@ -105,6 +105,7 @@ namespace ArcaneArena.Editor
                 settings,
                 profile);
             authoredRoot.gameObject.SetActive(true);
+            ShopSceneInstaller.EnsureForScene(scene, view);
             EditorUtility.SetDirty(view);
             EditorUtility.SetDirty(bootstrap);
             EditorSceneManager.MarkSceneDirty(scene);

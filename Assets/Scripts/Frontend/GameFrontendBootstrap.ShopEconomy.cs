@@ -59,6 +59,7 @@ namespace ArcaneArena.Frontend
         private Sprite _runtimeShopBackgroundSprite;
         private Sprite _runtimeShopBoosterPackSprite;
         private Sprite _runtimeShopCurrencySprite;
+        private ShopSceneView _shopSceneView;
 
         public CoinRewardEligibilitySnapshot CaptureOnlineDuelRewardEligibility()
         {
@@ -154,6 +155,9 @@ namespace ArcaneArena.Frontend
             _shopPurchaseBusy = false;
 
             SetDuelPresentation(false);
+            if (TryShowAuthoredEconomyShop())
+                return;
+
             ClearScreen();
             _shopBackAction = () => LeaveShop(ShowMainMenu);
             BuildShopBackground("LOJA");
@@ -198,28 +202,89 @@ namespace ArcaneArena.Frontend
                 iconCatalog ? new Vector2(18f, 20f) : new Vector2(24f, 20f),
                 iconCatalog ? 4 : 3);
 
+            PopulateShopCatalog(content);
+        }
+
+        private bool TryShowAuthoredEconomyShop()
+        {
+            if (_shopSceneView == null || !_shopSceneView.IsConfigured)
+                return false;
+
+            ClearScreen();
+            _shopBackAction = () => LeaveShop(ShowMainMenu);
+            _shopSceneView.Bind(
+                () =>
+                {
+                    FrontendClickAudio.Play();
+                    LeaveShop(ShowMainMenu);
+                },
+                () =>
+                {
+                    FrontendClickAudio.Play();
+                    SelectShopTab(ShopTab.Packages);
+                },
+                () =>
+                {
+                    FrontendClickAudio.Play();
+                    SelectShopTab(ShopTab.StructureDecks);
+                },
+                () =>
+                {
+                    FrontendClickAudio.Play();
+                    SelectShopTab(ShopTab.ProfileIcons);
+                });
+            _shopSceneView.SetBalance(_repository?.CoinBalance ?? 0);
+            _shopSceneView.SetFeedback(
+                string.IsNullOrWhiteSpace(_shopFeedback)
+                    ? "Moedas são obtidas exclusivamente em duelos online PvP concluídos."
+                    : _shopFeedback,
+                _shopFeedbackIsError ? Danger : Muted);
+            _shopSceneView.SetSelectedTab(
+                (int)_shopTab,
+                Lime,
+                Cyan);
+            _shopSceneView.ConfigureCatalogLayout(
+                _shopTab == ShopTab.ProfileIcons);
+            _shopSceneView.SetVisible(true);
+            PopulateShopCatalog(_shopSceneView.CatalogContent);
+            return true;
+        }
+
+        private void SelectShopTab(ShopTab tab)
+        {
+            _shopTab = tab;
+            ShowEconomyShop();
+        }
+
+        private void PopulateShopCatalog(Transform content)
+        {
+            if (content == null)
+                return;
+
             if (_shopTab == ShopTab.Packages)
             {
                 foreach (ShopPackDefinition pack in ShopPackCatalog.Packs)
                     CreatePackProductTile(content, pack);
+                return;
             }
-            else if (_shopTab == ShopTab.StructureDecks)
+
+            if (_shopTab == ShopTab.StructureDecks)
             {
-                for (int index = 0; index < DeckShopCatalog.Products.Count; index++)
+                for (int index = 0; index < DeckShopCatalog.Products.Count;
+                     index++)
                 {
                     CreateStructureDeckProductTile(
                         content,
                         DeckShopCatalog.Products[index],
                         index);
                 }
+                return;
             }
-            else
+
+            foreach (ProfileIconDefinition icon in
+                     ProfileIconCatalog.Purchasable)
             {
-                foreach (ProfileIconDefinition icon in
-                         ProfileIconCatalog.Purchasable)
-                {
-                    CreateProfileIconShopTile(content, icon);
-                }
+                CreateProfileIconShopTile(content, icon);
             }
         }
 

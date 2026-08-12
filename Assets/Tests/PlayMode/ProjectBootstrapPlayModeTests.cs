@@ -173,6 +173,50 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator ShopUsesPersistentAuthoredHierarchyAtRuntime()
+        {
+            SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour frontend = Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Include)
+                .FirstOrDefault(candidate =>
+                    candidate.GetType().Name == "GameFrontendBootstrap");
+            Assert.That(frontend, Is.Not.Null);
+
+            MethodInfo showShop = frontend.GetType().GetMethod(
+                "ShowEconomyShop",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(showShop, Is.Not.Null);
+            showShop.Invoke(frontend, null);
+            yield return null;
+
+            MonoBehaviour shop = Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Include)
+                .FirstOrDefault(candidate =>
+                    candidate.GetType().FullName ==
+                    "ArcaneArena.Frontend.ShopSceneView");
+            Assert.That(shop, Is.Not.Null);
+            RectTransform root = shop.GetType().GetProperty("Root")
+                ?.GetValue(shop) as RectTransform;
+            RectTransform content = shop.GetType()
+                .GetProperty("CatalogContent")
+                ?.GetValue(shop) as RectTransform;
+            Assert.That(root, Is.Not.Null);
+            Assert.That(content, Is.Not.Null);
+            Assert.That(root.gameObject.activeInHierarchy, Is.True);
+            Assert.That(content.childCount, Is.GreaterThan(0));
+            Assert.That(GameObject.Find("Catalog Scroll View"), Is.Not.Null);
+
+            frontend.GetType().GetMethod("ShowMainMenu")?.Invoke(
+                frontend,
+                null);
+            yield return null;
+            Assert.That(root.gameObject.activeSelf, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator ShopUsesTheNewBackgroundCardsAndCurrencyArtwork()
         {
             SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
