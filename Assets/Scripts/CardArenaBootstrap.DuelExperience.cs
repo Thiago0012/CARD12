@@ -90,6 +90,7 @@ namespace ArcaneArena
             opponentHandFan = FindObject(
                 frame,
                 "POSICAO DA MAO DO OPONENTE");
+            bool authoredHandFan = opponentHandFan != null;
             if (opponentHandFan == null)
             {
                 opponentHandFan = CreatePanel(
@@ -99,11 +100,14 @@ namespace ArcaneArena
                     new Vector2(0.635f, 0.995f),
                     Color.clear);
             }
-            Image opponentHandBackground =
-                opponentHandFan.GetComponent<Image>() ??
-                opponentHandFan.AddComponent<Image>();
-            opponentHandBackground.color = Color.clear;
-            opponentHandBackground.raycastTarget = false;
+            if (!authoredHandFan)
+            {
+                Image opponentHandBackground =
+                    opponentHandFan.GetComponent<Image>() ??
+                    opponentHandFan.AddComponent<Image>();
+                opponentHandBackground.color = Color.clear;
+                opponentHandBackground.raycastTarget = false;
+            }
             opponentHandLayoutAnchor = opponentHandFan
                 .GetComponent<DuelHandLayoutAnchor>();
             if (opponentHandLayoutAnchor == null)
@@ -129,7 +133,14 @@ namespace ArcaneArena
                     opponentHandFan.transform,
                     "QUANTIDADE DE CARTAS")
                 ?.GetComponent<Text>();
-            if (opponentHandCount == null)
+            if (preserveAuthoredDuelInterface)
+            {
+                if (opponentHandCount != null)
+                    opponentHandCount.gameObject.SetActive(false);
+                opponentHandCount = null;
+                DisableLegacyOpponentHandPreview();
+            }
+            else if (opponentHandCount == null)
             {
                 opponentHandCount = CreateText(
                     opponentHandFan.transform,
@@ -142,7 +153,31 @@ namespace ArcaneArena
                     TextAnchor.MiddleRight);
                 opponentHandCount.gameObject.name = "QUANTIDADE DE CARTAS";
             }
-            opponentHandCount.raycastTarget = false;
+            if (opponentHandCount != null)
+                opponentHandCount.raycastTarget = false;
+        }
+
+        private void DisableLegacyOpponentHandPreview()
+        {
+            foreach (Transform item in
+                     FindObjectsByType<MasterDuelArena3D>(
+                             FindObjectsInactive.Include,
+                             FindObjectsSortMode.None)
+                         .Where(arena =>
+                             arena != null &&
+                             arena.gameObject.scene == gameObject.scene)
+                         .SelectMany(arena =>
+                             arena.GetComponentsInChildren<Transform>(true)))
+            {
+                if (item != null &&
+                    string.Equals(
+                        item.name,
+                        "OpponentHandPreview",
+                        StringComparison.Ordinal))
+                {
+                    item.gameObject.SetActive(false);
+                }
+            }
         }
 
         private void BuildRecentActionsPanel()
@@ -249,10 +284,13 @@ namespace ArcaneArena
                 card.sprite = cardBackSprite;
                 card.preserveAspect = true;
                 card.raycastTarget = false;
-                AddOutline(card.gameObject,
-                    new Color(Gold.r, Gold.g, Gold.b, 0.62f));
+                if (!preserveAuthoredDuelInterface)
+                {
+                    AddOutline(card.gameObject,
+                        new Color(Gold.r, Gold.g, Gold.b, 0.62f));
+                }
             }
-            if (count > visible)
+            if (count > visible && !preserveAuthoredDuelInterface)
             {
                 Text remainder = CreateText(opponentHandContent,
                     $"+{count - visible}", 11, FontStyle.Bold, Gold,

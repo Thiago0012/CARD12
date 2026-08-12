@@ -88,7 +88,7 @@ namespace ArcaneDuel.Tests.EditMode
                     pack.cardIds.Length is >= 35 and <= 38 &&
                     pack.cardIds.Distinct(StringComparer.Ordinal).Count() ==
                     pack.cardIds.Length &&
-                    pack.priceCoins == 35 &&
+                    pack.priceCoins == 25 &&
                     pack.previewCardIds.Length == 3 &&
                     pack.contentLockedAfterPublish &&
                     pack.countsForAutoCoverage &&
@@ -140,8 +140,6 @@ namespace ArcaneDuel.Tests.EditMode
                     replacement.replacementPasscode == "35224440"),
                 Is.True);
         }
-
-        [Test]
 
         private static object Partition(string[] ids)
         {

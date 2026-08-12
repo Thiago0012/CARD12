@@ -164,7 +164,7 @@ namespace ArcaneArena.Editor.AutoPacks
                 if (string.IsNullOrWhiteSpace(pack.PackId))
                     result.Errors.Add("Pack sem ID.");
                 if (pack.PriceCoins != AutoPackGenerationSettings.RequiredPrice)
-                    result.Errors.Add(pack.PackId + " deve custar 35 moedas.");
+                    result.Errors.Add(pack.PackId + " deve custar 25 moedas.");
                 if (pack.CardIds.Count == 0 || pack.CardIds.Count > 38)
                     result.Errors.Add(pack.PackId + " possui tamanho invalido.");
                 if (pack.CardIds.Distinct(StringComparer.Ordinal).Count() !=

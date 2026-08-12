@@ -8,7 +8,7 @@ Branch: `codex/auto-packs-devzero`
 
 - O catalogo manteve os 19 pacotes manuais publicados e recebeu 7 pacotes
   automaticos append-only (`auto-pack-0001` a `auto-pack-0007`).
-- Cada pacote automatico contem 38 cardIds unicos, custa 35 moedas, possui
+- Cada pacote automatico contem 38 cardIds unicos, custa 25 moedas, possui
   tres previews, origem, versao do gerador, batch, hash e bloqueio de conteudo
   publicado.
 - Das 969 cartas oficiais elegiveis, 691 ja eram cobertas e 278 foram
@@ -110,7 +110,7 @@ Os testes e builds locais confirmam compilacao, carregamento, compra e
 integridade estrutural. Ainda depende de aparelhos reais:
 
 1. instalar o APK Release em um Android ARM64;
-2. abrir a loja, comprar um pacote automatico por 35 moedas e concluir sua
+2. abrir a loja, comprar um pacote automatico por 25 moedas e concluir sua
    abertura;
 3. fechar e reabrir o jogo para confirmar saldo, inventario e ledger;
 4. repetir no PC e verificar o mesmo fluxo em resolucoes diferentes;

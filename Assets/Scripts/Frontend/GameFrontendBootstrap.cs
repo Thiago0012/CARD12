@@ -92,6 +92,12 @@ namespace ArcaneArena.Frontend
         private static RankedMatchSnapshot _activeRankedBotMatch;
         private static BotProfile _activeRankedBotProfile;
         private static bool _activeRankedBotResultCommitted;
+        private static string _activeDuelStatisticsId = string.Empty;
+        private static bool _activeDuelStatisticsRanked;
+        public static string ActiveDuelStatisticsId =>
+            _activeDuelStatisticsId ?? string.Empty;
+        public static bool ActiveDuelStatisticsRanked =>
+            _activeDuelStatisticsRanked;
         private Canvas _canvas;
         private RectTransform _canvasRect;
         private RectTransform _screenRoot;
@@ -1171,7 +1177,7 @@ namespace ArcaneArena.Frontend
                 TextAnchor.LowerRight);
         }
 
-        private void ShowPlayerProfileSetup(bool canReturn = false)
+        private void ShowPlayerNameEditor(bool canReturn = false)
         {
             SetDuelPresentation(false);
             ClearScreen();
@@ -3739,10 +3745,25 @@ namespace ArcaneArena.Frontend
             // O snapshot contém somente IDs estáveis. O bot e o jogador
             // recebem cópias independentes; nenhuma lista ou ordem de Deck
             // é compartilhada entre os lados.
-            _pendingBotLoadout = DuelDeckLoadout.Create(
-                _repository.State.localProfileId,
-                botDeck);
             botProfile ??= DynamicBotCatalog.Find("BOT_017");
+            string botStableId = "bot:" +
+                (botProfile?.botId ?? "BOT_017");
+            _pendingBotLoadout = DuelDeckLoadout.Create(
+                botStableId,
+                botDeck,
+                botProfile?.displayName ?? "OPONENTE IA");
+            _pendingBotLoadout.identity = new DuelIdentitySnapshot
+            {
+                stablePlayerId = botStableId,
+                nickname = botProfile?.displayName ?? "OPONENTE IA",
+                equippedIconId = ProfileIconCatalog.ResolveForStableIdentity(
+                    botStableId),
+                rankTier = RankRules.ResolveTier(
+                    botProfile?.initialRankPoints ?? 0),
+                rankedPoints = RankRules.ClampPoints(
+                    botProfile?.initialRankPoints ?? 0),
+                cosmeticsCatalogVersion = ProfileIconCatalog.CatalogVersion
+            };
             int decisionSeed = requestedDecisionSeed ?? unchecked(
                 (int)BitConverter.ToUInt64(
                     Guid.NewGuid().ToByteArray(), 0));
@@ -3768,12 +3789,17 @@ namespace ArcaneArena.Frontend
                 };
                 _activeRankedBotProfile = botProfile;
                 _activeRankedBotResultCommitted = false;
+                _activeDuelStatisticsId = _activeRankedBotMatch.matchId;
+                _activeDuelStatisticsRanked = true;
             }
             else
             {
                 _activeRankedBotMatch = null;
                 _activeRankedBotProfile = null;
                 _activeRankedBotResultCommitted = false;
+                _activeDuelStatisticsId =
+                    "bot-" + Guid.NewGuid().ToString("N");
+                _activeDuelStatisticsRanked = false;
             }
             _pendingRankedBotDuel = false;
             OpenDuelArenaScene(PendingDuelMode.Bot);
@@ -3794,22 +3820,37 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        public void CompleteActiveBotDuel(byte winner)
+        public void CompleteActiveBotDuel(
+            byte winner,
+            long damageDealt = 0)
         {
+            if (_repository != null &&
+                !string.IsNullOrWhiteSpace(_activeDuelStatisticsId))
+            {
+                _repository.TryRecordAuthoritativeDuelResult(
+                    "result:" + _activeDuelStatisticsId,
+                    winner == 0,
+                    winner > 1,
+                    false,
+                    _activeDuelStatisticsRanked,
+                    damageDealt,
+                    out string statisticRejection);
+                if (!string.IsNullOrWhiteSpace(statisticRejection))
+                    Debug.LogWarning("[Profile statistics] " + statisticRejection);
+            }
             if (_activeRankedBotResultCommitted ||
                 _activeRankedBotMatch == null ||
-                _activeRankedBotProfile == null ||
-                winner > 1)
+                _activeRankedBotProfile == null)
             {
                 return;
             }
 
-            RankedOutcome playerOutcome = winner == 0
-                ? RankedOutcome.Win
-                : RankedOutcome.Loss;
-            RankedOutcome botOutcome = winner == 1
-                ? RankedOutcome.Win
-                : RankedOutcome.Loss;
+            RankedOutcome playerOutcome = winner > 1
+                ? RankedOutcome.Draw
+                : winner == 0 ? RankedOutcome.Win : RankedOutcome.Loss;
+            RankedOutcome botOutcome = winner > 1
+                ? RankedOutcome.Draw
+                : winner == 1 ? RankedOutcome.Win : RankedOutcome.Loss;
             if (!RankPointService.TryCreateReceipt(
                     _activeRankedBotMatch, 0, playerOutcome,
                     out RankChangeReceipt playerReceipt,
@@ -3937,6 +3978,12 @@ namespace ArcaneArena.Frontend
 
             _pendingPlayerLoadout = selectedPlayer;
             _pendingDuelMode = mode;
+            if (mode != PendingDuelMode.Bot)
+            {
+                _activeDuelStatisticsId =
+                    "local-" + Guid.NewGuid().ToString("N");
+                _activeDuelStatisticsRanked = false;
+            }
             if (IsActiveScene(DuelArenaSceneName) ||
                 !Application.CanStreamedLevelBeLoaded(DuelArenaSceneName))
             {
@@ -3945,6 +3992,28 @@ namespace ArcaneArena.Frontend
             }
 
             SceneManager.LoadScene(DuelArenaSceneName);
+        }
+
+        public void RecordConfirmedDuelStatistic(
+            string eventId,
+            DuelStatisticEventType eventType,
+            long amount,
+            bool online,
+            bool ranked)
+        {
+            if (_repository == null)
+                return;
+            if (!_repository.TryRecordAuthoritativeStatisticEvent(
+                    eventId,
+                    eventType,
+                    amount,
+                    online,
+                    ranked,
+                    out string rejection) &&
+                !string.IsNullOrWhiteSpace(rejection))
+            {
+                Debug.LogWarning("[Profile statistics] " + rejection);
+            }
         }
 
         private IEnumerator StartRequestedDuelAfterArenaReset()

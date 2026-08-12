@@ -152,6 +152,7 @@ namespace ArcaneArena.Presentation
                         FindObjectsSortMode.None)
                     .Where(zone =>
                         zone != null &&
+                        zone.gameObject.scene == gameObject.scene &&
                         !string.IsNullOrWhiteSpace(zone.StableId))
                     .GroupBy(zone => zone.StableId)
                     .ToDictionary(group => group.Key, group => group.First());

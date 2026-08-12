@@ -12,7 +12,8 @@ namespace ArcaneArena.Frontend
         private enum ShopTab
         {
             Packages,
-            StructureDecks
+            StructureDecks,
+            ProfileIcons
         }
 
         [Header("Loja e economia")]
@@ -90,7 +91,7 @@ namespace ArcaneArena.Frontend
                 rejection = "O perfil local não está disponível para salvar a recompensa.";
                 return false;
             }
-            return _repository.TryClaimOnlineDuelReward(
+            bool applied = _repository.TryClaimOnlineDuelReward(
                 new MatchRewardRequest
                 {
                     matchId = matchId,
@@ -106,6 +107,23 @@ namespace ArcaneArena.Frontend
                 },
                 out receipt,
                 out rejection);
+            if (!applied)
+                return false;
+
+            bool ranked = Multiplayer.DuelOnlineSession.Instance?.
+                CompetitivePolicy ==
+                ArcaneDuel.Game.Competitive.CompetitivePolicy.Ranked;
+            _repository.TryRecordAuthoritativeDuelResult(
+                "result:online:" + matchId + ":" + localPlayerId,
+                winner,
+                draw,
+                true,
+                ranked,
+                damageDealt,
+                out string statisticRejection);
+            if (!string.IsNullOrWhiteSpace(statisticRejection))
+                Debug.LogWarning("[Profile statistics] " + statisticRejection);
+            return true;
         }
 
         private void InitializeCoinRewardAuthorization()
@@ -164,22 +182,28 @@ namespace ArcaneArena.Frontend
                 ShopTab.StructureDecks,
                 new Vector2(0.30f, 0.855f),
                 new Vector2(0.55f, 0.905f));
+            CreateShopTabButton(
+                "ÍCONES",
+                ShopTab.ProfileIcons,
+                new Vector2(0.56f, 0.855f),
+                new Vector2(0.72f, 0.905f));
 
-            RectTransform content = CreateScrollGrid(
+            bool iconCatalog = _shopTab == ShopTab.ProfileIcons;
+            RectTransform content = CreateShopScrollGrid(
                 _screenRoot,
                 "Vitrine da Loja",
                 new Vector2(0.055f, 0.055f),
                 new Vector2(0.945f, 0.79f),
-                new Vector2(510f, 210f),
-                new Vector2(24f, 20f),
-                3);
+                iconCatalog ? new Vector2(385f, 210f) : new Vector2(510f, 210f),
+                iconCatalog ? new Vector2(18f, 20f) : new Vector2(24f, 20f),
+                iconCatalog ? 4 : 3);
 
             if (_shopTab == ShopTab.Packages)
             {
                 foreach (ShopPackDefinition pack in ShopPackCatalog.Packs)
                     CreatePackProductTile(content, pack);
             }
-            else
+            else if (_shopTab == ShopTab.StructureDecks)
             {
                 for (int index = 0; index < DeckShopCatalog.Products.Count; index++)
                 {
@@ -187,6 +211,14 @@ namespace ArcaneArena.Frontend
                         content,
                         DeckShopCatalog.Products[index],
                         index);
+                }
+            }
+            else
+            {
+                foreach (ProfileIconDefinition icon in
+                         ProfileIconCatalog.Purchasable)
+                {
+                    CreateProfileIconShopTile(content, icon);
                 }
             }
         }
@@ -200,6 +232,10 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.76f, 0.895f),
                 new Vector2(0.955f, 0.975f),
                 new Color(0.015f, 0.045f, 0.075f, 0.98f));
+            RectTransform panelRect = panel.rectTransform;
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.offsetMin = new Vector2(143.7935f, 0f);
+            panelRect.offsetMax = new Vector2(14.20645f, 0f);
             AddOutline(panel.gameObject, new Color(Gold.r, Gold.g, Gold.b, 0.9f),
                 new Vector2(2f, -2f));
             CreateShopCurrencyIcon(panel.transform, "Ícone de Moeda",
@@ -304,7 +340,7 @@ namespace ArcaneArena.Frontend
             Vector2 max)
         {
             bool selected = _shopTab == tab;
-            CreateButton(
+            Image button = CreateButton(
                 _screenRoot,
                 label,
                 min,
@@ -315,6 +351,10 @@ namespace ArcaneArena.Frontend
                     _shopTab = tab;
                     ShowEconomyShop();
                 });
+            RectTransform rect = button.rectTransform;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.offsetMin = new Vector2(-12f, -63.347f);
+            rect.offsetMax = new Vector2(-12f, -63.347f);
         }
 
         private void CreatePackProductTile(
@@ -450,7 +490,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.76f, 0.81f), new Vector2(0.95f, 0.87f),
                 Gold, () => ShowPackPurchaseConfirmation(pack));
 
-            RectTransform content = CreateScrollGrid(_screenRoot,
+            RectTransform content = CreateShopScrollGrid(_screenRoot,
                 "Cartas do Pacote", new Vector2(0.055f, 0.055f),
                 new Vector2(0.945f, 0.79f), new Vector2(205f, 295f),
                 new Vector2(18f, 18f), 7);
@@ -477,7 +517,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.75f, 0.81f), new Vector2(0.95f, 0.87f),
                 Gold, () => ShowStructureDeckPurchaseConfirmation(product));
 
-            RectTransform content = CreateScrollGrid(_screenRoot,
+            RectTransform content = CreateShopScrollGrid(_screenRoot,
                 "Lista Completa", new Vector2(0.055f, 0.055f),
                 new Vector2(0.945f, 0.79f), new Vector2(205f, 295f),
                 new Vector2(18f, 18f), 7);
@@ -960,29 +1000,48 @@ namespace ArcaneArena.Frontend
 
         private Sprite ResolveShopCurrencySprite()
         {
-            if (shopCoinSprite != null)
-                return shopCoinSprite;
             if (_runtimeShopCurrencySprite != null)
                 return _runtimeShopCurrencySprite;
-
-            Texture2D texture = Resources.Load<Texture2D>(
-                "Shop/CurrencyCrystal");
-            if (texture == null || texture.width <= 0 || texture.height <= 0)
+            Sprite imported = Resources.Load<Sprite>("Shop/CurrencyCrystal");
+            if (imported != null)
             {
-                return ResolveShopVisualSprite(null,
-                    "Shop/CurrencyCrystal", "Cristal de Moeda Arcane",
-                    ref _runtimeShopCurrencySprite);
+                _runtimeShopCurrencySprite = imported;
+                return imported;
             }
+            return ResolveShopVisualSprite(shopCoinSprite,
+                "Shop/CurrencyCrystal", "Moeda Arcane",
+                ref _runtimeShopCurrencySprite);
+        }
 
-            var crop = new Rect(texture.width * 0.15f,
-                texture.height * 0.12f, texture.width * 0.70f,
-                texture.height * 0.80f);
-            _runtimeShopCurrencySprite = Sprite.Create(texture, crop,
-                new Vector2(0.5f, 0.5f), 100f, 0,
-                SpriteMeshType.FullRect);
-            _runtimeShopCurrencySprite.name = "Cristal de Moeda Arcane";
-            _runtimeShopCurrencySprite.hideFlags = HideFlags.DontSave;
-            return _runtimeShopCurrencySprite;
+        private static RectTransform CreateShopScrollGrid(
+            Transform parent,
+            string name,
+            Vector2 min,
+            Vector2 max,
+            Vector2 cellSize,
+            Vector2 spacing,
+            int columns)
+        {
+            RectTransform content = CreateScrollGrid(parent, name, min, max,
+                cellSize, spacing, columns, out RectTransform viewport);
+            Transform trackTransform = viewport.Find("Barra de Rolagem");
+            if (trackTransform is not RectTransform track)
+                return content;
+
+            track.anchorMin = new Vector2(0.965f, 0.015f);
+            track.anchorMax = new Vector2(0.992f, 0.985f);
+            track.pivot = new Vector2(0.5f, 0.5f);
+            track.offsetMin = new Vector2(29.06448f, 0f);
+            track.offsetMax = new Vector2(-0.0005178425f, 0f);
+
+            Image trackImage = track.GetComponent<Image>();
+            if (trackImage != null)
+                trackImage.color = new Color(0.04f, 0.09f, 0.13f, 0.96f);
+            Image handle = track.Find("Área Deslizante/Alça")
+                ?.GetComponent<Image>();
+            if (handle != null)
+                handle.color = new Color(Cyan.r, Cyan.g, Cyan.b, 0.92f);
+            return content;
         }
 
         private static Sprite ResolveShopVisualSprite(

@@ -449,6 +449,7 @@ namespace ArcaneArena.Multiplayer
 
         public bool IsHost => role == SessionRole.Host;
         public CompetitivePolicy CompetitivePolicy => competitivePolicy;
+        public string CurrentMatchId => currentMatchId ?? string.Empty;
         public string Status => status;
         public string RoomCode => roomCode;
         public string RelayRegion => relayRegion;
@@ -849,6 +850,15 @@ namespace ArcaneArena.Multiplayer
         {
             if (!IsOnlineDuelActive || arena == null)
                 return;
+
+            // The hello/loadout snapshots are sealed before the duel starts.
+            // Only stable IDs and public profile presentation cross the wire;
+            // reconnecting therefore restores the same two identities.
+            arena.ApplyDuelIdentities(
+                localLoadout?.identity,
+                remoteLoadout?.identity,
+                currentMatchId,
+                competitivePolicy == CompetitivePolicy.Ranked);
 
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();

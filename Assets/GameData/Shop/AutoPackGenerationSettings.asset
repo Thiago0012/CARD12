@@ -15,7 +15,7 @@ MonoBehaviour:
   enabled: 1
   minCardsPerPack: 35
   maxCardsPerPack: 38
-  priceCoins: 35
+  priceCoins: 25
   generatorVersion: 1
   watchedFolders:
   - Assets/Cards/CardCatalog.asset

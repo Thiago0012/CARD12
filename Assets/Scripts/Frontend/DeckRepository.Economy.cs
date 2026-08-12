@@ -472,6 +472,8 @@ namespace ArcaneArena.Frontend
             State.unlockedDeckProductIds ??= new List<string>();
             NormalizeEconomyState(CurrentSchemaVersion);
             NormalizeCoinRewardAuthorizationState(CurrentSchemaVersion);
+            NormalizeRankState(CurrentSchemaVersion);
+            NormalizePlayerProfileState(CurrentSchemaVersion);
         }
 
         private static int SecureIndex(int count)

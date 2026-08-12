@@ -15,7 +15,7 @@ namespace ArcaneArena.Frontend
     /// </summary>
     public sealed partial class DeckRepository
     {
-        private const int CurrentSchemaVersion = 8;
+        private const int CurrentSchemaVersion = 9;
         private const int StarterOnboardingSchemaVersion = 6;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
@@ -91,6 +91,7 @@ namespace ArcaneArena.Frontend
                 State.localProfileId = Guid.NewGuid().ToString("N");
             NormalizeCoinRewardAuthorizationState(loadedSchemaVersion);
             NormalizeRankState(loadedSchemaVersion);
+            NormalizePlayerProfileState(loadedSchemaVersion);
             MigrateStarterOnboarding(loadedSchemaVersion);
 
             State.decks.RemoveAll(deck => deck == null);
@@ -465,7 +466,10 @@ namespace ArcaneArena.Frontend
                 selected,
                 PlayerDisplayName);
             if (loadout != null)
+            {
+                loadout.identity = CaptureDuelIdentitySnapshot();
                 return true;
+            }
 
             rejection = "Não foi possível preparar uma cópia segura do deck.";
             return false;

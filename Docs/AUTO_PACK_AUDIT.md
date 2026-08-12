@@ -43,7 +43,7 @@ Branch planejada: `codex/auto-packs-devzero`
 - Fonte persistente real: `Assets/Resources/Shop/PackCatalog.json`.
 - Loader runtime: `ShopPackCatalog.LoadDefinitions()` via `Resources.Load`.
 - Compra: `DeckRepository.TryPurchasePack`.
-- Autoridade existente preservada: preco global de 35 moedas, cinco sorteios
+- Autoridade existente preservada: preco global de 25 moedas, cinco sorteios
   independentes com reposicao, atualizacao de inventario, ledger idempotente e
   `PendingPackOpeningRecord` salvo antes da animacao.
 - UI existente: `GameFrontendBootstrap.ShopEconomy.cs`.

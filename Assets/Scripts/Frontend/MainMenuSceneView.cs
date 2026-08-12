@@ -87,6 +87,7 @@ namespace ArcaneArena.Frontend
                 profileButton,
                 ref _profileAction,
                 controller.MainMenuProfile);
+            controller.DecorateMainMenuProfileButton(profileButton);
         }
 
         public void SetMainMenuVisible(bool visible)

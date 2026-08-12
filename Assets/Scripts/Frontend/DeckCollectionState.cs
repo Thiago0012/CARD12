@@ -7,7 +7,7 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 8;
+        public int schemaVersion = 9;
         public string localProfileId;
         public string playerDisplayName;
         public bool starterDeckClaimed;
@@ -32,6 +32,8 @@ namespace ArcaneArena.Frontend
         public CoinRewardAuthorizationState coinRewardAuthorization =
             new CoinRewardAuthorizationState();
         public PlayerRankData rankData = new PlayerRankData();
+        public ProfileCosmeticsState cosmetics = new ProfileCosmeticsState();
+        public PlayerStatisticsState statistics = new PlayerStatisticsState();
     }
 
     [Serializable]
@@ -111,6 +113,7 @@ namespace ArcaneArena.Frontend
         public List<string> sideDeckCardIds = new List<string>();
         public string banlistId;
         public string normalizedDeckSha256;
+        public DuelIdentitySnapshot identity;
 
         public static DuelDeckLoadout Create(
             string profileId,
@@ -139,7 +142,8 @@ namespace ArcaneArena.Frontend
                         ArcaneDuel.Game.BanlistService.ActiveBanlistId,
                         deck.mainDeckCardIds,
                         deck.extraDeckCardIds,
-                        deck.sideDeckCardIds)
+                        deck.sideDeckCardIds),
+                identity = null
             };
         }
     }

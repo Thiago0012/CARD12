@@ -78,7 +78,7 @@ namespace ArcaneArena.Editor
                 if (pack.CardIds.Count < minimum || pack.CardIds.Count > 38)
                     problems.Add(pack.PackId + $": deve conter de {minimum} a 38 IDs.");
                 if (pack.PriceCoins != ShopPackCatalog.PackPriceCoins)
-                    problems.Add(pack.PackId + ": deve custar 35 moedas.");
+                    problems.Add(pack.PackId + ": deve custar 25 moedas.");
                 if (pack.PreviewCardIds.Count != 3)
                     problems.Add(pack.PackId + ": deve possuir 3 previews.");
                 AddDuplicates(problems, pack.CardIds, pack.PackId + " / carta");

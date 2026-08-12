@@ -447,12 +447,22 @@ namespace ArcaneArena.Frontend
             CreateText(center, progress, 16, FontStyle.Bold, Color.white,
                 new Vector2(0.12f, 0.10f), new Vector2(0.88f, 0.18f),
                 TextAnchor.MiddleCenter);
-            string reward = rank.IsMaximum
-                ? $"RECOMPENSA DO ELO · {RankPromotionRewards.CoinsFor(rank.Tier):N0} MOEDAS"
-                : $"PRÓXIMA PROMOÇÃO · {RankPromotionRewards.CoinsFor(rank.NextTier):N0} MOEDAS";
-            CreateText(center, reward, 14, FontStyle.Bold, Gold,
-                new Vector2(0.12f, 0.035f), new Vector2(0.88f, 0.10f),
-                TextAnchor.MiddleCenter);
+            string rewardLabel = rank.IsMaximum
+                ? "RECOMPENSA DO ELO"
+                : "PRÓXIMA PROMOÇÃO";
+            int rewardCoins = RankPromotionRewards.CoinsFor(
+                rank.IsMaximum ? rank.Tier : rank.NextTier);
+            Image rewardRow = CreatePanel(center, "Recompensa em Moedas",
+                new Vector2(0.20f, 0.035f), new Vector2(0.80f, 0.10f),
+                Color.clear);
+            CreateText(rewardRow.transform, rewardLabel, 14, FontStyle.Bold,
+                Gold, new Vector2(0.01f, 0f), new Vector2(0.63f, 1f),
+                TextAnchor.MiddleRight);
+            CreateShopCurrencyIcon(rewardRow.transform, "Moeda da Recompensa",
+                new Vector2(0.65f, 0.12f), new Vector2(0.76f, 0.88f));
+            CreateText(rewardRow.transform, rewardCoins.ToString("N0"), 15,
+                FontStyle.Bold, Gold, new Vector2(0.78f, 0f),
+                new Vector2(0.99f, 1f), TextAnchor.MiddleLeft);
             if (rank.ShieldActive)
             {
                 CreateText(center, "PROTEÇÃO CONTRA QUEDA ATIVA", 14,

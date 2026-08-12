@@ -15,7 +15,7 @@ MonoBehaviour:
   packId: auto-pack-0004
   generationBatchId: 0e38884c7d7c2e1dbe93de8a1c3e1685
   generatorVersion: 1
-  priceCoins: 35
+  priceCoins: 25
   cardIds:
   - 58570206
   - 36304921
@@ -60,7 +60,7 @@ MonoBehaviour:
   - 46130346
   - 31557782
   packSprite: {fileID: 2588928355246923300, guid: 1e2a7ee6baa12a643b1d7594bce3bbe0, type: 3}
-  contentHash: F7278D4F7D4801BC4D66729F2E765AB7E854B6CC9B7472F336B1C66F1334B2B6
+  contentHash: 99FB8068797DD5D6B21029CAD227F84DF34CF6CB6951D3AF52B431B5EF7BDC94
   published: 1
   contentLockedAfterPublish: 1
   countsForAutoCoverage: 1

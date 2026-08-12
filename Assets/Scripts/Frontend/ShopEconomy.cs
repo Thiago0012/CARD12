@@ -67,7 +67,7 @@ namespace ArcaneArena.Frontend
             string description,
             IEnumerable<string> cardIds,
             IEnumerable<string> previewCardIds = null,
-            int priceCoins = 35,
+            int priceCoins = 25,
             PackOrigin origin = PackOrigin.Manual,
             string generationBatchId = "",
             int generatorVersion = 0,
@@ -106,7 +106,7 @@ namespace ArcaneArena.Frontend
                     .ToArray();
             }
             PreviewCardIds = normalizedPreviews;
-            PriceCoins = priceCoins > 0 ? priceCoins : 35;
+            PriceCoins = priceCoins > 0 ? priceCoins : 25;
             Origin = origin;
             GenerationBatchId = generationBatchId ?? string.Empty;
             GeneratorVersion = Math.Max(0, generatorVersion);
@@ -126,7 +126,7 @@ namespace ArcaneArena.Frontend
     {
         public const int CatalogVersion = 1;
         public const int CatalogSeed = 12062026;
-        public const int PackPriceCoins = 35;
+        public const int PackPriceCoins = 25;
         public const int CardsPerOpening = 5;
 
         private static readonly IReadOnlyList<ShopPackDefinition> LegacyExamples =

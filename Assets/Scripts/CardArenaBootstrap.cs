@@ -113,6 +113,15 @@ namespace ArcaneArena
         private Text opponentLife;
         private Text localPlayerName;
         private string localPlayerDisplayName = "DUELISTA LOCAL";
+        private GameObject localLifePanel;
+        private GameObject opponentLifePanel;
+        private DuelIdentitySnapshot localDuelIdentity;
+        private DuelIdentitySnapshot opponentDuelIdentity;
+        private string statisticsSessionId = string.Empty;
+        private bool statisticsOnline;
+        private bool statisticsRanked;
+        private long localDamageDealtInDuel;
+        private ulong confirmedStatisticEventSequence;
         private Text status;
         private Button phaseButton;
         private Text phaseLabel;
@@ -248,7 +257,33 @@ namespace ArcaneArena
 
         private void OnDuelCompleted(byte winner)
         {
-            GameFrontendBootstrap.Instance?.CompleteActiveBotDuel(winner);
+            GameFrontendBootstrap.Instance?.CompleteActiveBotDuel(
+                winner,
+                localDamageDealtInDuel);
+        }
+
+        public void ApplyDuelIdentities(
+            DuelIdentitySnapshot local,
+            DuelIdentitySnapshot opponent,
+            string confirmedMatchId,
+            bool ranked)
+        {
+            localDuelIdentity = ResolveDuelIdentity(
+                new DuelDeckLoadout { identity = local },
+                "online-local",
+                "DUELISTA LOCAL");
+            opponentDuelIdentity = ResolveDuelIdentity(
+                new DuelDeckLoadout { identity = opponent },
+                "online-opponent",
+                "OPONENTE");
+            localPlayerDisplayName = localDuelIdentity.nickname;
+            statisticsSessionId = string.IsNullOrWhiteSpace(confirmedMatchId)
+                ? "online-pending"
+                : confirmedMatchId;
+            statisticsOnline = true;
+            statisticsRanked = ranked;
+            UpdateLocalPlayerName();
+            RefreshDuelPlayerPlates();
         }
 
         private void Update()
@@ -317,6 +352,13 @@ namespace ArcaneArena
             bool versusBot,
             DuelDeckLoadout requestedPlayer)
         {
+            localDamageDealtInDuel = 0;
+            confirmedStatisticEventSequence = 0;
+            statisticsOnline = false;
+            statisticsRanked = GameFrontendBootstrap.ActiveDuelStatisticsRanked;
+            statisticsSessionId = GameFrontendBootstrap.ActiveDuelStatisticsId;
+            if (string.IsNullOrWhiteSpace(statisticsSessionId))
+                statisticsSessionId = "local-" + Guid.NewGuid().ToString("N");
             DuelDeckLoadout player = requestedPlayer;
             string rejection = string.Empty;
             if (player == null)
@@ -353,11 +395,20 @@ namespace ArcaneArena
 
             DuelDeckLoadout opponent =
                 requestedOpponent ?? player;
+            localDuelIdentity = ResolveDuelIdentity(
+                player,
+                "local-duelist",
+                "DUELISTA LOCAL");
+            opponentDuelIdentity = ResolveDuelIdentity(
+                opponent,
+                versusBot ? "bot-opponent" : "local-opponent",
+                versusBot ? "OPONENTE IA" : "OPONENTE");
             localPlayerDisplayName =
-                string.IsNullOrWhiteSpace(player.playerDisplayName)
+                string.IsNullOrWhiteSpace(localDuelIdentity.nickname)
                     ? "DUELISTA LOCAL"
-                    : player.playerDisplayName;
+                    : localDuelIdentity.nickname;
             UpdateLocalPlayerName();
+            RefreshDuelPlayerPlates();
             uint[] playerMain = ParseCodes(player.mainDeckCardIds);
             uint[] playerExtra = ParseCodes(player.extraDeckCardIds);
             uint[] opponentMain = ParseCodes(opponent.mainDeckCardIds);
@@ -446,9 +497,50 @@ namespace ArcaneArena
                     BanlistService.ActiveBanlistId,
                     main,
                     extra,
-                    side)
+                    side),
+                identity = new DuelIdentitySnapshot
+                {
+                    stablePlayerId = "direct-scene-test",
+                    nickname = "DUELISTA LOCAL",
+                    equippedIconId = ProfileIconCatalog.DefaultIconId,
+                    rankTier = ArcaneDuel.Game.Competitive.RankTier.Wood,
+                    rankedPoints = 0,
+                    cosmeticsCatalogVersion =
+                        ProfileIconCatalog.CatalogVersion
+                }
             };
             return true;
+        }
+
+        private static DuelIdentitySnapshot ResolveDuelIdentity(
+            DuelDeckLoadout loadout,
+            string fallbackStableId,
+            string fallbackNickname)
+        {
+            DuelIdentitySnapshot snapshot = loadout?.identity?.Copy();
+            string stableId = !string.IsNullOrWhiteSpace(snapshot?.stablePlayerId)
+                ? snapshot.stablePlayerId
+                : !string.IsNullOrWhiteSpace(loadout?.profileId)
+                    ? loadout.profileId
+                    : fallbackStableId;
+            snapshot ??= new DuelIdentitySnapshot();
+            snapshot.stablePlayerId = stableId;
+            snapshot.nickname = !string.IsNullOrWhiteSpace(snapshot.nickname)
+                ? snapshot.nickname
+                : !string.IsNullOrWhiteSpace(loadout?.playerDisplayName)
+                    ? loadout.playerDisplayName
+                    : fallbackNickname;
+            snapshot.equippedIconId = ProfileIconCatalog.ResolveId(
+                snapshot.equippedIconId);
+            snapshot.rankedPoints =
+                ArcaneDuel.Game.Competitive.RankRules.ClampPoints(
+                    snapshot.rankedPoints);
+            snapshot.rankTier =
+                ArcaneDuel.Game.Competitive.RankRules.ResolveTier(
+                    snapshot.rankedPoints);
+            snapshot.cosmeticsCatalogVersion =
+                ProfileIconCatalog.CatalogVersion;
+            return snapshot;
         }
 
         private uint[] ParseCodes(IEnumerable<string> values)
@@ -561,6 +653,7 @@ namespace ArcaneArena
 
         private void OnCoreEvent(DuelEvent duelEvent)
         {
+            RecordConfirmedStatistics(duelEvent);
             state = core.PresentationState;
             presentationReady = state != null && database != null;
             CardTransitionSnapshot cardTransition =
@@ -582,6 +675,63 @@ namespace ArcaneArena
             HandleArenaPresentationEvent(duelEvent);
             QueueCardSoundPresentation(duelEvent);
             BeginCardTransition(cardTransition);
+        }
+
+        private void RecordConfirmedStatistics(DuelEvent duelEvent)
+        {
+            if (duelEvent == null || string.IsNullOrWhiteSpace(statisticsSessionId))
+                return;
+
+            if (duelEvent.Message == CoreMessage.Damage && duelEvent.Player == 1)
+                localDamageDealtInDuel += duelEvent.Value;
+
+            DuelStatisticEventType? statistic = null;
+            switch (duelEvent.Message)
+            {
+                case CoreMessage.Chaining when duelEvent.Player == 0:
+                    if (database != null &&
+                        database.TryGet(duelEvent.Code, out CardRecord activated))
+                    {
+                        if ((activated.Type & 0x2U) != 0U)
+                            statistic = DuelStatisticEventType.SpellActivated;
+                        else if ((activated.Type & 0x4U) != 0U)
+                            statistic = DuelStatisticEventType.TrapActivated;
+                    }
+                    break;
+                case CoreMessage.Summoning
+                    when duelEvent.Current?.Controller == 0:
+                case CoreMessage.FlipSummoning
+                    when duelEvent.Current?.Controller == 0:
+                    statistic = DuelStatisticEventType.MonsterSummoned;
+                    break;
+                case CoreMessage.SpecialSummoning
+                    when duelEvent.Current?.Controller == 0:
+                    statistic = DuelStatisticEventType.SpecialSummon;
+                    break;
+                case CoreMessage.Battle:
+                    if ((duelEvent.Player == 0 && duelEvent.TargetDestroyed) ||
+                        (duelEvent.Player == 1 && duelEvent.AttackerDestroyed))
+                    {
+                        statistic = DuelStatisticEventType.MonsterDestroyedByBattle;
+                    }
+                    break;
+            }
+            if (!statistic.HasValue)
+                return;
+
+            string eventId = string.Concat(
+                statisticsSessionId,
+                ":confirmed:",
+                (++confirmedStatisticEventSequence).ToString(
+                    CultureInfo.InvariantCulture),
+                ":",
+                duelEvent.Message.ToString());
+            GameFrontendBootstrap.Instance?.RecordConfirmedDuelStatistic(
+                eventId,
+                statistic.Value,
+                1,
+                statisticsOnline,
+                statisticsRanked);
         }
 
         private void OnPresentationStateChanged()
@@ -684,6 +834,7 @@ namespace ArcaneArena
 
             handRoot = FindRect(frame, "POSICAO DA MAO DO JOGADOR") ??
                 FindRect(frame, "Mão do Jogador");
+            bool authoredHandRoot = handRoot != null;
             if (handRoot == null)
             {
                 handRoot = CreateRect(
@@ -695,9 +846,12 @@ namespace ArcaneArena
                 handRoot.pivot = new Vector2(0.5f, 0f);
                 handRoot.anchoredPosition = new Vector2(0f, -15f);
             }
-            handRoot.anchorMin = new Vector2(0.5f, 0f);
-            handRoot.anchorMax = new Vector2(0.5f, 0f);
-            handRoot.pivot = new Vector2(0.5f, 0f);
+            if (!preserveAuthoredDuelInterface || !authoredHandRoot)
+            {
+                handRoot.anchorMin = new Vector2(0.5f, 0f);
+                handRoot.anchorMax = new Vector2(0.5f, 0f);
+                handRoot.pivot = new Vector2(0.5f, 0f);
+            }
             handLayoutAnchor =
                 handRoot.GetComponent<DuelHandLayoutAnchor>();
             if (handLayoutAnchor == null)
@@ -709,7 +863,8 @@ namespace ArcaneArena
             }
             handRestPosition = handRoot.anchoredPosition;
             handRestScale = handRoot.localScale;
-            ApplyResponsiveHandLayout(true);
+            if (!preserveAuthoredDuelInterface)
+                ApplyResponsiveHandLayout(true);
             handInteractionGroup = handRoot.GetComponent<CanvasGroup>();
             if (handInteractionGroup == null)
                 handInteractionGroup =
@@ -882,11 +1037,15 @@ namespace ArcaneArena
 
         private void BindLifeAndPhase()
         {
-            GameObject localPanel = FindObject(frame, "LP do Player");
-            GameObject opponentPanel = FindObject(frame, "LP do Oponente");
-            localLife = FindLifeValue(localPanel);
-            opponentLife = FindLifeValue(opponentPanel);
-            BindLocalPlayerName(localPanel);
+            localLifePanel = FindObject(frame, "LP do Player");
+            opponentLifePanel = FindObject(frame, "LP do Oponente");
+            localLife = FindLifeValue(localLifePanel);
+            opponentLife = FindLifeValue(opponentLifePanel);
+            if (!preserveAuthoredDuelInterface)
+            {
+                BindLocalPlayerName(localLifePanel);
+                RefreshDuelPlayerPlates();
+            }
 
             GameObject phasePanel = FindObject(frame, "Controle de Fases");
             if (phasePanel != null)
@@ -932,6 +1091,11 @@ namespace ArcaneArena
 
         private void BindLocalPlayerName(GameObject localPanel)
         {
+            if (preserveAuthoredDuelInterface)
+            {
+                localPlayerName = null;
+                return;
+            }
             if (localPanel == null)
                 return;
 
@@ -967,6 +1131,36 @@ namespace ArcaneArena
                 $"DUELISTA • {localPlayerDisplayName.ToUpperInvariant()}";
         }
 
+        private void RefreshDuelPlayerPlates()
+        {
+            // In authored-interface mode the LP plates, labels and icon slots
+            // already belong to the scene. Adding a second runtime plate here
+            // obscures the precise composition edited in the Scene view.
+            if (preserveAuthoredDuelInterface)
+                return;
+            BindDuelPlayerPlate(
+                localLifePanel,
+                localDuelIdentity,
+                DuelPlayerPlateView.PlateSide.Local);
+            BindDuelPlayerPlate(
+                opponentLifePanel,
+                opponentDuelIdentity,
+                DuelPlayerPlateView.PlateSide.Opponent);
+        }
+
+        private static void BindDuelPlayerPlate(
+            GameObject panel,
+            DuelIdentitySnapshot identity,
+            DuelPlayerPlateView.PlateSide side)
+        {
+            if (panel == null)
+                return;
+            DuelPlayerPlateView view =
+                panel.GetComponent<DuelPlayerPlateView>() ??
+                panel.AddComponent<DuelPlayerPlateView>();
+            view.Bind(identity, side);
+        }
+
         private void ClearAuthoredPreviewCards()
         {
             foreach (CardView card in
@@ -980,6 +1174,8 @@ namespace ArcaneArena
                          FindObjectsInactive.Include,
                          FindObjectsSortMode.None))
             {
+                if (zone == null || zone.gameObject.scene != gameObject.scene)
+                    continue;
                 zone.EnsureIdentityFromHierarchy(false);
                 ClearWorldCard(zone);
                 zone.ClearPlacedCard();
@@ -1343,6 +1539,17 @@ namespace ArcaneArena
             if (frame == null || handRoot == null)
                 return;
 
+            // In authored mode the root is the visual source of truth. Cards
+            // are still laid out inside it, but runtime code must not move or
+            // resize the root when the viewport changes.
+            if (preserveAuthoredDuelInterface)
+            {
+                lastHandViewportSize = frame.rect.size;
+                handRestPosition = handRoot.anchoredPosition;
+                handRestScale = handRoot.localScale;
+                return;
+            }
+
             Vector2 viewportSize = frame.rect.size;
             if (viewportSize.x <= 1f || viewportSize.y <= 1f)
                 return;
@@ -1376,7 +1583,7 @@ namespace ArcaneArena
             handPlacementMode = placement;
             bool disabled = placement || InteractionLocked;
             ApplyResponsiveHandLayout(true);
-            if (handRoot != null)
+            if (handRoot != null && !preserveAuthoredDuelInterface)
             {
                 handRoot.localScale =
                     handRestScale * (placement
@@ -1843,6 +2050,25 @@ namespace ArcaneArena
                 renderedZones.TryGetValue(
                     zone.StableId,
                     out CardInstanceKey previous);
+                if (UsesAuthoredPilePresentation(zone))
+                {
+                    if (key != previous)
+                    {
+                        ClearWorldCard(zone);
+                        zone.ClearPlacedCard();
+                        renderedZones[zone.StableId] = key;
+                    }
+
+                    SetAuthoredPileVisibility(zone, occupied);
+                    if (occupied)
+                    {
+                        zone.SetPlacedCard(
+                            cardBackSprite,
+                            code == 0 ? "HIDDEN" : code.ToString("00000000"),
+                            false);
+                    }
+                    continue;
+                }
                 if (key == previous &&
                     HasWorldCardRepresentation(zone, key, code, occupied))
                 {
@@ -1872,6 +2098,27 @@ namespace ArcaneArena
                 }
                 CreateWorldCard(zone, key, sprite, position, instance);
             }
+        }
+
+        private bool UsesAuthoredPilePresentation(DuelZone3D zone)
+        {
+            if (!preserveAuthoredDuelInterface || zone == null)
+                return false;
+            if (zone.Kind != DuelZoneKind.MainDeck &&
+                zone.Kind != DuelZoneKind.ExtraDeck)
+            {
+                return false;
+            }
+            return zone.transform.Find("Card Stack") != null;
+        }
+
+        private static void SetAuthoredPileVisibility(
+            DuelZone3D zone,
+            bool visible)
+        {
+            Transform pile = zone?.transform.Find("Card Stack");
+            if (pile != null && pile.gameObject.activeSelf != visible)
+                pile.gameObject.SetActive(visible);
         }
 
         private CardInstanceState InstanceAt(DuelZone3D zone)
@@ -3662,7 +3909,8 @@ namespace ArcaneArena
         {
             return FindObjectsByType<DuelZone3D>(
                 FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
+                FindObjectsSortMode.None).Where(zone =>
+                zone != null && zone.gameObject.scene == gameObject.scene);
         }
 
         // The host arena uses the authored P1/P2 table directly. A joining

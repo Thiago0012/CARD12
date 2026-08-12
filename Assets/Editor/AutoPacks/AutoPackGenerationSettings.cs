@@ -11,7 +11,7 @@ namespace ArcaneArena.Editor.AutoPacks
     {
         public const int RequiredMinimum = 35;
         public const int RequiredMaximum = 38;
-        public const int RequiredPrice = 35;
+        public const int RequiredPrice = 25;
 
         [SerializeField] private bool enabled = true;
         [SerializeField] private int minCardsPerPack = RequiredMinimum;
