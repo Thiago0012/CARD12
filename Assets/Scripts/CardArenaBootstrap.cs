@@ -93,6 +93,9 @@ namespace ArcaneArena
         private GameObject setAction;
         private GameObject detailPanel;
         private Image detailArtwork;
+        private GameObject detailZoomOverlay;
+        private Image detailZoomArtwork;
+        private CardZoomViewer detailZoomViewer;
         private Text detailName;
         private Text detailType;
         private Text detailStats;
@@ -984,6 +987,108 @@ namespace ArcaneArena
             detailEffect = effect != null ? effect.GetComponent<Text>() : null;
             detailCardOutline = detailPanel.GetComponent<Outline>();
             detailPanel.SetActive(false);
+            BindDetailArtworkZoom();
+            BuildDetailZoomViewer();
+        }
+
+        private void BindDetailArtworkZoom()
+        {
+            if (detailArtwork == null)
+                return;
+            Button button = detailArtwork.GetComponent<Button>() ??
+                            detailArtwork.gameObject.AddComponent<Button>();
+            button.targetGraphic = detailArtwork;
+            button.transition = Selectable.Transition.ColorTint;
+            button.onClick.RemoveListener(OpenDetailZoom);
+            button.onClick.AddListener(OpenDetailZoom);
+
+            if (FindTransform(
+                    detailPanel.transform,
+                    "Clique para ampliar") == null)
+            {
+                CreateText(
+                    detailPanel.transform,
+                    "Clique para ampliar",
+                    11,
+                    FontStyle.Bold,
+                    Cyan,
+                    new Vector2(0.06f, 0.475f),
+                    new Vector2(0.57f, 0.505f),
+                    TextAnchor.MiddleCenter);
+            }
+        }
+
+        private void BuildDetailZoomViewer()
+        {
+            if (detailZoomOverlay != null || frame == null)
+                return;
+            detailZoomOverlay = CreatePanel(
+                frame,
+                "Visualizador Ampliado do Duelo",
+                Vector2.zero,
+                Vector2.one,
+                new Color(0.002f, 0.008f, 0.018f, 0.988f));
+
+            detailZoomArtwork = CreateImage(
+                detailZoomOverlay.transform,
+                "Carta em Tela Cheia",
+                new Vector2(0.035f, 0.07f),
+                new Vector2(0.965f, 0.94f),
+                Color.white);
+            detailZoomArtwork.preserveAspect = true;
+            detailZoomArtwork.raycastTarget = true;
+            AddOutline(
+                detailZoomArtwork.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.80f));
+
+            CreateButton(
+                detailZoomOverlay.transform,
+                "Fechar visualizador",
+                "FECHAR",
+                new Vector2(0.875f, 0.925f),
+                new Vector2(0.975f, 0.982f),
+                Red,
+                CloseDetailZoom);
+            CreateText(
+                detailZoomOverlay.transform,
+                "SCROLL PARA AMPLIAR  |  ARRASTE PARA MOVER  |  DUPLO CLIQUE PARA RESETAR",
+                14,
+                FontStyle.Bold,
+                new Color(0.68f, 0.90f, 0.96f, 0.90f),
+                new Vector2(0.12f, 0.012f),
+                new Vector2(0.88f, 0.06f),
+                TextAnchor.MiddleCenter);
+
+            detailZoomViewer =
+                detailZoomOverlay.AddComponent<CardZoomViewer>();
+            detailZoomViewer.Setup(detailZoomArtwork.rectTransform);
+            detailZoomOverlay.SetActive(false);
+        }
+
+        private void OpenDetailZoom()
+        {
+            if (detailArtwork == null || detailArtwork.sprite == null ||
+                detailZoomOverlay == null || detailZoomArtwork == null ||
+                detailZoomViewer == null)
+            {
+                return;
+            }
+            detailZoomArtwork.sprite = detailArtwork.sprite;
+            detailZoomOverlay.SetActive(true);
+            detailZoomOverlay.transform.SetAsLastSibling();
+            detailZoomViewer.ResetView();
+        }
+
+        private void CloseDetailZoom()
+        {
+            if (detailZoomOverlay != null)
+                detailZoomOverlay.SetActive(false);
+            if (detailPanel?.activeSelf == true)
+                detailPanel.transform.SetAsLastSibling();
+            if (choiceModal?.activeSelf == true)
+                choiceModal.transform.SetAsLastSibling();
+            else if (compactResponseBar?.activeSelf == true)
+                compactResponseBar.transform.SetAsLastSibling();
         }
 
         private void BindActionButtons()
@@ -1309,7 +1414,6 @@ namespace ArcaneArena
             if (hovered) hoveredCard = card;
             else if (hoveredCard == card) hoveredCard = null;
             RelayoutHand();
-            if (hovered && card != null) ShowInspector(card.Code);
         }
 
         public void SelectCard(CardView card)
@@ -1982,10 +2086,7 @@ namespace ArcaneArena
             {
                 return;
             }
-            uint code = CodeAt(zone);
-            if (code != 0)
-                ShowInspector(zone);
-            else if (IsSpecialZone(zone.Kind))
+            if (IsSpecialZone(zone.Kind))
                 SetStatus(PileLabel(zone), Muted);
         }
 
@@ -2697,14 +2798,19 @@ namespace ArcaneArena
 
         private void ShowInspector(DuelZone3D zone)
         {
+            if (!CanInspectZoneIdentity(zone))
+            {
+                CloseCardDetails();
+                return;
+            }
             ShowInspector(CodeAt(zone), zone);
         }
 
         private void ShowInspector(uint code, DuelZone3D zone)
         {
-            if (choiceModal?.activeInHierarchy == true &&
-                IsDirectSelectionPrompt(core?.CurrentPrompt))
+            if (zone != null && !CanInspectZoneIdentity(zone))
             {
+                CloseCardDetails();
                 return;
             }
             if (code == 0 || database == null ||
@@ -2760,6 +2866,66 @@ namespace ArcaneArena
                 hasCurrentStats ? currentDefense : null);
             ApplyDetailTheme(legacy, card);
             EnsureCardDetailContentVisible();
+        }
+
+        private bool CanInspectZoneIdentity(DuelZone3D zone)
+        {
+            if (zone == null || IsLocalZone(zone))
+                return zone != null;
+            bool fieldCard = zone.Kind == DuelZoneKind.Monster ||
+                             zone.Kind == DuelZoneKind.SpellTrap ||
+                             zone.Kind == DuelZoneKind.Field;
+            return !fieldCard ||
+                   (zone.IsFaceUp && IsFaceUp(PositionAt(zone)));
+        }
+
+        private bool CanInspectChoiceIdentity(DuelChoice choice)
+        {
+            if (choice == null || choice.CardCode == 0)
+                return false;
+            if (!choice.HasLocation || choice.Controller == 0)
+                return true;
+
+            uint location = choice.Location;
+            if ((location & (DuelLocation.Hand |
+                             DuelLocation.Deck |
+                             DuelLocation.Extra)) != 0)
+            {
+                return false;
+            }
+            if ((location & (DuelLocation.MonsterZone |
+                             DuelLocation.SpellTrapZone)) == 0)
+            {
+                return true;
+            }
+
+            DuelZone3D zone = FindZone(
+                choice.Controller,
+                choice.Location,
+                (int)choice.Sequence);
+            if (zone != null)
+                return CanInspectZoneIdentity(zone);
+            return choice.Position != 0 && IsFaceUp(choice.Position);
+        }
+
+        private void ShowChoiceInspector(DuelChoice choice)
+        {
+            if (!CanInspectChoiceIdentity(choice))
+            {
+                CloseCardDetails();
+                return;
+            }
+            DuelZone3D zone = choice.HasLocation
+                ? FindZone(
+                    choice.Controller,
+                    choice.Location,
+                    (int)choice.Sequence)
+                : null;
+            ShowInspector(choice.CardCode, zone);
+            if (choiceModal?.activeSelf == true)
+                choiceModal.transform.SetAsLastSibling();
+            else if (compactResponseBar?.activeSelf == true)
+                compactResponseBar.transform.SetAsLastSibling();
         }
 
         private void EnsureCardDetailContentVisible()
@@ -3145,6 +3311,8 @@ namespace ArcaneArena
         {
             if (detailPanel != null)
                 detailPanel.SetActive(false);
+            if (detailZoomOverlay != null)
+                detailZoomOverlay.SetActive(false);
             inspectedCode = 0;
             inspectedZone = null;
         }
@@ -3681,22 +3849,67 @@ namespace ArcaneArena
                 "Apresentação de Card",
                 Vector2.zero,
                 Vector2.one,
-                new Color(0f, 0.01f, 0.025f, 0.62f));
+                new Color(0f, 0.01f, 0.025f, 0.70f));
             overlay.transform.SetAsLastSibling();
             var group = overlay.AddComponent<CanvasGroup>();
             group.alpha = 0f;
             ExtraDeckSummonFocus summonFocus = extraDeckSummon
                 ? CreateExtraDeckSummonFocus(overlay.transform, accent)
                 : null;
+            Sprite presentedSprite = hideIdentity
+                ? cardBackSprite
+                : SpriteFor(code);
+            Image outerAura = CreateImage(
+                overlay.transform,
+                "Aura Externa da Carta",
+                new Vector2(0.375f, 0.17f),
+                new Vector2(0.625f, 0.84f),
+                new Color(accent.r, accent.g, accent.b, 0.06f));
+            outerAura.sprite = presentedSprite;
+            outerAura.preserveAspect = true;
+            outerAura.raycastTarget = false;
+            Image aura = CreateImage(
+                overlay.transform,
+                "Aura da Carta",
+                new Vector2(0.385f, 0.18f),
+                new Vector2(0.615f, 0.83f),
+                new Color(accent.r, accent.g, accent.b, 0.14f));
+            aura.sprite = presentedSprite;
+            aura.preserveAspect = true;
+            aura.raycastTarget = false;
             Image art = CreateImage(
                 overlay.transform,
                 "Carta Apresentada",
                 new Vector2(0.395f, 0.19f),
                 new Vector2(0.605f, 0.82f),
                 Color.white);
-            art.sprite = hideIdentity ? cardBackSprite : SpriteFor(code);
+            art.sprite = presentedSprite;
             art.preserveAspect = true;
-            art.rectTransform.localScale = Vector3.one * 0.62f;
+            art.rectTransform.localScale = Vector3.one * 0.72f;
+            float startRotation = (code & 1U) == 0U ? -7f : 7f;
+            art.rectTransform.localRotation = Quaternion.Euler(
+                0f,
+                0f,
+                startRotation);
+            Outline artOutline = art.gameObject.AddComponent<Outline>();
+            artOutline.effectColor = new Color(
+                accent.r,
+                accent.g,
+                accent.b,
+                0.86f);
+            artOutline.effectDistance = new Vector2(4f, -4f);
+            art.gameObject.AddComponent<RectMask2D>();
+            Image shine = CreateImage(
+                art.transform,
+                "Reflexo da Carta",
+                new Vector2(-0.40f, -0.10f),
+                new Vector2(-0.12f, 1.10f),
+                new Color(1f, 1f, 1f, 0f));
+            shine.raycastTarget = false;
+            shine.rectTransform.localRotation = Quaternion.Euler(
+                0f,
+                0f,
+                -9f);
             CreateText(
                 overlay.transform,
                 heading,
@@ -3733,26 +3946,73 @@ namespace ArcaneArena
                 elapsed += Time.unscaledDeltaTime * speed;
                 if (elapsed < enter)
                 {
-                    float t = Mathf.SmoothStep(0f, 1f, elapsed / enter);
-                    group.alpha = t;
+                    float rawT = Mathf.Clamp01(elapsed / enter);
+                    float shifted = rawT - 1f;
+                    float eased = 1f + 2.70158f * shifted * shifted * shifted +
+                                  1.70158f * shifted * shifted;
+                    group.alpha = Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        Mathf.Clamp01(rawT / 0.58f));
                     art.rectTransform.localScale =
-                        Vector3.one * Mathf.Lerp(0.62f, 1f, t);
+                        Vector3.one * Mathf.LerpUnclamped(0.72f, 1f, eased);
                     art.rectTransform.localRotation = Quaternion.Euler(
                         0f,
                         0f,
-                        Mathf.Lerp(50f, 0f, t));
+                        Mathf.Lerp(
+                            startRotation,
+                            0f,
+                            TransitionEaseOutCubic(rawT)));
+
+                    float sweep = Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        Mathf.InverseLerp(0.10f, 0.82f, rawT));
+                    float shineMin = Mathf.Lerp(-0.40f, 1.12f, sweep);
+                    shine.rectTransform.anchorMin = new Vector2(
+                        shineMin,
+                        -0.10f);
+                    shine.rectTransform.anchorMax = new Vector2(
+                        shineMin + 0.28f,
+                        1.10f);
+                    shine.color = new Color(
+                        1f,
+                        1f,
+                        1f,
+                        Mathf.Sin(sweep * Mathf.PI) * 0.28f);
                 }
                 else if (elapsed > totalDuration - exit)
                 {
-                    group.alpha = Mathf.Clamp01(
-                        (totalDuration - elapsed) / exit);
+                    float exitT = Mathf.Clamp01(
+                        (elapsed - (totalDuration - exit)) / exit);
+                    group.alpha = 1f - Mathf.SmoothStep(0f, 1f, exitT);
+                    art.rectTransform.localScale = Vector3.one * Mathf.Lerp(
+                        1f,
+                        0.96f,
+                        exitT);
                 }
                 else
                 {
                     group.alpha = 1f;
                     art.rectTransform.localScale = Vector3.one;
                     art.rectTransform.localRotation = Quaternion.identity;
+                    shine.color = new Color(1f, 1f, 1f, 0f);
                 }
+                float auraPulse = 0.5f + 0.5f * Mathf.Sin(elapsed * 9f);
+                aura.color = new Color(
+                    accent.r,
+                    accent.g,
+                    accent.b,
+                    0.10f + auraPulse * 0.10f);
+                aura.rectTransform.localScale = Vector3.one *
+                    (1.02f + auraPulse * 0.035f);
+                outerAura.color = new Color(
+                    accent.r,
+                    accent.g,
+                    accent.b,
+                    0.035f + auraPulse * 0.045f);
+                outerAura.rectTransform.localScale = Vector3.one *
+                    (1.04f + auraPulse * 0.05f);
                 UpdateExtraDeckSummonFocus(
                     summonFocus,
                     elapsed,

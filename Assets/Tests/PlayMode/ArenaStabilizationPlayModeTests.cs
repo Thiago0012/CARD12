@@ -96,6 +96,18 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(compact, Is.Not.Null);
             Assert.That(compact.activeSelf, Is.True);
             Assert.That(modal?.activeSelf, Is.False);
+            Image responseArtwork = arena.GetType()
+                .GetField("compactResponseArtwork", flags)
+                ?.GetValue(arena) as Image;
+            Assert.That(responseArtwork, Is.Not.Null);
+            Assert.That(responseArtwork.gameObject.activeSelf, Is.True,
+                "A single public response must show a clickable card preview.");
+            responseArtwork.GetComponent<Button>()?.onClick.Invoke();
+            GameObject responseDetails = arena.GetType()
+                .GetField("detailPanel", flags)
+                ?.GetValue(arena) as GameObject;
+            Assert.That(responseDetails?.activeSelf, Is.True,
+                "Clicking the response preview must open its card text.");
 
             DuelPrompt repeatedSnapshot = OptionalChainPrompt(7001);
             replicaPrompt?.SetValue(controller, repeatedSnapshot);
@@ -259,6 +271,25 @@ namespace ArcaneDuel.Tests.PlayMode
                 card.onClick.Invoke();
                 Assert.That(submitted, Is.Null,
                     "Inspecting the candidate must not resolve the effect.");
+                GameObject details = arena.GetType()
+                    .GetField("detailPanel", flags)
+                    ?.GetValue(arena) as GameObject;
+                Assert.That(details?.activeSelf, Is.True,
+                    "Clicking the candidate must open its card text and artwork.");
+                GameObject zoom = arena.GetType()
+                    .GetField("detailZoomOverlay", flags)
+                    ?.GetValue(arena) as GameObject;
+                Assert.That(zoom, Is.Not.Null,
+                    "The duel inspector must expose the reusable zoom viewer.");
+                Image detailArt = arena.GetType()
+                    .GetField("detailArtwork", flags)
+                    ?.GetValue(arena) as Image;
+                Assert.That(detailArt, Is.Not.Null);
+                detailArt.GetComponent<Button>()?.onClick.Invoke();
+                Assert.That(zoom.activeSelf, Is.True,
+                    "Clicking the inspected artwork must open zoom.");
+                arena.GetType().GetMethod("CloseDetailZoom", flags)
+                    ?.Invoke(arena, null);
 
                 Button confirm = arena.GetType().GetField("choiceConfirm", flags)
                     ?.GetValue(arena) as Button;
@@ -336,8 +367,12 @@ namespace ArcaneDuel.Tests.PlayMode
             {
                 content.GetChild(0).GetComponent<Button>().onClick.Invoke();
                 content.GetChild(1).GetComponent<Button>().onClick.Invoke();
-                Assert.That(details?.activeSelf, Is.False,
-                    "Inspecting a target must not cover the mandatory tray.");
+                Assert.That(details?.activeSelf, Is.True,
+                    "Clicking a public candidate must open its persistent card details.");
+                Assert.That(
+                    tray.transform.GetSiblingIndex(),
+                    Is.GreaterThan(details.transform.GetSiblingIndex()),
+                    "The mandatory tray must remain above the detail panel.");
                 Assert.That(confirm.interactable, Is.True);
 
                 confirm.onClick.Invoke();
@@ -622,6 +657,85 @@ namespace ArcaneDuel.Tests.PlayMode
                 Is.True,
                 "Uma carta oculta continua ocupando a zona e deve manter o verso 3D.");
             Object.Destroy(card);
+        }
+
+        [UnityTest]
+        public IEnumerator CardDetailsRequireClickAndNeverRevealOpponentFaceDowns()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            DuelPresentationState state = controller.PresentationState;
+            state.Apply(MoveEvent(
+                DarkMagician,
+                0,
+                0,
+                0,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                4,
+                0x1U));
+            state.Apply(MoveEvent(
+                BlueEyesWhiteDragon,
+                1,
+                0,
+                0,
+                1,
+                (byte)DuelLocation.MonsterZone,
+                4,
+                FaceDown));
+
+            BindingFlags flags = BindingFlags.Instance |
+                                 BindingFlags.Public |
+                                 BindingFlags.NonPublic;
+            arena.GetType().GetMethod("ReconcileField", flags)
+                ?.Invoke(arena, null);
+            yield return null;
+
+            Component localZone = FindZone("PlayerOne", "Monster", 4);
+            Component opponentZone = FindZone("PlayerTwo", "Monster", 4);
+            GameObject details = arena.GetType()
+                .GetField("detailPanel", flags)
+                ?.GetValue(arena) as GameObject;
+            Assert.That(localZone, Is.Not.Null);
+            Assert.That(opponentZone, Is.Not.Null);
+            Assert.That(details, Is.Not.Null);
+
+            MethodInfo close = arena.GetType().GetMethod(
+                "CloseCardDetails",
+                flags);
+            MethodInfo hover = arena.GetType().GetMethod(
+                "HandleZoneHover",
+                flags);
+            MethodInfo inspect = arena.GetType().GetMethod(
+                "InspectZone",
+                flags);
+            close?.Invoke(arena, null);
+            hover?.Invoke(arena, new object[] { localZone, true });
+            Assert.That(
+                details.activeSelf,
+                Is.False,
+                "Hover must not open persistent card details.");
+
+            inspect?.Invoke(arena, new object[] { localZone });
+            Assert.That(
+                details.activeSelf,
+                Is.True,
+                "Click inspection of a public card must open details.");
+
+            close?.Invoke(arena, null);
+            inspect?.Invoke(arena, new object[] { opponentZone });
+            Assert.That(
+                details.activeSelf,
+                Is.False,
+                "An opponent face-down card must remain opaque to the host and guest UI.");
         }
 
         [UnityTest]
@@ -1648,6 +1762,18 @@ namespace ArcaneDuel.Tests.PlayMode
                 mainDeck.transform.localScale.magnitude,
                 Is.GreaterThan(originalDeckScale.magnitude * 1.20f),
                 "O Deck deve ficar maior e mais próximo da câmera durante a compra.");
+            Camera drawCamera = Camera.main;
+            Assert.That(drawCamera, Is.Not.Null);
+            Vector3 projectedVertical = Vector3.ProjectOnPlane(
+                drawCamera.transform.up,
+                mainDeck.transform.up).normalized;
+            float verticalAngle = Vector3.Angle(
+                projectedVertical,
+                mainDeck.transform.forward);
+            Assert.That(
+                Mathf.Min(verticalAngle, 180f - verticalAngle),
+                Is.LessThan(1f),
+                "O eixo longo do Deck deve ficar vertical na tela.");
             Component arena3D = Resources
                 .FindObjectsOfTypeAll<Component>()
                 .First(component =>
@@ -1666,6 +1792,10 @@ namespace ArcaneDuel.Tests.PlayMode
                     originalDeckPosition),
                 Is.GreaterThan(1f),
                 "The physical Deck needs a distinct position in front of the player.");
+            Vector3 focusViewport =
+                drawCamera.WorldToViewportPoint(drawFocus);
+            Assert.That(focusViewport.x, Is.EqualTo(0.5f).Within(0.01f));
+            Assert.That(focusViewport.y, Is.EqualTo(0.5f).Within(0.01f));
             Assert.That(
                 drawnView.GetComponent<CanvasGroup>().alpha,
                 Is.EqualTo(0f).Within(0.001f),
@@ -2169,6 +2299,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 1,
                 1);
             SetProperty(second, nameof(DuelChoice.Controller), (byte)1);
+            SetProperty(second, nameof(DuelChoice.Position), 0x1U);
             SetProperty(second, nameof(DuelChoice.ChoiceIndex), 1);
             prompt.Choices.Add(second);
             return prompt;

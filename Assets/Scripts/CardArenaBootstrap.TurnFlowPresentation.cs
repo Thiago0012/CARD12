@@ -180,13 +180,17 @@ namespace ArcaneArena
                     Cyan);
             }
 
+            Quaternion drawFocusRotation =
+                DrawDeckPresentationRotation(deck);
             yield return MoveDrawDeck(
                 deck,
                 activeDrawDeckPosition,
                 arena3D.GetDrawPresentationWorldPosition(side),
                 0.36f,
                 activeDrawDeckScale,
-                activeDrawDeckScale * (localDraw ? 1.28f : 1.12f));
+                activeDrawDeckScale * (localDraw ? 1.28f : 1.12f),
+                activeDrawDeckRotation,
+                drawFocusRotation);
 
             if (localDraw)
             {
@@ -253,7 +257,9 @@ namespace ArcaneArena
                 activeDrawDeckPosition,
                 0.30f,
                 deck.localScale,
-                activeDrawDeckScale);
+                activeDrawDeckScale,
+                deck.rotation,
+                activeDrawDeckRotation);
             RestoreActiveDrawDeck();
             RevealDrawnCards(request);
             activeDrawRequest = null;
@@ -297,13 +303,16 @@ namespace ArcaneArena
             Vector3 to,
             float baseDuration,
             Vector3 fromScale,
-            Vector3 toScale)
+            Vector3 toScale,
+            Quaternion fromRotation,
+            Quaternion toRotation)
         {
             float duration = DuelAnimationPreferences.Duration(baseDuration);
             if (duration <= 0f)
             {
                 deck.position = to;
                 deck.localScale = toScale;
+                deck.rotation = toRotation;
                 yield break;
             }
 
@@ -317,10 +326,42 @@ namespace ArcaneArena
                     Mathf.Clamp01(elapsed / duration));
                 deck.position = Vector3.Lerp(from, to, t);
                 deck.localScale = Vector3.Lerp(fromScale, toScale, t);
+                deck.rotation = Quaternion.Slerp(
+                    fromRotation,
+                    toRotation,
+                    t);
                 yield return null;
             }
             deck.position = to;
             deck.localScale = toScale;
+            deck.rotation = toRotation;
+        }
+
+        private static Quaternion DrawDeckPresentationRotation(
+            Transform deck)
+        {
+            if (deck == null)
+                return Quaternion.identity;
+            Camera camera = Camera.main;
+            if (camera == null)
+                return deck.rotation;
+
+            Vector3 surfaceNormal = deck.up;
+            Vector3 screenVertical = Vector3.ProjectOnPlane(
+                camera.transform.up,
+                surfaceNormal);
+            if (screenVertical.sqrMagnitude < 0.0001f)
+            {
+                screenVertical = Vector3.ProjectOnPlane(
+                    camera.transform.forward,
+                    surfaceNormal);
+            }
+            if (screenVertical.sqrMagnitude < 0.0001f)
+                return deck.rotation;
+            screenVertical.Normalize();
+            if (Vector3.Dot(screenVertical, deck.forward) < 0f)
+                screenVertical = -screenVertical;
+            return Quaternion.LookRotation(screenVertical, surfaceNormal);
         }
 
         private void CreateDrawGhost(Transform deck)

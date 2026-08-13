@@ -550,8 +550,16 @@ namespace ArcaneArena
         public Vector3 GetDrawPresentationWorldPosition(
             DuelPlayerSide side)
         {
-            float z = side == DuelPlayerSide.PlayerOne ? -3.85f : 3.85f;
-            return transform.TransformPoint(new Vector3(0f, 1.28f, z));
+            Vector3 fallback = transform.TransformPoint(
+                new Vector3(0f, 1.28f, 0f));
+            Camera camera = Camera.main;
+            if (camera == null)
+                return fallback;
+            float depth = Vector3.Dot(
+                fallback - camera.transform.position,
+                camera.transform.forward);
+            return camera.ViewportToWorldPoint(
+                new Vector3(0.5f, 0.5f, Mathf.Max(2f, depth)));
         }
 
         public void NotifyCardDrawn(DuelPlayerSide side)

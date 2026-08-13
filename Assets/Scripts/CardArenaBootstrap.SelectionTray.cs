@@ -34,7 +34,9 @@ namespace ArcaneArena
         private DuelChoice stagedSingleChoice;
         private GameObject compactResponseBar;
         private Text compactResponseText;
+        private Image compactResponseArtwork;
         private DuelPrompt compactResponsePrompt;
+        private DuelChoice compactResponseChoice;
 
         private void BuildChoiceModal()
         {
@@ -218,13 +220,28 @@ namespace ArcaneArena
                 new Vector2(0.66f, 0.81f),
                 new Color(0.025f, 0.11f, 0.13f, 0.97f));
             AddOutline(compactResponseBar, EffectGlow);
+            compactResponseArtwork = CreateImage(
+                compactResponseBar.transform,
+                "Carta da resposta",
+                new Vector2(0.015f, 0.12f),
+                new Vector2(0.115f, 0.88f),
+                Color.white);
+            compactResponseArtwork.preserveAspect = true;
+            compactResponseArtwork.raycastTarget = true;
+            AddOutline(
+                compactResponseArtwork.gameObject,
+                new Color(EffectGlow.r, EffectGlow.g, EffectGlow.b, 0.74f));
+            Button artworkButton =
+                compactResponseArtwork.gameObject.AddComponent<Button>();
+            artworkButton.targetGraphic = compactResponseArtwork;
+            artworkButton.onClick.AddListener(InspectCompactResponseCard);
             compactResponseText = CreateText(
                 compactResponseBar.transform,
                 "VOCÊ PODE RESPONDER",
                 14,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.035f, 0.10f),
+                new Vector2(0.13f, 0.10f),
                 new Vector2(0.47f, 0.90f),
                 TextAnchor.MiddleCenter);
             CreateButton(
@@ -257,8 +274,24 @@ namespace ArcaneArena
             DuelChoice response = DuelPromptPresentationRules
                 .ActionableResponseChoices(prompt)
                 .FirstOrDefault();
+            compactResponseChoice = responses == 1 ? response : null;
+            bool showArtwork = CanInspectChoiceIdentity(
+                compactResponseChoice);
+            if (compactResponseArtwork != null)
+            {
+                compactResponseArtwork.gameObject.SetActive(showArtwork);
+                compactResponseArtwork.sprite = showArtwork
+                    ? SpriteFor(compactResponseChoice.CardCode)
+                    : null;
+            }
+            if (compactResponseText != null)
+            {
+                compactResponseText.rectTransform.anchorMin = new Vector2(
+                    showArtwork ? 0.13f : 0.035f,
+                    0.10f);
+            }
             compactResponseText.text = responses == 1 && response != null
-                ? ChoiceLabel(response).Replace("\n", " — ")
+                ? ChoiceTrayLabel(response).Replace("\n", " — ")
                 : $"{responses} RESPOSTAS DISPONÍVEIS";
             compactResponseBar.SetActive(true);
             compactResponseBar.transform.SetAsLastSibling();
@@ -269,6 +302,13 @@ namespace ArcaneArena
             if (compactResponseBar != null)
                 compactResponseBar.SetActive(false);
             compactResponsePrompt = null;
+            compactResponseChoice = null;
+        }
+
+        private void InspectCompactResponseCard()
+        {
+            if (CanInspectChoiceIdentity(compactResponseChoice))
+                ShowChoiceInspector(compactResponseChoice);
         }
 
         private void OpenCompactResponseChoices()
@@ -337,6 +377,7 @@ namespace ArcaneArena
 
             var button = card.AddComponent<Button>();
             button.targetGraphic = card.GetComponent<Image>();
+            bool visibleIdentity = CanInspectChoiceIdentity(choice);
             if (choice.CardCode != 0 && !describedEffect)
             {
                 Image art = CreateImage(
@@ -345,12 +386,14 @@ namespace ArcaneArena
                     new Vector2(0.08f, 0.20f),
                     new Vector2(0.92f, 0.97f),
                     Color.white);
-                art.sprite = SpriteFor(choice.CardCode);
+                art.sprite = visibleIdentity
+                    ? SpriteFor(choice.CardCode)
+                    : cardBackSprite;
                 art.preserveAspect = true;
             }
             visual.Label = CreateText(
                 card.transform,
-                ChoiceLabel(choice),
+                ChoiceTrayLabel(choice),
                 describedEffect ? 14 : 11,
                 FontStyle.Bold,
                 Color.white,
@@ -445,14 +488,17 @@ namespace ArcaneArena
             }
 
             UpdateChoiceTrayVisuals(visualIndex);
+            ShowChoiceInspector(choice);
             choiceConfirm.interactable = IsMultiChoicePrompt(prompt)
                 ? stagedSingleChoice != null ||
                   IsStructuredSelectionValid(prompt)
                 : stagedSingleChoice != null;
             UpdateChoiceConfirmLabel(prompt);
             SetStatus(
-                choice.CardCode != 0
+                CanInspectChoiceIdentity(choice)
                     ? $"{CardName(choice.CardCode)} selecionada. Confirme a escolha."
+                    : choice.CardCode != 0
+                        ? "Carta virada para baixo selecionada. Confirme a escolha."
                     : "Opção selecionada. Confirme para continuar.",
                 choiceModalAccent);
         }
@@ -585,9 +631,17 @@ namespace ArcaneArena
                     {
                         suffix = $"\nALOCADO: {amount}";
                     }
-                    visual.Label.text = ChoiceLabel(visual.Choice) + suffix;
+                    visual.Label.text = ChoiceTrayLabel(visual.Choice) + suffix;
                 }
             }
+        }
+
+        private string ChoiceTrayLabel(DuelChoice choice)
+        {
+            return choice != null && choice.CardCode != 0 &&
+                   !CanInspectChoiceIdentity(choice)
+                ? "CARTA VIRADA PARA BAIXO"
+                : ChoiceLabel(choice);
         }
 
         private void UpdateChoiceConfirmLabel(DuelPrompt prompt)

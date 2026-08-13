@@ -172,7 +172,10 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(fragments, Is.Not.Null);
             Assert.That(
                 fragments.GetComponentsInChildren<RectMask2D>(true),
-                Has.Length.EqualTo(9));
+                Has.Length.EqualTo(16));
+            Assert.That(
+                fragments.transform.Find("Impacto da Destruição"),
+                Is.Not.Null);
             Assert.That(state.Players[0].Graveyard[^1], Is.EqualTo(code));
             Assert.That(
                 state.Players[0].MonsterZones[sequence],
@@ -206,6 +209,9 @@ namespace ArcaneDuel.Tests.PlayMode
             RefreshAndBegin(arena, faceDownVisual);
             GameObject movingCard = GameObject.Find("Carta em Movimento");
             Assert.That(movingCard, Is.Not.Null);
+            Assert.That(
+                movingCard.transform.Find("Rastro da Carta"),
+                Is.Not.Null);
             Assert.That(
                 movingCard.GetComponent<Canvas>().overrideSorting,
                 Is.False,
