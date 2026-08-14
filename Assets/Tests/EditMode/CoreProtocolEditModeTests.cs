@@ -687,6 +687,17 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(
                 DuelPromptPresentationRules.DeclineChoice(prompt)?.Label,
                 Does.Contain("ativar"));
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticPass(
+                    prompt,
+                    ActivationPromptMode.Off,
+                    false,
+                    0,
+                    out _,
+                    out _),
+                Is.False,
+                "A direct card-effect question must remain visible even " +
+                "when optional Chain responses are disabled.");
         }
 
         [Test]
@@ -990,6 +1001,12 @@ namespace ArcaneDuel.Tests.EditMode
                 cancel.Response,
                 Is.EqualTo(CoreMessageDecoder.IntResponse(-1)));
             Assert.That(cancel.Response, Has.Length.EqualTo(4));
+            Assert.That(
+                DuelPromptPresentationRules.RequiresVisibleResponseTray(
+                    prompt),
+                Is.True,
+                "A Deck/Hand/field selection is a blocking Core decision " +
+                "and must recover its tray automatically.");
         }
 
         [Test]

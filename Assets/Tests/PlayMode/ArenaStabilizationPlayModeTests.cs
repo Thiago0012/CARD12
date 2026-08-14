@@ -2306,6 +2306,16 @@ namespace ArcaneDuel.Tests.PlayMode
             SetProperty(prompt, nameof(DuelPrompt.MinimumSelections), 1U);
             SetProperty(prompt, nameof(DuelPrompt.MaximumSelections), 2U);
 
+            var automaticShortcut = new DuelChoice();
+            SetProperty(automaticShortcut, nameof(DuelChoice.RequestId),
+                requestId);
+            SetProperty(automaticShortcut, nameof(DuelChoice.Label),
+                "Selecionar as primeiras 2");
+            SetProperty(automaticShortcut, nameof(DuelChoice.Response),
+                CoreMessageDecoder.CardSelectionResponse(
+                    new uint[] { 0, 1 }));
+            prompt.Choices.Add(automaticShortcut);
+
             DuelChoice first = LocatedActionChoice(
                 requestId,
                 "Selecionar carta 1",

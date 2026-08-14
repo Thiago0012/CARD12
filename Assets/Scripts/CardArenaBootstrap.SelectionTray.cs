@@ -30,6 +30,7 @@ namespace ArcaneArena
         private RectTransform choiceViewport;
         private ScrollRect choiceScroll;
         private Scrollbar choiceScrollbar;
+        private Text choiceInstruction;
         private DuelPrompt stagedChoicePrompt;
         private DuelChoice stagedSingleChoice;
         private GameObject compactResponseBar;
@@ -65,15 +66,25 @@ namespace ArcaneArena
                 20,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.06f, 0.82f),
-                new Vector2(0.94f, 0.95f),
+                new Vector2(0.06f, 0.865f),
+                new Vector2(0.94f, 0.965f),
+                TextAnchor.MiddleCenter);
+
+            choiceInstruction = CreateText(
+                choiceModal.transform,
+                "SELECIONE UMA OPÇÃO E CONFIRME",
+                11,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.055f, 0.775f),
+                new Vector2(0.945f, 0.855f),
                 TextAnchor.MiddleCenter);
 
             GameObject viewportObject = CreatePanel(
                 choiceModal.transform,
                 "Área de Escolhas",
                 new Vector2(0.055f, 0.23f),
-                new Vector2(0.945f, 0.80f),
+                new Vector2(0.945f, 0.755f),
                 new Color(0.003f, 0.018f, 0.032f, 0.56f));
             choiceViewport = viewportObject.GetComponent<RectTransform>();
             viewportObject.AddComponent<RectMask2D>();
@@ -136,6 +147,11 @@ namespace ArcaneArena
             if (prompt == null || choices == null || choices.Count == 0)
                 return;
 
+            IReadOnlyList<DuelChoice> presentedChoices =
+                PresentationChoices(prompt, choices);
+            if (presentedChoices.Count == 0)
+                presentedChoices = choices;
+
             int surfaceGeneration = OpenExclusiveDuelUiSurface(
                 DuelUiSurfaceKind.PromptPrimary,
                 prompt);
@@ -158,19 +174,20 @@ namespace ArcaneArena
             ResetChoiceSelectionState();
             stagedChoicePrompt = prompt;
             ApplyChoicePresentationProfile(prompt);
-            ResizeChoiceTray(choices);
+            ResizeChoiceTray(presentedChoices);
             ClearChildren(choiceContent);
             choiceModal.SetActive(true);
             choiceModal.transform.SetAsLastSibling();
             choiceTitle.text =
                 ChoicePresentationHeading(prompt).ToUpperInvariant();
+            UpdateChoiceInstruction(prompt);
             Canvas.ForceUpdateCanvases();
 
             float viewportWidth = Mathf.Max(
                 1f,
                 choiceViewport.rect.width);
-            float groupWidth = choices.Sum(ChoiceWidth) +
-                Mathf.Max(0, choices.Count - 1) * ChoiceCardSpacing;
+            float groupWidth = presentedChoices.Sum(ChoiceWidth) +
+                Mathf.Max(0, presentedChoices.Count - 1) * ChoiceCardSpacing;
             float contentWidth = Mathf.Max(viewportWidth, groupWidth + 28f);
             choiceContent.sizeDelta = new Vector2(contentWidth, 0f);
             choiceContent.anchoredPosition = Vector2.zero;
@@ -178,7 +195,8 @@ namespace ArcaneArena
             float cursor = start;
 
             foreach ((DuelChoice choice, int index) in
-                     choices.Select((choice, index) => (choice, index)))
+                     presentedChoices.Select(
+                         (choice, index) => (choice, index)))
             {
                 float width = ChoiceWidth(choice);
                 CreateChoiceTrayCard(
@@ -516,6 +534,7 @@ namespace ArcaneArena
                   IsStructuredSelectionValid(prompt)
                 : stagedSingleChoice != null;
             UpdateChoiceConfirmLabel(prompt);
+            UpdateChoiceInstruction(prompt);
             SetStatus(
                 CanInspectChoiceIdentity(choice)
                     ? $"{CardName(choice.CardCode)} selecionada. Confirme a escolha."
@@ -660,10 +679,34 @@ namespace ArcaneArena
 
         private string ChoiceTrayLabel(DuelChoice choice)
         {
-            return choice != null && choice.CardCode != 0 &&
-                   !CanInspectChoiceIdentity(choice)
+            string label = choice != null && choice.CardCode != 0 &&
+                           !CanInspectChoiceIdentity(choice)
                 ? "CARTA VIRADA PARA BAIXO"
                 : ChoiceLabel(choice);
+            if (choice == null || !choice.HasLocation ||
+                !IsCardSelectionMessage(stagedChoicePrompt?.Message))
+            {
+                return label;
+            }
+
+            string metadata = ChoiceLocationLabel(choice);
+            if (stagedChoicePrompt.Message == CoreMessage.SelectSum &&
+                choice.SumValue != 0)
+            {
+                uint first = choice.SumValue & 0xFFFF;
+                uint alternative = choice.SumValue >> 16;
+                metadata += alternative != 0 && alternative != first
+                    ? $" · VALOR {first} OU {alternative}"
+                    : $" · VALOR {first}";
+            }
+            else if (stagedChoicePrompt.Message ==
+                     CoreMessage.SelectTribute && choice.SumValue != 0)
+            {
+                metadata += $" · TRIBUTO {choice.SumValue}";
+            }
+            return string.IsNullOrWhiteSpace(metadata)
+                ? label
+                : label + "\n" + metadata;
         }
 
         private void UpdateChoiceConfirmLabel(DuelPrompt prompt)
@@ -678,6 +721,19 @@ namespace ArcaneArena
                 int total = selectedPromptAmounts.Values.Sum(
                     value => (int)value);
                 label.text = $"CONFIRMAR - {total}/{prompt.RequiredCounterCount}";
+                return;
+            }
+            if (IsMultiChoicePrompt(prompt) &&
+                stagedSingleChoice == null &&
+                prompt.Message == CoreMessage.SelectTribute)
+            {
+                uint tributeValue = (uint)prompt.Choices
+                    .Where(choice => choice != null &&
+                                     selectedPromptIndexes.Contains(
+                                         choice.ChoiceIndex))
+                    .Sum(choice => (long)choice.SumValue);
+                label.text = $"CONFIRMAR - TRIBUTO " +
+                             $"{tributeValue}/{prompt.MinimumSelections}";
                 return;
             }
             label.text = IsMultiChoicePrompt(prompt) &&

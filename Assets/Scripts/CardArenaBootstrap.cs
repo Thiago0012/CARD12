@@ -3604,8 +3604,8 @@ namespace ArcaneArena
             zoneBrowserTray = CreatePanel(
                 zoneBrowser.transform,
                 "Bandeja do Deck Adicional",
-                new Vector2(0.295f, 0.15f),
-                new Vector2(0.96f, 0.60f),
+                new Vector2(0.16f, 0.15f),
+                new Vector2(0.84f, 0.60f),
                 new Color(0.006f, 0.025f, 0.045f, 0.985f));
             ConfigureZoneBrowserTrayArtwork();
             AddOutline(zoneBrowserTray, Gold);
