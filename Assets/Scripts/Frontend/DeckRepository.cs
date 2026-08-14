@@ -15,7 +15,7 @@ namespace ArcaneArena.Frontend
     /// </summary>
     public sealed partial class DeckRepository
     {
-        private const int CurrentSchemaVersion = 9;
+        private const int CurrentSchemaVersion = 10;
         private const int StarterOnboardingSchemaVersion = 6;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;

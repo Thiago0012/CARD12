@@ -138,6 +138,13 @@ namespace ArcaneDuel.DuelEngine.Protocol
         public byte Location { get; internal set; }
         public uint Sequence { get; internal set; }
         public uint Position { get; internal set; }
+        /// <summary>
+        /// For an attack command, indicates that ocgcore allows this
+        /// attacker to declare a direct attack. Presentation code may expose
+        /// a direct-attack anchor, but the original response remains the
+        /// only command submitted to the Core.
+        /// </summary>
+        public bool DirectAttackAvailable { get; internal set; }
         public int ChoiceIndex { get; internal set; } = -1;
         /// <summary>
         /// Original candidate index emitted by ocgcore. This alias makes the
@@ -906,15 +913,17 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 byte controller = reader.Byte();
                 byte location = reader.Byte();
                 uint sequence = reader.Byte();
-                reader.Byte();
-                prompt.Choices.Add(Choice(
+                bool directAttackAvailable = reader.Byte() != 0;
+                DuelChoice attack = Choice(
                     "Atacar",
                     code,
                     IntResponse((i << 16) + 1),
                     controller,
                     location,
                     sequence,
-                    i));
+                    i);
+                attack.DirectAttackAvailable = directAttackAvailable;
+                prompt.Choices.Add(attack);
             }
             bool main2 = reader.Byte() != 0;
             bool end = reader.Byte() != 0;

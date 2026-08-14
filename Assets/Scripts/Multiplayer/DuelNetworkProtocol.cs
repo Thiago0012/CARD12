@@ -219,6 +219,7 @@ namespace ArcaneArena.Multiplayer
         public byte location;
         public uint sequence;
         public uint position;
+        public bool directAttackAvailable;
         public int choiceIndex;
         public ulong descriptionId;
         public uint sumValue;
@@ -1157,6 +1158,8 @@ namespace ArcaneArena.Multiplayer
                         location = choice.Location,
                         sequence = choice.Sequence,
                         position = choice.Position,
+                        directAttackAvailable =
+                            choice.DirectAttackAvailable,
                         choiceIndex = choice.ChoiceIndex,
                         descriptionId = hidden ? 0UL : choice.DescriptionId,
                         sumValue = hidden ? 0U : choice.SumValue
@@ -1295,6 +1298,8 @@ namespace ArcaneArena.Multiplayer
                     Location = sourceChoice.location,
                     Sequence = sourceChoice.sequence,
                     Position = sourceChoice.position,
+                    DirectAttackAvailable =
+                        sourceChoice.directAttackAvailable,
                     ChoiceIndex = sourceChoice.choiceIndex,
                     DescriptionId = sourceChoice.descriptionId,
                     SumValue = sourceChoice.sumValue
@@ -1640,6 +1645,9 @@ namespace ArcaneArena.Multiplayer
                 HashByte(ref hash, choice.location);
                 HashUInt(ref hash, choice.sequence);
                 HashUInt(ref hash, choice.position);
+                HashByte(
+                    ref hash,
+                    choice.directAttackAvailable ? (byte)1 : (byte)0);
                 HashInt(ref hash, choice.choiceIndex);
                 HashULong(ref hash, choice.descriptionId);
                 HashUInt(ref hash, choice.sumValue);

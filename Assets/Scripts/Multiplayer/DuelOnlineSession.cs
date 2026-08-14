@@ -35,7 +35,7 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelOnlineSession : MonoBehaviour
     {
         private const string DuelArenaScene = "DuelArena";
-        private const string ProtocolVersion = "arcane-duel-online-v11";
+        private const string ProtocolVersion = "arcane-duel-online-v12";
         private const string HelloMessage = "arcane.duel.hello.v4";
         private const string HelloRequestMessage = "arcane.duel.hello-request.v4";
         private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v4";
@@ -52,7 +52,7 @@ namespace ArcaneArena.Multiplayer
             "arcane.duel.presentation-event.v4";
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
-        private const ushort NgoProtocolVersion = 11;
+        private const ushort NgoProtocolVersion = 12;
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
@@ -175,6 +175,8 @@ namespace ArcaneArena.Multiplayer
             public ulong finalStateVersion;
             public long finishedAtServerTick;
             public int damageDealt;
+            public long statisticsDamageDealt;
+            public long statisticsDamageReceived;
             public int completedRounds;
             public bool winner;
             public bool draw;
@@ -416,6 +418,10 @@ namespace ArcaneArena.Multiplayer
         private string status = string.Empty;
         private int hostRewardDamage;
         private int clientRewardDamage;
+        private long hostStatisticsDamageDealt;
+        private long hostStatisticsDamageReceived;
+        private long clientStatisticsDamageDealt;
+        private long clientStatisticsDamageReceived;
         private int completedRewardRounds;
         private int currentRewardTurnPlayer = -1;
         private bool rewardPlayerZeroTurnEnded;
@@ -3074,12 +3080,24 @@ namespace ArcaneArena.Multiplayer
                     hostRewardDamage = Math.Min(
                         OnlineDuelCoinReward.MaximumDamage,
                         hostRewardDamage + damage);
+                    hostStatisticsDamageDealt = SaturatingDamageAdd(
+                        hostStatisticsDamageDealt,
+                        duelEvent.Value);
+                    clientStatisticsDamageReceived = SaturatingDamageAdd(
+                        clientStatisticsDamageReceived,
+                        duelEvent.Value);
                 }
                 else if (duelEvent.Player == 0)
                 {
                     clientRewardDamage = Math.Min(
                         OnlineDuelCoinReward.MaximumDamage,
                         clientRewardDamage + damage);
+                    clientStatisticsDamageDealt = SaturatingDamageAdd(
+                        clientStatisticsDamageDealt,
+                        duelEvent.Value);
+                    hostStatisticsDamageReceived = SaturatingDamageAdd(
+                        hostStatisticsDamageReceived,
+                        duelEvent.Value);
                 }
             }
             else if (duelEvent.Message == CoreMessage.NewTurn)
@@ -3110,6 +3128,14 @@ namespace ArcaneArena.Multiplayer
             status = "Duelo finalizado. Confirmando o resultado autoritativo...";
         }
 
+        private static long SaturatingDamageAdd(long current, uint amount)
+        {
+            long remaining = long.MaxValue - Math.Max(0L, current);
+            return amount >= (ulong)remaining
+                ? long.MaxValue
+                : Math.Max(0L, current) + amount;
+        }
+
         private void FinalizePendingAuthoritativeResult()
         {
             DuelEvent duelEvent = pendingTerminalEvent;
@@ -3133,6 +3159,8 @@ namespace ArcaneArena.Multiplayer
                     currentMatchId,
                     "seat0",
                     hostRewardDamage,
+                    hostStatisticsDamageDealt,
+                    hostStatisticsDamageReceived,
                     completedRewardRounds,
                     hostWon,
                     draw,
@@ -3210,6 +3238,8 @@ namespace ArcaneArena.Multiplayer
                     ? networkManager.ServerTime.Tick
                     : 0,
                 damageDealt = clientRewardDamage,
+                statisticsDamageDealt = clientStatisticsDamageDealt,
+                statisticsDamageReceived = clientStatisticsDamageReceived,
                 completedRounds = completedRewardRounds,
                 winner = clientWon,
                 draw = draw,
@@ -3300,6 +3330,8 @@ namespace ArcaneArena.Multiplayer
                     reward.matchId,
                     "seat1",
                     reward.damageDealt,
+                    reward.statisticsDamageDealt,
+                    reward.statisticsDamageReceived,
                     reward.completedRounds,
                     reward.winner,
                     reward.draw,
@@ -4962,6 +4994,10 @@ namespace ArcaneArena.Multiplayer
             nextWireCleanupTime = 0f;
             hostRewardDamage = 0;
             clientRewardDamage = 0;
+            hostStatisticsDamageDealt = 0;
+            hostStatisticsDamageReceived = 0;
+            clientStatisticsDamageDealt = 0;
+            clientStatisticsDamageReceived = 0;
             completedRewardRounds = 0;
             currentRewardTurnPlayer = -1;
             rewardPlayerZeroTurnEnded = false;

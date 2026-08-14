@@ -387,7 +387,7 @@ namespace ArcaneArena
                 new Vector2(0.39f, 0.045f),
                 new Vector2(0.61f, 0.18f),
                 Gold,
-                ClosePhaseNavigator);
+                ClosePhaseNavigatorFromUser);
             phaseNavigator.SetActive(false);
         }
 
@@ -421,6 +421,9 @@ namespace ArcaneArena
                 return;
             }
 
+            OpenExclusiveDuelUiSurface(
+                DuelUiSurfaceKind.PhaseNavigator,
+                prompt);
             CloseChoiceModal();
             CloseZoneBrowser();
             ClearHandSelection();
@@ -488,11 +491,14 @@ namespace ArcaneArena
         {
             if (phaseNavigator != null)
                 phaseNavigator.SetActive(false);
+            MarkDuelUiSurfaceClosed(DuelUiSurfaceKind.PhaseNavigator);
             SetDuelExperienceObscured(false);
         }
 
         private void SubmitPhaseNode(int index)
         {
+            if (activeDuelUiSurface != DuelUiSurfaceKind.PhaseNavigator)
+                return;
             if (index < 0 || index >= phaseNodeChoices.Length)
                 return;
             DuelChoice choice = phaseNodeChoices[index];

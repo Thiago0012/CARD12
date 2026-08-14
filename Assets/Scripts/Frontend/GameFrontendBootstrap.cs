@@ -3823,7 +3823,8 @@ namespace ArcaneArena.Frontend
 
         public void CompleteActiveBotDuel(
             byte winner,
-            long damageDealt = 0)
+            long damageDealt = 0,
+            long damageReceived = 0)
         {
             if (_repository != null &&
                 !string.IsNullOrWhiteSpace(_activeDuelStatisticsId))
@@ -3835,6 +3836,7 @@ namespace ArcaneArena.Frontend
                     false,
                     _activeDuelStatisticsRanked,
                     damageDealt,
+                    damageReceived,
                     out string statisticRejection);
                 if (!string.IsNullOrWhiteSpace(statisticRejection))
                     Debug.LogWarning("[Profile statistics] " + statisticRejection);

@@ -40,18 +40,51 @@ namespace ArcaneArena.Frontend
             AddOutline(identity.gameObject,
                 new Color(Cyan.r, Cyan.g, Cyan.b, 0.75f),
                 new Vector2(2f, -2f));
-            CreateHexIcon(identity.transform, "Ícone Equipado", _repository.EquippedIconId,
-                new Vector2(0.18f, 0.48f), new Vector2(0.82f, 0.91f));
-            CreateText(identity.transform, _repository.PlayerDisplayName, 30,
-                FontStyle.Bold, Color.white, new Vector2(0.06f, 0.36f),
-                new Vector2(0.94f, 0.48f), TextAnchor.MiddleCenter);
             RankPresentationModel rank = _repository.GetRankPresentation();
-            CreateText(identity.transform,
+            Text nickname = CreateText(
+                identity.transform,
+                _repository.PlayerDisplayName,
+                30,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.07f, 0.84f),
+                new Vector2(0.93f, 0.96f),
+                TextAnchor.MiddleCenter);
+            nickname.resizeTextMinSize = 18;
+            nickname.horizontalOverflow = HorizontalWrapMode.Wrap;
+            nickname.verticalOverflow = VerticalWrapMode.Truncate;
+
+            Image rankRow = CreatePanel(
+                identity.transform,
+                "Elo do Duelista",
+                new Vector2(0.09f, 0.72f),
+                new Vector2(0.91f, 0.83f),
+                new Color(0.015f, 0.055f, 0.09f, 0.82f));
+            CreateRankBadgeImage(
+                rankRow.transform,
+                "Símbolo do Elo",
+                rank.Tier,
+                new Vector2(0.08f, 0.08f),
+                new Vector2(0.28f, 0.92f),
+                1f);
+            CreateText(
+                rankRow.transform,
                 $"{RankRules.DisplayName(rank.Tier)}  •  {rank.Points} PE",
-                17, FontStyle.Bold, Gold, new Vector2(0.06f, 0.29f),
-                new Vector2(0.94f, 0.37f), TextAnchor.MiddleCenter);
+                17,
+                FontStyle.Bold,
+                Gold,
+                new Vector2(0.30f, 0.08f),
+                new Vector2(0.96f, 0.92f),
+                TextAnchor.MiddleLeft);
+
+            CreateHexIcon(
+                identity.transform,
+                "Ícone Equipado",
+                _repository.EquippedIconId,
+                new Vector2(0.18f, 0.23f),
+                new Vector2(0.82f, 0.70f));
             CreateButton(identity.transform, "EDITAR NOME",
-                new Vector2(0.16f, 0.09f), new Vector2(0.84f, 0.20f),
+                new Vector2(0.16f, 0.06f), new Vector2(0.84f, 0.18f),
                 Cyan, () => ShowPlayerNameEditor(true));
 
             Image detail = CreatePanel(
@@ -117,44 +150,381 @@ namespace ArcaneArena.Frontend
         {
             DuelStatisticsScope all = _repository.Statistics?.overall ??
                 new DuelStatisticsScope();
-            DuelStatisticsScope online = _repository.Statistics?.online ??
-                new DuelStatisticsScope();
-            DuelStatisticsScope ranked = _repository.Statistics?.ranked ??
-                new DuelStatisticsScope();
-            CreateText(parent, "TOTAL", 17, FontStyle.Bold, Gold,
-                new Vector2(0.035f, 0.73f), new Vector2(0.325f, 0.81f),
-                TextAnchor.MiddleLeft);
-            CreateText(parent, FormatStatistics(all), 14, FontStyle.Bold,
-                Color.white, new Vector2(0.035f, 0.10f),
-                new Vector2(0.325f, 0.73f), TextAnchor.UpperLeft);
-            CreateText(parent, "ONLINE", 17, FontStyle.Bold, Cyan,
-                new Vector2(0.355f, 0.73f), new Vector2(0.645f, 0.81f),
-                TextAnchor.MiddleLeft);
-            CreateText(parent, FormatStatistics(online), 14, FontStyle.Bold,
-                Color.white, new Vector2(0.355f, 0.10f),
-                new Vector2(0.645f, 0.73f), TextAnchor.UpperLeft);
-            CreateText(parent, "RANQUEADO", 17, FontStyle.Bold, Lime,
-                new Vector2(0.675f, 0.73f), new Vector2(0.965f, 0.81f),
-                TextAnchor.MiddleLeft);
-            CreateText(parent, FormatStatistics(ranked), 14, FontStyle.Bold,
-                Color.white, new Vector2(0.675f, 0.10f),
-                new Vector2(0.965f, 0.73f), TextAnchor.UpperLeft);
+            Canvas.ForceUpdateCanvases();
+            float measuredWidth = parent is RectTransform parentRect
+                ? parentRect.rect.width * 0.90f
+                : 0f;
+            float availableWidth = measuredWidth >= 280f
+                ? measuredWidth
+                : 900f;
+            int summaryColumns = availableWidth >= 880f
+                ? 4
+                : availableWidth >= 480f
+                    ? 2
+                    : 1;
+            int detailColumns = availableWidth >= 700f ? 2 : 1;
+
+            RectTransform content = CreateStatisticsScrollContent(parent);
+            AddStatisticsHeading(content, all);
+
+            float summaryCellWidth =
+                (availableWidth - 24f * (summaryColumns - 1)) /
+                summaryColumns;
+            GridLayoutGroup summary = CreateStatisticsGrid(
+                content,
+                "Resumo das Estatísticas",
+                summaryColumns,
+                new Vector2(summaryCellWidth, 92f),
+                92f * Mathf.CeilToInt(4f / summaryColumns) + 18f);
+            AddStatisticsSummaryCard(
+                summary.transform,
+                "DUELOS",
+                all.duelsPlayed.ToString("N0"),
+                Cyan);
+            AddStatisticsSummaryCard(
+                summary.transform,
+                "VITÓRIAS",
+                all.wins.ToString("N0"),
+                Lime);
+            AddStatisticsSummaryCard(
+                summary.transform,
+                "DERROTAS",
+                all.losses.ToString("N0"),
+                Danger);
+            double winRate = all.duelsPlayed > 0
+                ? all.wins * 100.0 / all.duelsPlayed
+                : 0.0;
+            AddStatisticsSummaryCard(
+                summary.transform,
+                "TAXA DE VITÓRIA",
+                $"{winRate:0.#}%",
+                Gold);
+
+            float detailCellWidth =
+                (availableWidth - 24f * (detailColumns - 1)) /
+                detailColumns;
+            int detailRows = Mathf.CeilToInt(4f / detailColumns);
+            GridLayoutGroup details = CreateStatisticsGrid(
+                content,
+                "Grupos de Estatísticas",
+                detailColumns,
+                new Vector2(detailCellWidth, 250f),
+                detailRows * 250f + Mathf.Max(0, detailRows - 1) * 20f + 18f);
+            AddStatisticsMetricCard(
+                details.transform,
+                "COMBATE",
+                $"Dano causado\n{all.damageDealt:N0}\n\n" +
+                $"Dano recebido\n{all.damageReceived:N0}\n\n" +
+                $"Maior dano causado em um duelo\n" +
+                $"{all.maxDamageDealtInSingleDuel:N0}\n\n" +
+                $"Maior dano recebido em um duelo\n" +
+                $"{all.maxDamageReceivedInSingleDuel:N0}",
+                Gold);
+            AddDuelProfileRadar(details.transform, all);
+            AddStatisticsMetricCard(
+                details.transform,
+                "INVOCAÇÕES E BATALHA",
+                $"Monstros invocados\n{all.monstersSummoned:N0}\n\n" +
+                $"Invocações-Especiais\n{all.specialSummons:N0}\n\n" +
+                $"Destruídos por batalha\n" +
+                $"{all.monstersDestroyedByBattle:N0}\n\n" +
+                $"Destruídos por efeito\n" +
+                $"{all.monstersDestroyedByEffect:N0}",
+                Cyan);
+            AddStatisticsMetricCard(
+                details.transform,
+                "MAGIAS E ARMADILHAS",
+                $"Magias ativadas\n{all.spellsActivated:N0}\n\n" +
+                $"Armadilhas ativadas\n{all.trapsActivated:N0}\n\n" +
+                $"Magias destruídas\n{all.spellsDestroyed:N0}\n\n" +
+                $"Armadilhas destruídas\n{all.trapsDestroyed:N0}",
+                Blue);
         }
 
-        private static string FormatStatistics(DuelStatisticsScope scope)
+        private static RectTransform CreateStatisticsScrollContent(
+            Transform parent)
         {
-            return $"Duelos: {scope.duelsPlayed:N0}\n" +
-                   $"Vitórias / Derrotas / Empates: {scope.wins:N0} / " +
-                   $"{scope.losses:N0} / {scope.draws:N0}\n" +
-                   $"Dano causado: {scope.damageDealt:N0}\n" +
-                   $"Monstros invocados: {scope.monstersSummoned:N0}\n" +
-                   $"Invocações-Especiais: {scope.specialSummons:N0}\n" +
-                   $"Magias ativadas: {scope.spellsActivated:N0}\n" +
-                   $"Armadilhas ativadas: {scope.trapsActivated:N0}\n" +
-                   $"Destruídos por batalha: {scope.monstersDestroyedByBattle:N0}\n" +
-                   $"Destruídos por efeito: {scope.monstersDestroyedByEffect:N0}\n" +
-                   $"Magias destruídas: {scope.spellsDestroyed:N0}\n" +
-                   $"Armadilhas destruídas: {scope.trapsDestroyed:N0}";
+            Image viewport = CreatePanel(
+                parent,
+                "Estatísticas Gerais",
+                new Vector2(0.025f, 0.045f),
+                new Vector2(0.975f, 0.815f),
+                new Color(0.003f, 0.014f, 0.026f, 0.78f));
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            GameObject contentObject = new(
+                "Conteúdo das Estatísticas Gerais",
+                typeof(RectTransform),
+                typeof(VerticalLayoutGroup),
+                typeof(ContentSizeFitter));
+            contentObject.transform.SetParent(viewport.transform, false);
+            RectTransform content = contentObject.GetComponent<RectTransform>();
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = new Vector2(1f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            content.offsetMin = new Vector2(22f, 0f);
+            content.offsetMax = new Vector2(-38f, 0f);
+            VerticalLayoutGroup layout =
+                contentObject.GetComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(8, 8, 12, 20);
+            layout.spacing = 16f;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+            ContentSizeFitter fitter =
+                contentObject.GetComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.viewport = viewport.rectTransform;
+            scroll.content = content;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.inertia = true;
+            scroll.decelerationRate = 0.12f;
+            scroll.scrollSensitivity = 46f;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+
+            Image track = CreatePanel(
+                viewport.transform,
+                "Rolagem das Estatísticas",
+                new Vector2(0.975f, 0.03f),
+                new Vector2(0.992f, 0.97f),
+                new Color(0.04f, 0.12f, 0.17f, 0.85f));
+            Image handle = CreatePanel(
+                track.transform,
+                "Alça",
+                new Vector2(0.08f, 0f),
+                new Vector2(0.92f, 0.32f),
+                Cyan);
+            Scrollbar scrollbar = track.gameObject.AddComponent<Scrollbar>();
+            scrollbar.handleRect = handle.rectTransform;
+            scrollbar.targetGraphic = handle;
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility =
+                ScrollRect.ScrollbarVisibility.AutoHide;
+            return content;
+        }
+
+        private static void AddStatisticsHeading(
+            Transform parent,
+            DuelStatisticsScope stats)
+        {
+            Image heading = CreateLayoutStatisticsPanel(
+                parent,
+                "Cabeçalho das Estatísticas",
+                88f,
+                new Color(0.01f, 0.06f, 0.095f, 0.94f));
+            CreateText(
+                heading.transform,
+                "ESTATÍSTICAS GERAIS",
+                27,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.025f, 0.46f),
+                new Vector2(0.975f, 0.94f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                heading.transform,
+                stats.duelsPlayed == 0
+                    ? "Nenhum duelo registrado. O perfil será preenchido ao concluir partidas válidas."
+                    : $"{stats.duelsPlayed:N0} duelo(s) válido(s) • " +
+                      $"{stats.draws:N0} empate(s)",
+                15,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.025f, 0.08f),
+                new Vector2(0.975f, 0.47f),
+                TextAnchor.MiddleLeft);
+        }
+
+        private static GridLayoutGroup CreateStatisticsGrid(
+            Transform parent,
+            string name,
+            int columns,
+            Vector2 cellSize,
+            float height)
+        {
+            GameObject gridObject = new(
+                name,
+                typeof(RectTransform),
+                typeof(GridLayoutGroup),
+                typeof(LayoutElement));
+            gridObject.transform.SetParent(parent, false);
+            LayoutElement element = gridObject.GetComponent<LayoutElement>();
+            element.minHeight = height;
+            element.preferredHeight = height;
+            GridLayoutGroup grid = gridObject.GetComponent<GridLayoutGroup>();
+            grid.cellSize = cellSize;
+            grid.spacing = new Vector2(24f, 20f);
+            grid.padding = new RectOffset(0, 0, 0, 0);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = Mathf.Max(1, columns);
+            grid.childAlignment = TextAnchor.UpperCenter;
+            return grid;
+        }
+
+        private static Image CreateLayoutStatisticsPanel(
+            Transform parent,
+            string name,
+            float height,
+            Color color)
+        {
+            Image panel = CreatePanel(
+                parent,
+                name,
+                Vector2.zero,
+                Vector2.one,
+                color);
+            LayoutElement element = panel.gameObject.AddComponent<LayoutElement>();
+            element.minHeight = height;
+            element.preferredHeight = height;
+            return panel;
+        }
+
+        private static void AddStatisticsSummaryCard(
+            Transform parent,
+            string label,
+            string value,
+            Color accent)
+        {
+            Image card = CreatePanel(
+                parent,
+                label,
+                Vector2.zero,
+                Vector2.one,
+                new Color(0.012f, 0.052f, 0.082f, 0.98f));
+            AddOutline(card.gameObject, accent, new Vector2(2f, -2f));
+            CreateText(card.transform, label, 14, FontStyle.Bold, Muted,
+                new Vector2(0.06f, 0.58f), new Vector2(0.94f, 0.92f),
+                TextAnchor.MiddleCenter);
+            CreateText(card.transform, value, 28, FontStyle.Bold, accent,
+                new Vector2(0.06f, 0.10f), new Vector2(0.94f, 0.62f),
+                TextAnchor.MiddleCenter);
+        }
+
+        private static void AddStatisticsMetricCard(
+            Transform parent,
+            string title,
+            string body,
+            Color accent)
+        {
+            Image card = CreatePanel(
+                parent,
+                title,
+                Vector2.zero,
+                Vector2.one,
+                new Color(0.008f, 0.035f, 0.058f, 0.98f));
+            AddOutline(card.gameObject, accent, new Vector2(2f, -2f));
+            CreateText(card.transform, title, 19, FontStyle.Bold, accent,
+                new Vector2(0.055f, 0.81f), new Vector2(0.945f, 0.95f),
+                TextAnchor.MiddleLeft);
+            Text metric = CreateText(
+                card.transform,
+                body,
+                17,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.055f, 0.07f),
+                new Vector2(0.945f, 0.81f),
+                TextAnchor.UpperLeft);
+            metric.lineSpacing = 0.90f;
+            metric.resizeTextMinSize = 13;
+        }
+
+        private static void AddDuelProfileRadar(
+            Transform parent,
+            DuelStatisticsScope stats)
+        {
+            Image card = CreatePanel(
+                parent,
+                "Perfil de Duelo",
+                Vector2.zero,
+                Vector2.one,
+                new Color(0.008f, 0.035f, 0.058f, 0.98f));
+            AddOutline(card.gameObject, Cyan, new Vector2(2f, -2f));
+            CreateText(card.transform, "PERFIL DE DUELO", 19,
+                FontStyle.Bold, Cyan, new Vector2(0.055f, 0.84f),
+                new Vector2(0.945f, 0.96f), TextAnchor.MiddleLeft);
+
+            GameObject radarObject = new(
+                "Gráfico Radar",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(DuelProfileRadarGraphic));
+            radarObject.transform.SetParent(card.transform, false);
+            RectTransform radarRect = radarObject.GetComponent<RectTransform>();
+            radarRect.anchorMin = new Vector2(0.23f, 0.13f);
+            radarRect.anchorMax = new Vector2(0.77f, 0.80f);
+            radarRect.offsetMin = Vector2.zero;
+            radarRect.offsetMax = Vector2.zero;
+            DuelProfileRadarGraphic radar =
+                radarObject.GetComponent<DuelProfileRadarGraphic>();
+            radar.raycastTarget = false;
+
+            float duels = Mathf.Max(1f, stats.duelsPlayed);
+            DuelStatsVisualizationConfig config =
+                DuelStatsVisualizationConfig.Resolve();
+            float[] raw =
+            {
+                stats.damageDealt / duels,
+                stats.monstersSummoned / duels,
+                stats.monstersDestroyedByBattle / duels,
+                stats.monstersDestroyedByEffect / duels,
+                (stats.spellsActivated + stats.spellsDestroyed) / duels,
+                (stats.trapsActivated + stats.trapsDestroyed) / duels
+            };
+            float[] values = stats.duelsPlayed == 0
+                ? new float[6]
+                : new[]
+                {
+                    DuelStatsVisualizationConfig.Normalize(
+                        raw[0], config.damagePerDuelCap),
+                    DuelStatsVisualizationConfig.Normalize(
+                        raw[1], config.summonsPerDuelCap),
+                    DuelStatsVisualizationConfig.Normalize(
+                        raw[2], config.battleDestroysPerDuelCap),
+                    DuelStatsVisualizationConfig.Normalize(
+                        raw[3], config.effectDestroysPerDuelCap),
+                    DuelStatsVisualizationConfig.Normalize(
+                        raw[4], config.spellActionsPerDuelCap),
+                    DuelStatsVisualizationConfig.Normalize(
+                        raw[5], config.trapActionsPerDuelCap)
+                };
+            radar.SetValues(values);
+
+            AddRadarLabel(card.transform, "DANO", raw[0],
+                new Vector2(0.39f, 0.73f), new Vector2(0.61f, 0.84f));
+            AddRadarLabel(card.transform, "INVOCAÇÕES", raw[1],
+                new Vector2(0.70f, 0.59f), new Vector2(0.98f, 0.72f));
+            AddRadarLabel(card.transform, "BATALHA", raw[2],
+                new Vector2(0.72f, 0.23f), new Vector2(0.98f, 0.38f));
+            AddRadarLabel(card.transform, "EFEITOS", raw[3],
+                new Vector2(0.39f, 0.03f), new Vector2(0.61f, 0.16f));
+            AddRadarLabel(card.transform, "MAGIAS", raw[4],
+                new Vector2(0.02f, 0.23f), new Vector2(0.28f, 0.38f));
+            AddRadarLabel(card.transform, "ARMADILHAS", raw[5],
+                new Vector2(0.02f, 0.59f), new Vector2(0.30f, 0.72f));
+        }
+
+        private static void AddRadarLabel(
+            Transform parent,
+            string label,
+            float value,
+            Vector2 min,
+            Vector2 max)
+        {
+            CreateText(
+                parent,
+                $"{label}\n{value:0.#}/duelo",
+                12,
+                FontStyle.Bold,
+                Color.white,
+                min,
+                max,
+                TextAnchor.MiddleCenter);
         }
 
         private void BuildOwnedIcons(Transform parent)

@@ -9,6 +9,8 @@ namespace ArcaneArena.Frontend
         private static Sprite _hexMaskSprite;
         private RawImage _portrait;
         private AspectRatioFitter _portraitFitter;
+        private Image _containerImage;
+        private Mask _mask;
 
         public string IconId { get; private set; } =
             ProfileIconCatalog.DefaultIconId;
@@ -17,6 +19,9 @@ namespace ArcaneArena.Frontend
         {
             EnsureHierarchy();
             IconId = ProfileIconCatalog.ResolveId(iconId);
+            ProfileIconDefinition definition =
+                ProfileIconCatalog.Resolve(IconId);
+            ApplyAssetMode(definition.AssetMode);
             Texture2D texture = ProfileIconCatalog.LoadTexture(IconId);
             _portrait.texture = texture;
             _portrait.uvRect = new Rect(0f, 0f, 1f, 1f);
@@ -27,13 +32,10 @@ namespace ArcaneArena.Frontend
 
         private void EnsureHierarchy()
         {
-            Image maskImage = GetComponent<Image>() ??
+            _containerImage = GetComponent<Image>() ??
                 gameObject.AddComponent<Image>();
-            maskImage.sprite = GetHexMaskSprite();
-            maskImage.color = Color.white;
-            maskImage.raycastTarget = false;
-            Mask mask = GetComponent<Mask>() ?? gameObject.AddComponent<Mask>();
-            mask.showMaskGraphic = false;
+            _containerImage.raycastTarget = false;
+            _mask = GetComponent<Mask>();
 
             if (_portrait == null)
             {
@@ -56,8 +58,30 @@ namespace ArcaneArena.Frontend
                 _portrait = portraitObject.GetComponent<RawImage>();
                 _portrait.raycastTarget = false;
                 _portraitFitter = portraitObject.GetComponent<AspectRatioFitter>();
-                _portraitFitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
             }
+        }
+
+        private void ApplyAssetMode(ProfileIconAssetMode assetMode)
+        {
+            bool preframed = assetMode == ProfileIconAssetMode.PreframedHex;
+            if (preframed)
+            {
+                if (_mask != null)
+                    _mask.enabled = false;
+                _containerImage.sprite = null;
+                _containerImage.color = Color.clear;
+                _portraitFitter.aspectMode =
+                    AspectRatioFitter.AspectMode.FitInParent;
+                return;
+            }
+
+            _containerImage.sprite = GetHexMaskSprite();
+            _containerImage.color = Color.white;
+            _mask ??= gameObject.AddComponent<Mask>();
+            _mask.enabled = true;
+            _mask.showMaskGraphic = false;
+            _portraitFitter.aspectMode =
+                AspectRatioFitter.AspectMode.EnvelopeParent;
         }
 
         private static Sprite GetHexMaskSprite()

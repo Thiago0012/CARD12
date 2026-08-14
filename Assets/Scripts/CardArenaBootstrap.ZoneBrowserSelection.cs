@@ -270,7 +270,7 @@ namespace ArcaneArena
 
         private void CancelZoneBrowserSelection()
         {
-            CloseZoneBrowser();
+            CloseZoneBrowserFromUser();
             SetStatus(
                 zoneBrowserSummonMode
                     ? "Invocação do Deck Adicional cancelada."

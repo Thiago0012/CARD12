@@ -77,7 +77,9 @@ namespace ArcaneArena.Frontend
         public bool TryApplyOnlineDuelReward(
             string matchId,
             string localPlayerId,
-            int damageDealt,
+            int rewardDamageDealt,
+            long statisticsDamageDealt,
+            long statisticsDamageReceived,
             int completedRounds,
             bool winner,
             bool draw,
@@ -102,7 +104,7 @@ namespace ArcaneArena.Frontend
                     isAuthoritativeFinal = true,
                     isWinner = winner,
                     isDraw = draw,
-                    totalOpponentDamage = damageDealt,
+                    totalOpponentDamage = rewardDamageDealt,
                     completedRounds = completedRounds,
                     eligibilityAtMatchStart = eligibilityAtMatchStart
                 },
@@ -120,7 +122,8 @@ namespace ArcaneArena.Frontend
                 draw,
                 true,
                 ranked,
-                damageDealt,
+                statisticsDamageDealt,
+                statisticsDamageReceived,
                 out string statisticRejection);
             if (!string.IsNullOrWhiteSpace(statisticRejection))
                 Debug.LogWarning("[Profile statistics] " + statisticRejection);

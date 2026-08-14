@@ -44,6 +44,9 @@ namespace ArcaneArena
 
             if (fieldActionPanel == null)
                 BuildFieldActionMenu();
+            int surfaceGeneration = OpenExclusiveDuelUiSurface(
+                DuelUiSurfaceKind.FieldAction,
+                prompt);
             ClearChildren(fieldActionPanel.transform);
             fieldActionZone = zone;
             fieldActionPrompt = prompt;
@@ -89,7 +92,7 @@ namespace ArcaneArena
                     Vector2.zero,
                     Vector2.zero,
                     accent,
-                    () => SubmitFieldAction(choice));
+                    () => SubmitFieldAction(choice, surfaceGeneration));
                 RectTransform rect = button.GetComponent<RectTransform>();
                 rect.anchorMin = rect.anchorMax =
                     new Vector2(0f, 0.5f);
@@ -106,10 +109,15 @@ namespace ArcaneArena
             UpdateFieldActionMenuPosition();
         }
 
-        private void SubmitFieldAction(DuelChoice choice)
+        private void SubmitFieldAction(
+            DuelChoice choice,
+            int surfaceGeneration)
         {
             DuelPrompt prompt = core?.CurrentPrompt;
-            if (choice == null ||
+            if (!IsDuelUiGenerationCurrent(
+                    surfaceGeneration,
+                    DuelUiSurfaceKind.FieldAction) ||
+                choice == null ||
                 !SamePromptIdentity(prompt, fieldActionPrompt) ||
                 !CoreCardActionBinding.BelongsToRequest(prompt, choice))
             {
@@ -131,6 +139,9 @@ namespace ArcaneArena
                 return;
             }
 
+            DuelZone3D attackSource = fieldActionZone;
+            if (Contains(choice.Label, "Atacar"))
+                PrepareAttackTargeting(attackSource, choice);
             CloseFieldActionMenu();
             core.SubmitChoice(choice);
             RefreshEverything(true);
@@ -218,6 +229,7 @@ namespace ArcaneArena
             fieldActionZone = null;
             fieldActionPrompt = null;
             fieldActionEffectChoices.Clear();
+            MarkDuelUiSurfaceClosed(DuelUiSurfaceKind.FieldAction);
         }
     }
 }

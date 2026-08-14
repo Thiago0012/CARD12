@@ -192,6 +192,7 @@ namespace ArcaneArena.Frontend
             bool online,
             bool ranked,
             long damageDealt,
+            long damageReceived,
             out string rejection)
         {
             rejection = string.Empty;
@@ -203,11 +204,26 @@ namespace ArcaneArena.Frontend
             if (State.statistics.processedResultIds.Contains(resultId))
                 return true;
 
-            ApplyResult(State.statistics.overall, winner, draw, damageDealt);
+            ApplyResult(
+                State.statistics.overall,
+                winner,
+                draw,
+                damageDealt,
+                damageReceived);
             if (online)
-                ApplyResult(State.statistics.online, winner, draw, damageDealt);
+                ApplyResult(
+                    State.statistics.online,
+                    winner,
+                    draw,
+                    damageDealt,
+                    damageReceived);
             if (ranked)
-                ApplyResult(State.statistics.ranked, winner, draw, damageDealt);
+                ApplyResult(
+                    State.statistics.ranked,
+                    winner,
+                    draw,
+                    damageDealt,
+                    damageReceived);
             State.statistics.processedResultIds.Add(resultId);
             if (State.statistics.processedResultIds.Count >
                 MaximumProcessedStatisticResults)
@@ -225,8 +241,11 @@ namespace ArcaneArena.Frontend
             DuelStatisticsScope scope,
             bool winner,
             bool draw,
-            long damageDealt)
+            long damageDealt,
+            long damageReceived)
         {
+            long dealt = Math.Max(0, damageDealt);
+            long received = Math.Max(0, damageReceived);
             scope.duelsPlayed++;
             if (draw)
                 scope.draws++;
@@ -234,7 +253,14 @@ namespace ArcaneArena.Frontend
                 scope.wins++;
             else
                 scope.losses++;
-            scope.damageDealt += Math.Max(0, damageDealt);
+            scope.damageDealt += dealt;
+            scope.damageReceived += received;
+            scope.maxDamageDealtInSingleDuel = Math.Max(
+                scope.maxDamageDealtInSingleDuel,
+                dealt);
+            scope.maxDamageReceivedInSingleDuel = Math.Max(
+                scope.maxDamageReceivedInSingleDuel,
+                received);
         }
 
         public bool TryRecordAuthoritativeStatisticEvent(

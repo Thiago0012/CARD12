@@ -534,6 +534,48 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void BattlePromptPreservesAndHashesDirectAttackPermission()
+        {
+            var prompt = new DuelPrompt();
+            SetProperty(prompt, nameof(DuelPrompt.RequestId), 7654UL);
+            SetProperty(prompt, nameof(DuelPrompt.Message),
+                CoreMessage.SelectBattleCommand);
+            SetProperty(prompt, nameof(DuelPrompt.Player), (byte)0);
+
+            var attack = new DuelChoice();
+            SetProperty(attack, nameof(DuelChoice.RequestId), 7654UL);
+            SetProperty(attack, nameof(DuelChoice.Label), "Atacar");
+            SetProperty(attack, nameof(DuelChoice.CardCode), HostXyz);
+            SetProperty(attack, nameof(DuelChoice.Response),
+                CoreMessageDecoder.IntResponse(1));
+            SetProperty(attack, nameof(DuelChoice.HasLocation), true);
+            SetProperty(attack, nameof(DuelChoice.Controller), (byte)0);
+            SetProperty(attack, nameof(DuelChoice.Location),
+                (byte)DuelLocation.MonsterZone);
+            SetProperty(attack, nameof(DuelChoice.Sequence), 2U);
+            SetProperty(attack, nameof(DuelChoice.DirectAttackAvailable), true);
+            prompt.Choices.Add(attack);
+
+            object allowed = CreateState(CreatePopulatedHostState(), prompt);
+            object wireChoice = Field<Array>(
+                Field<object>(allowed, "prompt"),
+                "choices").GetValue(0);
+            Assert.That(Field<bool>(wireChoice, "directAttackAvailable"),
+                Is.True);
+            DuelPrompt restored = Apply(
+                allowed,
+                new DuelPresentationState(null));
+            Assert.That(restored.Choices.Single().DirectAttackAvailable,
+                Is.True);
+
+            ulong allowedHash = Field<ulong>(allowed, "publicStateHash");
+            SetProperty(attack, nameof(DuelChoice.DirectAttackAvailable), false);
+            object denied = CreateState(CreatePopulatedHostState(), prompt);
+            Assert.That(Field<ulong>(denied, "publicStateHash"),
+                Is.Not.EqualTo(allowedHash));
+        }
+
+        [Test]
         public void ChainingEventKeepsPublicEffectIdentityForRemotePlayer()
         {
             const ulong descriptionId = ((ulong)92962242 << 20) | 4;

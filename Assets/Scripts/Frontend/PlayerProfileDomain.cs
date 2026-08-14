@@ -27,6 +27,9 @@ namespace ArcaneArena.Frontend
         public long spellsActivated;
         public long trapsActivated;
         public long damageDealt;
+        public long damageReceived;
+        public long maxDamageDealtInSingleDuel;
+        public long maxDamageReceivedInSingleDuel;
         public long monstersSummoned;
         public long specialSummons;
 
@@ -43,6 +46,13 @@ namespace ArcaneArena.Frontend
             spellsActivated = Math.Max(0, spellsActivated);
             trapsActivated = Math.Max(0, trapsActivated);
             damageDealt = Math.Max(0, damageDealt);
+            damageReceived = Math.Max(0, damageReceived);
+            maxDamageDealtInSingleDuel = Math.Max(
+                0,
+                maxDamageDealtInSingleDuel);
+            maxDamageReceivedInSingleDuel = Math.Max(
+                0,
+                maxDamageReceivedInSingleDuel);
             monstersSummoned = Math.Max(0, monstersSummoned);
             specialSummons = Math.Max(0, specialSummons);
         }
@@ -108,19 +118,29 @@ namespace ArcaneArena.Frontend
         public string ResourcePath { get; }
         public int PriceCoins { get; }
         public bool IsPurchasable { get; }
+        public ProfileIconAssetMode AssetMode { get; }
 
         public ProfileIconDefinition(
             string iconId,
             string displayName,
             string resourcePath,
-            bool isPurchasable)
+            bool isPurchasable,
+            ProfileIconAssetMode assetMode =
+                ProfileIconAssetMode.PreframedHex)
         {
             IconId = iconId;
             DisplayName = displayName;
             ResourcePath = resourcePath;
             PriceCoins = isPurchasable ? ProfileIconCatalog.IconPriceCoins : 0;
             IsPurchasable = isPurchasable;
+            AssetMode = assetMode;
         }
+    }
+
+    public enum ProfileIconAssetMode
+    {
+        PreframedHex,
+        UnframedPortrait
     }
 
     public static class ProfileIconCatalog

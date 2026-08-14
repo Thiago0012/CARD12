@@ -124,6 +124,7 @@ namespace ArcaneArena
         private bool statisticsOnline;
         private bool statisticsRanked;
         private long localDamageDealtInDuel;
+        private long localDamageReceivedInDuel;
         private ulong confirmedStatisticEventSequence;
         private Text status;
         private Button phaseButton;
@@ -218,6 +219,7 @@ namespace ArcaneArena
             presentationReady = false;
             criticalInteractionLocked = false;
             phasePresentationLocked = false;
+            CancelAttackTargeting();
             if (core != null)
             {
                 core.CoreEventPresented -= OnCoreEvent;
@@ -262,7 +264,8 @@ namespace ArcaneArena
         {
             GameFrontendBootstrap.Instance?.CompleteActiveBotDuel(
                 winner,
-                localDamageDealtInDuel);
+                localDamageDealtInDuel,
+                localDamageReceivedInDuel);
         }
 
         public void ApplyDuelIdentities(
@@ -291,6 +294,8 @@ namespace ArcaneArena
 
         private void Update()
         {
+            HandleDuelUiBackInput();
+            UpdateAttackTargetingPointer();
             UpdateDuelExperienceAnimation();
             UpdateDrawRevealFastForward();
             RecoverStalledTurnFlowPresentation();
@@ -356,6 +361,7 @@ namespace ArcaneArena
             DuelDeckLoadout requestedPlayer)
         {
             localDamageDealtInDuel = 0;
+            localDamageReceivedInDuel = 0;
             confirmedStatisticEventSequence = 0;
             statisticsOnline = false;
             statisticsRanked = GameFrontendBootstrap.ActiveDuelStatisticsRanked;
@@ -671,6 +677,13 @@ namespace ArcaneArena
                 ResetTurnFlowPresentation(true);
                 ResetCardSoundPresentation();
                 ResetPromptPresentationIdentity();
+                RestartAttackTargetingAfterRetry();
+            }
+            else if (duelEvent.Message == CoreMessage.Attack ||
+                     duelEvent.Message == CoreMessage.AttackDisabled ||
+                     duelEvent.Message == CoreMessage.Win)
+            {
+                CancelAttackTargeting();
             }
             PrepareTurnFlowPresentation(duelEvent);
             RefreshEverything(true);
@@ -687,6 +700,9 @@ namespace ArcaneArena
 
             if (duelEvent.Message == CoreMessage.Damage && duelEvent.Player == 1)
                 localDamageDealtInDuel += duelEvent.Value;
+            else if (duelEvent.Message == CoreMessage.Damage &&
+                     duelEvent.Player == 0)
+                localDamageReceivedInDuel += duelEvent.Value;
 
             DuelStatisticEventType? statistic = null;
             switch (duelEvent.Message)
@@ -718,6 +734,19 @@ namespace ArcaneArena
                         statistic = DuelStatisticEventType.MonsterDestroyedByBattle;
                     }
                     break;
+                case CoreMessage.Move
+                    when IsDestroyedByKnownLocalEffect(duelEvent):
+                    if (database != null &&
+                        database.TryGet(duelEvent.Code, out CardRecord destroyed))
+                    {
+                        if ((destroyed.Type & 0x1U) != 0U)
+                            statistic = DuelStatisticEventType.MonsterDestroyedByEffect;
+                        else if ((destroyed.Type & 0x2U) != 0U)
+                            statistic = DuelStatisticEventType.SpellDestroyed;
+                        else if ((destroyed.Type & 0x4U) != 0U)
+                            statistic = DuelStatisticEventType.TrapDestroyed;
+                    }
+                    break;
             }
             if (!statistic.HasValue)
                 return;
@@ -735,6 +764,28 @@ namespace ArcaneArena
                 1,
                 statisticsOnline,
                 statisticsRanked);
+        }
+
+        private bool IsDestroyedByKnownLocalEffect(DuelEvent duelEvent)
+        {
+            const uint reasonDestroy = 0x1U;
+            const uint reasonBattle = 0x20U;
+            const uint reasonEffect = 0x40U;
+            if (duelEvent?.Previous == null || duelEvent.Current == null ||
+                duelEvent.Previous.Controller != 1 ||
+                (duelEvent.Previous.Location &
+                 (DuelLocation.MonsterZone | DuelLocation.SpellTrapZone)) == 0 ||
+                (duelEvent.Value & reasonDestroy) == 0 ||
+                (duelEvent.Value & reasonEffect) == 0 ||
+                (duelEvent.Value & reasonBattle) != 0)
+            {
+                return false;
+            }
+
+            return state?.ChainLinks
+                .OrderBy(link => link.ChainIndex)
+                .LastOrDefault()
+                ?.Player == 0;
         }
 
         private void OnPresentationStateChanged()
@@ -944,7 +995,7 @@ namespace ArcaneArena
             Button closeButton =
                 close != null ? close.GetComponent<Button>() : null;
             if (closeButton != null)
-                closeButton.onClick.AddListener(CloseCardDetails);
+                closeButton.onClick.AddListener(CloseCardDetailsFromUser);
 
             Transform information =
                 FindTransform(detailPanel.transform, "Informacoes") ??
@@ -1812,6 +1863,7 @@ namespace ArcaneArena
 
         private bool RefreshPrompt(DuelPrompt prompt)
         {
+            AbandonAttackTargetingIfSuperseded(prompt);
             ClearZoneHighlights();
             HideCompactResponseBar();
             CloseChoiceModal();
@@ -1888,6 +1940,14 @@ namespace ArcaneArena
                 return true;
             }
 
+            if (TryPresentAttackTargeting(prompt))
+                return true;
+            if (prompt.Message == CoreMessage.SelectBattleCommand &&
+                pendingAttackSource != null)
+            {
+                CancelAttackTargeting();
+            }
+
             switch (prompt.Message)
             {
                 case CoreMessage.SelectIdleCommand:
@@ -1961,7 +2021,19 @@ namespace ArcaneArena
 
         public void HandleZoneClick(DuelZone3D zone, int clickCount)
         {
+            HandleZoneClick(zone, clickCount, -1);
+        }
+
+        public void HandleZoneClick(
+            DuelZone3D zone,
+            int clickCount,
+            int pointerId)
+        {
             if (zone == null || core == null) return;
+            if (IsDuelUiInputBlockedThisFrame)
+                return;
+            if (TrySubmitAttackTargetFromZone(zone, pointerId))
+                return;
             if (TryHandleDrawDeckClick(zone))
                 return;
             if (InteractionLocked)
@@ -2074,6 +2146,8 @@ namespace ArcaneArena
 
         public void HandleZoneHover(DuelZone3D zone, bool hovered)
         {
+            if (zone != null && UpdateAttackTargetHover(zone, hovered))
+                return;
             if (!hovered || zone == null || !presentationReady)
                 return;
             if (choiceModal?.activeInHierarchy == true ||
@@ -2818,6 +2892,16 @@ namespace ArcaneArena
             {
                 return;
             }
+            bool contextualInspector =
+                choiceModal?.activeInHierarchy == true ||
+                compactResponseBar?.activeInHierarchy == true ||
+                zoneBrowser?.activeInHierarchy == true;
+            if (!contextualInspector)
+            {
+                OpenExclusiveDuelUiSurface(
+                    DuelUiSurfaceKind.CardInspector,
+                    core?.CurrentPrompt);
+            }
             inspectedCode = code;
             inspectedZone = zone;
             CardCatalogEntry legacy = LegacyEntryFor(code);
@@ -3309,12 +3393,7 @@ namespace ArcaneArena
 
         private void CloseCardDetails()
         {
-            if (detailPanel != null)
-                detailPanel.SetActive(false);
-            if (detailZoomOverlay != null)
-                detailZoomOverlay.SetActive(false);
-            inspectedCode = 0;
-            inspectedZone = null;
+            HideCardInspectorVisuals();
         }
 
         private void OpenPhaseChoices()
@@ -3496,6 +3575,7 @@ namespace ArcaneArena
         {
             if (choiceModal != null) choiceModal.SetActive(false);
             ResetChoiceSelectionState();
+            MarkDuelUiSurfaceClosed(DuelUiSurfaceKind.PromptPrimary);
             SetDuelExperienceObscured(false);
         }
 
@@ -3510,7 +3590,7 @@ namespace ArcaneArena
             var dismissButton = zoneBrowser.AddComponent<Button>();
             dismissButton.targetGraphic = zoneBrowser.GetComponent<Image>();
             dismissButton.transition = Selectable.Transition.None;
-            dismissButton.onClick.AddListener(CloseZoneBrowser);
+            dismissButton.onClick.AddListener(CloseZoneBrowserFromUser);
 
             zoneBrowserTray = CreatePanel(
                 zoneBrowser.transform,
@@ -3638,6 +3718,9 @@ namespace ArcaneArena
                 InspectZone(zone);
                 return;
             }
+            int surfaceGeneration = OpenExclusiveDuelUiSurface(
+                DuelUiSurfaceKind.ZoneBrowser,
+                prompt);
             ResizeZoneBrowserTray(entries.Count);
             ResetZoneBrowserSelection(prompt);
             ConfigureZoneBrowserActionMode(summonMode);
@@ -3658,7 +3741,8 @@ namespace ArcaneArena
                     entry.Code,
                     index,
                     prompt,
-                    entry.LegalChoices);
+                    entry.LegalChoices,
+                    surfaceGeneration);
             }
             if (entries.Count == 0)
             {
@@ -3684,7 +3768,8 @@ namespace ArcaneArena
             uint code,
             int index,
             DuelPrompt prompt,
-            IReadOnlyList<DuelChoice> legalChoices)
+            IReadOnlyList<DuelChoice> legalChoices,
+            int surfaceGeneration)
         {
             bool canUse = legalChoices != null && legalChoices.Count > 0;
             GameObject card = CreatePanel(
@@ -3714,11 +3799,20 @@ namespace ArcaneArena
             IReadOnlyList<DuelChoice> capturedChoices =
                 legalChoices?.ToArray();
             inspectButton.onClick.AddListener(
-                () => StageZoneBrowserSelection(
-                    code,
-                    prompt,
-                    capturedChoices,
-                    cardOutline));
+                () =>
+                {
+                    if (!IsDuelUiGenerationCurrent(
+                            surfaceGeneration,
+                            DuelUiSurfaceKind.ZoneBrowser))
+                    {
+                        return;
+                    }
+                    StageZoneBrowserSelection(
+                        code,
+                        prompt,
+                        capturedChoices,
+                        cardOutline);
+                });
         }
 
         private void SubmitZoneBrowserAction(
@@ -3747,6 +3841,7 @@ namespace ArcaneArena
         {
             if (zoneBrowser != null) zoneBrowser.SetActive(false);
             ResetZoneBrowserSelection();
+            MarkDuelUiSurfaceClosed(DuelUiSurfaceKind.ZoneBrowser);
             SetDuelExperienceObscured(false);
         }
 
@@ -3761,59 +3856,17 @@ namespace ArcaneArena
             DuelZone3D zone,
             Vector2 screenPosition)
         {
-            if (InteractionLocked ||
-                zone == null || core.CurrentPrompt?.Message !=
-                CoreMessage.SelectBattleCommand)
-                return;
-            DuelChoice attack = ChoicesForCard(
-                    core.CurrentPrompt,
-                    CodeAt(zone),
-                    StatePlayerForZone(zone),
-                    (byte)DuelLocation.MonsterZone,
-                    zone.ZoneIndex)
-                .FirstOrDefault(choice => Contains(choice.Label, "Atacar"));
-            if (attack == null) return;
-            draggingAttacker = zone;
-            EnsureAttackLine();
-            UpdateMonsterAttackDrag(screenPosition);
+            BeginMonsterAttackDrag(zone, screenPosition, -1);
         }
 
         public void UpdateMonsterAttackDrag(Vector2 screenPosition)
         {
-            if (draggingAttacker == null || attackLine == null ||
-                Camera.main == null)
-                return;
-            Vector3 start =
-                draggingAttacker.transform.position + Vector3.up * 0.7f;
-            Ray ray = Camera.main.ScreenPointToRay(screenPosition);
-            Vector3 end = ray.origin + ray.direction * 14f;
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
-                end = hit.point + Vector3.up * 0.25f;
-            attackLine.SetPosition(0, start);
-            attackLine.SetPosition(1, end);
-            attackLine.enabled = true;
+            UpdateMonsterAttackDrag(screenPosition, -1);
         }
 
         public void EndMonsterAttackDrag(Vector2 screenPosition)
         {
-            if (InteractionLocked ||
-                draggingAttacker == null) return;
-            DuelZone3D attacker = draggingAttacker;
-            draggingAttacker = null;
-            if (attackLine != null) attackLine.enabled = false;
-
-            DuelChoice attack = ChoicesForCard(
-                    core.CurrentPrompt,
-                    CodeAt(attacker),
-                    StatePlayerForZone(attacker),
-                    (byte)DuelLocation.MonsterZone,
-                    attacker.ZoneIndex)
-                .FirstOrDefault(choice => Contains(choice.Label, "Atacar"));
-            if (attack == null) return;
-            core.SubmitChoice(attack);
-            if (TryRaycastZone(screenPosition, out DuelZone3D target))
-                HandleZoneClick(target, 1);
-            RefreshEverything(true);
+            EndMonsterAttackDrag(screenPosition, -1);
         }
 
         private void EnsureAttackLine()

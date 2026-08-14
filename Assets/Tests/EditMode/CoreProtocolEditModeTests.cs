@@ -62,6 +62,37 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void BattleCommandPreservesTheCoresDirectAttackPermission()
+        {
+            var payload = new List<byte> { 0 };
+            UInt32(payload, 0); // ativações disponíveis
+            UInt32(payload, 1); // monstros que podem atacar
+            UInt32(payload, 46986414);
+            payload.Add(0);
+            payload.Add((byte)DuelLocation.MonsterZone);
+            payload.Add(2);
+            payload.Add(1); // ocgcore autoriza ataque direto
+            payload.Add(1); // Main Phase 2
+            payload.Add(1); // End Phase
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectBattleCommand,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+            DuelChoice attack = prompt.Choices.Single(choice =>
+                choice.Label == "Atacar");
+
+            Assert.That(attack.Sequence, Is.EqualTo(2));
+            Assert.That(attack.DirectAttackAvailable, Is.True);
+            Assert.That(
+                attack.Response,
+                Is.EqualTo(CoreMessageDecoder.IntResponse(1)));
+        }
+
+        [Test]
         public void DecoderReadsEquipMessageProperly()
         {
             var payload = new List<byte>();

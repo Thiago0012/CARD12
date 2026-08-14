@@ -24,6 +24,10 @@ namespace ArcaneDuel.Tests.EditMode
                 (int)Property(icon, "PriceCoins") == 35), Is.True);
             Assert.That(icons.Count(icon =>
                 !(bool)Property(icon, "IsPurchasable")), Is.EqualTo(1));
+            Assert.That(icons.All(icon =>
+                Property(icon, "AssetMode").ToString() == "PreframedHex"),
+                Is.True,
+                "Os 10 ícones atuais já incluem sua própria borda hexagonal.");
         }
 
         [Test]
@@ -129,13 +133,13 @@ namespace ArcaneDuel.Tests.EditMode
                 MethodInfo recordResult = repository.GetType().GetMethod(
                     "TryRecordAuthoritativeDuelResult");
                 object[] result =
-                    { "match-1", true, false, true, true, 2500L, null };
+                    { "match-1", true, false, true, true, 2500L, 900L, null };
                 Assert.That((bool)recordResult.Invoke(repository, result), Is.True,
-                    result[6] as string);
+                    result[7] as string);
                 object[] resultReplay =
-                    { "match-1", true, false, true, true, 2500L, null };
+                    { "match-1", true, false, true, true, 2500L, 900L, null };
                 Assert.That((bool)recordResult.Invoke(repository, resultReplay),
-                    Is.True, resultReplay[6] as string);
+                    Is.True, resultReplay[7] as string);
 
                 object statistics = Property(repository, "Statistics");
                 foreach (string scopeName in new[] { "overall", "online", "ranked" })
@@ -144,6 +148,13 @@ namespace ArcaneDuel.Tests.EditMode
                     Assert.That(Field(scope, "duelsPlayed"), Is.EqualTo(1L));
                     Assert.That(Field(scope, "wins"), Is.EqualTo(1L));
                     Assert.That(Field(scope, "damageDealt"), Is.EqualTo(2500L));
+                    Assert.That(Field(scope, "damageReceived"), Is.EqualTo(900L));
+                    Assert.That(
+                        Field(scope, "maxDamageDealtInSingleDuel"),
+                        Is.EqualTo(2500L));
+                    Assert.That(
+                        Field(scope, "maxDamageReceivedInSingleDuel"),
+                        Is.EqualTo(900L));
                     Assert.That(Field(scope, "specialSummons"), Is.EqualTo(1L));
                     Assert.That(Field(scope, "monstersSummoned"), Is.EqualTo(1L));
                 }
@@ -152,6 +163,70 @@ namespace ArcaneDuel.Tests.EditMode
             {
                 DeleteSave(path);
             }
+        }
+
+        [Test]
+        public void LegacyStatisticsMigrateWithoutResettingExistingCounters()
+        {
+            string path = TemporarySave("statistics-migration");
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(
+                    path,
+                    "{\"schemaVersion\":9,\"statistics\":{" +
+                    "\"overall\":{\"duelsPlayed\":7," +
+                    "\"wins\":4,\"damageDealt\":12345}," +
+                    "\"online\":{},\"ranked\":{}}}");
+
+                object repository = CreateRepository(path);
+                object state = Property(repository, "State");
+                object statistics = Property(repository, "Statistics");
+                object overall = Field(statistics, "overall");
+
+                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(10));
+                Assert.That(Field(overall, "duelsPlayed"), Is.EqualTo(7L));
+                Assert.That(Field(overall, "wins"), Is.EqualTo(4L));
+                Assert.That(Field(overall, "damageDealt"), Is.EqualTo(12345L));
+                Assert.That(Field(overall, "damageReceived"), Is.EqualTo(0L));
+                Assert.That(
+                    Field(overall, "maxDamageDealtInSingleDuel"),
+                    Is.EqualTo(0L));
+                Assert.That(
+                    Field(overall, "maxDamageReceivedInSingleDuel"),
+                    Is.EqualTo(0L));
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
+        [Test]
+        public void DuelProfileNormalizationIsSafeForEmptyProfiles()
+        {
+            Type config = FindType(
+                "ArcaneArena.Frontend.DuelStatsVisualizationConfig");
+            MethodInfo normalize = config.GetMethod(
+                "Normalize",
+                BindingFlags.Public | BindingFlags.Static);
+            MethodInfo resolve = config.GetMethod(
+                "Resolve",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(normalize, Is.Not.Null);
+            Assert.That(resolve, Is.Not.Null);
+            object configuredCaps = resolve.Invoke(null, null);
+            Assert.That(Field(configuredCaps, "damagePerDuelCap"),
+                Is.EqualTo(8000f));
+            Assert.That(
+                (float)normalize.Invoke(null, new object[] { 100f, 0f }),
+                Is.EqualTo(1f));
+            Assert.That(
+                (float)normalize.Invoke(null, new object[] { 0f, 0f }),
+                Is.Zero);
+            Assert.That(
+                (float)normalize.Invoke(null, new object[] { -10f, 100f }),
+                Is.Zero);
         }
 
         [Test]

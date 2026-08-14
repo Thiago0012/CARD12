@@ -466,7 +466,8 @@ namespace ArcaneArena
             }
             FindAnyObjectByType<CardArenaBootstrap>()?.HandleZoneClick(
                 this,
-                eventData.clickCount);
+                eventData.clickCount,
+                eventData.pointerId);
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -500,19 +501,22 @@ namespace ArcaneArena
         {
             FindAnyObjectByType<CardArenaBootstrap>()?.BeginMonsterAttackDrag(
                 this,
-                eventData.position);
+                eventData.position,
+                eventData.pointerId);
         }
 
         public void OnDrag(PointerEventData eventData)
         {
             FindAnyObjectByType<CardArenaBootstrap>()?.UpdateMonsterAttackDrag(
-                eventData.position);
+                eventData.position,
+                eventData.pointerId);
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
             FindAnyObjectByType<CardArenaBootstrap>()?.EndMonsterAttackDrag(
-                eventData.position);
+                eventData.position,
+                eventData.pointerId);
         }
 
         private static DuelZoneKind KindFromName(string objectName)

@@ -136,6 +136,9 @@ namespace ArcaneArena
             if (prompt == null || choices == null || choices.Count == 0)
                 return;
 
+            int surfaceGeneration = OpenExclusiveDuelUiSurface(
+                DuelUiSurfaceKind.PromptPrimary,
+                prompt);
             HideCompactResponseBar();
             bool describedEffect = choices.Any(choice =>
                 choice != null && choice.DescriptionId != 0);
@@ -178,7 +181,12 @@ namespace ArcaneArena
                      choices.Select((choice, index) => (choice, index)))
             {
                 float width = ChoiceWidth(choice);
-                CreateChoiceTrayCard(choice, index, cursor, width);
+                CreateChoiceTrayCard(
+                    choice,
+                    index,
+                    cursor,
+                    width,
+                    surfaceGeneration);
                 cursor += width + ChoiceCardSpacing;
             }
 
@@ -198,7 +206,8 @@ namespace ArcaneArena
                     prompt) ||
                 InteractionLocked || choiceModal == null ||
                 choiceModal.activeInHierarchy ||
-                compactResponseBar?.activeInHierarchy == true)
+                compactResponseBar?.activeInHierarchy == true ||
+                IsAttackTargetingPromptVisible(prompt))
             {
                 return;
             }
@@ -267,6 +276,9 @@ namespace ArcaneArena
         {
             if (compactResponseBar == null || prompt == null)
                 return;
+            OpenExclusiveDuelUiSurface(
+                DuelUiSurfaceKind.PromptPrimary,
+                prompt);
             compactResponsePrompt = prompt;
             int responses = DuelPromptPresentationRules
                 .ActionableResponseChoices(prompt)
@@ -350,7 +362,8 @@ namespace ArcaneArena
             DuelChoice choice,
             int index,
             float x,
-            float width)
+            float width,
+            int surfaceGeneration)
         {
             bool describedEffect = choice.DescriptionId != 0;
             GameObject card = CreatePanel(
@@ -410,7 +423,16 @@ namespace ArcaneArena
             DuelChoice capturedChoice = choice;
             int capturedIndex = index;
             button.onClick.AddListener(
-                () => StageChoiceFromTray(capturedChoice, capturedIndex));
+                () =>
+                {
+                    if (!IsDuelUiGenerationCurrent(
+                            surfaceGeneration,
+                            DuelUiSurfaceKind.PromptPrimary))
+                    {
+                        return;
+                    }
+                    StageChoiceFromTray(capturedChoice, capturedIndex);
+                });
         }
 
         private void StageChoiceFromTray(
