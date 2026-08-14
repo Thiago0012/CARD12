@@ -31,6 +31,37 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void EveryPreframedIconUsesTheSameBoundedVerticalScale()
+        {
+            Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
+            Type viewType = FindType("ArcaneArena.Frontend.HexIconView");
+            object[] icons = Values(catalog.GetProperty("All").GetValue(null));
+            var root = new GameObject("Profile Icon Scale Test",
+                typeof(RectTransform));
+            try
+            {
+                Component view = root.AddComponent(viewType);
+                MethodInfo setIcon = viewType.GetMethod("SetIcon");
+                foreach (object icon in icons)
+                {
+                    setIcon.Invoke(
+                        view,
+                        new[] { Property(icon, "IconId") });
+                    Transform portrait = root.transform.Find("Retrato");
+                    Assert.That(portrait, Is.Not.Null);
+                    Assert.That(portrait.localScale.x,
+                        Is.EqualTo(1f).Within(0.001f));
+                    Assert.That(portrait.localScale.y,
+                        Is.EqualTo(0.86f).Within(0.001f));
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void EveryPurchasableIconLoadsAsAProjectResource()
         {
             Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");

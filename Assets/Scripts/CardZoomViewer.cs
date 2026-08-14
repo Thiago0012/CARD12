@@ -10,6 +10,8 @@ namespace ArcaneArena
         IDragHandler,
         IPointerClickHandler
     {
+        private const float ZoomStep = 0.12f;
+        private const float MaximumZoom = 1.75f;
         [SerializeField] private RectTransform artwork;
         private Vector2 dragOrigin;
         private Vector2 artOrigin;
@@ -33,9 +35,9 @@ namespace ArcaneArena
         {
             if (artwork == null) return;
             zoom = Mathf.Clamp(
-                zoom + Mathf.Sign(eventData.scrollDelta.y) * 0.18f,
+                zoom + Mathf.Sign(eventData.scrollDelta.y) * ZoomStep,
                 1f,
-                3f);
+                MaximumZoom);
             artwork.localScale = Vector3.one * zoom;
         }
 

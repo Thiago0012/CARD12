@@ -6,6 +6,7 @@ namespace ArcaneArena.Frontend
     [DisallowMultipleComponent]
     public sealed class HexIconView : MonoBehaviour
     {
+        private const float PreframedVerticalScale = 0.86f;
         private static Sprite _hexMaskSprite;
         private RawImage _portrait;
         private AspectRatioFitter _portraitFitter;
@@ -72,6 +73,8 @@ namespace ArcaneArena.Frontend
                 _containerImage.color = Color.clear;
                 _portraitFitter.aspectMode =
                     AspectRatioFitter.AspectMode.FitInParent;
+                _portrait.rectTransform.localScale =
+                    new Vector3(1f, PreframedVerticalScale, 1f);
                 return;
             }
 
@@ -82,6 +85,7 @@ namespace ArcaneArena.Frontend
             _mask.showMaskGraphic = false;
             _portraitFitter.aspectMode =
                 AspectRatioFitter.AspectMode.EnvelopeParent;
+            _portrait.rectTransform.localScale = Vector3.one;
         }
 
         private static Sprite GetHexMaskSprite()

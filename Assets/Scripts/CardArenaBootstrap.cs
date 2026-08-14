@@ -1083,8 +1083,8 @@ namespace ArcaneArena
             detailZoomArtwork = CreateImage(
                 detailZoomOverlay.transform,
                 "Carta em Tela Cheia",
-                new Vector2(0.035f, 0.07f),
-                new Vector2(0.965f, 0.94f),
+                new Vector2(0.18f, 0.12f),
+                new Vector2(0.82f, 0.88f),
                 Color.white);
             detailZoomArtwork.preserveAspect = true;
             detailZoomArtwork.raycastTarget = true;
@@ -1125,6 +1125,8 @@ namespace ArcaneArena
                 return;
             }
             detailZoomArtwork.sprite = detailArtwork.sprite;
+            actionPanel?.SetActive(false);
+            CloseFieldActionMenu();
             detailZoomOverlay.SetActive(true);
             detailZoomOverlay.transform.SetAsLastSibling();
             detailZoomViewer.ResetView();
@@ -1140,6 +1142,7 @@ namespace ArcaneArena
                 choiceModal.transform.SetAsLastSibling();
             else if (compactResponseBar?.activeSelf == true)
                 compactResponseBar.transform.SetAsLastSibling();
+            ShowActionsForSelectedCard();
         }
 
         private void BindActionButtons()
@@ -1600,7 +1603,13 @@ namespace ArcaneArena
 
         private void ShowActionsForSelectedCard()
         {
-            if (InteractionLocked)
+            if (InteractionLocked ||
+                detailZoomOverlay?.activeInHierarchy == true ||
+                choiceModal?.activeInHierarchy == true ||
+                compactResponseBar?.activeInHierarchy == true ||
+                zoneBrowser?.activeInHierarchy == true ||
+                phaseNavigator?.activeInHierarchy == true ||
+                fieldActionPanel?.activeInHierarchy == true)
             {
                 actionPanel?.SetActive(false);
                 return;

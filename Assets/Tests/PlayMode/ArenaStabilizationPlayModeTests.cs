@@ -285,9 +285,34 @@ namespace ArcaneDuel.Tests.PlayMode
                     .GetField("detailArtwork", flags)
                     ?.GetValue(arena) as Image;
                 Assert.That(detailArt, Is.Not.Null);
+                GameObject cardActions = arena.GetType()
+                    .GetField("actionPanel", flags)
+                    ?.GetValue(arena) as GameObject;
+                cardActions?.SetActive(true);
                 detailArt.GetComponent<Button>()?.onClick.Invoke();
                 Assert.That(zoom.activeSelf, Is.True,
                     "Clicking the inspected artwork must open zoom.");
+                Assert.That(cardActions?.activeSelf, Is.False,
+                    "Card actions must not overlap the enlarged inspector.");
+                Image zoomArtwork = arena.GetType()
+                    .GetField("detailZoomArtwork", flags)
+                    ?.GetValue(arena) as Image;
+                object zoomViewer = arena.GetType()
+                    .GetField("detailZoomViewer", flags)
+                    ?.GetValue(arena);
+                Assert.That(zoomArtwork, Is.Not.Null);
+                Assert.That(zoomViewer, Is.Not.Null);
+                var scrollEvent = new PointerEventData(EventSystem.current)
+                {
+                    scrollDelta = Vector2.up
+                };
+                for (int step = 0; step < 20; step++)
+                {
+                    zoomViewer.GetType().GetMethod("OnScroll")
+                        ?.Invoke(zoomViewer, new object[] { scrollEvent });
+                }
+                Assert.That(zoomArtwork.rectTransform.localScale.x,
+                    Is.EqualTo(1.75f).Within(0.001f));
                 arena.GetType().GetMethod("CloseDetailZoom", flags)
                     ?.Invoke(arena, null);
 
