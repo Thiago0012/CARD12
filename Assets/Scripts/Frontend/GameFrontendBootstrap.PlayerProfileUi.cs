@@ -81,8 +81,8 @@ namespace ArcaneArena.Frontend
                 identity.transform,
                 "Ícone Equipado",
                 _repository.EquippedIconId,
-                new Vector2(0.18f, 0.23f),
-                new Vector2(0.82f, 0.70f));
+                new Vector2(0.20f, 0.27f),
+                new Vector2(0.80f, 0.67f));
             CreateButton(identity.transform, "EDITAR NOME",
                 new Vector2(0.16f, 0.06f), new Vector2(0.84f, 0.18f),
                 Cyan, () => ShowPlayerNameEditor(true));
@@ -456,8 +456,8 @@ namespace ArcaneArena.Frontend
                 typeof(DuelProfileRadarGraphic));
             radarObject.transform.SetParent(card.transform, false);
             RectTransform radarRect = radarObject.GetComponent<RectTransform>();
-            radarRect.anchorMin = new Vector2(0.23f, 0.13f);
-            radarRect.anchorMax = new Vector2(0.77f, 0.80f);
+            radarRect.anchorMin = new Vector2(0.30f, 0.20f);
+            radarRect.anchorMax = new Vector2(0.70f, 0.68f);
             radarRect.offsetMin = Vector2.zero;
             radarRect.offsetMax = Vector2.zero;
             DuelProfileRadarGraphic radar =
@@ -660,17 +660,13 @@ namespace ArcaneArena.Frontend
             Vector2 max)
         {
             GameObject item = new(name, typeof(RectTransform),
-                typeof(CanvasRenderer), typeof(Image),
-                typeof(AspectRatioFitter), typeof(HexIconView));
+                typeof(CanvasRenderer), typeof(Image), typeof(HexIconView));
             item.transform.SetParent(parent, false);
             RectTransform rect = item.GetComponent<RectTransform>();
             rect.anchorMin = min;
             rect.anchorMax = max;
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
-            AspectRatioFitter fitter = item.GetComponent<AspectRatioFitter>();
-            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            fitter.aspectRatio = 1f;
             HexIconView view = item.GetComponent<HexIconView>();
             view.SetIcon(iconId);
             return view;
