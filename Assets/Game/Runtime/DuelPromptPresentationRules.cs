@@ -32,6 +32,10 @@ namespace ArcaneDuel.Game
             return prompt.Message == CoreMessage.SelectChain ||
                    prompt.Message == CoreMessage.SelectEffectYesNo ||
                    prompt.Message == CoreMessage.SelectYesNo ||
+                   prompt.Message == CoreMessage.SelectCard ||
+                   prompt.Message == CoreMessage.SelectTribute ||
+                   prompt.Message == CoreMessage.SelectSum ||
+                   prompt.Message == CoreMessage.SelectUnselectCard ||
                    prompt.Message == CoreMessage.SelectPosition ||
                    prompt.Message == CoreMessage.SelectOption ||
                    prompt.Message == CoreMessage.AnnounceCard ||

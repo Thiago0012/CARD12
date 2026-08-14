@@ -187,9 +187,12 @@ namespace ArcaneDuel.Game
 
         private static bool IsOptionalActivationPrompt(DuelPrompt prompt)
         {
-            return prompt.Message == CoreMessage.SelectChain ||
-                   prompt.Message == CoreMessage.SelectEffectYesNo ||
-                   prompt.Message == CoreMessage.SelectYesNo;
+            // ON/AUTO/OFF controls response windows in a Chain. A direct
+            // question such as SELECT_EFFECT_YESNO is the Core asking about
+            // the card currently resolving (for example, a Synchro summon
+            // trigger). Silently declining that question makes a legal
+            // effect look broken, so it must always reach the player.
+            return prompt.Message == CoreMessage.SelectChain;
         }
     }
 }

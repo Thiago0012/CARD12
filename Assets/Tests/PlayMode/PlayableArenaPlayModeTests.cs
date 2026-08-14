@@ -206,6 +206,16 @@ namespace ArcaneDuel.Tests.PlayMode
                     "zoneBrowserConfirm",
                     flags)
                 ?.GetValue(arena) as Button;
+            RectTransform zoneTray = type.GetField(
+                    "zoneBrowserTray",
+                    flags)
+                ?.GetValue(arena) is GameObject zoneTrayObject
+                    ? zoneTrayObject.GetComponent<RectTransform>()
+                    : null;
+            Text choiceInstruction = type.GetField(
+                    "choiceInstruction",
+                    flags)
+                ?.GetValue(arena) as Text;
             FieldInfo visibleLimit = type.GetField(
                 "MaximumVisibleChoiceCards",
                 BindingFlags.Static | BindingFlags.NonPublic);
@@ -219,6 +229,13 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(zoneScroll.vertical, Is.False);
             Assert.That(zoneConfirm, Is.Not.Null);
             Assert.That(zoneConfirm.interactable, Is.False);
+            Assert.That(zoneTray, Is.Not.Null);
+            Assert.That(
+                (zoneTray.anchorMin.x + zoneTray.anchorMax.x) * 0.5f,
+                Is.EqualTo(0.5f).Within(0.001f),
+                "The Extra Deck tray must use the real screen centre.");
+            Assert.That(choiceInstruction, Is.Not.Null,
+                "Blocking choices need persistent visual instructions.");
             Assert.That(visibleLimit, Is.Not.Null);
             Assert.That(visibleLimit.GetRawConstantValue(), Is.EqualTo(5));
         }

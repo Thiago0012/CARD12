@@ -80,12 +80,11 @@ namespace ArcaneArena
             float width = Mathf.Clamp(
                 requiredWidth / frameWidth,
                 0.40f,
-                0.68f);
-            // Keep the authored card inspector column on the left free.
-            // Inspecting an Extra Deck candidate must not cover its tray.
-            const float safeAreaMin = 0.29f;
-            const float safeAreaMax = 0.97f;
-            const float center = (safeAreaMin + safeAreaMax) * 0.5f;
+                0.76f);
+            // Zone browsing is an exclusive layer, so the tray can use the
+            // real screen centre instead of inheriting the old offset that
+            // reserved the inspector column.
+            const float center = 0.5f;
             RectTransform rect =
                 zoneBrowserTray.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(center - width * 0.5f, 0.235f);
