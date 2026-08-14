@@ -1,4 +1,7 @@
 using System.Linq;
+using System.Collections;
+using System.Collections.Generic;
+using ArcaneArena.Cards;
 using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Protocol;
@@ -35,7 +38,14 @@ namespace ArcaneArena
             public Sprite DestinationSprite;
             public bool FlipToDestination;
             public bool EntersField;
+            public MonsterSummonArrivalEffect ArrivalEffect;
+            public CanvasGroup HiddenTarget;
+            public bool Released;
         }
+
+        private readonly List<CardTransitionSnapshot>
+            deferredMonsterArrivals = new();
+        private int monsterArrivalSequenceGeneration;
 
         private CardTransitionSnapshot CaptureCardTransition(
             DuelEvent duelEvent)
@@ -81,7 +91,12 @@ namespace ArcaneArena
                 FlipToDestination = entersField &&
                                     !destinationFaceUp &&
                                     visibleSprite != cardBackSprite,
-                EntersField = entersField
+                EntersField = entersField,
+                ArrivalEffect = entersField && destinationFaceUp &&
+                                (duelEvent.Current.Location &
+                                 DuelLocation.MonsterZone) != 0
+                    ? ArrivalEffectFor(duelEvent.Code)
+                    : MonsterSummonArrivalEffect.None
             };
         }
 
@@ -90,13 +105,43 @@ namespace ArcaneArena
             if (snapshot == null || snapshot.Sprite == null || frame == null)
                 return;
 
+            if (IsFaceUpMonsterArrival(snapshot))
+            {
+                snapshot.HiddenTarget = HideTransitionTarget(snapshot.Current);
+                if (ShouldDeferMonsterArrival(snapshot))
+                    DeferMonsterArrival(snapshot);
+                else
+                    StartCoroutine(ResolveMonsterArrivalSequence(
+                        snapshot,
+                        monsterArrivalSequenceGeneration));
+                return;
+            }
+
+            StartCardTransitionNow(snapshot);
+        }
+
+        private void StartCardTransitionNow(CardTransitionSnapshot snapshot)
+        {
+            if (snapshot == null || snapshot.Released)
+                return;
+            snapshot.Released = true;
+
+            if (!TransitionDestinationStillCurrent(snapshot))
+            {
+                RevealTransitionTarget(snapshot.HiddenTarget);
+                return;
+            }
+
             float duration = CardTransitionDuration(
                 snapshot.Code,
                 snapshot.Kind == CardTransitionKind.Destruction
                     ? 0.66f
                     : snapshot.EntersField ? 0.32f : 0.42f);
             if (duration <= 0f)
+            {
+                RevealTransitionTarget(snapshot.HiddenTarget);
                 return;
+            }
 
             bool foundDestination = TryGetLocationScreenPoint(
                 snapshot.Current,
@@ -112,7 +157,10 @@ namespace ArcaneArena
                     out destinationScreenPoint);
             }
             if (!foundDestination)
+            {
+                RevealTransitionTarget(snapshot.HiddenTarget);
                 return;
+            }
 
             if (!TryScreenToFrameLocal(
                     snapshot.SourceScreenPoint,
@@ -121,10 +169,12 @@ namespace ArcaneArena
                     destinationScreenPoint,
                     out Vector2 destination))
             {
+                RevealTransitionTarget(snapshot.HiddenTarget);
                 return;
             }
 
-            CanvasGroup target = HideTransitionTarget(snapshot.Current);
+            CanvasGroup target = snapshot.HiddenTarget ??
+                                 HideTransitionTarget(snapshot.Current);
             if (snapshot.Kind == CardTransitionKind.Destruction)
             {
                 StartCoroutine(AnimateCardDestruction(
@@ -143,7 +193,145 @@ namespace ArcaneArena
                 start,
                 destination,
                 duration,
-                target));
+                target,
+                snapshot.ArrivalEffect));
+        }
+
+        private bool ShouldDeferMonsterArrival(
+            CardTransitionSnapshot snapshot)
+        {
+            if (!IsFaceUpMonsterArrival(snapshot))
+                return false;
+            return SummonPresentationMatches(
+                       pendingSummonPresentation,
+                       snapshot) ||
+                   SummonPresentationMatches(
+                       activeCardSoundPresentation,
+                       snapshot) ||
+                   cardSoundPresentationQueue.Any(request =>
+                       SummonPresentationMatches(request, snapshot));
+        }
+
+        private static bool IsFaceUpMonsterArrival(
+            CardTransitionSnapshot snapshot)
+        {
+            return snapshot != null && snapshot.EntersField &&
+                   snapshot.Code != 0 && snapshot.Current != null &&
+                   (snapshot.Current.Location & DuelLocation.MonsterZone) != 0 &&
+                   IsFaceUp(snapshot.Current.Position);
+        }
+
+        private IEnumerator ResolveMonsterArrivalSequence(
+            CardTransitionSnapshot snapshot,
+            int generation)
+        {
+            // MSG_MOVE can precede MSG_*_SUMMONING. Hold the visual briefly
+            // so a presentation announced by the Core in the same event
+            // burst can run first. No prompt or Core progression is blocked.
+            float deadline = Time.unscaledTime + 0.16f;
+            while (snapshot != null && !snapshot.Released &&
+                   Time.unscaledTime < deadline)
+            {
+                if (generation != monsterArrivalSequenceGeneration)
+                {
+                    snapshot.Released = true;
+                    RevealTransitionTarget(snapshot.HiddenTarget);
+                    yield break;
+                }
+                if (!TransitionDestinationStillCurrent(snapshot))
+                {
+                    snapshot.Released = true;
+                    RevealTransitionTarget(snapshot.HiddenTarget);
+                    yield break;
+                }
+                if (ShouldDeferMonsterArrival(snapshot))
+                {
+                    DeferMonsterArrival(snapshot);
+                    yield break;
+                }
+                yield return null;
+            }
+            if (generation != monsterArrivalSequenceGeneration)
+            {
+                if (snapshot != null && !snapshot.Released)
+                {
+                    snapshot.Released = true;
+                    RevealTransitionTarget(snapshot.HiddenTarget);
+                }
+                yield break;
+            }
+            StartCardTransitionNow(snapshot);
+        }
+
+        private void DeferMonsterArrival(CardTransitionSnapshot snapshot)
+        {
+            if (snapshot == null || snapshot.Released ||
+                deferredMonsterArrivals.Contains(snapshot))
+            {
+                return;
+            }
+            deferredMonsterArrivals.Add(snapshot);
+            StartCoroutine(ReleaseDeferredMonsterArrivalAfterTimeout(snapshot));
+        }
+
+        private bool TransitionDestinationStillCurrent(
+            CardTransitionSnapshot snapshot)
+        {
+            if (!IsFaceUpMonsterArrival(snapshot))
+                return true;
+            DuelZone3D zone = ZoneFor(snapshot.Current);
+            return zone != null && CodeAt(zone) == snapshot.Code;
+        }
+
+        private static bool SummonPresentationMatches(
+            CardSoundPresentationRequest request,
+            CardTransitionSnapshot snapshot)
+        {
+            if (request == null || snapshot == null ||
+                request.Code != snapshot.Code)
+            {
+                return false;
+            }
+            if (request.Location == 0 || snapshot.Current == null)
+                return true;
+            return request.Controller == snapshot.Current.Controller &&
+                   (request.Location & snapshot.Current.Location) != 0 &&
+                   request.Sequence == snapshot.Current.Sequence;
+        }
+
+        private void ReleaseDeferredMonsterArrival(
+            CardSoundPresentationRequest request)
+        {
+            CardTransitionSnapshot snapshot = deferredMonsterArrivals
+                .FirstOrDefault(candidate =>
+                    SummonPresentationMatches(request, candidate));
+            if (snapshot == null)
+                return;
+            deferredMonsterArrivals.Remove(snapshot);
+            StartCardTransitionNow(snapshot);
+        }
+
+        private IEnumerator ReleaseDeferredMonsterArrivalAfterTimeout(
+            CardTransitionSnapshot snapshot)
+        {
+            yield return new WaitForSecondsRealtime(4f);
+            if (snapshot == null || snapshot.Released)
+                yield break;
+            deferredMonsterArrivals.Remove(snapshot);
+            StartCardTransitionNow(snapshot);
+        }
+
+        private void CancelDeferredMonsterArrivals()
+        {
+            monsterArrivalSequenceGeneration++;
+            foreach (CardTransitionSnapshot snapshot in deferredMonsterArrivals)
+            {
+                if (snapshot == null || snapshot.Released)
+                    continue;
+                snapshot.Released = true;
+                RevealTransitionTarget(snapshot.HiddenTarget);
+            }
+            deferredMonsterArrivals.Clear();
         }
 
         private static CardTransitionKind CardTransitionKindFor(

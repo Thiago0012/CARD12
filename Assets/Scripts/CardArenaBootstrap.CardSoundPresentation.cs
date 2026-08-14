@@ -17,11 +17,15 @@ namespace ArcaneArena
             public ArcaneCardSound Sound;
             public bool HideIdentity;
             public bool ExtraDeckSummon;
+            public byte Controller;
+            public byte Location;
+            public uint Sequence;
         }
 
         private readonly Queue<CardSoundPresentationRequest>
             cardSoundPresentationQueue = new();
         private Coroutine cardSoundPresentationRoutine;
+        private CardSoundPresentationRequest activeCardSoundPresentation;
         private ArcaneAudioDirector cardAudioDirector;
         private CardSoundPresentationRequest pendingSummonPresentation;
         private bool cardPresentationDecisionLocked;
@@ -127,7 +131,10 @@ namespace ArcaneArena
                     ? ArcaneCardSound.None
                     : SummonSoundFor(duelEvent.Code),
                 ExtraDeckSummon =
-                    IsExtraDeckSummonPresentation(duelEvent.Code)
+                    IsExtraDeckSummonPresentation(duelEvent.Code),
+                Controller = duelEvent.Current?.Controller ?? duelEvent.Player,
+                Location = duelEvent.Current?.Location ?? 0,
+                Sequence = duelEvent.Current?.Sequence ?? 0
             };
         }
 
@@ -195,6 +202,7 @@ namespace ArcaneArena
                 {
                     CardSoundPresentationRequest request =
                         cardSoundPresentationQueue.Dequeue();
+                    activeCardSoundPresentation = request;
                     yield return ShowCardPresentation(
                         request.Code,
                         request.Heading,
@@ -202,11 +210,14 @@ namespace ArcaneArena
                         request.Sound,
                         request.HideIdentity,
                         request.ExtraDeckSummon);
+                    ReleaseDeferredMonsterArrival(request);
+                    activeCardSoundPresentation = null;
                 }
             }
             finally
             {
                 cardSoundPresentationRoutine = null;
+                activeCardSoundPresentation = null;
                 SetCardPresentationDecisionLock(false);
                 observedPrompt = null;
                 if (presentationReady)
@@ -246,8 +257,10 @@ namespace ArcaneArena
             lastCardPresentationClick = -10f;
             cardAudioDirector?.StopCardCue();
             pendingSummonPresentation = null;
+            activeCardSoundPresentation = null;
             cardSoundPresentationQueue.Clear();
             cardSoundPresentationRoutine = null;
+            CancelDeferredMonsterArrivals();
             SetCardPresentationDecisionLock(false);
         }
 

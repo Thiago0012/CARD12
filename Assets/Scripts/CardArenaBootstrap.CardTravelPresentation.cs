@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using ArcaneArena.Cards;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,7 +15,8 @@ namespace ArcaneArena
             Vector2 start,
             Vector2 destination,
             float duration,
-            CanvasGroup target)
+            CanvasGroup target,
+            MonsterSummonArrivalEffect arrivalEffect)
         {
             GameObject overlay = CreateTransitionCard(sprite, start);
             RectTransform rect = overlay.GetComponent<RectTransform>();
@@ -101,6 +103,7 @@ namespace ArcaneArena
             if (overlay != null && destinationSprite != null)
                 image.sprite = destinationSprite;
             RevealTransitionTarget(target);
+            PlayMonsterSummonArrivalEffect(arrivalEffect, destination);
             if (destinationPulse != null)
                 Destroy(destinationPulse);
             if (overlay != null)

@@ -76,7 +76,7 @@ namespace ArcaneDuel.Tests.PlayMode
                     "ResetToDefaults",
                     BindingFlags.Static | BindingFlags.Public)
                 ?.Invoke(null, null);
-            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            SceneManager.LoadScene("DuelArena");
             yield return null;
             yield return null;
             yield return null;
@@ -100,6 +100,29 @@ namespace ArcaneDuel.Tests.PlayMode
             }
             Assert.That(arena, Is.Not.Null);
             Assert.That(ready?.GetValue(arena), Is.True);
+
+            Type arrivalEffect = Type.GetType(
+                "ArcaneArena.Cards.MonsterSummonArrivalEffect, " +
+                "Assembly-CSharp");
+            MethodInfo playArrivalEffect = arena.GetType().GetMethod(
+                "PlayMonsterSummonArrivalEffect",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(arrivalEffect, Is.Not.Null);
+            Assert.That(playArrivalEffect, Is.Not.Null);
+            playArrivalEffect.Invoke(
+                arena,
+                new[]
+                {
+                    Enum.Parse(arrivalEffect, "Purple"),
+                    (object)Vector2.zero
+                });
+            Assert.That(
+                GameObject.Find("Efeito de Invocacao Roxo"),
+                Is.Not.Null);
+            yield return new WaitForSecondsRealtime(0.80f);
+            Assert.That(
+                GameObject.Find("Efeito de Invocacao Roxo"),
+                Is.Null);
 
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();
@@ -149,6 +172,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 state.Players[0].MonsterZones[sequence],
                 Is.EqualTo(code),
                 "The authoritative state must advance before the overlay ends.");
+            yield return new WaitForSecondsRealtime(0.20f);
             Assert.That(
                 GameObject.Find("Carta em Movimento"),
                 Is.Not.Null);

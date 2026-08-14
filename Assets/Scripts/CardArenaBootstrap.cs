@@ -229,6 +229,7 @@ namespace ArcaneArena
             }
             DisposeArenaPresentation();
             ResetCardSoundPresentation();
+            ResetHandCardDragPresentation();
             if (automaticPromptRoutine != null)
                 StopCoroutine(automaticPromptRoutine);
             foreach (Texture2D texture in runtimeTextures.Values)
@@ -676,6 +677,7 @@ namespace ArcaneArena
                 criticalInteractionLocked = false;
                 ResetTurnFlowPresentation(true);
                 ResetCardSoundPresentation();
+                ResetHandCardDragPresentation();
                 ResetPromptPresentationIdentity();
                 RestartAttackTargetingAfterRetry();
             }
@@ -1531,24 +1533,6 @@ namespace ArcaneArena
                 "nesta fase e neste estado do campo.";
         }
 
-        public void BeginCardDrag(CardView card)
-        {
-            if (card == null || InteractionLocked) return;
-            SelectCard(card);
-            ShowActionsForSelectedCard();
-        }
-
-        public void EndCardDrag(Vector2 screenPosition)
-        {
-            if (InteractionLocked) return;
-            DuelPrompt prompt = core.CurrentPrompt;
-            if (prompt == null || selectedCard == null) return;
-            if (TryRaycastZone(screenPosition, out DuelZone3D zone))
-            {
-                HandleZoneClick(zone, 1);
-            }
-        }
-
         private void RelayoutHand()
         {
             int count = handViews.Count;
@@ -1948,6 +1932,9 @@ namespace ArcaneArena
                     "Ordem automática · mantendo a ordem autoritativa do Core.");
                 return true;
             }
+
+            if (TryCompletePendingHandDrop(prompt))
+                return true;
 
             if (TryPresentAttackTargeting(prompt))
                 return true;

@@ -6,6 +6,7 @@ using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
 using ArcaneArena.Multiplayer;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace ArcaneArena
@@ -162,18 +163,25 @@ namespace ArcaneArena
                 return;
             }
 
-            if (Input.touchCount > 0)
+            Touchscreen touchscreen = Touchscreen.current;
+            if (touchscreen != null &&
+                touchscreen.primaryTouch.press.isPressed)
             {
-                Touch primaryTouch = Input.GetTouch(0);
+                int touchId = touchscreen.primaryTouch.touchId.ReadValue();
                 if (attackTargetSelectionPointerId == int.MinValue)
-                    attackTargetSelectionPointerId = primaryTouch.fingerId;
+                    attackTargetSelectionPointerId = touchId;
                 UpdateMonsterAttackDrag(
-                    primaryTouch.position,
-                    primaryTouch.fingerId);
+                    touchscreen.primaryTouch.position.ReadValue(),
+                    touchId);
                 return;
             }
 
-            UpdateMonsterAttackDrag(Input.mousePosition, -1);
+            if (Mouse.current != null)
+            {
+                UpdateMonsterAttackDrag(
+                    Mouse.current.position.ReadValue(),
+                    -1);
+            }
         }
 
         private void PrepareAttackTargeting(

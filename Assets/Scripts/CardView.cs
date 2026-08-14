@@ -246,6 +246,7 @@ namespace ArcaneArena
             rect.anchoredPosition = local;
             rect.localRotation = Quaternion.identity;
             rect.localScale = Vector3.one * 1.03f;
+            arena?.UpdateCardDrag(this, eventData.position);
         }
 
         public void OnEndDrag(PointerEventData eventData)

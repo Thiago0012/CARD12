@@ -1,6 +1,7 @@
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ArcaneArena
 {
@@ -157,8 +158,10 @@ namespace ArcaneArena
 
         private void HandleDuelUiBackInput()
         {
-            bool backPressed = Input.GetKeyDown(KeyCode.Escape);
-            bool rightClick = Input.GetMouseButtonDown(1);
+            bool backPressed =
+                Keyboard.current?.escapeKey.wasPressedThisFrame == true;
+            bool rightClick =
+                Mouse.current?.rightButton.wasPressedThisFrame == true;
             if (!backPressed && !rightClick)
                 return;
 
