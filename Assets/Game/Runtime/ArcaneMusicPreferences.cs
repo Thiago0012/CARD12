@@ -9,6 +9,9 @@ namespace ArcaneDuel.Game
     /// </summary>
     public static class ArcaneMusicPreferences
     {
+        // Keeps music slightly behind card and interface effects throughout
+        // the project, including tracks added by future presenters.
+        public const float GlobalMusicMixGain = 0.80f;
         private const string VolumeKey =
             "arcane_arena.music.volume";
         public const float DefaultVolume = 0.50f;
@@ -47,7 +50,8 @@ namespace ArcaneDuel.Game
             source.volume = Mathf.Clamp01(
                 musicVolume *
                 Mathf.Clamp01(envelope) *
-                Mathf.Max(0f, mixGain));
+                Mathf.Max(0f, mixGain) *
+                GlobalMusicMixGain);
         }
 
         public static void ResetToDefaults()
