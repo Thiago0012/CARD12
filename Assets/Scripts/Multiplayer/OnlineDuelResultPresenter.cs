@@ -40,6 +40,7 @@ namespace ArcaneArena.Multiplayer
             returnButton.interactable = true;
             canvas.gameObject.SetActive(true);
             ApplySafeArea();
+            DuelResultAudioPlayer.Play(result);
         }
 
         public void ShowRanked(
@@ -66,6 +67,7 @@ namespace ArcaneArena.Multiplayer
                 result,
                 committedReceipt,
                 () => { });
+            DuelResultAudioPlayer.Play(result);
         }
 
         public void SetReturnButtonInteractable(bool interactable)
@@ -77,6 +79,7 @@ namespace ArcaneArena.Multiplayer
         public void Hide()
         {
             returnAction = null;
+            DuelResultAudioPlayer.StopPlayback();
             if (skipButton != null)
                 skipButton.gameObject.SetActive(false);
             if (canvas != null)

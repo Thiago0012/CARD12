@@ -1075,10 +1075,7 @@ namespace ArcaneArena.Frontend
                 return _runtimeShopCurrencySprite;
             Sprite imported = Resources.Load<Sprite>("Shop/CurrencyCrystal");
             if (imported != null)
-            {
-                _runtimeShopCurrencySprite = imported;
                 return imported;
-            }
             return ResolveShopVisualSprite(shopCoinSprite,
                 "Shop/CurrencyCrystal", "Moeda Arcane",
                 ref _runtimeShopCurrencySprite);
@@ -1161,7 +1158,11 @@ namespace ArcaneArena.Frontend
         {
             if (sprite == null)
                 return;
-            Destroy(sprite);
+            // Sprite.Create marks the generated fallback as DontSave. A
+            // Resources sprite is an imported asset owned by Unity and must
+            // never be destroyed by a runtime view.
+            if ((sprite.hideFlags & HideFlags.DontSave) != 0)
+                Destroy(sprite);
             sprite = null;
         }
 

@@ -302,7 +302,7 @@ namespace ArcaneArena.Frontend
                 "VOLTAR DO MULTIPLAYER",
                 new Vector2(0.014f, 0.882f),
                 new Vector2(0.305f, 0.988f),
-                ShowMainMenu);
+                () => RunMainMenuTransition(ShowMainMenu));
 
             _duelRoomStatus = CreateText(
                 _screenRoot,

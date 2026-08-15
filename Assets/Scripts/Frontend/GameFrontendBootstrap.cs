@@ -1186,7 +1186,7 @@ namespace ArcaneArena.Frontend
             if (canReturn)
                 BuildHeader(
                     "PERFIL",
-                    () => RunMainMenuTransition(ShowMainMenu));
+                    ShowMainMenu);
 
             var panel = CreatePanel(
                 _screenRoot,
@@ -1293,7 +1293,7 @@ namespace ArcaneArena.Frontend
             BuildSharedBackground("OPÇÕES");
             BuildHeader(
                 "OPÇÕES",
-                () => RunMainMenuTransition(ShowMainMenu));
+                ShowMainMenu);
 
             var panel = CreatePanel(
                 _screenRoot,
@@ -1990,7 +1990,7 @@ namespace ArcaneArena.Frontend
                 _pendingRankedBotDuel
                     ? "ESCOLHA O RIVAL RANQUEADO"
                     : "ESCOLHA O DECK DO BOT",
-                ShowMainMenu);
+                () => RunMainMenuTransition(ShowMainMenu));
 
             CreateText(
                 _screenRoot,
@@ -4002,6 +4002,11 @@ namespace ArcaneArena.Frontend
         private void ReturnToMainMenuScene()
         {
             RunMainMenuTransition(ReturnToMainMenuSceneImmediate);
+        }
+
+        public void ReturnToMenuAfterOfflineDuel()
+        {
+            ReturnToMainMenuScene();
         }
 
         private void ReturnToMainMenuSceneImmediate()

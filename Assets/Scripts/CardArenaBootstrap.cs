@@ -267,6 +267,34 @@ namespace ArcaneArena
                 winner,
                 localDamageDealtInDuel,
                 localDamageReceivedInDuel);
+            if (DuelOnlineSession.Instance?.IsOnlineDuelActive == true)
+                return;
+
+            criticalInteractionLocked = true;
+            core?.SetPresentationDecisionLocked(true);
+            OnlineDuelResultKind kind = winner > 1
+                ? OnlineDuelResultKind.Draw
+                : winner == 0
+                    ? OnlineDuelResultKind.Victory
+                    : OnlineDuelResultKind.Defeat;
+            OnlineDuelResultPresenter presenter =
+                GetComponent<OnlineDuelResultPresenter>();
+            if (presenter == null)
+                presenter = gameObject.AddComponent<OnlineDuelResultPresenter>();
+            presenter.Show(
+                kind,
+                winner > 1
+                    ? "O duelo contra o bot terminou empatado."
+                    : winner == 0
+                        ? "Vitória confirmada contra o bot."
+                        : "Derrota confirmada contra o bot.",
+                ReturnToMenuAfterBotResult);
+        }
+
+        private void ReturnToMenuAfterBotResult()
+        {
+            GetComponent<OnlineDuelResultPresenter>()?.Hide();
+            GameFrontendBootstrap.Instance?.ReturnToMenuAfterOfflineDuel();
         }
 
         public void ApplyDuelIdentities(

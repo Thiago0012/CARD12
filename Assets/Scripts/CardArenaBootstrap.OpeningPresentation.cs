@@ -78,14 +78,24 @@ namespace ArcaneArena
 
             SetStatus("MÃOS INICIAIS · DISTRIBUINDO CARTAS", Cyan);
             int count = Mathf.Min(5, handViews.Count);
+            if (count > 0)
+            {
+                cardAudioDirector ??=
+                    GetComponent<ArcaneDuel.Game.ArcaneAudioDirector>();
+                cardAudioDirector?.PlayRapidCardCues(
+                    ArcaneDuel.Game.ArcaneCardSound.Draw,
+                    count * 2,
+                    0.125f);
+            }
             for (int index = 0; index < count; index++)
             {
                 StartOpeningDealCard(
                     arena3D,
                     DuelPlayerSide.PlayerTwo,
                     cardBackSprite,
-                    OpeningOpponentHandDestination(index, count));
-                yield return new WaitForSecondsRealtime(0.055f);
+                    OpeningOpponentHandDestination(index, count),
+                    null);
+                yield return new WaitForSecondsRealtime(0.11f);
                 CardView localCard = handViews[index];
                 StartOpeningDealCard(
                     arena3D,
@@ -97,8 +107,9 @@ namespace ArcaneArena
                             ? RectCenterScreen(handRoot)
                             : new Vector2(
                                 Screen.width * 0.5f,
-                                Screen.height * 0.08f));
-                yield return new WaitForSecondsRealtime(0.075f);
+                                Screen.height * 0.08f),
+                    localCard);
+                yield return new WaitForSecondsRealtime(0.14f);
             }
             float dealDeadline = Time.realtimeSinceStartup + 1.2f;
             while (activeOpeningCards > 0 &&
@@ -205,7 +216,8 @@ namespace ArcaneArena
             MasterDuelArena3D arena3D,
             DuelPlayerSide side,
             Sprite sprite,
-            Vector2 destinationScreen)
+            Vector2 destinationScreen,
+            CardView revealOnArrival)
         {
             Transform deck = arena3D?.GetMainDeckTransform(side);
             if (deck == null || sprite == null ||
@@ -214,16 +226,22 @@ namespace ArcaneArena
                     out Vector2 start) ||
                 !TryScreenToFrameLocal(destinationScreen, out Vector2 end))
             {
+                revealOnArrival?.SetPresentationVisible(true);
                 return;
             }
             activeOpeningCards++;
-            StartCoroutine(AnimateOpeningDealCard(sprite, start, end));
+            StartCoroutine(AnimateOpeningDealCard(
+                sprite,
+                start,
+                end,
+                revealOnArrival));
         }
 
         private IEnumerator AnimateOpeningDealCard(
             Sprite sprite,
             Vector2 start,
-            Vector2 end)
+            Vector2 end,
+            CardView revealOnArrival)
         {
             GameObject card = CreateTransitionCard(sprite, start);
             card.name = "Carta da Mão Inicial";
@@ -231,6 +249,7 @@ namespace ArcaneArena
             CanvasGroup cardGroup = card.GetComponent<CanvasGroup>();
             float startedAt = Time.realtimeSinceStartup;
             const float duration = 0.34f;
+            bool arrived = false;
             while (card != null &&
                    Time.realtimeSinceStartup - startedAt < duration)
             {
@@ -244,11 +263,20 @@ namespace ArcaneArena
                     0f,
                     0f,
                     Mathf.Lerp(-7f, 0f, eased));
-                cardGroup.alpha = t < 0.88f
+                // At t=0.68 the eased card is already 96.7% of the way to
+                // its slot. Reveal the real hand view there so low frame
+                // rates cannot produce an empty frame between both visuals.
+                if (!arrived && t >= 0.68f)
+                {
+                    arrived = true;
+                    revealOnArrival?.SetPresentationVisible(true);
+                }
+                cardGroup.alpha = t < 0.68f
                     ? 1f
-                    : 1f - Mathf.SmoothStep(0.88f, 1f, t);
+                    : 1f - Mathf.SmoothStep(0.68f, 1f, t);
                 yield return null;
             }
+            revealOnArrival?.SetPresentationVisible(true);
             if (card != null)
                 Destroy(card);
             activeOpeningCards = Mathf.Max(0, activeOpeningCards - 1);

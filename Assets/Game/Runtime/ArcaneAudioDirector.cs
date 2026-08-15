@@ -33,6 +33,7 @@ namespace ArcaneDuel.Game
         private AudioSource cardSource;
         private Coroutine generalEnvelopeRoutine;
         private Coroutine cardEnvelopeRoutine;
+        private Coroutine rapidCardCueRoutine;
         private float generalEnvelope = 1f;
         private float cardEnvelope = 1f;
         private float cardPlaybackGain = 1f;
@@ -79,8 +80,10 @@ namespace ArcaneDuel.Game
             clips["attack"] = BuildTone("Arcane_Attack", 310f, 1180f, 0.18f, 0.3f);
             clips["phase"] = BuildTone("Arcane_Phase", 520f, 820f, 0.12f, 0.16f);
             clips["damage"] = BuildTone("Arcane_Damage", 180f, 72f, 0.22f, 0.34f);
-            clips["win"] = BuildTone("Arcane_Win", 440f, 880f, 0.55f, 0.3f);
             cardClips[ArcaneCardSound.Draw] = clips["draw"];
+            LoadCardClip(
+                ArcaneCardSound.Draw,
+                "Audio/SFX/Duel/carddraw");
             LoadCardClip(ArcaneCardSound.Fusion, "CardsSounds/Fusion.mpeg");
             LoadCardClip(ArcaneCardSound.Magic, "CardsSounds/MagicSound.mpeg");
             LoadCardClip(ArcaneCardSound.MonsterSummon, "CardsSounds/MonsterSummon.mpeg");
@@ -109,7 +112,6 @@ namespace ArcaneDuel.Game
                 CoreMessage.Attack => "attack",
                 CoreMessage.NewPhase => "phase",
                 CoreMessage.Damage => "damage",
-                CoreMessage.Win => "win",
                 _ => null
             };
             if (key != null && clips.TryGetValue(key, out AudioClip clip))
@@ -119,6 +121,32 @@ namespace ArcaneDuel.Game
         }
 
         public float PlayCardCue(ArcaneCardSound cue)
+        {
+            if (rapidCardCueRoutine != null)
+            {
+                StopCoroutine(rapidCardCueRoutine);
+                rapidCardCueRoutine = null;
+            }
+            return BeginCardCue(cue);
+        }
+
+        public void PlayRapidCardCues(
+            ArcaneCardSound cue,
+            int count,
+            float interval = 0.16f)
+        {
+            if (rapidCardCueRoutine != null)
+                StopCoroutine(rapidCardCueRoutine);
+            rapidCardCueRoutine = StartCoroutine(
+                PlayRapidCardCueSequence(
+                    cue,
+                    Mathf.Clamp(count, 1, 12),
+                    Mathf.Clamp(interval, 0.08f, 0.35f)));
+        }
+
+        private float BeginCardCue(
+            ArcaneCardSound cue,
+            float maximumDuration = float.PositiveInfinity)
         {
             if (!Enabled || cue == ArcaneCardSound.None || cardSource == null ||
                 !cardClips.TryGetValue(cue, out AudioClip clip) || clip == null)
@@ -139,9 +167,29 @@ namespace ArcaneDuel.Game
             ApplySourceVolumes();
             cardSource.clip = clip;
             cardSource.Play();
+            float playbackDuration = Mathf.Min(
+                clip.length,
+                Mathf.Max(0.02f, maximumDuration));
             cardEnvelopeRoutine = StartCoroutine(
-                PlayEnvelope(cardSource, clip.length, true));
-            return clip.length;
+                PlayEnvelope(cardSource, playbackDuration, true));
+            return playbackDuration;
+        }
+
+        private IEnumerator PlayRapidCardCueSequence(
+            ArcaneCardSound cue,
+            int count,
+            float interval)
+        {
+            for (int index = 0; index < count; index++)
+            {
+                // End each rapid cue with its own short fade before the next
+                // card. This keeps multi-draws crisp without stacking clips
+                // or cutting a waveform at full volume.
+                BeginCardCue(cue, interval * 0.92f);
+                if (index + 1 < count)
+                    yield return new WaitForSecondsRealtime(interval);
+            }
+            rapidCardCueRoutine = null;
         }
 
         public void FadeOutCardCue(float duration = 0.38f)
@@ -158,6 +206,11 @@ namespace ArcaneDuel.Game
         {
             if (cardSource == null)
                 return;
+            if (rapidCardCueRoutine != null)
+            {
+                StopCoroutine(rapidCardCueRoutine);
+                rapidCardCueRoutine = null;
+            }
             if (cardEnvelopeRoutine != null)
             {
                 StopCoroutine(cardEnvelopeRoutine);

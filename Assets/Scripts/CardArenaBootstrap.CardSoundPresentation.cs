@@ -40,7 +40,9 @@ namespace ArcaneArena
                 if (!IsTurnDrawEvent(duelEvent))
                 {
                     cardAudioDirector ??= GetComponent<ArcaneAudioDirector>();
-                    cardAudioDirector?.PlayCardCue(ArcaneCardSound.Draw);
+                    cardAudioDirector?.PlayRapidCardCues(
+                        ArcaneCardSound.Draw,
+                        Mathf.Max(1, duelEvent.Codes?.Length ?? 1));
                 }
                 return;
             }
