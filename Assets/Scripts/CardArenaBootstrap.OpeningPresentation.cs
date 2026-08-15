@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ArcaneArena.Multiplayer;
+using ArcaneArena.Frontend;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -46,10 +47,16 @@ namespace ArcaneArena
             CanvasGroup opponentHandGroup = null;
             if (opponentHandFan != null)
             {
-                opponentHandGroup = opponentHandFan.GetComponent<CanvasGroup>() ??
-                                    opponentHandFan.AddComponent<CanvasGroup>();
-                opponentHandGroup.alpha = 0f;
-                opponentHandGroup.blocksRaycasts = false;
+                opponentHandGroup =
+                    opponentHandFan.GetComponent<CanvasGroup>();
+                if (opponentHandGroup == null)
+                    opponentHandGroup =
+                        opponentHandFan.AddComponent<CanvasGroup>();
+                if (opponentHandGroup != null)
+                {
+                    opponentHandGroup.alpha = 0f;
+                    opponentHandGroup.blocksRaycasts = false;
+                }
             }
 
             MasterDuelArena3D arena3D =
@@ -114,6 +121,7 @@ namespace ArcaneArena
             openingDuelRoutine = null;
             RefreshEverything(true);
             SetStatus("DUELO INICIADO", Lime);
+            DuelMusicController.BeginDuelPlayback();
         }
 
         private static void AddOpeningDeck(

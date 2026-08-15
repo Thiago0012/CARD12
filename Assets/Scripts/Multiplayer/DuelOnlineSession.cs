@@ -944,6 +944,7 @@ namespace ArcaneArena.Multiplayer
                     currentMatchId,
                     currentTransitionEpoch,
                     0);
+                loadingPresenter?.SetProgress(0.48f);
                 SetFlowState(OnlineMatchFlowState.WaitingSceneReady);
                 loadingPresenter?.SetText(
                     "Aguardando o outro jogador...",
@@ -966,6 +967,7 @@ namespace ArcaneArena.Multiplayer
             }
             replicaController.SetPresentationDecisionLocked(true);
             localSceneReady = true;
+            loadingPresenter?.SetProgress(0.48f);
             SetFlowState(OnlineMatchFlowState.WaitingSceneReady);
             DuelTestPerspectiveController.Instance?.ConfigureClientSwitching(
                 false,
@@ -2283,7 +2285,6 @@ namespace ArcaneArena.Multiplayer
             loadingPresenter?.Show(
                 "PREPARANDO O DUELO",
                 "Os dois decks foram validados.");
-            loadingPresenter?.SetProgress(0.04f);
             _ = sessionCoordinator.SetHostMatchStateAsync(
                 "starting",
                 currentMatchId,
@@ -2508,10 +2509,10 @@ namespace ArcaneArena.Multiplayer
                 yield break;
             }
 
-            loadingPresenter?.Show(
+            loadingPresenter?.ShowDuelLoading(
                 "PREPARANDO O DUELO",
-                "Abrindo os dois campos simultaneamente.");
-            loadingPresenter?.SetProgress(0.10f);
+                "Abrindo os dois campos simultaneamente.",
+                0.10f);
             status = "Avisando o cliente e abrindo as duas arenas...";
             StartHostStartHandshake();
             StartArenaTransitionAfterBlack();
@@ -2592,11 +2593,12 @@ namespace ArcaneArena.Multiplayer
             bool arenaIsReady = replicaController != null &&
                                 SceneManager.GetActiveScene().name == DuelArenaScene;
             SetFlowState(OnlineMatchFlowState.PreparingTransition);
-            loadingPresenter?.Show(
+            loadingPresenter?.ShowDuelLoading(
                 arenaIsReady ? "Sincronizando partida..." : "Carregando duelo...",
                 arenaIsReady
                     ? "Validando o snapshot inicial do anfitrião."
-                    : "Preparando o campo online.");
+                    : "Preparando o campo online.",
+                arenaIsReady ? 0.48f : 0.10f);
             SendClientReady(true, arenaIsReady);
             if (matchStarted)
             {
@@ -2677,6 +2679,7 @@ namespace ArcaneArena.Multiplayer
                     currentMatchId,
                     currentTransitionEpoch,
                     1);
+                loadingPresenter?.SetProgress(0.62f);
             }
 
             if (!matchStarted && clientDeckReady)
@@ -2846,6 +2849,7 @@ namespace ArcaneArena.Multiplayer
             if (!beginDuelApplied)
             {
                 SetFlowState(OnlineMatchFlowState.WaitingSnapshotAck);
+                loadingPresenter?.SetProgress(0.86f);
                 loadingPresenter?.SetText(
                     "Sincronizando partida...",
                     "Snapshot recebido. Confirmando o estado inicial.");
@@ -2930,6 +2934,8 @@ namespace ArcaneArena.Multiplayer
                 currentTransitionEpoch,
                 1,
                 acknowledgement.stateVersion);
+            if (!beginDuelApplied)
+                loadingPresenter?.SetProgress(0.94f);
             if (beginDuelApplied && hostAwaitingStateAckUnlock)
             {
                 hostAwaitingStateAckUnlock = false;
@@ -2966,6 +2972,7 @@ namespace ArcaneArena.Multiplayer
                 serverStartTick = networkManager.ServerTime.Tick + leadTicks
             };
             beginDuelReceived = true;
+            loadingPresenter?.SetProgress(0.97f);
             SendToClient(
                 remoteClientId,
                 BeginDuelMessage,
@@ -3000,6 +3007,7 @@ namespace ArcaneArena.Multiplayer
             }
 
             beginDuelReceived = true;
+            loadingPresenter?.SetProgress(0.97f);
             StartBeginDuelAtTick(begin);
             Debug.Log(
                 $"[MP] stage=begin-received epoch={currentTransitionEpoch} " +
@@ -3287,6 +3295,7 @@ namespace ArcaneArena.Multiplayer
             try
             {
                 SetFlowState(OnlineMatchFlowState.Synchronizing);
+                loadingPresenter?.SetProgress(0.70f);
                 loadingPresenter?.SetText(
                     "Sincronizando partida...",
                     "Preparando o snapshot inicial de cada jogador.");
@@ -5167,9 +5176,10 @@ namespace ArcaneArena.Multiplayer
 
         private IEnumerator OpenArenaAfterBlack()
         {
-            loadingPresenter?.Show(
+            loadingPresenter?.ShowDuelLoading(
                 "Carregando duelo...",
-                "Preparando o campo online.");
+                "Preparando o campo online.",
+                0.10f);
             float blackDeadline = Time.realtimeSinceStartup + 2f;
             while (loadingPresenter != null && !loadingPresenter.IsOpaque &&
                    Time.realtimeSinceStartup < blackDeadline)

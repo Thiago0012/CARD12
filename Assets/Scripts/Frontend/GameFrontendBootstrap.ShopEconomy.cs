@@ -162,9 +162,11 @@ namespace ArcaneArena.Frontend
                 return;
 
             ClearScreen();
-            _shopBackAction = () => LeaveShop(ShowMainMenu);
+            _shopBackAction = ReturnFromShopToMainMenu;
             BuildShopBackground("LOJA");
-            BuildHeader("LOJA ARCANE", () => LeaveShop(ShowMainMenu));
+            BuildHeader(
+                "LOJA ARCANE",
+                ReturnFromShopToMainMenu);
             CreateCoinBalance(_screenRoot);
 
             CreateText(
@@ -214,12 +216,12 @@ namespace ArcaneArena.Frontend
                 return false;
 
             ClearScreen();
-            _shopBackAction = () => LeaveShop(ShowMainMenu);
+            _shopBackAction = ReturnFromShopToMainMenu;
             _shopSceneView.Bind(
                 () =>
                 {
                     FrontendClickAudio.Play();
-                    LeaveShop(ShowMainMenu);
+                    ReturnFromShopToMainMenu();
                 },
                 () =>
                 {
@@ -808,10 +810,11 @@ namespace ArcaneArena.Frontend
             ShopPackDefinition pack = ShopPackCatalog.Find(opening.packId);
             SetDuelPresentation(false);
             ClearScreen();
-            _shopBackAction = () => LeaveShop(ShowMainMenu);
+            _shopBackAction = ReturnFromShopToMainMenu;
             BuildShopBackground("ABERTURA DE PACOTE");
-            BuildHeader(pack?.DisplayName ?? "Pacote",
-                () => LeaveShop(ShowMainMenu));
+            BuildHeader(
+                pack?.DisplayName ?? "Pacote",
+                ReturnFromShopToMainMenu);
             CreateCoinBalance(_screenRoot);
 
             if (!_packOpeningStarted)
@@ -1175,6 +1178,11 @@ namespace ArcaneArena.Frontend
         {
             _shopBackAction = null;
             destination?.Invoke();
+        }
+
+        private void ReturnFromShopToMainMenu()
+        {
+            LeaveShop(() => RunMainMenuTransition(ShowMainMenu));
         }
     }
 }

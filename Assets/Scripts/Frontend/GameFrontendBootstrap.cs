@@ -1184,7 +1184,9 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             BuildSharedBackground("PERFIL DO DUELISTA");
             if (canReturn)
-                BuildHeader("PERFIL", ShowMainMenu);
+                BuildHeader(
+                    "PERFIL",
+                    () => RunMainMenuTransition(ShowMainMenu));
 
             var panel = CreatePanel(
                 _screenRoot,
@@ -1289,7 +1291,9 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             BuildSharedBackground("OPÇÕES");
-            BuildHeader("OPÇÕES", ShowMainMenu);
+            BuildHeader(
+                "OPÇÕES",
+                () => RunMainMenuTransition(ShowMainMenu));
 
             var panel = CreatePanel(
                 _screenRoot,
@@ -1660,72 +1664,119 @@ namespace ArcaneArena.Frontend
                 row.gameObject,
                 new Color(Cyan.r, Cyan.g, Cyan.b, 0.35f),
                 new Vector2(2f, -2f));
-            CreateText(
+            Text effectsValue = CreateText(
                 row.transform,
-                $"EFEITOS · {ArcaneAudioPreferences.Volume:P0}",
+                $"EFEITOS · {ArcaneAudioPreferences.Volume * 5f:0.0} / 5",
                 17,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.025f, 0.18f),
-                new Vector2(0.245f, 0.84f),
+                new Vector2(0.025f, 0.54f),
+                new Vector2(0.43f, 0.94f),
                 TextAnchor.MiddleLeft);
-            CreateButton(
+            CreateVolumeSlider(
                 row.transform,
-                "−",
-                new Vector2(0.255f, 0.18f),
-                new Vector2(0.335f, 0.82f),
-                ArcaneAudioPreferences.Volume > 0f ? Cyan : Muted,
-                () => AdjustEffectsVolume(-1));
-            CreateButton(
-                row.transform,
-                "+",
-                new Vector2(0.35f, 0.18f),
-                new Vector2(0.43f, 0.82f),
-                ArcaneAudioPreferences.Volume < 1f ? Lime : Muted,
-                () => AdjustEffectsVolume(1));
+                "Volume dos Efeitos",
+                ArcaneAudioPreferences.Volume * 5f,
+                new Vector2(0.025f, 0.13f),
+                new Vector2(0.44f, 0.48f),
+                Cyan,
+                value =>
+                {
+                    ArcaneAudioPreferences.Volume = value / 5f;
+                    effectsValue.text = $"EFEITOS · {value:0.0} / 5";
+                    RefreshMasterAudioState();
+                });
 
-            CreateText(
+            Text musicValue = CreateText(
                 row.transform,
-                $"MÚSICA · {ArcaneMusicPreferences.Volume:P0}",
+                $"MÚSICA · {ArcaneMusicPreferences.Volume * 5f:0.0} / 5",
                 17,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.50f, 0.18f),
-                new Vector2(0.73f, 0.84f),
+                new Vector2(0.52f, 0.54f),
+                new Vector2(0.93f, 0.94f),
                 TextAnchor.MiddleLeft);
-            CreateButton(
+            CreateVolumeSlider(
                 row.transform,
-                "−",
-                new Vector2(0.745f, 0.18f),
-                new Vector2(0.825f, 0.82f),
-                ArcaneMusicPreferences.Volume > 0f ? Cyan : Muted,
-                () => AdjustMusicVolume(-1));
-            CreateButton(
-                row.transform,
-                "+",
-                new Vector2(0.84f, 0.18f),
-                new Vector2(0.92f, 0.82f),
-                ArcaneMusicPreferences.Volume < 1f ? Lime : Muted,
-                () => AdjustMusicVolume(1));
+                "Volume das Musicas",
+                ArcaneMusicPreferences.Volume * 5f,
+                new Vector2(0.52f, 0.13f),
+                new Vector2(0.935f, 0.48f),
+                Lime,
+                value =>
+                {
+                    ArcaneMusicPreferences.Volume = value / 5f;
+                    musicValue.text = $"MÚSICA · {value:0.0} / 5";
+                    RefreshMasterAudioState();
+                });
         }
 
-        private void AdjustEffectsVolume(int steps)
+        private static Slider CreateVolumeSlider(
+            Transform parent,
+            string name,
+            float value,
+            Vector2 min,
+            Vector2 max,
+            Color accent,
+            Action<float> onChanged)
         {
-            float currentStep = Mathf.Round(
-                ArcaneAudioPreferences.Volume /
-                ArcaneMusicPreferences.VolumeStep);
-            ArcaneAudioPreferences.Volume =
-                (currentStep + steps) *
-                ArcaneMusicPreferences.VolumeStep;
-            RefreshMasterAudioState();
-            ShowAnimationOptions();
-        }
+            Image track = CreatePanel(
+                parent,
+                name,
+                min,
+                max,
+                new Color(0.035f, 0.075f, 0.11f, 1f));
+            AddOutline(
+                track.gameObject,
+                new Color(accent.r, accent.g, accent.b, 0.52f),
+                new Vector2(1.5f, -1.5f));
 
-        private void AdjustMusicVolume(int steps)
-        {
-            ArcaneMusicPreferences.AdjustVolume(steps);
-            RefreshMasterAudioState();
-            ShowAnimationOptions();
+            GameObject fillAreaObject = new GameObject(
+                "Area do Preenchimento",
+                typeof(RectTransform));
+            fillAreaObject.transform.SetParent(track.transform, false);
+            RectTransform fillArea =
+                fillAreaObject.GetComponent<RectTransform>();
+            Stretch(fillArea);
+            fillArea.offsetMin = new Vector2(12f, 6f);
+            fillArea.offsetMax = new Vector2(-12f, -6f);
+            Image fill = CreatePanel(
+                fillArea,
+                "Preenchimento",
+                Vector2.zero,
+                Vector2.one,
+                new Color(accent.r, accent.g, accent.b, 0.92f));
+
+            GameObject handleAreaObject = new GameObject(
+                "Area da Alca",
+                typeof(RectTransform));
+            handleAreaObject.transform.SetParent(track.transform, false);
+            RectTransform handleArea =
+                handleAreaObject.GetComponent<RectTransform>();
+            Stretch(handleArea);
+            handleArea.offsetMin = new Vector2(12f, 2f);
+            handleArea.offsetMax = new Vector2(-12f, -2f);
+            Image handle = CreatePanel(
+                handleArea,
+                "Alca",
+                new Vector2(0f, 0f),
+                new Vector2(0f, 1f),
+                Color.white);
+            handle.rectTransform.sizeDelta = new Vector2(22f, 0f);
+            AddOutline(handle.gameObject, accent, new Vector2(1.5f, -1.5f));
+
+            Slider slider = track.gameObject.AddComponent<Slider>();
+            slider.minValue = 0f;
+            slider.maxValue = 5f;
+            slider.wholeNumbers = false;
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.fillRect = fill.rectTransform;
+            slider.handleRect = handle.rectTransform;
+            slider.targetGraphic = handle;
+            slider.SetValueWithoutNotify(Mathf.Clamp(value, 0f, 5f));
+            slider.onValueChanged.AddListener(
+                changedValue => onChanged?.Invoke(changedValue));
+            return slider;
         }
 
         private static void RefreshMasterAudioState()
@@ -1806,7 +1857,9 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             BuildSharedBackground("SALA DE DUELO");
-            BuildHeader("DUELAR", ShowMainMenu);
+            BuildHeader(
+                "DUELAR",
+                () => RunMainMenuTransition(ShowMainMenu));
 
             var panel = CreatePanel(
                 _screenRoot,
@@ -2124,7 +2177,9 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             BuildSharedBackground("LOJA DE DECKS");
-            BuildHeader("LOJA DE DECKS", ShowMainMenu);
+            BuildHeader(
+                "LOJA DE DECKS",
+                () => RunMainMenuTransition(ShowMainMenu));
 
             CreateText(
                 _screenRoot,
@@ -3945,6 +4000,11 @@ namespace ArcaneArena.Frontend
         }
 
         private void ReturnToMainMenuScene()
+        {
+            RunMainMenuTransition(ReturnToMainMenuSceneImmediate);
+        }
+
+        private void ReturnToMainMenuSceneImmediate()
         {
             if (_duelPresentationVisible &&
                 DuelOnlineSession.Instance?.IsOnlineDuelActive == true)

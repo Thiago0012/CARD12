@@ -319,7 +319,9 @@ namespace ArcaneArena.Frontend
         private void ShowLegacyMultiplayerRoom()
         {
             BuildSharedBackground("MULTIPLAYER");
-            BuildHeader("MULTIPLAYER", ShowMainMenu);
+            BuildHeader(
+                "MULTIPLAYER",
+                () => RunMainMenuTransition(ShowMainMenu));
 
             var panel = CreatePanel(
                 _screenRoot,

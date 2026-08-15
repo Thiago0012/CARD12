@@ -29,7 +29,9 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             BuildSharedBackground("PERFIL DO DUELISTA");
-            BuildHeader("PERFIL", ShowMainMenu);
+            BuildHeader(
+                "PERFIL",
+                () => RunMainMenuTransition(ShowMainMenu));
 
             Image identity = CreatePanel(
                 _screenRoot,

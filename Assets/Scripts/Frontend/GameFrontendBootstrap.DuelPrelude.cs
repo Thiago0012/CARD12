@@ -74,10 +74,10 @@ namespace ArcaneArena.Frontend
                 }
             }
 
-            presenter?.Show(
+            presenter?.ShowDuelLoading(
                 "PREPARANDO O DUELO",
-                "Sincronizando decks e campo de batalha.");
-            presenter?.SetProgress(0.04f);
+                "Sincronizando decks e campo de batalha.",
+                0.04f);
             if (IsActiveScene(DuelArenaSceneName) ||
                 !Application.CanStreamedLevelBeLoaded(DuelArenaSceneName))
             {
@@ -99,18 +99,27 @@ namespace ArcaneArena.Frontend
                 yield break;
             }
 
+            load.allowSceneActivation = false;
             float startedAt = Time.realtimeSinceStartup;
-            while (!load.isDone)
+            const float minimumLoadingSeconds = 0.90f;
+            while (load.progress < 0.9f ||
+                   Time.realtimeSinceStartup - startedAt <
+                       minimumLoadingSeconds)
             {
                 float simulated = Mathf.Clamp01(
-                    (Time.realtimeSinceStartup - startedAt) / 0.82f);
+                    (Time.realtimeSinceStartup - startedAt) /
+                    minimumLoadingSeconds);
                 float actual = Mathf.Clamp01(load.progress / 0.9f);
                 presenter?.SetProgress(Mathf.Min(
-                    0.98f,
-                    Mathf.Max(actual, simulated * 0.92f)));
+                    0.96f,
+                    Mathf.Max(actual * 0.96f, simulated * 0.92f)));
                 yield return null;
             }
             presenter?.SetProgress(1f);
+            yield return new WaitForSecondsRealtime(0.16f);
+            load.allowSceneActivation = true;
+            while (!load.isDone)
+                yield return null;
             _offlinePreludeInProgress = false;
         }
 

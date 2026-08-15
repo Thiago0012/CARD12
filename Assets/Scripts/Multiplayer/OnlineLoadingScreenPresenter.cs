@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using ArcaneArena.Cards;
 using ArcaneArena.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
@@ -34,6 +35,11 @@ namespace ArcaneArena.Multiplayer
         private readonly List<Button> choiceButtons = new();
         private readonly List<RectTransform> lightStreaks = new();
         private readonly List<RectTransform> floatingCards = new();
+        private readonly List<Vector2> floatingCardOrigins = new();
+        private readonly List<float> floatingCardDepths = new();
+        private readonly List<float> floatingCardAngles = new();
+        private readonly System.Random visualRandom =
+            new System.Random(Environment.TickCount);
         private Button backButton;
         private Action backAction;
         private Action<DuelPreludeChoice> choiceAction;
@@ -55,29 +61,47 @@ namespace ArcaneArena.Multiplayer
 
         public void Show(string primary, string secondary = "")
         {
-            bool enteringLoading = !IsVisible ||
-                                   choicePanel?.activeSelf == true ||
-                                   resultPanel?.activeSelf == true;
+            loadingMode = false;
             PrepareVisibleSurface();
             SetPreludeMode(false, false);
-            primaryLabel.text = string.IsNullOrWhiteSpace(primary)
-                ? "Carregando duelo..."
-                : primary;
-            secondaryLabel.text = secondary ?? string.Empty;
-            secondaryLabel.gameObject.SetActive(
-                !string.IsNullOrWhiteSpace(secondaryLabel.text));
+            ApplyText(primary, secondary);
+            spinner.gameObject.SetActive(true);
+            progressRoot.gameObject.SetActive(false);
+            backButton.gameObject.SetActive(false);
+            backAction = null;
+            RefreshFloatingCardArtwork();
+        }
+
+        public void ShowDuelLoading(
+            string primary,
+            string secondary = "",
+            float initialProgress = 0.04f)
+        {
+            bool enteringLoading = !IsVisible || !loadingMode ||
+                                   choicePanel?.activeSelf == true ||
+                                   resultPanel?.activeSelf == true;
+            loadingMode = true;
+            PrepareVisibleSurface();
+            SetPreludeMode(false, false);
+            ApplyText(primary, secondary);
             spinner.gameObject.SetActive(true);
             progressRoot.gameObject.SetActive(true);
             backButton.gameObject.SetActive(false);
             backAction = null;
-            loadingMode = true;
             if (enteringLoading)
-                SetProgress(0.04f);
+                SetProgress(initialProgress);
+            else if (initialProgress > progressValue)
+                SetProgress(initialProgress);
+            RefreshFloatingCardArtwork();
         }
 
         public void SetText(string primary, string secondary = "")
         {
-            Show(primary, secondary);
+            PrepareVisibleSurface();
+            SetPreludeMode(false, false);
+            ApplyText(primary, secondary);
+            spinner.gameObject.SetActive(true);
+            progressRoot.gameObject.SetActive(loadingMode);
             if (group != null)
                 group.alpha = Mathf.Max(group.alpha, 0.001f);
         }
@@ -87,7 +111,7 @@ namespace ArcaneArena.Multiplayer
             EnsureView();
             value = Mathf.Clamp01(value);
             progressValue = value;
-            progressRoot.gameObject.SetActive(true);
+            progressRoot.gameObject.SetActive(loadingMode);
             progressFill.rectTransform.anchorMax = new Vector2(value, 1f);
             progressFill.rectTransform.offsetMax = Vector2.zero;
             progressLabel.text = $"{Mathf.RoundToInt(value * 100f)}%";
@@ -98,9 +122,9 @@ namespace ArcaneArena.Multiplayer
             int round,
             Action<DuelPreludeChoice> onChoice)
         {
+            loadingMode = false;
             PrepareVisibleSurface();
             SetPreludeMode(true, false);
-            loadingMode = false;
             choiceAction = onChoice;
             primaryLabel.text = "QUEM INICIA O DUELO?";
             secondaryLabel.text = string.IsNullOrWhiteSpace(opponentName)
@@ -129,9 +153,9 @@ namespace ArcaneArena.Multiplayer
             bool localWon,
             bool tie)
         {
+            loadingMode = false;
             PrepareVisibleSurface();
             SetPreludeMode(false, true);
-            loadingMode = false;
             primaryLabel.text = tie
                 ? "EMPATE"
                 : localWon ? "VOCÊ COMEÇA" : "O RIVAL COMEÇA";
@@ -220,8 +244,19 @@ namespace ArcaneArena.Multiplayer
             choicePanel.SetActive(choices);
             resultPanel.SetActive(result);
             spinner.gameObject.SetActive(!choices && !result);
-            progressRoot.gameObject.SetActive(!choices && !result);
+            progressRoot.gameObject.SetActive(
+                !choices && !result && loadingMode);
             choiceAction = choices ? choiceAction : null;
+        }
+
+        private void ApplyText(string primary, string secondary)
+        {
+            primaryLabel.text = string.IsNullOrWhiteSpace(primary)
+                ? "Carregando..."
+                : primary;
+            secondaryLabel.text = secondary ?? string.Empty;
+            secondaryLabel.gameObject.SetActive(
+                !string.IsNullOrWhiteSpace(secondaryLabel.text));
         }
 
         private void Update()
@@ -234,8 +269,6 @@ namespace ArcaneArena.Multiplayer
             float now = Time.unscaledTime;
             if (spinner != null && spinner.gameObject.activeSelf)
                 spinner.Rotate(0f, 0f, -150f * delta);
-            if (loadingMode && progressValue < 0.92f)
-                SetProgress(Mathf.Min(0.92f, progressValue + delta * 0.075f));
             for (int index = 0; index < lightStreaks.Count; index++)
             {
                 RectTransform streak = lightStreaks[index];
@@ -250,7 +283,24 @@ namespace ArcaneArena.Multiplayer
                 RectTransform card = floatingCards[index];
                 if (card == null)
                     continue;
-                card.Rotate(0f, 0f, (index % 2 == 0 ? 1f : -1f) * delta * 4f);
+                float depth = floatingCardDepths[index];
+                float phase = index * 0.83f;
+                Vector2 origin = floatingCardOrigins[index];
+                Vector2 outward = origin.sqrMagnitude > 0.01f
+                    ? origin.normalized
+                    : Vector2.up;
+                float travel = Mathf.Sin(
+                    now * Mathf.Lerp(0.16f, 0.32f, depth) + phase) *
+                    Mathf.Lerp(8f, 28f, depth);
+                float vertical = Mathf.Sin(now * 0.23f + phase * 1.7f) *
+                                 Mathf.Lerp(5f, 17f, depth);
+                card.anchoredPosition = origin + outward * travel +
+                                        Vector2.up * vertical;
+                card.localEulerAngles = new Vector3(
+                    0f,
+                    Mathf.Sin(now * 0.21f + phase) * 8f * depth,
+                    floatingCardAngles[index] +
+                    Mathf.Sin(now * 0.18f + phase) * 4f);
             }
 
             if (hideRequested &&
@@ -393,24 +443,40 @@ namespace ArcaneArena.Multiplayer
                 RectTransform rect = card.rectTransform;
                 float angle = index * 36f + 14f;
                 float radius = 260f + index % 4 * 150f;
-                rect.anchoredPosition = new Vector2(
+                Vector2 origin = new Vector2(
                     Mathf.Cos(angle * Mathf.Deg2Rad) * radius,
                     Mathf.Sin(angle * Mathf.Deg2Rad) * radius * 0.56f);
-                rect.sizeDelta = new Vector2(76f, 112f);
-                rect.localEulerAngles = new Vector3(0f, 0f, -angle + 90f);
+                float depth = 0.24f + (index % 5) * 0.17f;
+                float height = Mathf.Lerp(92f, 224f, depth);
+                rect.anchoredPosition = origin;
+                rect.sizeDelta = new Vector2(height * 0.686f, height);
+                float rotation = -angle + 90f + (index % 3 - 1) * 11f;
+                rect.localEulerAngles = new Vector3(0f, 0f, rotation);
+                card.preserveAspect = true;
                 floatingCards.Add(rect);
+                floatingCardOrigins.Add(origin);
+                floatingCardDepths.Add(depth);
+                floatingCardAngles.Add(rotation);
             }
+
+            RefreshFloatingCardArtwork();
         }
 
         private void BuildProgress(Transform parent, Font font)
         {
-            Image track = CreateImage(
+            Image container = CreateImage(
                 parent,
+                "Carregamento do Duelo",
+                new Color(0.015f, 0.035f, 0.075f, 0.90f),
+                new Vector2(0.62f, 0.085f),
+                new Vector2(0.955f, 0.155f));
+            progressRoot = container.rectTransform;
+            Image track = CreateImage(
+                container.transform,
                 "Barra de Carregamento",
                 new Color(0.10f, 0.16f, 0.27f, 0.92f),
-                new Vector2(0.28f, 0.205f),
-                new Vector2(0.72f, 0.225f));
-            progressRoot = track.rectTransform;
+                new Vector2(0.055f, 0.35f),
+                new Vector2(0.82f, 0.65f));
             progressFill = CreateImage(
                 track.transform,
                 "Progresso",
@@ -418,15 +484,54 @@ namespace ArcaneArena.Multiplayer
                 Vector2.zero,
                 new Vector2(0f, 1f));
             progressLabel = CreateText(
-                parent,
+                container.transform,
                 "Porcentagem",
                 font,
-                16,
+                18,
                 FontStyle.Bold,
-                new Vector2(0.72f, 0.18f),
-                new Vector2(0.79f, 0.25f));
-            progressLabel.alignment = TextAnchor.MiddleLeft;
+                new Vector2(0.835f, 0.08f),
+                new Vector2(0.98f, 0.92f));
+            progressLabel.alignment = TextAnchor.MiddleCenter;
             SetProgress(0f);
+        }
+
+        private void RefreshFloatingCardArtwork()
+        {
+            if (floatingCards.Count == 0)
+                return;
+
+            var artwork = new List<Sprite>();
+            CardCatalog[] catalogs =
+                Resources.FindObjectsOfTypeAll<CardCatalog>();
+            foreach (CardCatalog catalog in catalogs)
+            {
+                if (catalog == null)
+                    continue;
+                foreach (CardCatalogEntry entry in catalog.Entries)
+                {
+                    if (entry?.Artwork != null)
+                        artwork.Add(entry.Artwork);
+                }
+                if (artwork.Count > 0)
+                    break;
+            }
+            if (artwork.Count == 0)
+                return;
+
+            for (int index = 0; index < floatingCards.Count; index++)
+            {
+                Image image = floatingCards[index]
+                    ?.GetComponent<Image>();
+                if (image == null)
+                    continue;
+                image.sprite = artwork[visualRandom.Next(artwork.Count)];
+                float depth = floatingCardDepths[index];
+                image.color = new Color(
+                    0.76f + depth * 0.24f,
+                    0.82f + depth * 0.18f,
+                    1f,
+                    Mathf.Lerp(0.34f, 0.86f, depth));
+            }
         }
 
         private void BuildChoicePanel(Transform parent, Font font)
