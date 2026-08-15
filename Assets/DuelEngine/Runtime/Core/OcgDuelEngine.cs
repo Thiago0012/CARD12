@@ -26,6 +26,12 @@ namespace ArcaneDuel.DuelEngine.Core
         public uint StartingLifePoints { get; set; } = 8000;
         public uint StartingHand { get; set; } = 5;
         public uint DrawPerTurn { get; set; } = 1;
+        /// <summary>
+        /// Logical player that receives the first turn. The native core
+        /// always starts team zero, so OcgDuelEngine maps native seats back
+        /// to the stable logical presentation seats when this value is one.
+        /// </summary>
+        public byte StartingPlayer { get; set; }
         public ulong Seed { get; set; } = 0xA7C4D3E2198B6501UL;
         public bool SimpleOpponentAi { get; set; } = true;
         public bool ShuffleMainDecks { get; set; } = true;
@@ -287,6 +293,21 @@ namespace ArcaneDuel.DuelEngine.Core
             uint sequence,
             uint position)
         {
+            AddCardAtNative(
+                NativePlayerForLogical(team),
+                code,
+                location,
+                sequence,
+                position);
+        }
+
+        private void AddCardAtNative(
+            byte team,
+            uint code,
+            uint location,
+            uint sequence,
+            uint position)
+        {
             EnsureUsable();
             if (team > 1) throw new ArgumentOutOfRangeException(nameof(team));
             database.Get(code);
@@ -319,7 +340,7 @@ namespace ArcaneDuel.DuelEngine.Core
             var info = new OcgQueryInfo
             {
                 Flags = QueryAttack | QueryDefense,
-                Controller = controller,
+                Controller = NativePlayerForLogical(controller),
                 Location = location,
                 Sequence = sequence,
                 OverlaySequence = 0
@@ -345,20 +366,29 @@ namespace ArcaneDuel.DuelEngine.Core
             var players = new OcgDuelistFieldSnapshot[2];
             for (byte controller = 0; controller < players.Length; controller++)
             {
-                if (!TryQueryLocation(controller, DuelLocation.Deck, out var deck) ||
-                    !TryQueryLocation(controller, DuelLocation.Hand, out var hand) ||
-                    !TryQueryLocation(controller, DuelLocation.MonsterZone,
+                byte nativeController = NativePlayerForLogical(controller);
+                if (!TryQueryLocation(nativeController, DuelLocation.Deck, out var deck) ||
+                    !TryQueryLocation(nativeController, DuelLocation.Hand, out var hand) ||
+                    !TryQueryLocation(nativeController, DuelLocation.MonsterZone,
                         out var monsters) ||
-                    !TryQueryLocation(controller, DuelLocation.SpellTrapZone,
+                    !TryQueryLocation(nativeController, DuelLocation.SpellTrapZone,
                         out var spells) ||
-                    !TryQueryLocation(controller, DuelLocation.Graveyard,
+                    !TryQueryLocation(nativeController, DuelLocation.Graveyard,
                         out var graveyard) ||
-                    !TryQueryLocation(controller, DuelLocation.Banished,
+                    !TryQueryLocation(nativeController, DuelLocation.Banished,
                         out var banished) ||
-                    !TryQueryLocation(controller, DuelLocation.Extra, out var extra))
+                    !TryQueryLocation(nativeController, DuelLocation.Extra, out var extra))
                 {
                     return false;
                 }
+
+                RemapSnapshotCards(deck);
+                RemapSnapshotCards(hand);
+                RemapSnapshotCards(monsters);
+                RemapSnapshotCards(spells);
+                RemapSnapshotCards(graveyard);
+                RemapSnapshotCards(banished);
+                RemapSnapshotCards(extra);
 
                 players[controller] = new OcgDuelistFieldSnapshot
                 {
@@ -373,6 +403,21 @@ namespace ArcaneDuel.DuelEngine.Core
             }
             snapshot = new OcgFieldSnapshot { Players = players };
             return true;
+        }
+
+        private void RemapSnapshotCards(OcgFieldCardSnapshot[] cards)
+        {
+            if (!SeatsAreSwapped || cards == null)
+                return;
+            foreach (OcgFieldCardSnapshot card in cards)
+            {
+                if (card == null)
+                    continue;
+                if (card.Owner <= 1)
+                    card.Owner = LogicalPlayerForNative(card.Owner);
+                RemapLocation(card.EquipTarget);
+                RemapLocations(card.TargetCards);
+            }
         }
 
         private bool TryQueryLocation(
@@ -663,25 +708,32 @@ namespace ArcaneDuel.DuelEngine.Core
                     string.Join(" | ", unsupported));
             }
             AddDeck(
-                0,
+                NativePlayerForLogical(0),
                 configuration.ShuffleMainDecks
                     ? Shuffled(configuration.PlayerDeck, configuration.Seed ^ 0xA11CE001UL)
                     : configuration.PlayerDeck,
                 DuelLocation.Deck);
-            AddDeck(0, configuration.PlayerExtraDeck, DuelLocation.Extra);
             AddDeck(
-                1,
+                NativePlayerForLogical(0),
+                configuration.PlayerExtraDeck,
+                DuelLocation.Extra);
+            AddDeck(
+                NativePlayerForLogical(1),
                 configuration.ShuffleMainDecks
                     ? Shuffled(configuration.OpponentDeck, configuration.Seed ^ 0xA11CE002UL)
                     : configuration.OpponentDeck,
                 DuelLocation.Deck);
-            AddDeck(1, configuration.OpponentExtraDeck, DuelLocation.Extra);
+            AddDeck(
+                NativePlayerForLogical(1),
+                configuration.OpponentExtraDeck,
+                DuelLocation.Extra);
             OcgCoreNative.StartDuel(duel);
             IsStarted = true;
             Emit(new DuelEvent
             {
                 Message = CoreMessage.Start,
                 RawMessage = (byte)CoreMessage.Start,
+                Player = configuration.StartingPlayer,
                 Value = configuration.StartingLifePoints,
                 Detail = "Duelo iniciado pelo ocgcore"
             });
@@ -758,7 +810,12 @@ namespace ArcaneDuel.DuelEngine.Core
             if (cards == null) return;
             for (int i = cards.Length - 1; i >= 0; i--)
             {
-                AddCard(team, cards[i], location);
+                AddCardAtNative(
+                    team,
+                    cards[i],
+                    location,
+                    0,
+                    FaceDownDefense);
             }
         }
 
@@ -794,6 +851,7 @@ namespace ArcaneDuel.DuelEngine.Core
                          copy,
                          database.Cards))
             {
+                RemapEventToLogicalSeats(duelEvent);
                 if (duelEvent.Message == CoreMessage.Retry &&
                     retryFallbackPrompt != null)
                 {
@@ -897,6 +955,7 @@ namespace ArcaneDuel.DuelEngine.Core
             return new DuelChoice
             {
                 RequestId = requestId,
+                RuntimeId = source.RuntimeId,
                 Label = source.Label,
                 CardCode = source.CardCode,
                 Response = source.Response == null
@@ -906,10 +965,70 @@ namespace ArcaneDuel.DuelEngine.Core
                 Controller = source.Controller,
                 Location = source.Location,
                 Sequence = source.Sequence,
+                Position = source.Position,
+                DirectAttackAvailable = source.DirectAttackAvailable,
                 ChoiceIndex = source.ChoiceIndex,
                 DescriptionId = source.DescriptionId,
                 SumValue = source.SumValue
             };
+        }
+
+        private bool SeatsAreSwapped => configuration.StartingPlayer == 1;
+
+        private byte NativePlayerForLogical(byte player)
+        {
+            if (player > 1 || !SeatsAreSwapped)
+                return player;
+            return (byte)(1 - player);
+        }
+
+        private byte LogicalPlayerForNative(byte player)
+        {
+            return NativePlayerForLogical(player);
+        }
+
+        private void RemapEventToLogicalSeats(DuelEvent duelEvent)
+        {
+            if (!SeatsAreSwapped || duelEvent == null)
+                return;
+
+            duelEvent.Player = LogicalPlayerForNative(duelEvent.Player);
+            RemapLocation(duelEvent.Previous);
+            RemapLocation(duelEvent.Current);
+            RemapLocations(duelEvent.PreviousLocations);
+            RemapLocations(duelEvent.CurrentLocations);
+            if (duelEvent.Prompt == null)
+                return;
+
+            duelEvent.Prompt.Player =
+                LogicalPlayerForNative(duelEvent.Prompt.Player);
+            foreach (DuelChoice choice in duelEvent.Prompt.Choices)
+            {
+                if (choice != null && choice.Controller <= 1)
+                {
+                    // Response is deliberately kept byte-for-byte native.
+                    // Only presentation metadata uses logical seats.
+                    choice.Controller =
+                        LogicalPlayerForNative(choice.Controller);
+                }
+            }
+        }
+
+        private void RemapLocations(CardLocation[] locations)
+        {
+            if (locations == null)
+                return;
+            foreach (CardLocation location in locations)
+                RemapLocation(location);
+        }
+
+        private void RemapLocation(CardLocation location)
+        {
+            if (location != null && location.Controller <= 1)
+            {
+                location.Controller =
+                    LogicalPlayerForNative(location.Controller);
+            }
         }
 
         [MonoPInvokeCallback(typeof(OcgDataReader))]

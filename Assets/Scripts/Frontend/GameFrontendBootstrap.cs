@@ -3990,11 +3990,11 @@ namespace ArcaneArena.Frontend
             if (IsActiveScene(DuelArenaSceneName) ||
                 !Application.CanStreamedLevelBeLoaded(DuelArenaSceneName))
             {
-                StartCoroutine(StartRequestedDuelAfterArenaReset());
+                BeginOfflineDuelPrelude();
                 return;
             }
 
-            SceneManager.LoadScene(DuelArenaSceneName);
+            BeginOfflineDuelPrelude();
         }
 
         public void RecordConfirmedDuelStatistic(
@@ -4053,6 +4053,7 @@ namespace ArcaneArena.Frontend
                 _pendingDuelMode = PendingDuelMode.None;
                 _pendingPlayerLoadout = null;
                 _pendingBotLoadout = null;
+                _pendingStartingPlayer = 0;
                 yield break;
             }
 
@@ -4070,6 +4071,9 @@ namespace ArcaneArena.Frontend
             _pendingDuelMode = PendingDuelMode.None;
             DuelDeckLoadout playerLoadout = _pendingPlayerLoadout;
             _pendingPlayerLoadout = null;
+            byte startingPlayer = _pendingStartingPlayer;
+            _pendingStartingPlayer = 0;
+            online?.TransitionPresenter?.Hide();
 
             if (mode == PendingDuelMode.Bot)
             {
@@ -4077,12 +4081,15 @@ namespace ArcaneArena.Frontend
                 _pendingBotLoadout = null;
                 _duelArena?.StartDuelAgainstBot(
                     botLoadout,
-                    playerLoadout);
+                    playerLoadout,
+                    startingPlayer);
             }
             else
             {
                 _pendingBotLoadout = null;
-                _duelArena?.StartLocalTestDuel(playerLoadout);
+                _duelArena?.StartLocalTestDuel(
+                    playerLoadout,
+                    startingPlayer);
             }
         }
 

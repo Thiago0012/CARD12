@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using ArcaneArena.Multiplayer;
 using ArcaneDuel.Game;
@@ -113,25 +114,25 @@ namespace ArcaneArena.Frontend
         public void MainMenuDuel()
         {
             FrontendClickAudio.Play();
-            OpenBotDuelSelectionFromMainMenu();
+            RunMainMenuTransition(OpenBotDuelSelectionFromMainMenu);
         }
 
         public void MainMenuDecks()
         {
             FrontendClickAudio.Play();
-            OpenDeckEditorScene();
+            RunMainMenuTransition(OpenDeckEditorScene);
         }
 
         public void MainMenuShop()
         {
             FrontendClickAudio.Play();
-            ShowDeckShop();
+            RunMainMenuTransition(ShowDeckShop);
         }
 
         public void MainMenuMultiplayer()
         {
             FrontendClickAudio.Play();
-            ShowMultiplayerRoom();
+            RunMainMenuTransition(ShowMultiplayerRoom);
         }
 
         public void MainMenuSettings()
@@ -163,25 +164,26 @@ namespace ArcaneArena.Frontend
                 _mainMenuAssets.duelButton,
                 new Vector2(0.0718f, 0.4692f),
                 new Vector2(0.2976f, 0.5654f),
-                OpenBotDuelSelectionFromMainMenu);
+                () => RunMainMenuTransition(
+                    OpenBotDuelSelectionFromMainMenu));
             CreateTemplateButton(
                 "MULTIPLAYER",
                 _mainMenuAssets.multiplayerButton,
                 new Vector2(0.0730f, 0.3624f),
                 new Vector2(0.2988f, 0.4586f),
-                ShowMultiplayerRoom);
+                () => RunMainMenuTransition(ShowMultiplayerRoom));
             CreateTemplateButton(
                 "DECKS",
                 _mainMenuAssets.decksButton,
                 new Vector2(0.0736f, 0.2582f),
                 new Vector2(0.2994f, 0.3545f),
-                OpenDeckEditorScene);
+                () => RunMainMenuTransition(OpenDeckEditorScene));
             CreateTemplateButton(
                 "LOJA",
                 _mainMenuAssets.shopButton,
                 new Vector2(0.0733f, 0.1557f),
                 new Vector2(0.2991f, 0.2519f),
-                ShowDeckShop);
+                () => RunMainMenuTransition(ShowDeckShop));
             CreateTemplateButton(
                 "CONFIGURAÇÕES",
                 _mainMenuAssets.settingsButton,
@@ -208,6 +210,21 @@ namespace ArcaneArena.Frontend
             }
 
             BuildVersionOverlay();
+        }
+
+        private static void RunMainMenuTransition(Action action)
+        {
+            if (action == null)
+                return;
+            DuelOnlineSession session = DuelOnlineSession.EnsureInstance();
+            OnlineLoadingScreenPresenter presenter =
+                session != null ? session.TransitionPresenter : null;
+            if (presenter == null)
+            {
+                action.Invoke();
+                return;
+            }
+            presenter.FadeThroughBlack(action);
         }
 
         private void OpenBotDuelSelectionFromMainMenu()

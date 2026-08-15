@@ -1863,7 +1863,8 @@ namespace ArcaneDuel.Game
             uint[] playerMain,
             uint[] playerExtra,
             uint[] opponentMain,
-            uint[] opponentExtra)
+            uint[] opponentExtra,
+            byte startingPlayer = 0)
         {
             completionNotified = false;
             presentationDecisionLocked = false;
@@ -1923,6 +1924,9 @@ namespace ArcaneDuel.Game
             configuration.OpponentDeck = opponentMain.ToArray();
             configuration.OpponentExtraDeck =
                 opponentExtra?.ToArray() ?? Array.Empty<uint>();
+            configuration.StartingPlayer = startingPlayer > 0
+                ? (byte)1
+                : (byte)0;
             configuration.SimpleOpponentAi = false;
             tacticalOpponent.Configure(
                 BotRuntimeSelection.CurrentProfile,

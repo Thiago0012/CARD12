@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using ArcaneArena;
 using ArcaneArena.Frontend;
 using ArcaneArena.Multiplayer.Tournaments;
+using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
@@ -35,7 +36,7 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelOnlineSession : MonoBehaviour
     {
         private const string DuelArenaScene = "DuelArena";
-        private const string ProtocolVersion = "arcane-duel-online-v12";
+        private const string ProtocolVersion = "arcane-duel-online-v13";
         private const string HelloMessage = "arcane.duel.hello.v4";
         private const string HelloRequestMessage = "arcane.duel.hello-request.v4";
         private const string HelloAcceptedMessage = "arcane.duel.hello-accepted.v4";
@@ -47,12 +48,17 @@ namespace ArcaneArena.Multiplayer
         private const string StateAckMessage = "arcane.duel.state-ack.v4";
         private const string ResyncRequestMessage = "arcane.duel.resync.v4";
         private const string BeginDuelMessage = "arcane.duel.begin.v8";
+        private const string PreludeMessage = "arcane.duel.prelude.v1";
+        private const string PreludeChoiceMessage =
+            "arcane.duel.prelude-choice.v1";
+        private const string PreludeResultMessage =
+            "arcane.duel.prelude-result.v1";
         private const string MatchRewardMessage = "arcane.duel.match-result.v8";
         private const string PresentationEventMessage =
             "arcane.duel.presentation-event.v4";
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
-        private const ushort NgoProtocolVersion = 12;
+        private const ushort NgoProtocolVersion = 13;
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
@@ -114,7 +120,10 @@ namespace ArcaneArena.Multiplayer
             StateAck = 10,
             ResyncRequest = 11,
             MatchReward = 12,
-            BeginDuel = 13
+            BeginDuel = 13,
+            Prelude = 14,
+            PreludeChoice = 15,
+            PreludeResult = 16
         }
 
         [Serializable]
@@ -210,6 +219,38 @@ namespace ArcaneArena.Multiplayer
             public uint transitionEpoch;
             public ulong initialStateVersion;
             public long serverStartTick;
+        }
+
+        [Serializable]
+        private sealed class PreludePayload
+        {
+            public string protocolVersion;
+            public string matchId;
+            public uint transitionEpoch;
+            public int round;
+        }
+
+        [Serializable]
+        private sealed class PreludeChoicePayload
+        {
+            public string protocolVersion;
+            public string matchId;
+            public uint transitionEpoch;
+            public int round;
+            public int choice;
+        }
+
+        [Serializable]
+        private sealed class PreludeResultPayload
+        {
+            public string protocolVersion;
+            public string matchId;
+            public uint transitionEpoch;
+            public int round;
+            public int hostChoice;
+            public int clientChoice;
+            public int winnerSeat;
+            public bool tie;
         }
 
         [Serializable]
@@ -375,6 +416,7 @@ namespace ArcaneArena.Multiplayer
         private Coroutine stateHeartbeat;
         private Coroutine sceneTransitionRoutine;
         private Coroutine beginDuelRoutine;
+        private Coroutine preludeResultRoutine;
         private bool helloAccepted;
         private bool clientDeckReady;
         private bool clientReceivedStart;
@@ -384,6 +426,12 @@ namespace ArcaneArena.Multiplayer
         private bool beginDuelReceived;
         private bool beginDuelApplied;
         private bool clientBeginApplied;
+        private int onlinePreludeRound;
+        private DuelPreludeChoice hostPreludeChoice;
+        private DuelPreludeChoice clientPreludeChoice;
+        private byte onlineStartingPlayer;
+        private bool onlinePreludeResolved;
+        private bool diagnosticPreludeBypass;
         private float nextClientArenaReadyRetryTime;
         private string hostPlayerDisplayName = string.Empty;
         private string hostDeckDisplayName = string.Empty;
@@ -460,6 +508,11 @@ namespace ArcaneArena.Multiplayer
         public string RoomCode => roomCode;
         public string RelayRegion => relayRegion;
         public OnlineMatchFlowState FlowState => flowState;
+        public OnlineLoadingScreenPresenter TransitionPresenter =>
+            loadingPresenter;
+        public bool RequiresPresentationLock =>
+            IsOnlineDuelActive &&
+            (clientSynchronizing || hostAwaitingReconnect || reconnecting);
         public string InteractionWaitMessage
         {
             get
@@ -528,6 +581,7 @@ namespace ArcaneArena.Multiplayer
 
         internal void BeginMatchForDiagnostics()
         {
+            diagnosticPreludeBypass = true;
             BeginHostMatch();
         }
 
@@ -1718,9 +1772,18 @@ namespace ArcaneArena.Multiplayer
                 clientArenaReady = false;
                 if (resumedMatch)
                 {
-                    hostAwaitingStateAckUnlock = true;
-                    status = "Rival reconectado. Restaurando o estado da partida...";
-                    StartHostStartHandshake();
+                    if (hostCoreStarted)
+                    {
+                        hostAwaitingStateAckUnlock = true;
+                        status = "Rival reconectado. Restaurando o estado da partida...";
+                        StartHostStartHandshake();
+                    }
+                    else
+                    {
+                        hostAwaitingStateAckUnlock = false;
+                        status = "Rival reconectado. Reiniciando a escolha inicial...";
+                        BeginOnlinePreludeRound();
+                    }
                 }
                 else
                 {
@@ -1903,6 +1966,11 @@ namespace ArcaneArena.Multiplayer
 
             if (clientId == remoteClientId && IsHost)
             {
+                if (!hostCoreStarted && preludeResultRoutine != null)
+                {
+                    StopCoroutine(preludeResultRoutine);
+                    preludeResultRoutine = null;
+                }
                 remoteClientId = ulong.MaxValue;
                 hostAwaitingReconnect = true;
                 clientSynchronizing = true;
@@ -2213,13 +2281,238 @@ namespace ArcaneArena.Multiplayer
             status = "Avisando o cliente e abrindo as duas arenas...";
             SetFlowState(OnlineMatchFlowState.PreparingTransition);
             loadingPresenter?.Show(
-                "Carregando duelo...",
-                "Preparando os dois jogadores.");
+                "PREPARANDO O DUELO",
+                "Os dois decks foram validados.");
+            loadingPresenter?.SetProgress(0.04f);
             _ = sessionCoordinator.SetHostMatchStateAsync(
                 "starting",
                 currentMatchId,
                 false);
             showPanel = false;
+            if (diagnosticPreludeBypass || Application.isBatchMode)
+            {
+                onlineStartingPlayer = 0;
+                onlinePreludeResolved = true;
+                StartHostStartHandshake();
+                StartArenaTransitionAfterBlack();
+                return;
+            }
+            BeginOnlinePreludeRound();
+        }
+
+        private void BeginOnlinePreludeRound()
+        {
+            if (!IsHost || !matchStarted ||
+                remoteClientId == ulong.MaxValue)
+            {
+                return;
+            }
+
+            onlinePreludeRound++;
+            hostPreludeChoice = DuelPreludeChoice.None;
+            clientPreludeChoice = DuelPreludeChoice.None;
+            onlinePreludeResolved = false;
+            status = "Escolha pedra, papel ou tesoura para definir quem inicia.";
+            loadingPresenter?.ShowRockPaperScissors(
+                remoteLoadout?.displayName ?? "RIVAL",
+                onlinePreludeRound,
+                choice =>
+                {
+                    if (!DuelPreludeRules.IsPlayable(choice))
+                        return;
+                    hostPreludeChoice = choice;
+                    loadingPresenter?.ShowRockPaperScissorsWaiting(
+                        "Escolha confirmada · aguardando o rival...");
+                    TryResolveOnlinePrelude();
+                });
+            SendToClient(
+                remoteClientId,
+                PreludeMessage,
+                new PreludePayload
+                {
+                    protocolVersion = ProtocolVersion,
+                    matchId = currentMatchId,
+                    transitionEpoch = currentTransitionEpoch,
+                    round = onlinePreludeRound
+                },
+                NetworkDelivery.ReliableSequenced);
+        }
+
+        private void ProcessPreludeMessage(
+            ulong senderClientId,
+            PreludePayload prelude)
+        {
+            if (role != SessionRole.Client ||
+                senderClientId != NetworkManager.ServerClientId ||
+                prelude == null ||
+                prelude.protocolVersion != ProtocolVersion ||
+                string.IsNullOrWhiteSpace(prelude.matchId) ||
+                prelude.transitionEpoch == 0 || prelude.round <= 0)
+            {
+                return;
+            }
+            if (matchStarted &&
+                (!MatchIdsAreCompatible(currentMatchId, prelude.matchId) ||
+                 currentTransitionEpoch != 0 &&
+                 currentTransitionEpoch != prelude.transitionEpoch))
+            {
+                return;
+            }
+
+            matchStarted = true;
+            clientSynchronizing = true;
+            currentMatchId = prelude.matchId;
+            currentTransitionEpoch = prelude.transitionEpoch;
+            onlinePreludeRound = prelude.round;
+            hostPreludeChoice = DuelPreludeChoice.None;
+            clientPreludeChoice = DuelPreludeChoice.None;
+            onlinePreludeResolved = false;
+            localRewardEligibilityAtMatchStart ??=
+                CaptureLocalRewardEligibility();
+            PersistReconnectTicket();
+            showPanel = false;
+            status = "Escolha pedra, papel ou tesoura para definir quem inicia.";
+            loadingPresenter?.ShowRockPaperScissors(
+                hostPlayerDisplayName,
+                onlinePreludeRound,
+                choice =>
+                {
+                    if (!DuelPreludeRules.IsPlayable(choice))
+                        return;
+                    clientPreludeChoice = choice;
+                    loadingPresenter?.ShowRockPaperScissorsWaiting(
+                        "Escolha enviada · aguardando o resultado do host...");
+                    SendToServer(
+                        PreludeChoiceMessage,
+                        new PreludeChoicePayload
+                        {
+                            protocolVersion = ProtocolVersion,
+                            matchId = currentMatchId,
+                            transitionEpoch = currentTransitionEpoch,
+                            round = onlinePreludeRound,
+                            choice = (int)choice
+                        },
+                        NetworkDelivery.ReliableSequenced);
+                });
+        }
+
+        private void ProcessPreludeChoiceMessage(
+            ulong senderClientId,
+            PreludeChoicePayload choice)
+        {
+            if (!IsHost || senderClientId != remoteClientId ||
+                choice == null || choice.protocolVersion != ProtocolVersion ||
+                choice.matchId != currentMatchId ||
+                choice.transitionEpoch != currentTransitionEpoch ||
+                choice.round != onlinePreludeRound)
+            {
+                return;
+            }
+            DuelPreludeChoice value = (DuelPreludeChoice)choice.choice;
+            if (!DuelPreludeRules.IsPlayable(value))
+                return;
+            clientPreludeChoice = value;
+            TryResolveOnlinePrelude();
+        }
+
+        private void TryResolveOnlinePrelude()
+        {
+            if (!IsHost || onlinePreludeResolved ||
+                !DuelPreludeRules.IsPlayable(hostPreludeChoice) ||
+                !DuelPreludeRules.IsPlayable(clientPreludeChoice))
+            {
+                return;
+            }
+
+            DuelPreludeOutcome outcome = DuelPreludeRules.Resolve(
+                hostPreludeChoice,
+                clientPreludeChoice);
+            bool tie = outcome == DuelPreludeOutcome.Tie;
+            int winnerSeat = tie
+                ? -1
+                : outcome == DuelPreludeOutcome.PlayerOne ? 0 : 1;
+            onlinePreludeResolved = true;
+            SendToClient(
+                remoteClientId,
+                PreludeResultMessage,
+                new PreludeResultPayload
+                {
+                    protocolVersion = ProtocolVersion,
+                    matchId = currentMatchId,
+                    transitionEpoch = currentTransitionEpoch,
+                    round = onlinePreludeRound,
+                    hostChoice = (int)hostPreludeChoice,
+                    clientChoice = (int)clientPreludeChoice,
+                    winnerSeat = winnerSeat,
+                    tie = tie
+                },
+                NetworkDelivery.ReliableSequenced);
+            loadingPresenter?.ShowRockPaperScissorsResult(
+                hostPreludeChoice,
+                clientPreludeChoice,
+                winnerSeat == 0,
+                tie);
+            if (!tie)
+                onlineStartingPlayer = (byte)winnerSeat;
+            if (preludeResultRoutine != null)
+                StopCoroutine(preludeResultRoutine);
+            preludeResultRoutine = StartCoroutine(
+                ContinueAfterOnlinePreludeResult(tie));
+        }
+
+        private void ProcessPreludeResultMessage(
+            ulong senderClientId,
+            PreludeResultPayload result)
+        {
+            if (role != SessionRole.Client ||
+                senderClientId != NetworkManager.ServerClientId ||
+                result == null || result.protocolVersion != ProtocolVersion ||
+                result.matchId != currentMatchId ||
+                result.transitionEpoch != currentTransitionEpoch ||
+                result.round != onlinePreludeRound)
+            {
+                return;
+            }
+
+            hostPreludeChoice = (DuelPreludeChoice)result.hostChoice;
+            clientPreludeChoice = (DuelPreludeChoice)result.clientChoice;
+            if (!DuelPreludeRules.IsPlayable(hostPreludeChoice) ||
+                !DuelPreludeRules.IsPlayable(clientPreludeChoice))
+            {
+                return;
+            }
+            onlinePreludeResolved = true;
+            if (!result.tie && (result.winnerSeat == 0 || result.winnerSeat == 1))
+                onlineStartingPlayer = (byte)result.winnerSeat;
+            loadingPresenter?.ShowRockPaperScissorsResult(
+                clientPreludeChoice,
+                hostPreludeChoice,
+                result.winnerSeat == 1,
+                result.tie);
+            status = result.tie
+                ? "Empate. O host iniciará uma nova rodada."
+                : result.winnerSeat == 1
+                    ? "Você venceu a escolha e iniciará o duelo."
+                    : "O anfitrião venceu a escolha e iniciará o duelo.";
+        }
+
+        private IEnumerator ContinueAfterOnlinePreludeResult(bool tie)
+        {
+            yield return new WaitForSecondsRealtime(tie ? 0.82f : 1.05f);
+            preludeResultRoutine = null;
+            if (!IsHost || !matchStarted)
+                yield break;
+            if (tie)
+            {
+                BeginOnlinePreludeRound();
+                yield break;
+            }
+
+            loadingPresenter?.Show(
+                "PREPARANDO O DUELO",
+                "Abrindo os dois campos simultaneamente.");
+            loadingPresenter?.SetProgress(0.10f);
+            status = "Avisando o cliente e abrindo as duas arenas...";
             StartHostStartHandshake();
             StartArenaTransitionAfterBlack();
         }
@@ -2742,8 +3035,13 @@ namespace ArcaneArena.Multiplayer
             hostAwaitingStateAckUnlock = false;
             hostController?.SetPresentationDecisionLocked(false);
             replicaController?.SetPresentationDecisionLocked(false);
+            CardArenaBootstrap openingArena = IsHost
+                ? hostController?.GetComponent<CardArenaBootstrap>()
+                : replicaController?.GetComponent<CardArenaBootstrap>();
+            openingArena?.StartOpeningDuelPresentation();
             SetFlowState(OnlineMatchFlowState.InDuel);
             DuelOnlineBridge.CompleteOnlineArenaTransition();
+            loadingPresenter?.SetProgress(1f);
             loadingPresenter?.Hide();
             status = "Duelo online ativo. Os dois jogadores estão sincronizados.";
             if (IsHost)
@@ -2997,7 +3295,8 @@ namespace ArcaneArena.Multiplayer
                         localMain,
                         localExtra,
                         remoteMain,
-                        remoteExtra))
+                        remoteExtra,
+                        onlineStartingPlayer))
                 {
                     throw new InvalidOperationException(
                         "O ygopro-core não confirmou o início do duelo online.");
@@ -4643,6 +4942,21 @@ namespace ArcaneArena.Multiplayer
                             senderClientId,
                             JsonUtility.FromJson<BeginDuelPayload>(json));
                         break;
+                    case LogicalMessage.Prelude:
+                        ProcessPreludeMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<PreludePayload>(json));
+                        break;
+                    case LogicalMessage.PreludeChoice:
+                        ProcessPreludeChoiceMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<PreludeChoicePayload>(json));
+                        break;
+                    case LogicalMessage.PreludeResult:
+                        ProcessPreludeResultMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<PreludeResultPayload>(json));
+                        break;
                     default:
                         throw new InvalidOperationException(
                             $"Mensagem logica v3 desconhecida: {logicalMessage}.");
@@ -4717,6 +5031,18 @@ namespace ArcaneArena.Multiplayer
                     logicalMessage = LogicalMessage.BeginDuel;
                     kind = DuelWireKind.Control;
                     return true;
+                case PreludeMessage:
+                    logicalMessage = LogicalMessage.Prelude;
+                    kind = DuelWireKind.Control;
+                    return true;
+                case PreludeChoiceMessage:
+                    logicalMessage = LogicalMessage.PreludeChoice;
+                    kind = DuelWireKind.Control;
+                    return true;
+                case PreludeResultMessage:
+                    logicalMessage = LogicalMessage.PreludeResult;
+                    kind = DuelWireKind.Control;
+                    return true;
                 default:
                     return false;
             }
@@ -4746,6 +5072,9 @@ namespace ArcaneArena.Multiplayer
                 case LogicalMessage.ResyncRequest:
                 case LogicalMessage.MatchReward:
                 case LogicalMessage.BeginDuel:
+                case LogicalMessage.Prelude:
+                case LogicalMessage.PreludeChoice:
+                case LogicalMessage.PreludeResult:
                     return kind == DuelWireKind.Control;
                 default:
                     return false;
@@ -4907,6 +5236,11 @@ namespace ArcaneArena.Multiplayer
                 StopCoroutine(beginDuelRoutine);
                 beginDuelRoutine = null;
             }
+            if (preludeResultRoutine != null)
+            {
+                StopCoroutine(preludeResultRoutine);
+                preludeResultRoutine = null;
+            }
             if (reconnectCoroutine != null)
             {
                 StopCoroutine(reconnectCoroutine);
@@ -4982,6 +5316,12 @@ namespace ArcaneArena.Multiplayer
             beginDuelReceived = false;
             beginDuelApplied = false;
             clientBeginApplied = false;
+            onlinePreludeRound = 0;
+            hostPreludeChoice = DuelPreludeChoice.None;
+            clientPreludeChoice = DuelPreludeChoice.None;
+            onlineStartingPlayer = 0;
+            onlinePreludeResolved = false;
+            diagnosticPreludeBypass = false;
             nextClientArenaReadyRetryTime = 0f;
             hostPlayerDisplayName = string.Empty;
             hostDeckDisplayName = string.Empty;

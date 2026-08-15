@@ -327,23 +327,39 @@ namespace ArcaneArena
         }
 
         public void StartLocalTestDuel(
-            DuelDeckLoadout playerLoadout = null)
+            DuelDeckLoadout playerLoadout = null,
+            byte startingPlayer = 0)
         {
             Debug.Log(
                 $"[Arcane legacy bridge] StartLocalTestDuel requested: " +
                 $"{playerLoadout?.displayName ?? "deck ativo persistido"}.");
-            StartSelectedDuel(null, false, playerLoadout);
+            if (StartSelectedDuel(
+                    null,
+                    false,
+                    playerLoadout,
+                    startingPlayer))
+            {
+                StartOpeningDuelPresentation();
+            }
         }
 
         public void StartDuelAgainstBot(
             DuelDeckLoadout loadout = null,
-            DuelDeckLoadout playerLoadout = null)
+            DuelDeckLoadout playerLoadout = null,
+            byte startingPlayer = 0)
         {
             Debug.Log(
                 $"[Arcane legacy bridge] StartDuelAgainstBot requested: " +
                 $"player={playerLoadout?.displayName ?? "deck ativo persistido"}; " +
                 $"bot={loadout?.displayName ?? "deck espelhado"}.");
-            StartSelectedDuel(loadout, true, playerLoadout);
+            if (StartSelectedDuel(
+                    loadout,
+                    true,
+                    playerLoadout,
+                    startingPlayer))
+            {
+                StartOpeningDuelPresentation();
+            }
         }
 
         public void Build()
@@ -359,7 +375,8 @@ namespace ArcaneArena
         private bool StartSelectedDuel(
             DuelDeckLoadout requestedOpponent,
             bool versusBot,
-            DuelDeckLoadout requestedPlayer)
+            DuelDeckLoadout requestedPlayer,
+            byte startingPlayer)
         {
             localDamageDealtInDuel = 0;
             localDamageReceivedInDuel = 0;
@@ -451,7 +468,8 @@ namespace ArcaneArena
                         playerMain,
                         playerExtra,
                         opponentMain,
-                        opponentExtra))
+                        opponentExtra,
+                        startingPlayer))
                 {
                     throw new InvalidOperationException(
                         "O ygopro-core não confirmou o início do duelo.");
@@ -2067,6 +2085,29 @@ namespace ArcaneArena
                 choice.Sequence == sequence);
             if (direct != null && !contextualCommand)
             {
+                bool localFaceDownActivation =
+                    IsLocalZone(zone) &&
+                    !IsFaceUp(PositionAt(zone)) &&
+                    DuelPromptPresentationRules.IsEffectCandidate(
+                        prompt,
+                        direct);
+                if (localFaceDownActivation)
+                {
+                    // A click first identifies the local set card. The
+                    // already visible RESPONDER/ATIVAR control remains the
+                    // explicit confirmation, so inspection cannot submit a
+                    // Core response by accident.
+                    ShowInspector(zone);
+                    SetStatus(
+                        "Carta preparada · confira o efeito e confirme a ativação.",
+                        EffectGlow);
+                    if (choiceModal?.activeInHierarchy == true)
+                        choiceModal.transform.SetAsLastSibling();
+                    else if (compactResponseBar?.activeInHierarchy == true)
+                        compactResponseBar.transform.SetAsLastSibling();
+                    return;
+                }
+
                 List<DuelChoice> locatedEffects = prompt.Choices
                     .Where(choice =>
                         DuelPromptPresentationRules.IsEffectCandidate(

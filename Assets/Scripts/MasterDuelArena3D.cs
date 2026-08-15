@@ -547,6 +547,13 @@ namespace ArcaneArena
                 : _playerTwoMainDeck;
         }
 
+        public Transform GetExtraDeckTransform(DuelPlayerSide side)
+        {
+            return side == DuelPlayerSide.PlayerOne
+                ? _playerOneExtraDeck
+                : _playerTwoExtraDeck;
+        }
+
         public Vector3 GetDrawPresentationWorldPosition(
             DuelPlayerSide side)
         {
