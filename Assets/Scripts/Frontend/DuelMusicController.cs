@@ -14,16 +14,21 @@ namespace ArcaneArena.Frontend
     {
         private const string DuelArenaSceneName = "DuelArena";
         private const string MusicResourceFolder = "Audio/Music/Duel";
-        private const float StartDelaySeconds = 3.5f;
-        private const float FadeInSeconds = 1.8f;
+        private const float StartDelaySeconds = 1f;
+        private const float FadeInSeconds = 1.35f;
+        private const float TrackCrossfadeSeconds = 1.25f;
+        private const float ExitFadeSeconds = 0.90f;
 
         private static DuelMusicController instance;
 
         private AudioSource source;
+        private AudioSource transitionSource;
         private AudioClip[] tracks;
         private Coroutine playbackRoutine;
         private float volumeEnvelope;
+        private float transitionEnvelope;
         private int previousTrack = -1;
+        private bool playbackRequested;
 
         [RuntimeInitializeOnLoadMethod(
             RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -65,12 +70,9 @@ namespace ArcaneArena.Frontend
             source = GetComponent<AudioSource>();
             if (source == null)
                 source = gameObject.AddComponent<AudioSource>();
-            source.playOnAwake = false;
-            source.loop = true;
-            source.spatialBlend = 0f;
-            source.dopplerLevel = 0f;
-            source.priority = 33;
-            source.ignoreListenerPause = true;
+            transitionSource = gameObject.AddComponent<AudioSource>();
+            ConfigureSource(source);
+            ConfigureSource(transitionSource);
             tracks = Resources.LoadAll<AudioClip>(MusicResourceFolder);
             ApplyOutputVolume();
 
@@ -125,35 +127,25 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            playbackRequested = true;
             StopRoutineOnly();
-            source.Stop();
-            if (source.clip != null)
-                source.time = 0f;
-            volumeEnvelope = 0f;
-            ApplyOutputVolume();
-            playbackRoutine = StartCoroutine(BeginAfterDelay());
+            StopAndRewindSources();
+            playbackRoutine = StartCoroutine(PlayPlaylistAfterDelay());
         }
 
-        private IEnumerator BeginAfterDelay()
+        private IEnumerator PlayPlaylistAfterDelay()
         {
             yield return new WaitForSecondsRealtime(StartDelaySeconds);
-            if (!string.Equals(
-                    SceneManager.GetActiveScene().name,
-                    DuelArenaSceneName,
-                    System.StringComparison.OrdinalIgnoreCase))
+            if (!playbackRequested || !IsDuelSceneActive())
             {
                 playbackRoutine = null;
                 yield break;
             }
 
-            int selected = SelectTrackIndex();
-            source.clip = tracks[selected];
-            source.time = 0f;
-            source.loop = true;
-            source.Play();
+            StartTrack(source, SelectTrackIndex());
 
             float elapsed = 0f;
-            while (elapsed < FadeInSeconds)
+            while (elapsed < FadeInSeconds && playbackRequested)
             {
                 elapsed += Time.unscaledDeltaTime;
                 float progress = Mathf.Clamp01(elapsed / FadeInSeconds);
@@ -164,7 +156,65 @@ namespace ArcaneArena.Frontend
 
             volumeEnvelope = 1f;
             ApplyOutputVolume();
+
+            while (playbackRequested && IsDuelSceneActive())
+            {
+                float crossfadeAt = Mathf.Max(
+                    0f,
+                    source.clip.length - TrackCrossfadeSeconds);
+                while (playbackRequested && source.isPlaying &&
+                       source.time < crossfadeAt)
+                {
+                    yield return null;
+                }
+                if (!playbackRequested || !IsDuelSceneActive())
+                    yield break;
+
+                StartTrack(transitionSource, SelectTrackIndex());
+                transitionEnvelope = 0f;
+                float crossfadeElapsed = 0f;
+                while (crossfadeElapsed < TrackCrossfadeSeconds &&
+                       playbackRequested)
+                {
+                    crossfadeElapsed += Time.unscaledDeltaTime;
+                    float progress = Mathf.Clamp01(
+                        crossfadeElapsed / TrackCrossfadeSeconds);
+                    float eased = Mathf.SmoothStep(0f, 1f, progress);
+                    volumeEnvelope = 1f - eased;
+                    transitionEnvelope = eased;
+                    ApplyOutputVolume();
+                    yield return null;
+                }
+
+                source.Stop();
+                source.clip = null;
+                AudioSource finishedSource = source;
+                source = transitionSource;
+                transitionSource = finishedSource;
+                volumeEnvelope = 1f;
+                transitionEnvelope = 0f;
+                ApplyOutputVolume();
+            }
+
             playbackRoutine = null;
+        }
+
+        private static void ConfigureSource(AudioSource target)
+        {
+            target.playOnAwake = false;
+            target.loop = false;
+            target.spatialBlend = 0f;
+            target.dopplerLevel = 0f;
+            target.priority = 33;
+            target.ignoreListenerPause = true;
+        }
+
+        private void StartTrack(AudioSource target, int trackIndex)
+        {
+            target.Stop();
+            target.clip = tracks[trackIndex];
+            target.time = 0f;
+            target.Play();
         }
 
         private int SelectTrackIndex()
@@ -184,15 +234,59 @@ namespace ArcaneArena.Frontend
 
         private void StopPlayback()
         {
+            playbackRequested = false;
             StopRoutineOnly();
-            if (source != null)
+            if ((source != null && source.isPlaying) ||
+                (transitionSource != null && transitionSource.isPlaying))
             {
-                source.Stop();
-                if (source.clip != null)
-                    source.time = 0f;
+                playbackRoutine = StartCoroutine(FadeOutAndStop());
+                return;
             }
+
+            StopAndRewindSources();
+        }
+
+        private IEnumerator FadeOutAndStop()
+        {
+            float sourceStart = volumeEnvelope;
+            float transitionStart = transitionEnvelope;
+            float elapsed = 0f;
+            while (elapsed < ExitFadeSeconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    Mathf.Clamp01(elapsed / ExitFadeSeconds));
+                volumeEnvelope = Mathf.Lerp(sourceStart, 0f, progress);
+                transitionEnvelope = Mathf.Lerp(
+                    transitionStart,
+                    0f,
+                    progress);
+                ApplyOutputVolume();
+                yield return null;
+            }
+
+            StopAndRewindSources();
+            playbackRoutine = null;
+        }
+
+        private void StopAndRewindSources()
+        {
+            StopAndRewind(source);
+            StopAndRewind(transitionSource);
             volumeEnvelope = 0f;
+            transitionEnvelope = 0f;
             ApplyOutputVolume();
+        }
+
+        private static void StopAndRewind(AudioSource target)
+        {
+            if (target == null)
+                return;
+            target.Stop();
+            target.clip = null;
+            target.time = 0f;
         }
 
         private void StopRoutineOnly()
@@ -207,6 +301,20 @@ namespace ArcaneArena.Frontend
         {
             if (source != null)
                 ArcaneMusicPreferences.ApplyTo(source, volumeEnvelope);
+            if (transitionSource != null)
+            {
+                ArcaneMusicPreferences.ApplyTo(
+                    transitionSource,
+                    transitionEnvelope);
+            }
+        }
+
+        private static bool IsDuelSceneActive()
+        {
+            return string.Equals(
+                SceneManager.GetActiveScene().name,
+                DuelArenaSceneName,
+                System.StringComparison.OrdinalIgnoreCase);
         }
     }
 }

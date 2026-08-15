@@ -18,7 +18,7 @@ namespace ArcaneArena.Frontend
         private const string ThemeResourcePath =
             "Audio/Music/ThemeSong";
         private const float FadeInDuration = 1.5f;
-        private const float FadeOutDuration = 0.4f;
+        private const float FadeOutDuration = 1.25f;
 
         private static MainMenuMusicController _instance;
 

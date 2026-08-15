@@ -83,6 +83,7 @@ namespace ArcaneArena
                 TextAnchor.MiddleCenter);
             decisionRibbonKicker.raycastTarget = false;
             decisionRibbonText.raycastTarget = false;
+            HideDecisionRibbon();
         }
 
         private void BuildOpponentHandFan()
@@ -251,9 +252,15 @@ namespace ArcaneArena
             if (opponentHandCount != null)
                 opponentHandCount.text =
                     $"{count} CARTA{(count == 1 ? string.Empty : "S")}";
-            if (decisionRibbonKicker != null && core?.CurrentPrompt != null)
-                decisionRibbonKicker.text = core.CurrentPrompt.Player == 0
-                    ? "SUA PRIORIDADE" : "OPONENTE PENSANDO";
+            if (decisionRibbonKicker != null &&
+                core?.CurrentPrompt?.Player == 0)
+            {
+                decisionRibbonKicker.text = "SUA PRIORIDADE";
+            }
+            else if (core?.CurrentPrompt?.Player == 1)
+            {
+                HideDecisionRibbon();
+            }
         }
 
         private void RebuildOpponentHandFan(int count)
@@ -302,7 +309,11 @@ namespace ArcaneArena
 
         private void UpdateDuelExperienceForPrompt(DuelPrompt prompt)
         {
-            if (prompt == null) return;
+            if (prompt == null || prompt.Player != 0)
+            {
+                HideDecisionRibbon();
+                return;
+            }
             switch (prompt.Message)
             {
                 case CoreMessage.SelectIdleCommand:
@@ -360,6 +371,14 @@ namespace ArcaneArena
             decisionRibbonKicker.color = color;
             if (decisionRibbonOutline != null)
                 decisionRibbonOutline.effectColor = color;
+        }
+
+        private void HideDecisionRibbon()
+        {
+            if (decisionRibbonGroup != null)
+                decisionRibbonGroup.alpha = 0f;
+            if (decisionRibbon != null)
+                decisionRibbon.SetActive(false);
         }
 
         private void UpdateDuelExperienceAnimation()

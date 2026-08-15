@@ -99,15 +99,6 @@ Shader "ArcaneArena/UI/MainMenuHudOverlay"
                 float cutout = saturate(inLeftButtonArea + inSettingsArea) * nearWhite;
                 color.a *= 1.0 - cutout;
 
-                // Remove somente a tinta clara/colorida das informacoes
-                // de ping gravadas no rodape, preservando o fundo escuro.
-                float inPingArea =
-                    InsideRange(uv.x, 0.015, 0.385) *
-                    InsideRange(uv.y, 0.000, 0.105);
-                float pingInk = inPingArea * smoothstep(0.16, 0.38, brightest);
-                fixed3 cleanFooter = fixed3(0.004, 0.012, 0.026);
-                color.rgb = lerp(color.rgb, cleanFooter, pingInk);
-
                 return color;
             }
             ENDCG

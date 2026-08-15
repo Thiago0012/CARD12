@@ -37,6 +37,7 @@ namespace ArcaneArena
         private const float HandMinimumVisibleHeight = 124f;
         private const float HandMaximumVisibleHeight = 154f;
         private const float HandLowerViewportOffset = 82f;
+        private const float SelectedCardActionVerticalOffset = -153f;
         private const float DesktopPassiveRefreshInterval = 0.08f;
         private const float MobilePassiveRefreshInterval = 0.20f;
 
@@ -344,7 +345,9 @@ namespace ArcaneArena
             {
                 RectTransform rect = actionPanel.GetComponent<RectTransform>();
                 rect.anchoredPosition =
-                    new Vector2(selectedCard.Rect.anchoredPosition.x, 0f);
+                    new Vector2(
+                        selectedCard.Rect.anchoredPosition.x,
+                        SelectedCardActionVerticalOffset);
                 actionPanel.transform.SetAsLastSibling();
             }
             UpdateFieldActionMenuPosition();
@@ -4526,7 +4529,24 @@ namespace ArcaneArena
                 status.text = value;
                 status.color = color;
             }
+            if (IsPassiveWaitStatus(value))
+            {
+                HideDecisionRibbon();
+                return;
+            }
             UpdateDecisionRibbon(value, color);
+        }
+
+        private static bool IsPassiveWaitStatus(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ||
+                   Contains(value, "aguard") ||
+                   Contains(value, "esperando") ||
+                   Contains(value, "pensando") ||
+                   Contains(value, "analisando") ||
+                   Contains(value, "processando") ||
+                   Contains(value, "resposta enviada") ||
+                   Contains(value, "prioridade pertence ao oponente");
         }
 
         private static bool Contains(string source, string value)

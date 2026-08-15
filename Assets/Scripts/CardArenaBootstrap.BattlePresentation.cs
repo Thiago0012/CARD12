@@ -42,6 +42,7 @@ namespace ArcaneArena
         private Text announcementTitle;
         private Text announcementSubtitle;
         private Coroutine announcementRoutine;
+        private bool openingTitlePresentationActive;
 
         private GameObject battleHud;
         private CanvasGroup battleHudGroup;
@@ -557,9 +558,67 @@ namespace ArcaneArena
                     DisplayPhase = displayPhase,
                     TurnFlow = turnFlow
                 });
-            if (announcementRoutine == null)
-                announcementRoutine =
-                    StartCoroutine(PlayAnnouncementQueue());
+            TryStartAnnouncementQueue();
+        }
+
+        private void TryStartAnnouncementQueue()
+        {
+            if (openingTitlePresentationActive ||
+                announcementRoutine != null ||
+                announcementQueue.Count == 0)
+            {
+                return;
+            }
+            announcementRoutine = StartCoroutine(PlayAnnouncementQueue());
+        }
+
+        private void SuspendAnnouncementsForOpening()
+        {
+            openingTitlePresentationActive = true;
+            announcementQueue.Clear();
+            if (announcementRoutine != null)
+            {
+                StopCoroutine(announcementRoutine);
+                announcementRoutine = null;
+            }
+            if (announcementGroup != null)
+                announcementGroup.alpha = 0f;
+            if (announcementRoot != null)
+                announcementRoot.SetActive(false);
+            ResetTurnFlowPresentation(true);
+        }
+
+        private void ResumeAnnouncementsAfterOpening()
+        {
+            announcementQueue.Clear();
+            if (announcementRoutine != null)
+            {
+                StopCoroutine(announcementRoutine);
+                announcementRoutine = null;
+            }
+            ResetTurnFlowPresentation(true);
+
+            uint phase = state?.Phase ?? 0x001U;
+            byte turnPlayer = state?.TurnPlayer ?? 0;
+            QueueAnnouncement(
+                turnPlayer == 0 ? "SEU TURNO" : "TURNO DO OPONENTE",
+                $"TURNO {Mathf.Max(1, state?.TurnNumber ?? 1)}",
+                turnPlayer == 0 ? Cyan : Gold,
+                0.48f,
+                phase,
+                true);
+            QueueAnnouncement(
+                CoreMessageDecoder.PhaseName(phase).ToUpperInvariant(),
+                turnPlayer == 0
+                    ? "VOCÊ TEM A PRIORIDADE"
+                    : "O OPONENTE TEM A PRIORIDADE",
+                PhaseAccent(phase),
+                IsMajorPhase(phase) ? 0.66f : 0.42f,
+                phase,
+                true);
+
+            openingTitlePresentationActive = false;
+            TryStartAnnouncementQueue();
         }
 
         private IEnumerator PlayAnnouncementQueue()

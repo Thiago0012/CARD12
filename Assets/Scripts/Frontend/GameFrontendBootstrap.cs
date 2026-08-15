@@ -3996,7 +3996,19 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
-            SceneManager.LoadScene(DeckEditorSceneName);
+            OnlineLoadingScreenPresenter presenter = DuelOnlineSession
+                .EnsureInstance()
+                ?.TransitionPresenter;
+            if (presenter == null)
+            {
+                SceneManager.LoadScene(DeckEditorSceneName);
+                return;
+            }
+
+            presenter.ShowSceneLoading(
+                "CARREGANDO EDITOR DE DECKS",
+                "Preparando suas cartas e ferramentas de edicao.",
+                () => SceneManager.LoadScene(DeckEditorSceneName));
         }
 
         private void ReturnToMainMenuScene()

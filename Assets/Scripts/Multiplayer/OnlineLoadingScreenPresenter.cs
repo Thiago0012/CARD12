@@ -176,6 +176,18 @@ namespace ArcaneArena.Multiplayer
             transitionRoutine = StartCoroutine(FadeThroughBlackRoutine(action));
         }
 
+        public void ShowSceneLoading(
+            string primary,
+            string secondary,
+            Action loadAction)
+        {
+            EnsureView();
+            if (transitionRoutine != null)
+                StopCoroutine(transitionRoutine);
+            transitionRoutine = StartCoroutine(
+                ShowSceneLoadingRoutine(primary, secondary, loadAction));
+        }
+
         public void ShowError(string message, Action returnAction)
         {
             Show("Partida cancelada", message);
@@ -216,6 +228,23 @@ namespace ArcaneArena.Multiplayer
                 yield return null;
             action?.Invoke();
             yield return new WaitForSecondsRealtime(0.12f);
+            shownAt = Time.realtimeSinceStartup - minimumVisibleSeconds;
+            Hide();
+            transitionRoutine = null;
+        }
+
+        private IEnumerator ShowSceneLoadingRoutine(
+            string primary,
+            string secondary,
+            Action loadAction)
+        {
+            Show(primary, secondary);
+            float deadline = Time.realtimeSinceStartup + 1.2f;
+            while (!IsOpaque && Time.realtimeSinceStartup < deadline)
+                yield return null;
+
+            loadAction?.Invoke();
+            yield return new WaitForSecondsRealtime(0.18f);
             shownAt = Time.realtimeSinceStartup - minimumVisibleSeconds;
             Hide();
             transitionRoutine = null;

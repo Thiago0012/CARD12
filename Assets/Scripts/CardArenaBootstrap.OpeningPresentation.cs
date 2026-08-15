@@ -30,6 +30,8 @@ namespace ArcaneArena
                 return;
             if (openingDuelRoutine != null)
                 return;
+            SuspendAnnouncementsForOpening();
+            HideDecisionRibbon();
             openingDuelRoutine = StartCoroutine(PlayOpeningDuelPresentation());
         }
 
@@ -130,8 +132,9 @@ namespace ArcaneArena
                 ?.RequiresPresentationLock == true;
             core?.SetPresentationDecisionLocked(keepNetworkLock);
             openingDuelRoutine = null;
+            ResumeAnnouncementsAfterOpening();
             RefreshEverything(true);
-            SetStatus("DUELO INICIADO", Lime);
+            HideDecisionRibbon();
             DuelMusicController.BeginDuelPlayback();
         }
 
@@ -308,23 +311,23 @@ namespace ArcaneArena
             Text title = CreateText(
                 root.transform,
                 "D U E L",
-                190,
+                260,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.05f, 0.30f),
-                new Vector2(0.95f, 0.70f),
+                new Vector2(0.02f, 0.22f),
+                new Vector2(0.98f, 0.78f),
                 TextAnchor.MiddleCenter);
             title.horizontalOverflow = HorizontalWrapMode.Overflow;
             RectTransform titleRect = title.rectTransform;
             float startedAt = Time.realtimeSinceStartup;
-            const float duration = 0.82f;
+            const float duration = 0.92f;
             while (root != null &&
                    Time.realtimeSinceStartup - startedAt < duration)
             {
                 float t = Mathf.Clamp01(
                     (Time.realtimeSinceStartup - startedAt) / duration);
                 titleRect.localScale = Vector3.one * Mathf.Lerp(
-                    1.45f,
+                    1.58f,
                     1f,
                     TransitionEaseOutCubic(t));
                 titleGroup.alpha = t < 0.20f

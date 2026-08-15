@@ -120,7 +120,7 @@ namespace ArcaneArena.Frontend
         public void MainMenuDecks()
         {
             FrontendClickAudio.Play();
-            RunMainMenuTransition(OpenDeckEditorScene);
+            OpenDeckEditorScene();
         }
 
         public void MainMenuShop()
@@ -177,7 +177,7 @@ namespace ArcaneArena.Frontend
                 _mainMenuAssets.decksButton,
                 new Vector2(0.0736f, 0.2582f),
                 new Vector2(0.2994f, 0.3545f),
-                () => RunMainMenuTransition(OpenDeckEditorScene));
+                OpenDeckEditorScene);
             CreateTemplateButton(
                 "LOJA",
                 _mainMenuAssets.shopButton,
@@ -626,7 +626,7 @@ namespace ArcaneArena.Frontend
             Vector2 max,
             System.Action action)
         {
-            RawImage artwork = CreateFullCanvasArtwork(
+            CreateFullCanvasArtwork(
                 $"Arte Botão {label}",
                 texture);
 
@@ -639,15 +639,11 @@ namespace ArcaneArena.Frontend
             hitArea.raycastTarget = true;
 
             var button = hitArea.gameObject.AddComponent<Button>();
-            button.targetGraphic = artwork;
-            button.transition = Selectable.Transition.ColorTint;
-            var colors = button.colors;
-            colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(1f, 0.88f, 0.58f, 1f);
-            colors.pressedColor = new Color(0.62f, 0.82f, 1f, 1f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.fadeDuration = 0.08f;
-            button.colors = colors;
+            // The artwork fills the whole canvas. Tinting it through the
+            // button transition darkens and blurs the complete lobby, so a
+            // transparent hit area owns interaction without touching art.
+            button.targetGraphic = hitArea;
+            button.transition = Selectable.Transition.None;
             button.onClick.AddListener(() =>
             {
                 FrontendClickAudio.Play();
@@ -705,6 +701,7 @@ namespace ArcaneArena.Frontend
             var artwork = item.GetComponent<RawImage>();
             artwork.texture = texture;
             artwork.color = Color.white;
+            artwork.material = null;
             artwork.raycastTarget = false;
             return artwork;
         }

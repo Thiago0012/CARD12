@@ -138,8 +138,7 @@ namespace ArcaneArena
                         DrawnCards = drawnCards
                     }
                 });
-            if (announcementRoutine == null)
-                announcementRoutine = StartCoroutine(PlayAnnouncementQueue());
+            TryStartAnnouncementQueue();
         }
 
         private IEnumerator PlayDrawPresentation(

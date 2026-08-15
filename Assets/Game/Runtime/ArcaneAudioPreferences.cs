@@ -6,6 +6,7 @@ namespace ArcaneDuel.Game
     {
         private const string EnabledKey = "ArcaneAudioEnabled";
         private const string VolumeKey = "arcane_arena.audio.volume";
+        public const float DefaultVolume = 1f;
 
         public static bool Enabled
         {
@@ -19,7 +20,8 @@ namespace ArcaneDuel.Game
 
         public static float Volume
         {
-            get => Mathf.Clamp01(PlayerPrefs.GetFloat(VolumeKey, 0.50f));
+            get => Mathf.Clamp01(
+                PlayerPrefs.GetFloat(VolumeKey, DefaultVolume));
             set
             {
                 PlayerPrefs.SetFloat(VolumeKey, Mathf.Clamp01(value));
@@ -30,7 +32,7 @@ namespace ArcaneDuel.Game
         public static void ResetToDefaults()
         {
             Enabled = true;
-            Volume = 0.50f;
+            Volume = DefaultVolume;
         }
     }
 }
