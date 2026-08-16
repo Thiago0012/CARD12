@@ -13,6 +13,7 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelResultAudioPlayer : MonoBehaviour
     {
         private const string Root = "Audio/SFX/Duel/";
+        private const float VoiceDelaySeconds = 0.50f;
         private static DuelResultAudioPlayer instance;
 
         private AudioSource source;
@@ -21,6 +22,8 @@ namespace ArcaneArena.Multiplayer
         private AudioClip victoryVoice;
         private AudioClip defeatVoice;
         private Coroutine playbackRoutine;
+        private bool resultPlaybackLatched;
+        private OnlineDuelResultKind latchedResult;
 
         public static void Play(OnlineDuelResultKind result)
         {
@@ -33,7 +36,7 @@ namespace ArcaneArena.Multiplayer
         public static void StopPlayback()
         {
             if (instance != null)
-                instance.StopCurrent();
+                instance.StopCurrent(true);
         }
 
         private static DuelResultAudioPlayer EnsureInstance()
@@ -79,7 +82,6 @@ namespace ArcaneArena.Multiplayer
 
         private void Begin(OnlineDuelResultKind result)
         {
-            StopCurrent();
             AudioClip sound;
             AudioClip voice;
             if (result == OnlineDuelResultKind.Victory)
@@ -97,6 +99,14 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
+            // Show/ShowRanked can be refreshed more than once for the same
+            // authoritative result. Keep the cue idempotent until the result
+            // screen is closed so the voice can never be played twice.
+            if (resultPlaybackLatched && latchedResult == result)
+                return;
+            StopCurrent(false);
+            resultPlaybackLatched = true;
+            latchedResult = result;
             playbackRoutine = StartCoroutine(PlaySequence(sound, voice));
         }
 
@@ -104,7 +114,7 @@ namespace ArcaneArena.Multiplayer
         {
             yield return PlayClip(sound);
             if (sound != null && voice != null)
-                yield return new WaitForSecondsRealtime(0.08f);
+                yield return new WaitForSecondsRealtime(VoiceDelaySeconds);
             yield return PlayClip(voice);
             playbackRoutine = null;
         }
@@ -125,7 +135,7 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
-        private void StopCurrent()
+        private void StopCurrent(bool releaseResultLatch)
         {
             if (playbackRoutine != null)
             {
@@ -137,6 +147,8 @@ namespace ArcaneArena.Multiplayer
                 source.Stop();
                 source.clip = null;
             }
+            if (releaseResultLatch)
+                resultPlaybackLatched = false;
         }
 
         private void ApplyPreferences()

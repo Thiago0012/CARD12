@@ -71,6 +71,49 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void EveryStoreStructureDeckRespectsTheActiveBanlist()
+        {
+            Type catalog = FindType("ArcaneArena.Frontend.DeckShopCatalog");
+            IEnumerable products = (IEnumerable)catalog
+                .GetProperty("Products", BindingFlags.Public |
+                    BindingFlags.Static)
+                .GetValue(null);
+            BanlistService banlist = BanlistService.Active;
+            var problems = new List<string>();
+
+            foreach (object product in products)
+            {
+                string name = product.GetType()
+                    .GetProperty("DisplayName")
+                    .GetValue(product)
+                    .ToString();
+                IEnumerable<string> cards = ((IEnumerable)product.GetType()
+                        .GetProperty("MainDeckCardIds")
+                        .GetValue(product))
+                    .Cast<object>()
+                    .Select(value => value.ToString())
+                    .Concat(((IEnumerable)product.GetType()
+                            .GetProperty("ExtraDeckCardIds")
+                            .GetValue(product))
+                        .Cast<object>()
+                        .Select(value => value.ToString()));
+                foreach (IGrouping<string, string> copies in cards.GroupBy(
+                             BanlistService.NormalizePasscode))
+                {
+                    int maximum = banlist.MaximumCopies(copies.Key);
+                    if (copies.Count() > maximum)
+                    {
+                        problems.Add(
+                            $"{name}: {copies.Key} tem {copies.Count()} " +
+                            $"cópias, máximo {maximum}.");
+                    }
+                }
+            }
+
+            Assert.That(problems, Is.Empty, string.Join(" | ", problems));
+        }
+
+        [Test]
         public void RandomOpponentSelectsAWholeThemeAndAvoidsThePlayersDeck()
         {
             Type catalog = FindType("ArcaneArena.Frontend.DeckShopCatalog");

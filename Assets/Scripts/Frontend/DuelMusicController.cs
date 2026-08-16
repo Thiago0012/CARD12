@@ -16,7 +16,7 @@ namespace ArcaneArena.Frontend
         private const string MusicResourceFolder = "Audio/Music/Duel";
         private const float StartDelaySeconds = 1f;
         private const float FadeInSeconds = 1.35f;
-        private const float TrackCrossfadeSeconds = 1.25f;
+        private const float TrackCrossfadeSeconds = 0.50f;
         private const float ExitFadeSeconds = 0.90f;
 
         private static DuelMusicController instance;
@@ -142,7 +142,8 @@ namespace ArcaneArena.Frontend
                 yield break;
             }
 
-            StartTrack(source, SelectTrackIndex());
+            int duelTrackIndex = SelectTrackIndex();
+            StartTrack(source, duelTrackIndex);
 
             float elapsed = 0f;
             while (elapsed < FadeInSeconds && playbackRequested)
@@ -170,7 +171,10 @@ namespace ArcaneArena.Frontend
                 if (!playbackRequested || !IsDuelSceneActive())
                     yield break;
 
-                StartTrack(transitionSource, SelectTrackIndex());
+                // A faixa e sorteada uma unica vez por duelo. O segundo
+                // AudioSource existe somente para repetir essa mesma musica
+                // sem produzir um corte seco no ponto de loop.
+                StartTrack(transitionSource, duelTrackIndex);
                 transitionEnvelope = 0f;
                 float crossfadeElapsed = 0f;
                 while (crossfadeElapsed < TrackCrossfadeSeconds &&

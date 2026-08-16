@@ -35,7 +35,9 @@ namespace ArcaneArena
         private DuelChoice stagedSingleChoice;
         private GameObject compactResponseBar;
         private Text compactResponseText;
+        private Text compactResponseHint;
         private Image compactResponseArtwork;
+        private Button compactResponseActivateButton;
         private DuelPrompt compactResponsePrompt;
         private DuelChoice compactResponseChoice;
 
@@ -242,16 +244,22 @@ namespace ArcaneArena
         {
             compactResponseBar = CreatePanel(
                 frame,
-                "Resposta Rápida",
-                new Vector2(0.34f, 0.72f),
-                new Vector2(0.66f, 0.81f),
-                new Color(0.025f, 0.11f, 0.13f, 0.97f));
+                "Ativação de Efeito",
+                new Vector2(0.285f, 0.235f),
+                new Vector2(0.715f, 0.765f),
+                new Color(0.006f, 0.025f, 0.045f, 0.985f));
             AddOutline(compactResponseBar, EffectGlow);
+            CreateImage(
+                compactResponseBar.transform,
+                "Linha de Ativação",
+                new Vector2(0.02f, 0.975f),
+                new Vector2(0.98f, 0.992f),
+                EffectGlow).raycastTarget = false;
             compactResponseArtwork = CreateImage(
                 compactResponseBar.transform,
-                "Carta da resposta",
-                new Vector2(0.015f, 0.12f),
-                new Vector2(0.115f, 0.88f),
+                "Carta do efeito",
+                new Vector2(0.355f, 0.235f),
+                new Vector2(0.645f, 0.735f),
                 Color.white);
             compactResponseArtwork.preserveAspect = true;
             compactResponseArtwork.raycastTarget = true;
@@ -265,26 +273,35 @@ namespace ArcaneArena
             compactResponseText = CreateText(
                 compactResponseBar.transform,
                 "VOCÊ PODE RESPONDER",
-                14,
+                17,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.13f, 0.10f),
-                new Vector2(0.47f, 0.90f),
+                new Vector2(0.055f, 0.785f),
+                new Vector2(0.945f, 0.955f),
                 TextAnchor.MiddleCenter);
-            CreateButton(
+            compactResponseHint = CreateText(
                 compactResponseBar.transform,
-                "Responder",
-                "RESPONDER",
-                new Vector2(0.50f, 0.16f),
-                new Vector2(0.73f, 0.84f),
+                "CLIQUE NA CARTA PARA VER O EFEITO",
+                11,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.16f, 0.185f),
+                new Vector2(0.84f, 0.235f),
+                TextAnchor.MiddleCenter);
+            compactResponseActivateButton = CreateButton(
+                compactResponseBar.transform,
+                "Ativar Efeito",
+                "ATIVAR EFEITO",
+                new Vector2(0.52f, 0.035f),
+                new Vector2(0.94f, 0.16f),
                 EffectGlow,
                 OpenCompactResponseChoices);
             CreateButton(
                 compactResponseBar.transform,
-                "Passar",
-                "PASSAR",
-                new Vector2(0.75f, 0.16f),
-                new Vector2(0.97f, 0.84f),
+                "Cancelar Ativação",
+                "CANCELAR",
+                new Vector2(0.06f, 0.035f),
+                new Vector2(0.48f, 0.16f),
                 Muted,
                 PassCompactResponse);
             compactResponseBar.SetActive(false);
@@ -304,7 +321,10 @@ namespace ArcaneArena
             DuelChoice response = DuelPromptPresentationRules
                 .ActionableResponseChoices(prompt)
                 .FirstOrDefault();
-            compactResponseChoice = responses == 1 ? response : null;
+            // Mesmo quando ha mais de uma resposta, mantenha uma carta
+            // representativa no centro. O botao de ativacao abre a bandeja
+            // completa para a escolha da resposta correta.
+            compactResponseChoice = response;
             bool showArtwork = CanInspectChoiceIdentity(
                 compactResponseChoice);
             if (compactResponseArtwork != null)
@@ -314,15 +334,20 @@ namespace ArcaneArena
                     ? SpriteFor(compactResponseChoice.CardCode)
                     : null;
             }
-            if (compactResponseText != null)
-            {
-                compactResponseText.rectTransform.anchorMin = new Vector2(
-                    showArtwork ? 0.13f : 0.035f,
-                    0.10f);
-            }
+            string question = prompt.Message == CoreMessage.SelectChain
+                ? "ATIVAR UMA CARTA OU EFEITO?"
+                : "ATIVAR O EFEITO DESTA CARTA?";
             compactResponseText.text = responses == 1 && response != null
-                ? ChoiceTrayLabel(response).Replace("\n", " — ")
-                : $"{responses} RESPOSTAS DISPONÍVEIS";
+                ? question + "\n" + CardName(response.CardCode)
+                : question + $"\n{responses} OPÇÕES DISPONÍVEIS";
+            if (compactResponseHint != null)
+            {
+                compactResponseHint.text = showArtwork
+                    ? "CLIQUE NA CARTA PARA VER O EFEITO"
+                    : "ATIVAR EFEITO ABRE AS OPÇÕES DISPONÍVEIS";
+            }
+            if (compactResponseActivateButton != null)
+                compactResponseActivateButton.interactable = responses > 0;
             compactResponseBar.SetActive(true);
             compactResponseBar.transform.SetAsLastSibling();
         }
@@ -354,6 +379,13 @@ namespace ArcaneArena
             List<DuelChoice> responses = DuelPromptPresentationRules
                 .ActionableResponseChoices(prompt);
             HideCompactResponseBar();
+            if (responses.Count == 1)
+            {
+                CloseCardDetails();
+                core.SubmitChoice(responses[0]);
+                RefreshEverything(true);
+                return;
+            }
             OpenChoiceModal(prompt, responses);
         }
 
@@ -372,6 +404,7 @@ namespace ArcaneArena
             if (decline == null)
                 return;
             HideCompactResponseBar();
+            CloseCardDetails();
             core.SubmitChoice(decline);
             RefreshEverything(true);
         }

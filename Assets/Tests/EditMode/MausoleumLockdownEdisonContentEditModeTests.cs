@@ -23,7 +23,7 @@ namespace ArcaneDuel.Tests.EditMode
                     .Concat(CuratedDeckLists.MausoleumLockdownEdisonExtra)
                     .Distinct()
                     .Count(),
-                Is.EqualTo(35));
+                Is.EqualTo(36));
         }
 
         [Test]

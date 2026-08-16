@@ -41,7 +41,7 @@ namespace ArcaneDuel.Tests.EditMode
             };
             int[] expectedMain = { 40, 40, 40, 40, 40, 40, 40, 42, 45 };
             int[] expectedExtra = { 15, 15, 10, 1, 15, 15, 1, 8, 0 };
-            int[] expectedUnique = { 33, 36, 25, 21, 33, 33, 29, 31, 25 };
+            int[] expectedUnique = { 33, 36, 25, 21, 33, 33, 29, 32, 25 };
 
             for (int index = 0; index < mainDecks.Length; index++)
             {
@@ -57,7 +57,7 @@ namespace ArcaneDuel.Tests.EditMode
                     .Concat(extraDecks.SelectMany(cards => cards))
                     .Distinct()
                     .Count(),
-                Is.EqualTo(252));
+                Is.EqualTo(253));
         }
 
         [Test]
