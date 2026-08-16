@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace ArcaneDuel.Tests.EditMode
 {
@@ -31,13 +32,16 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
-        public void EveryPreframedIconUsesTheSameBoundedVerticalScale()
+        public void EveryProfileIconUsesTheSameRegularHexagonalViewport()
         {
             Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
             Type viewType = FindType("ArcaneArena.Frontend.HexIconView");
             object[] icons = Values(catalog.GetProperty("All").GetValue(null));
+            var parent = new GameObject("Profile Icon Bounds",
+                typeof(RectTransform));
             var root = new GameObject("Profile Icon Scale Test",
                 typeof(RectTransform));
+            root.transform.SetParent(parent.transform, false);
             try
             {
                 Component view = root.AddComponent(viewType);
@@ -47,17 +51,24 @@ namespace ArcaneDuel.Tests.EditMode
                     setIcon.Invoke(
                         view,
                         new[] { Property(icon, "IconId") });
-                    Transform portrait = root.transform.Find("Retrato");
+                    Transform clip = root.transform.Find("Recorte Hexagonal");
+                    Transform portrait = clip?.Find("Retrato");
+                    AspectRatioFitter rootFitter =
+                        root.GetComponent<AspectRatioFitter>();
                     Assert.That(portrait, Is.Not.Null);
+                    Assert.That(clip.GetComponent<Mask>().enabled, Is.True);
+                    Assert.That(rootFitter, Is.Not.Null);
+                    Assert.That(rootFitter.aspectRatio,
+                        Is.EqualTo(0.8660254f).Within(0.0001f));
                     Assert.That(portrait.localScale.x,
                         Is.EqualTo(1f).Within(0.001f));
                     Assert.That(portrait.localScale.y,
-                        Is.EqualTo(0.86f).Within(0.001f));
+                        Is.EqualTo(1f).Within(0.001f));
                 }
             }
             finally
             {
-                UnityEngine.Object.DestroyImmediate(root);
+                UnityEngine.Object.DestroyImmediate(parent);
             }
         }
 
@@ -272,6 +283,72 @@ namespace ArcaneDuel.Tests.EditMode
                 new Rect(100f, 0f, 1720f, 1080f)
             });
             Assert.That(actual, Is.EqualTo(new Rect(100f, 20f, 1720f, 1040f)));
+        }
+
+        [Test]
+        public void DuelPlateReusesAuthoredLabelAndBindsExactProfileIcon()
+        {
+            var root = new GameObject("LP do Player", typeof(RectTransform));
+            try
+            {
+                CreateAuthoredText(root.transform, "PLAYER");
+                CreateAuthoredText(root.transform, "LP");
+                CreateAuthoredText(root.transform, "8000");
+
+                Type identityType = FindType(
+                    "ArcaneArena.Frontend.DuelIdentitySnapshot");
+                object identity = Activator.CreateInstance(identityType);
+                identityType.GetField("stablePlayerId").SetValue(
+                    identity, "profile-kim");
+                identityType.GetField("nickname").SetValue(identity, "KimDelas");
+                identityType.GetField("equippedIconId").SetValue(
+                    identity, "icon-crimson-knight");
+                Type rankType = identityType.GetField("rankTier").FieldType;
+                identityType.GetField("rankTier").SetValue(
+                    identity, Enum.Parse(rankType, "Gold"));
+                identityType.GetField("cosmeticsCatalogVersion").SetValue(
+                    identity, 1);
+
+                Type plateType = FindType(
+                    "ArcaneArena.Frontend.DuelPlayerPlateView");
+                Component plate = root.AddComponent(plateType);
+                Type sideType = plateType.GetNestedType("PlateSide");
+                plateType.GetMethod("Bind").Invoke(plate, new[]
+                {
+                    identity,
+                    Enum.Parse(sideType, "Local")
+                });
+
+                Assert.That(root.transform.Find("PLAYER")
+                    .GetComponent<Text>().text, Is.EqualTo("KIMDELAS"));
+                Assert.That(root.transform.Find("Identidade do Duelista"),
+                    Is.Null, "A HUD não deve duplicar o nome já desenhado.");
+                Transform icon = root.transform.Find("Ícone do Perfil");
+                Assert.That(icon, Is.Not.Null);
+                object iconView = icon.GetComponent(
+                    FindType("ArcaneArena.Frontend.HexIconView"));
+                Assert.That(Property(iconView, "IconId"),
+                    Is.EqualTo("icon-crimson-knight"));
+                Assert.That(root.transform.Find("Patente do Duelista"),
+                    Is.Not.Null);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        private static Text CreateAuthoredText(Transform parent, string name)
+        {
+            var gameObject = new GameObject(
+                name,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Text));
+            gameObject.transform.SetParent(parent, false);
+            Text text = gameObject.GetComponent<Text>();
+            text.text = name;
+            return text;
         }
 
         private static void PurchaseAndEquip(

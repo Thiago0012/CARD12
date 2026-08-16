@@ -3876,7 +3876,7 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        public void CompleteActiveBotDuel(
+        public RankChangeReceipt CompleteActiveBotDuel(
             byte winner,
             long damageDealt = 0,
             long damageReceived = 0)
@@ -3900,7 +3900,7 @@ namespace ArcaneArena.Frontend
                 _activeRankedBotMatch == null ||
                 _activeRankedBotProfile == null)
             {
-                return;
+                return null;
             }
 
             RankedOutcome playerOutcome = winner > 1
@@ -3914,12 +3914,13 @@ namespace ArcaneArena.Frontend
                     out RankChangeReceipt playerReceipt,
                     out string playerRejection) ||
                 !_repository.TryCommitRankReceipt(
-                    playerReceipt, out _, out playerRejection))
+                    playerReceipt, out RankChangeReceipt committedPlayerReceipt,
+                    out playerRejection))
             {
                 Debug.LogError(
                     "[Ranked bot] Resultado local rejeitado: " +
                     playerRejection);
-                return;
+                return null;
             }
             if (!RankPointService.TryCreateReceipt(
                     _activeRankedBotMatch, 1, botOutcome,
@@ -3932,7 +3933,7 @@ namespace ArcaneArena.Frontend
                 Debug.LogError(
                     "[Ranked bot] Resultado do bot rejeitado: " +
                     botRejection);
-                return;
+                return committedPlayerReceipt;
             }
 
             _activeRankedBotResultCommitted = true;
@@ -3942,6 +3943,7 @@ namespace ArcaneArena.Frontend
                 $"{playerReceipt.newPoints} PE; " +
                 $"{_activeRankedBotProfile.displayName} " +
                 $"{botReceipt.oldPoints} -> {botReceipt.newPoints} PE.");
+            return committedPlayerReceipt;
         }
 
         public bool TryGetSelectedDuelLoadout(

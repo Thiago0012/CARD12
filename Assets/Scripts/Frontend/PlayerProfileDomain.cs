@@ -119,6 +119,7 @@ namespace ArcaneArena.Frontend
         public int PriceCoins { get; }
         public bool IsPurchasable { get; }
         public ProfileIconAssetMode AssetMode { get; }
+        public Rect PortraitUv { get; }
 
         public ProfileIconDefinition(
             string iconId,
@@ -126,7 +127,8 @@ namespace ArcaneArena.Frontend
             string resourcePath,
             bool isPurchasable,
             ProfileIconAssetMode assetMode =
-                ProfileIconAssetMode.PreframedHex)
+                ProfileIconAssetMode.PreframedHex,
+            Rect? portraitUv = null)
         {
             IconId = iconId;
             DisplayName = displayName;
@@ -134,6 +136,7 @@ namespace ArcaneArena.Frontend
             PriceCoins = isPurchasable ? ProfileIconCatalog.IconPriceCoins : 0;
             IsPurchasable = isPurchasable;
             AssetMode = assetMode;
+            PortraitUv = portraitUv ?? new Rect(0f, 0f, 1f, 1f);
         }
     }
 
@@ -152,15 +155,24 @@ namespace ArcaneArena.Frontend
         private static readonly ProfileIconDefinition[] Items =
         {
             new(DefaultIconId, "Brasão Arcano", string.Empty, false),
-            new("icon-astral-paladin", "Paladino Astral", "Profile/Icons/astral-paladin", true),
-            new("icon-prismatic-dragon", "Dragão Prismático", "Profile/Icons/prismatic-dragon", true),
-            new("icon-sun-hawk", "Falcão Solar", "Profile/Icons/sun-hawk", true),
-            new("icon-abyssal-sorceress", "Feiticeira Abissal", "Profile/Icons/abyssal-sorceress", true),
-            new("icon-golden-dragon", "Dragão Dourado", "Profile/Icons/golden-dragon", true),
-            new("icon-void-elf", "Elfa do Vazio", "Profile/Icons/void-elf", true),
-            new("icon-crimson-knight", "Cavaleiro Carmesim", "Profile/Icons/crimson-knight", true),
-            new("icon-oracle-idol", "Ídolo Oráculo", "Profile/Icons/oracle-idol", true),
-            new("icon-celestial-hydra", "Hidra Celestial", "Profile/Icons/celestial-hydra", true)
+            new("icon-astral-paladin", "Paladino Astral", "Profile/Icons/astral-paladin", true,
+                portraitUv: VisibleUv(1536, 1024, 340, 20, 1196, 996)),
+            new("icon-prismatic-dragon", "Dragão Prismático", "Profile/Icons/prismatic-dragon", true,
+                portraitUv: VisibleUv(1536, 1024, 344, 16, 1192, 992)),
+            new("icon-sun-hawk", "Falcão Solar", "Profile/Icons/sun-hawk", true,
+                portraitUv: VisibleUv(1536, 1024, 316, 4, 1216, 1016)),
+            new("icon-abyssal-sorceress", "Feiticeira Abissal", "Profile/Icons/abyssal-sorceress", true,
+                portraitUv: VisibleUv(1254, 1254, 84, 20, 1168, 1228)),
+            new("icon-golden-dragon", "Dragão Dourado", "Profile/Icons/golden-dragon", true,
+                portraitUv: VisibleUv(1024, 1536, 28, 192, 992, 1292)),
+            new("icon-void-elf", "Elfa do Vazio", "Profile/Icons/void-elf", true,
+                portraitUv: VisibleUv(1536, 1024, 324, 12, 1212, 1008)),
+            new("icon-crimson-knight", "Cavaleiro Carmesim", "Profile/Icons/crimson-knight", true,
+                portraitUv: VisibleUv(1536, 1024, 332, 12, 1204, 1004)),
+            new("icon-oracle-idol", "Ídolo Oráculo", "Profile/Icons/oracle-idol", true,
+                portraitUv: VisibleUv(1254, 1254, 80, 16, 1172, 1236)),
+            new("icon-celestial-hydra", "Hidra Celestial", "Profile/Icons/celestial-hydra", true,
+                portraitUv: VisibleUv(1024, 1536, 32, 220, 992, 1308))
         };
 
         private static readonly Dictionary<string, Texture2D> TextureCache =
@@ -195,6 +207,27 @@ namespace ArcaneArena.Frontend
                 }
                 return choices[hash % (uint)choices.Length].IconId;
             }
+        }
+
+        private static Rect VisibleUv(
+            int width,
+            int height,
+            int minX,
+            int minYFromTop,
+            int maxX,
+            int maxYFromTop)
+        {
+            float visibleWidth = maxX - minX + 1f;
+            float visibleHeight = maxYFromTop - minYFromTop + 1f;
+            float paddingX = visibleWidth * 0.025f;
+            float paddingY = visibleHeight * 0.02f;
+            float xMin = Mathf.Clamp01((minX - paddingX) / width);
+            float xMax = Mathf.Clamp01((maxX + 1f + paddingX) / width);
+            float yMin = Mathf.Clamp01(
+                1f - (maxYFromTop + 1f + paddingY) / height);
+            float yMax = Mathf.Clamp01(
+                1f - (minYFromTop - paddingY) / height);
+            return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
         }
 
         public static Texture2D LoadTexture(string iconId)

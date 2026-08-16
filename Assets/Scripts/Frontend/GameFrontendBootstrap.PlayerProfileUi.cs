@@ -79,12 +79,12 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.96f, 0.92f),
                 TextAnchor.MiddleLeft);
 
-            CreateHexIcon(
+            CreateBoundedHexIcon(
                 identity.transform,
                 "Ícone Equipado",
                 _repository.EquippedIconId,
-                new Vector2(0.20f, 0.27f),
-                new Vector2(0.80f, 0.67f));
+                new Vector2(0.30f, 0.38f),
+                new Vector2(0.70f, 0.55f));
             CreateButton(identity.transform, "EDITAR NOME",
                 new Vector2(0.16f, 0.06f), new Vector2(0.84f, 0.18f),
                 Cyan, () => ShowPlayerNameEditor(true));
@@ -549,7 +549,7 @@ namespace ArcaneArena.Frontend
                 icon.IconId, StringComparison.Ordinal);
             Image tile = CreateShopTile(parent, icon.DisplayName,
                 equipped ? Lime : Cyan);
-            CreateHexIcon(tile.transform, icon.DisplayName, icon.IconId,
+            CreateBoundedHexIcon(tile.transform, icon.DisplayName, icon.IconId,
                 new Vector2(0.16f, 0.27f), new Vector2(0.84f, 0.90f));
             CreateText(tile.transform, icon.DisplayName, 14, FontStyle.Bold,
                 Color.white, new Vector2(0.04f, 0.10f),
@@ -579,7 +579,7 @@ namespace ArcaneArena.Frontend
                 icon.IconId, StringComparison.Ordinal);
             Image tile = CreateShopTile(parent, icon.DisplayName,
                 equipped ? Lime : Cyan);
-            CreateHexIcon(tile.transform, icon.DisplayName, icon.IconId,
+            CreateBoundedHexIcon(tile.transform, icon.DisplayName, icon.IconId,
                 new Vector2(0.24f, 0.33f), new Vector2(0.76f, 0.91f));
             CreateText(tile.transform, icon.DisplayName, 17, FontStyle.Bold,
                 Color.white, new Vector2(0.04f, 0.21f),
@@ -672,6 +672,30 @@ namespace ArcaneArena.Frontend
             HexIconView view = item.GetComponent<HexIconView>();
             view.SetIcon(iconId);
             return view;
+        }
+
+        private static HexIconView CreateBoundedHexIcon(
+            Transform parent,
+            string name,
+            string iconId,
+            Vector2 min,
+            Vector2 max)
+        {
+            GameObject slot = new(
+                $"{name} - Área Reservada",
+                typeof(RectTransform));
+            slot.transform.SetParent(parent, false);
+            RectTransform slotRect = slot.GetComponent<RectTransform>();
+            slotRect.anchorMin = min;
+            slotRect.anchorMax = max;
+            slotRect.offsetMin = Vector2.zero;
+            slotRect.offsetMax = Vector2.zero;
+            return CreateHexIcon(
+                slot.transform,
+                name,
+                iconId,
+                Vector2.zero,
+                Vector2.one);
         }
 
         public void DecorateMainMenuProfileButton(Button profileButton)

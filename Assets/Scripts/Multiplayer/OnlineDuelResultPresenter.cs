@@ -23,6 +23,14 @@ namespace ArcaneArena.Multiplayer
         public bool ReturnButtonInteractable =>
             returnButton != null && returnButton.interactable;
 
+        public static bool CanPresentRankTransition(
+            RankChangeReceipt receipt)
+        {
+            return receipt != null &&
+                   (receipt.status == RankReceiptStatus.Applied ||
+                    receipt.status == RankReceiptStatus.AlreadyProcessed);
+        }
+
         public void Show(
             OnlineDuelResultKind result,
             string detail,
@@ -49,8 +57,7 @@ namespace ArcaneArena.Multiplayer
             RankChangeReceipt committedReceipt,
             Action onReturn)
         {
-            if (committedReceipt == null ||
-                committedReceipt.status != RankReceiptStatus.Applied)
+            if (!CanPresentRankTransition(committedReceipt))
             {
                 Show(result, detail, onReturn);
                 return;

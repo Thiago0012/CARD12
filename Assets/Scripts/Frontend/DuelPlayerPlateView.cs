@@ -39,6 +39,10 @@ namespace ArcaneArena.Frontend
         {
             bool local = side == PlateSide.Local;
             RectTransform root = transform as RectTransform;
+            Color accent = local
+                ? new Color(0.96f, 0.30f, 0.24f, 1f)
+                : new Color(0.28f, 0.57f, 1f, 1f);
+            ConfigurePlate(root, local, accent);
             Transform iconTransform = transform.Find("Ícone do Perfil");
             if (iconTransform == null)
             {
@@ -54,37 +58,181 @@ namespace ArcaneArena.Frontend
                 iconTransform = iconObject.transform;
                 AspectRatioFitter ratio = iconObject.GetComponent<AspectRatioFitter>();
                 ratio.aspectMode = AspectRatioFitter.AspectMode.HeightControlsWidth;
-                ratio.aspectRatio = 1f;
+                ratio.aspectRatio = HexIconView.RegularHexAspect;
             }
             RectTransform iconRect = (RectTransform)iconTransform;
-            iconRect.anchorMin = local ? new Vector2(0.015f, 0.08f) : new Vector2(0.985f, 0.08f);
-            iconRect.anchorMax = local ? new Vector2(0.015f, 0.92f) : new Vector2(0.985f, 0.92f);
+            iconRect.anchorMin = local ? new Vector2(0.018f, 0.025f) : new Vector2(0.982f, 0.025f);
+            iconRect.anchorMax = local ? new Vector2(0.018f, 0.975f) : new Vector2(0.982f, 0.975f);
             iconRect.pivot = local ? new Vector2(0f, 0.5f) : new Vector2(1f, 0.5f);
             iconRect.offsetMin = Vector2.zero;
             iconRect.offsetMax = Vector2.zero;
             _icon = iconTransform.GetComponent<HexIconView>();
+            _icon.SetAccent(accent);
 
-            _name = EnsureText(
+            _name = FindAuthoredName(side) ?? EnsureText(
                 "Identidade do Duelista",
-                local ? new Vector2(0.25f, 0.63f) : new Vector2(0.03f, 0.63f),
-                local ? new Vector2(0.96f, 0.96f) : new Vector2(0.75f, 0.96f),
+                Vector2.zero,
+                Vector2.one,
                 13,
                 new Color(0.98f, 0.78f, 0.30f),
                 local ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
+            ConfigureText(
+                _name,
+                local ? new Vector2(0.285f, 0.735f) : new Vector2(0.03f, 0.735f),
+                local ? new Vector2(0.97f, 0.97f) : new Vector2(0.715f, 0.97f),
+                17,
+                Color.white,
+                TextAnchor.MiddleLeft);
             _rank = EnsureText(
                 "Patente do Duelista",
-                local ? new Vector2(0.25f, 0.42f) : new Vector2(0.03f, 0.42f),
-                local ? new Vector2(0.96f, 0.65f) : new Vector2(0.75f, 0.65f),
-                10,
-                new Color(0.28f, 0.90f, 0.96f),
-                local ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
+                local ? new Vector2(0.285f, 0.625f) : new Vector2(0.03f, 0.625f),
+                local ? new Vector2(0.97f, 0.755f) : new Vector2(0.715f, 0.755f),
+                9,
+                accent,
+                TextAnchor.MiddleLeft);
+            LayoutAuthoredLifeValues(local);
             _name.raycastTarget = false;
             _rank.raycastTarget = false;
+            EnsureTextShadow(_name, 1.5f);
+            _name.transform.SetAsLastSibling();
+            _rank.transform.SetAsLastSibling();
+            iconTransform.SetAsLastSibling();
             if (root != null &&
                 root.gameObject.GetComponent<DuelHudSafeAreaFitter>() == null)
             {
                 root.gameObject.AddComponent<DuelHudSafeAreaFitter>();
             }
+        }
+
+        private void ConfigurePlate(
+            RectTransform root,
+            bool local,
+            Color accent)
+        {
+            if (root != null && root.anchorMin == root.anchorMax)
+                root.sizeDelta = new Vector2(356f, 108f);
+
+            Image plate = GetComponent<Image>() ?? gameObject.AddComponent<Image>();
+            plate.color = new Color(0.008f, 0.018f, 0.028f, 0.76f);
+            plate.raycastTarget = false;
+            Outline outline = GetComponent<Outline>() ??
+                gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(
+                accent.r, accent.g, accent.b, 0.86f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            outline.useGraphicAlpha = true;
+
+            Vector2 contentMin = local
+                ? new Vector2(0.255f, 0.02f)
+                : new Vector2(0.015f, 0.02f);
+            Vector2 contentMax = local
+                ? new Vector2(0.985f, 0.985f)
+                : new Vector2(0.745f, 0.985f);
+            EnsureImage(
+                "Fundo da Vida",
+                new Vector2(contentMin.x, 0.02f),
+                new Vector2(contentMax.x, 0.615f),
+                new Color(0.02f, 0.055f, 0.075f, 0.52f));
+            EnsureImage(
+                "Faixa do Nome",
+                new Vector2(contentMin.x, 0.615f),
+                new Vector2(contentMax.x, 0.985f),
+                new Color(0.005f, 0.008f, 0.012f, 0.92f));
+            EnsureImage(
+                "Linha de Destaque",
+                new Vector2(contentMin.x, 0.595f),
+                new Vector2(contentMax.x, 0.62f),
+                new Color(accent.r, accent.g, accent.b, 0.95f));
+        }
+
+        private Text FindAuthoredName(PlateSide side)
+        {
+            string authoredName = side == PlateSide.Local
+                ? "PLAYER"
+                : "OPONENTE";
+            Transform existing = transform.Find(authoredName);
+            return existing != null ? existing.GetComponent<Text>() : null;
+        }
+
+        private void LayoutAuthoredLifeValues(bool local)
+        {
+            Transform labelTransform = transform.Find("LP");
+            Transform valueTransform = transform.Find("8000");
+            if (labelTransform == null || valueTransform == null)
+                return;
+
+            if (local)
+            {
+                ConfigureText(
+                    labelTransform.GetComponent<Text>(),
+                    new Vector2(0.285f, 0.08f),
+                    new Vector2(0.40f, 0.55f),
+                    16,
+                    new Color(0.83f, 0.90f, 0.94f),
+                    TextAnchor.MiddleLeft);
+                ConfigureText(
+                    valueTransform.GetComponent<Text>(),
+                    new Vector2(0.40f, 0.04f),
+                    new Vector2(0.97f, 0.59f),
+                    31,
+                    Color.white,
+                    TextAnchor.MiddleLeft);
+            }
+            else
+            {
+                ConfigureText(
+                    labelTransform.GetComponent<Text>(),
+                    new Vector2(0.03f, 0.08f),
+                    new Vector2(0.145f, 0.55f),
+                    16,
+                    new Color(0.83f, 0.90f, 0.94f),
+                    TextAnchor.MiddleLeft);
+                ConfigureText(
+                    valueTransform.GetComponent<Text>(),
+                    new Vector2(0.145f, 0.04f),
+                    new Vector2(0.715f, 0.59f),
+                    31,
+                    Color.white,
+                    TextAnchor.MiddleLeft);
+            }
+            EnsureTextShadow(valueTransform.GetComponent<Text>(), 2f);
+            labelTransform.SetAsLastSibling();
+            valueTransform.SetAsLastSibling();
+        }
+
+        private Image EnsureImage(
+            string objectName,
+            Vector2 min,
+            Vector2 max,
+            Color color)
+        {
+            Transform existing = transform.Find(objectName);
+            GameObject gameObject = existing != null
+                ? existing.gameObject
+                : new GameObject(
+                    objectName,
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Image));
+            if (existing == null)
+                gameObject.transform.SetParent(transform, false);
+            SetRect(gameObject.GetComponent<RectTransform>(), min, max);
+            Image image = gameObject.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            gameObject.transform.SetAsFirstSibling();
+            return image;
+        }
+
+        private static void EnsureTextShadow(Text text, float distance)
+        {
+            if (text == null)
+                return;
+            Shadow shadow = text.GetComponent<Shadow>() ??
+                text.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.86f);
+            shadow.effectDistance = new Vector2(distance, -distance);
+            shadow.useGraphicAlpha = true;
         }
 
         private Text EnsureText(
@@ -111,7 +259,23 @@ namespace ArcaneArena.Frontend
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             Text text = gameObject.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            ConfigureText(text, min, max, size, color, alignment);
+            return text;
+        }
+
+        private static void ConfigureText(
+            Text text,
+            Vector2 min,
+            Vector2 max,
+            int size,
+            Color color,
+            TextAnchor alignment)
+        {
+            if (text == null)
+                return;
+            SetRect(text.rectTransform, min, max);
+            text.font ??=
+                Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = size;
             text.fontStyle = FontStyle.Bold;
             text.color = color;
@@ -119,7 +283,19 @@ namespace ArcaneArena.Frontend
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = 8;
             text.resizeTextMaxSize = size;
-            return text;
+        }
+
+        private static void SetRect(
+            RectTransform rect,
+            Vector2 min,
+            Vector2 max)
+        {
+            if (rect == null)
+                return;
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
         }
     }
 }

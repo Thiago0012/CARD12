@@ -13,6 +13,7 @@ using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -264,7 +265,8 @@ namespace ArcaneArena
 
         private void OnDuelCompleted(byte winner)
         {
-            GameFrontendBootstrap.Instance?.CompleteActiveBotDuel(
+            RankChangeReceipt rankReceipt =
+                GameFrontendBootstrap.Instance?.CompleteActiveBotDuel(
                 winner,
                 localDamageDealtInDuel,
                 localDamageReceivedInDuel);
@@ -282,14 +284,27 @@ namespace ArcaneArena
                 GetComponent<OnlineDuelResultPresenter>();
             if (presenter == null)
                 presenter = gameObject.AddComponent<OnlineDuelResultPresenter>();
-            presenter.Show(
-                kind,
-                winner > 1
-                    ? "O duelo contra o bot terminou empatado."
-                    : winner == 0
-                        ? "Vitória confirmada contra o bot."
-                        : "Derrota confirmada contra o bot.",
-                ReturnToMenuAfterBotResult);
+            string detail = winner > 1
+                ? "O duelo contra o bot terminou empatado."
+                : winner == 0
+                    ? "Vitória confirmada contra o bot."
+                    : "Derrota confirmada contra o bot.";
+            if (OnlineDuelResultPresenter.CanPresentRankTransition(
+                    rankReceipt))
+            {
+                presenter.ShowRanked(
+                    kind,
+                    detail,
+                    rankReceipt,
+                    ReturnToMenuAfterBotResult);
+            }
+            else
+            {
+                presenter.Show(
+                    kind,
+                    detail,
+                    ReturnToMenuAfterBotResult);
+            }
         }
 
         private void ReturnToMenuAfterBotResult()
@@ -1252,10 +1267,8 @@ namespace ArcaneArena
             localLife = FindLifeValue(localLifePanel);
             opponentLife = FindLifeValue(opponentLifePanel);
             if (!preserveAuthoredDuelInterface)
-            {
                 BindLocalPlayerName(localLifePanel);
-                RefreshDuelPlayerPlates();
-            }
+            RefreshDuelPlayerPlates();
 
             GameObject phasePanel = FindObject(frame, "Controle de Fases");
             if (phasePanel != null)
@@ -1343,11 +1356,9 @@ namespace ArcaneArena
 
         private void RefreshDuelPlayerPlates()
         {
-            // In authored-interface mode the LP plates, labels and icon slots
-            // already belong to the scene. Adding a second runtime plate here
-            // obscures the precise composition edited in the Scene view.
-            if (preserveAuthoredDuelInterface)
-                return;
+            // DuelPlayerPlateView reuses the authored PLAYER/OPONENTE labels
+            // and LP values when they exist, so the scene composition remains
+            // intact while the public profile identity is added to each side.
             BindDuelPlayerPlate(
                 localLifePanel,
                 localDuelIdentity,

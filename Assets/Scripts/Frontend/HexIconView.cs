@@ -6,12 +6,15 @@ namespace ArcaneArena.Frontend
     [DisallowMultipleComponent]
     public sealed class HexIconView : MonoBehaviour
     {
-        private const float PreframedVerticalScale = 0.86f;
+        public const float RegularHexAspect = 0.8660254f;
         private static Sprite _hexMaskSprite;
         private RawImage _portrait;
         private AspectRatioFitter _portraitFitter;
+        private AspectRatioFitter _rootFitter;
         private Image _containerImage;
-        private Mask _mask;
+        private Image _clipImage;
+        private Mask _clipMask;
+        private Color _accent = new(0.24f, 0.91f, 0.96f, 1f);
 
         public string IconId { get; private set; } =
             ProfileIconCatalog.DefaultIconId;
@@ -22,13 +25,21 @@ namespace ArcaneArena.Frontend
             IconId = ProfileIconCatalog.ResolveId(iconId);
             ProfileIconDefinition definition =
                 ProfileIconCatalog.Resolve(IconId);
-            ApplyAssetMode(definition.AssetMode);
+            ApplyUniformHexMode();
             Texture2D texture = ProfileIconCatalog.LoadTexture(IconId);
             _portrait.texture = texture;
-            _portrait.uvRect = new Rect(0f, 0f, 1f, 1f);
+            _portrait.uvRect = definition.PortraitUv;
             _portraitFitter.aspectRatio = texture != null && texture.height > 0
-                ? (float)texture.width / texture.height
+                ? (texture.width * definition.PortraitUv.width) /
+                  (texture.height * definition.PortraitUv.height)
                 : 1f;
+        }
+
+        public void SetAccent(Color accent)
+        {
+            _accent = accent;
+            EnsureHierarchy();
+            _containerImage.color = _accent;
         }
 
         private void EnsureHierarchy()
@@ -36,11 +47,52 @@ namespace ArcaneArena.Frontend
             _containerImage = GetComponent<Image>() ??
                 gameObject.AddComponent<Image>();
             _containerImage.raycastTarget = false;
-            _mask = GetComponent<Mask>();
+            _containerImage.sprite = GetHexMaskSprite();
+            _containerImage.type = Image.Type.Simple;
+            _containerImage.color = _accent;
+            Mask legacyMask = GetComponent<Mask>();
+            if (legacyMask != null)
+                legacyMask.enabled = false;
+
+            _rootFitter = GetComponent<AspectRatioFitter>() ??
+                gameObject.AddComponent<AspectRatioFitter>();
+            if (_rootFitter.aspectMode == AspectRatioFitter.AspectMode.None)
+            {
+                _rootFitter.aspectMode =
+                    AspectRatioFitter.AspectMode.FitInParent;
+            }
+            _rootFitter.aspectRatio = RegularHexAspect;
+
+            Transform clipTransform = transform.Find("Recorte Hexagonal");
+            if (clipTransform == null)
+            {
+                GameObject clipObject = new(
+                    "Recorte Hexagonal",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Image),
+                    typeof(Mask));
+                clipObject.transform.SetParent(transform, false);
+                clipTransform = clipObject.transform;
+            }
+            RectTransform clipRect = (RectTransform)clipTransform;
+            clipRect.anchorMin = new Vector2(0.055f, 0.055f);
+            clipRect.anchorMax = new Vector2(0.945f, 0.945f);
+            clipRect.offsetMin = Vector2.zero;
+            clipRect.offsetMax = Vector2.zero;
+            _clipImage = clipTransform.GetComponent<Image>();
+            _clipImage.sprite = GetHexMaskSprite();
+            _clipImage.type = Image.Type.Simple;
+            _clipImage.color = Color.white;
+            _clipImage.raycastTarget = false;
+            _clipMask = clipTransform.GetComponent<Mask>();
+            _clipMask.enabled = true;
+            _clipMask.showMaskGraphic = false;
 
             if (_portrait == null)
             {
-                Transform existing = transform.Find("Retrato");
+                Transform existing = clipTransform.Find("Retrato") ??
+                    transform.Find("Retrato");
                 GameObject portraitObject = existing != null
                     ? existing.gameObject
                     : new GameObject(
@@ -49,8 +101,7 @@ namespace ArcaneArena.Frontend
                         typeof(CanvasRenderer),
                         typeof(RawImage),
                         typeof(AspectRatioFitter));
-                if (existing == null)
-                    portraitObject.transform.SetParent(transform, false);
+                portraitObject.transform.SetParent(clipTransform, false);
                 RectTransform rect = portraitObject.GetComponent<RectTransform>();
                 rect.anchorMin = Vector2.zero;
                 rect.anchorMax = Vector2.one;
@@ -62,27 +113,12 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        private void ApplyAssetMode(ProfileIconAssetMode assetMode)
+        private void ApplyUniformHexMode()
         {
-            bool preframed = assetMode == ProfileIconAssetMode.PreframedHex;
-            if (preframed)
-            {
-                if (_mask != null)
-                    _mask.enabled = false;
-                _containerImage.sprite = null;
-                _containerImage.color = Color.clear;
-                _portraitFitter.aspectMode =
-                    AspectRatioFitter.AspectMode.FitInParent;
-                _portrait.rectTransform.localScale =
-                    new Vector3(1f, PreframedVerticalScale, 1f);
-                return;
-            }
-
             _containerImage.sprite = GetHexMaskSprite();
-            _containerImage.color = Color.white;
-            _mask ??= gameObject.AddComponent<Mask>();
-            _mask.enabled = true;
-            _mask.showMaskGraphic = false;
+            _containerImage.color = _accent;
+            _clipImage.sprite = GetHexMaskSprite();
+            _clipMask.enabled = true;
             _portraitFitter.aspectMode =
                 AspectRatioFitter.AspectMode.EnvelopeParent;
             _portrait.rectTransform.localScale = Vector3.one;
@@ -92,23 +128,28 @@ namespace ArcaneArena.Frontend
         {
             if (_hexMaskSprite != null)
                 return _hexMaskSprite;
-            const int size = 128;
+            const int size = 256;
             Texture2D texture = new(size, size, TextureFormat.RGBA32, false)
             {
                 name = "Hexagonal Profile Mask",
                 wrapMode = TextureWrapMode.Clamp,
                 filterMode = FilterMode.Bilinear
             };
-            Color clear = new(1f, 1f, 1f, 0f);
-            Color solid = Color.white;
             for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {
-                float nx = Mathf.Abs((x + 0.5f) / size * 2f - 1f);
-                float ny = Mathf.Abs((y + 0.5f) / size * 2f - 1f);
-                bool inside = nx <= 0.91f && ny <= 0.98f &&
-                              nx * 0.58f + ny <= 1.02f;
-                texture.SetPixel(x, y, inside ? solid : clear);
+                int insideSamples = 0;
+                const int samples = 4;
+                for (int sy = 0; sy < samples; sy++)
+                for (int sx = 0; sx < samples; sx++)
+                {
+                    float u = (x + (sx + 0.5f) / samples) / size;
+                    float v = (y + (sy + 0.5f) / samples) / size;
+                    if (IsInsideRegularHex(u, v))
+                        insideSamples++;
+                }
+                float alpha = insideSamples / (float)(samples * samples);
+                texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
             }
             texture.Apply(false, true);
             _hexMaskSprite = Sprite.Create(
@@ -120,6 +161,16 @@ namespace ArcaneArena.Frontend
                 SpriteMeshType.FullRect);
             _hexMaskSprite.name = "Hexagonal Profile Mask";
             return _hexMaskSprite;
+        }
+
+        private static bool IsInsideRegularHex(float u, float v)
+        {
+            float halfWidth = v < 0.25f
+                ? v * 2f
+                : v > 0.75f
+                    ? (1f - v) * 2f
+                    : 0.5f;
+            return Mathf.Abs(u - 0.5f) <= halfWidth;
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
+using ArcaneDuel.Game.Competitive;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -87,6 +88,70 @@ namespace ArcaneDuel.Tests.PlayMode
                 presenterType.GetMethod("SetReturnButtonInteractable")
                     ?.Invoke(presenter, new object[] { false });
                 Assert.That(button.interactable, Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator RankedResultShowsProgressBeforeReturnIsEnabled()
+        {
+            GameObject root = new GameObject("Ranked result test");
+            try
+            {
+                Type presenterType = TypeByName(
+                    "ArcaneArena.Multiplayer.OnlineDuelResultPresenter");
+                Type resultType = TypeByName(
+                    "ArcaneArena.Multiplayer.OnlineDuelResultKind");
+                Component presenter = root.AddComponent(presenterType);
+                object victory = Enum.Parse(resultType, "Victory");
+                var receipt = new RankChangeReceipt
+                {
+                    status = RankReceiptStatus.Applied,
+                    oldPoints = 24,
+                    newPoints = 31,
+                    delta = 7,
+                    oldTier = RankTier.Wood,
+                    newTier = RankTier.Stone,
+                    promoted = true
+                };
+                presenterType.GetMethod("ShowRanked")?.Invoke(
+                    presenter,
+                    new object[]
+                    {
+                        victory,
+                        "Ranque atualizado.",
+                        receipt,
+                        new Action(() => { })
+                    });
+                yield return null;
+
+                Transform ranked = FindDescendant(root.transform,
+                    "RankedResult");
+                Button returnButton = FindDescendant(root.transform,
+                        "ReturnToMenuButton")
+                    ?.GetComponent<Button>();
+                Button skipButton = FindDescendant(root.transform,
+                        "SkipRankAnimation")
+                    ?.GetComponent<Button>();
+                Assert.That(ranked, Is.Not.Null);
+                Assert.That(ranked.gameObject.activeSelf, Is.True);
+                Assert.That(returnButton, Is.Not.Null);
+                Assert.That(returnButton.interactable, Is.False,
+                    "O jogador não pode sair antes de ver a progressão.");
+                Assert.That(skipButton, Is.Not.Null);
+                Assert.That(skipButton.gameObject.activeSelf, Is.True);
+
+                skipButton.onClick.Invoke();
+                yield return null;
+                yield return null;
+                Assert.That(returnButton.interactable, Is.True);
+                Text transition = root.GetComponentsInChildren<Text>(true)
+                    .First(text => text.gameObject.name == "Transition");
+                Assert.That(transition.text,
+                    Is.EqualTo("PROMOÇÃO CONCLUÍDA"));
             }
             finally
             {

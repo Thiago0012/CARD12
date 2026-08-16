@@ -209,6 +209,7 @@ namespace ArcaneArena.Multiplayer
             public uint transitionEpoch;
             public bool duelAlreadyBegun;
             public RankedMatchSnapshot rankedMatch;
+            public DuelIdentitySnapshot hostIdentity;
         }
 
         [Serializable]
@@ -282,6 +283,7 @@ namespace ArcaneArena.Multiplayer
             public string hostDeckDisplayName;
             public CompetitivePolicy competitivePolicy;
             public RankPlayerSnapshot rankPlayer;
+            public DuelIdentitySnapshot hostIdentity;
         }
 
         [Serializable]
@@ -363,6 +365,7 @@ namespace ArcaneArena.Multiplayer
         private SessionRole role;
         private DuelDeckLoadout localLoadout;
         private DuelDeckLoadout remoteLoadout;
+        private DuelIdentitySnapshot remoteDuelIdentity;
         private DuelArenaController hostController;
         private DuelArenaController replicaController;
         private DuelNetworkState pendingReplicaState;
@@ -916,7 +919,7 @@ namespace ArcaneArena.Multiplayer
             // reconnecting therefore restores the same two identities.
             arena.ApplyDuelIdentities(
                 localLoadout?.identity,
-                remoteLoadout?.identity,
+                remoteDuelIdentity ?? remoteLoadout?.identity,
                 currentMatchId,
                 competitivePolicy == CompetitivePolicy.Ranked);
 
@@ -2125,6 +2128,11 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
             remoteLoadout = hello.loadout;
+            remoteDuelIdentity = NormalizeRemoteDuelIdentity(
+                hello.loadout.identity,
+                hello.loadout.profileId,
+                hello.loadout.playerDisplayName,
+                hello.rankPlayer);
             remoteRankHandshake = hello.rankPlayer;
             if (helloRequestRetry != null)
             {
@@ -2141,7 +2149,8 @@ namespace ArcaneArena.Multiplayer
                         string.Empty,
                     hostDeckDisplayName = localLoadout?.displayName ?? string.Empty,
                     competitivePolicy = competitivePolicy,
-                    rankPlayer = localRankHandshake ?? CaptureLocalRankSnapshot()
+                    rankPlayer = localRankHandshake ?? CaptureLocalRankSnapshot(),
+                    hostIdentity = localLoadout?.identity?.Copy()
                 },
                 NetworkDelivery.ReliableSequenced);
         }
@@ -2171,6 +2180,11 @@ namespace ArcaneArena.Multiplayer
             hostPlayerDisplayName = accepted.hostPlayerDisplayName ?? string.Empty;
             hostDeckDisplayName = accepted.hostDeckDisplayName ?? string.Empty;
             remoteRankHandshake = accepted.rankPlayer;
+            remoteDuelIdentity = NormalizeRemoteDuelIdentity(
+                accepted.hostIdentity,
+                accepted.rankPlayer?.stablePlayerId,
+                hostPlayerDisplayName,
+                accepted.rankPlayer);
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
@@ -2210,6 +2224,55 @@ namespace ArcaneArena.Multiplayer
             yield return new WaitForSecondsRealtime(1f);
             if (networkManager != null && networkManager.IsServer)
                 networkManager.DisconnectClient(clientId);
+        }
+
+        private static DuelIdentitySnapshot NormalizeRemoteDuelIdentity(
+            DuelIdentitySnapshot supplied,
+            string fallbackStablePlayerId,
+            string fallbackNickname,
+            RankPlayerSnapshot rank)
+        {
+            DuelIdentitySnapshot normalized = supplied?.Copy() ??
+                new DuelIdentitySnapshot();
+            string stablePlayerId = !string.IsNullOrWhiteSpace(
+                    normalized.stablePlayerId)
+                ? normalized.stablePlayerId.Trim()
+                : !string.IsNullOrWhiteSpace(rank?.stablePlayerId)
+                    ? rank.stablePlayerId.Trim()
+                    : !string.IsNullOrWhiteSpace(fallbackStablePlayerId)
+                        ? fallbackStablePlayerId.Trim()
+                        : "remote-player";
+            if (stablePlayerId.Length > 128)
+                stablePlayerId = stablePlayerId.Substring(0, 128);
+
+            string nickname = !string.IsNullOrWhiteSpace(normalized.nickname)
+                ? normalized.nickname.Trim()
+                : !string.IsNullOrWhiteSpace(fallbackNickname)
+                    ? fallbackNickname.Trim()
+                    : "OPONENTE";
+            if (nickname.Length >
+                ArcaneArena.Frontend.DeckRepository.MaximumPlayerNameLength)
+            {
+                nickname = nickname.Substring(
+                    0,
+                    ArcaneArena.Frontend.DeckRepository.MaximumPlayerNameLength);
+            }
+
+            bool suppliedKnownIcon = supplied != null &&
+                !string.IsNullOrWhiteSpace(supplied.equippedIconId);
+            int rankedPoints = rank != null && rank.IsValid
+                ? rank.rankedPoints
+                : RankRules.ClampPoints(normalized.rankedPoints);
+            normalized.stablePlayerId = stablePlayerId;
+            normalized.nickname = nickname;
+            normalized.equippedIconId = suppliedKnownIcon
+                ? ProfileIconCatalog.ResolveId(supplied.equippedIconId)
+                : ProfileIconCatalog.ResolveForStableIdentity(stablePlayerId);
+            normalized.rankedPoints = rankedPoints;
+            normalized.rankTier = RankRules.ResolveTier(rankedPoints);
+            normalized.cosmeticsCatalogVersion =
+                ProfileIconCatalog.CatalogVersion;
+            return normalized;
         }
 
         private void BeginHostMatch()
@@ -2571,6 +2634,14 @@ namespace ArcaneArena.Multiplayer
 
             helloAccepted = true;
             clientSynchronizing = true;
+            if (start.hostIdentity != null)
+            {
+                remoteDuelIdentity = NormalizeRemoteDuelIdentity(
+                    start.hostIdentity,
+                    start.hostIdentity.stablePlayerId,
+                    hostPlayerDisplayName,
+                    remoteRankHandshake);
+            }
             if (string.IsNullOrWhiteSpace(currentMatchId))
                 currentMatchId = start.matchId ?? string.Empty;
             currentTransitionEpoch = start.transitionEpoch;
@@ -2771,7 +2842,8 @@ namespace ArcaneArena.Multiplayer
                     matchId = currentMatchId,
                     transitionEpoch = currentTransitionEpoch,
                     duelAlreadyBegun = beginDuelApplied,
-                    rankedMatch = sealedRankedMatch
+                    rankedMatch = sealedRankedMatch,
+                    hostIdentity = localLoadout?.identity?.Copy()
                 }, NetworkDelivery.ReliableSequenced);
 
                 if (clientReceivedStart)
@@ -3704,8 +3776,8 @@ namespace ArcaneArena.Multiplayer
                 result.endReason);
             SetFlowState(OnlineMatchFlowState.ResultScreen);
             status = detail ?? string.Empty;
-            if (rankReceipt != null &&
-                rankReceipt.status == RankReceiptStatus.Applied)
+            if (OnlineDuelResultPresenter.CanPresentRankTransition(
+                    rankReceipt))
             {
                 resultPresenter?.ShowRanked(
                     kind,
@@ -5275,6 +5347,7 @@ namespace ArcaneArena.Multiplayer
             if (clearLocalLoadout)
                 localLoadout = null;
             remoteLoadout = null;
+            remoteDuelIdentity = null;
             remoteClientId = ulong.MaxValue;
             currentMatchId = string.Empty;
             currentTransitionEpoch = 0;
