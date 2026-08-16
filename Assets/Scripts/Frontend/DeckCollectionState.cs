@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ArcaneArena.Cards;
 using ArcaneDuel.Game.Competitive;
 
 namespace ArcaneArena.Frontend
@@ -7,7 +8,7 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 10;
+        public int schemaVersion = 11;
         public string localProfileId;
         public string playerDisplayName;
         public bool starterDeckClaimed;
@@ -29,6 +30,11 @@ namespace ArcaneArena.Frontend
             new List<PendingPackOpeningRecord>();
         public List<ShopTransactionRecord> processedShopTransactions =
             new List<ShopTransactionRecord>();
+        public PlayerCraftWallet craftPoints = new PlayerCraftWallet();
+        public List<ProtectedCardQuantityRecord> protectedCardQuantities =
+            new List<ProtectedCardQuantityRecord>();
+        public List<CraftTransactionRecord> craftTransactions =
+            new List<CraftTransactionRecord>();
         public CoinRewardAuthorizationState coinRewardAuthorization =
             new CoinRewardAuthorizationState();
         public PlayerRankData rankData = new PlayerRankData();
@@ -56,6 +62,36 @@ namespace ArcaneArena.Frontend
     {
         public string cardId;
         public int quantity;
+    }
+
+    [Serializable]
+    public sealed class PlayerCraftWallet
+    {
+        public int cpN;
+        public int cpR;
+        public int cpSR;
+        public int cpUR;
+    }
+
+    [Serializable]
+    public sealed class ProtectedCardQuantityRecord
+    {
+        public string cardId;
+        public int quantity;
+    }
+
+    [Serializable]
+    public sealed class CraftTransactionRecord
+    {
+        public string transactionId;
+        public string operation;
+        public string cardId;
+        public CardRarity rarity;
+        public CardFinish finish;
+        public int quantity;
+        public int cpDelta;
+        public int balanceAfter;
+        public long createdUtcTicks;
     }
 
     [Serializable]

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ArcaneArena.Cards;
@@ -26,6 +28,22 @@ namespace ArcaneArena.Editor
             "Assets/Cards/Cards/Decks/BatchAugust2026";
         private const string StarterDeckArtFolder =
             "Assets/Cards/Cards/Decks/StarterDecks2026";
+
+        [MenuItem("Arcane Arena/Content/Sync All Card Metadata and Rarities")]
+        public static void SyncAllPublishedMetadata()
+        {
+            CardCatalog catalog =
+                AssetDatabase.LoadAssetAtPath<CardCatalog>(CatalogPath);
+            if (catalog == null)
+                throw new FileNotFoundException(CatalogPath);
+            CardDatabase database = CardDatabase.LoadDefault();
+            int refreshed = RefreshPortugueseMetadata(catalog, database);
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets();
+            Debug.Log(
+                $"ARCANE_CARD_RARITY_SYNC_OK refreshed={refreshed} " +
+                $"catalog={catalog.Entries.Count}");
+        }
 
         [MenuItem("Arcane Arena/Content/Sync Yugi Battle City")]
         public static void SyncYugiMutoBattleCity()
@@ -207,10 +225,12 @@ namespace ArcaneArena.Editor
                 $"ARCANE_CARD_CATALOG_SYNC_OK deck={deckId} added={added}");
         }
 
-        private static void RefreshPortugueseMetadata(
+        private static int RefreshPortugueseMetadata(
             CardCatalog catalog,
             CardDatabase database)
         {
+            int refreshed = 0;
+            var synchronized = new List<(CardCatalogEntry Entry, CardRecord Card)>();
             foreach (CardCatalogEntry entry in catalog.Entries)
             {
                 if (entry == null ||
@@ -221,7 +241,42 @@ namespace ArcaneArena.Editor
                 }
 
                 entry.ApplyCoreMetadata(card);
+                synchronized.Add((entry, card));
+                refreshed++;
             }
+            foreach (IGrouping<string, (CardCatalogEntry Entry, CardRecord Card)> group in
+                     synchronized.GroupBy(
+                         item => item.Entry.EnglishName ?? string.Empty,
+                         StringComparer.Ordinal))
+            {
+                uint[] alternateCodes = group
+                    .Where(item => item.Card.Alias != 0)
+                    .Select(item => item.Card.Code)
+                    .Distinct()
+                    .ToArray();
+                var variantByCode = new Dictionary<uint, CardArtVariant>();
+                if (alternateCodes.Length == 1)
+                {
+                    variantByCode[alternateCodes[0]] = CardArtVariant.Alt;
+                }
+                else if (alternateCodes.Length > 1)
+                {
+                    variantByCode[alternateCodes[0]] = CardArtVariant.Alt1;
+                    variantByCode[alternateCodes[1]] = CardArtVariant.Alt2;
+                    for (int index = 2; index < alternateCodes.Length; index++)
+                        variantByCode[alternateCodes[index]] = CardArtVariant.Alt;
+                }
+                foreach ((CardCatalogEntry entry, CardRecord card) in group)
+                {
+                    entry.RefreshRarity(
+                        variantByCode.TryGetValue(
+                            card.Code,
+                            out CardArtVariant inferred)
+                            ? inferred
+                            : CardArtVariant.Auto);
+                }
+            }
+            return refreshed;
         }
 
         private static void ConfigureSprite(string assetPath)

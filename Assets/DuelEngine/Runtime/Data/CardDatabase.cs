@@ -21,6 +21,7 @@ namespace ArcaneDuel.DuelEngine.Data
         public uint RightScale { get; internal set; }
         public uint LinkMarker { get; internal set; }
         public ushort[] Setcodes { get; internal set; }
+        public string EnglishName { get; internal set; }
         public string Name { get; internal set; }
         public string Description { get; internal set; }
         public string[] Strings { get; internal set; }
@@ -57,6 +58,7 @@ namespace ArcaneDuel.DuelEngine.Data
     internal sealed class CardTextEntry
     {
         public uint code;
+        public string englishName;
         public string name;
         public string description;
         public string[] strings;
@@ -152,6 +154,9 @@ namespace ArcaneDuel.DuelEngine.Data
                 {
                     throw new InvalidDataException($"Text entry {text.code} has no binary card record.");
                 }
+                card.EnglishName = string.IsNullOrWhiteSpace(text.englishName)
+                    ? text.name
+                    : text.englishName;
                 card.Name = text.name;
                 card.Description = text.description;
                 card.Strings = text.strings ?? new string[16];
