@@ -488,7 +488,7 @@ namespace ArcaneArena.Editor.AutoPacks
                 if (!settings.HasNormativeValues)
                 {
                     report.Errors.Add(
-                        "Settings deve manter min=35, max=38 e price=35.");
+                        "Settings deve manter min=35, max=38 e price=25.");
                     return report;
                 }
 

@@ -1622,6 +1622,54 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator AuthoritativeRemoteResponseBypassesHostPresentationLock()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            for (int frame = 0;
+                 frame < 600 && controller.CurrentPrompt == null;
+                 frame++)
+            {
+                yield return null;
+            }
+
+            DuelPrompt prompt = controller.CurrentPrompt;
+            DuelChoice choice = prompt?.Choices.FirstOrDefault(candidate =>
+                candidate.Response != null && candidate.Response.Length > 0);
+            Assert.That(choice, Is.Not.Null);
+
+            MethodInfo setPresentationLock = arena.GetType().GetMethod(
+                "SetCardPresentationDecisionLock",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            setPresentationLock?.Invoke(arena, new object[] { true });
+            Assert.That(controller.PresentationDecisionLocked, Is.True);
+            Assert.That(
+                controller.SubmitAuthoritativeNetworkResponse(
+                    choice.Response,
+                    prompt.RequestId),
+                Is.True);
+
+            for (int frame = 0;
+                 frame < 120 && ReferenceEquals(controller.CurrentPrompt, prompt);
+                 frame++)
+            {
+                yield return null;
+            }
+            Assert.That(
+                controller.CurrentPrompt,
+                Is.Not.SameAs(prompt),
+                "Host-only presentation must never hold the authoritative remote response.");
+            setPresentationLock?.Invoke(arena, new object[] { false });
+        }
+
+        [UnityTest]
         public IEnumerator DrawPhaseWaitsForTheCorrectDeckClickAndRestoresIt()
         {
             PlayerPrefs.SetInt("ArcaneAutoStart", 0);

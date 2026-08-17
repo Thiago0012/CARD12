@@ -253,6 +253,11 @@ namespace ArcaneArena.Multiplayer
             if (preview == null)
                 return;
 
+            // The authored preview may have been disabled while the arena UI
+            // was binding. Its visibility is a perspective concern; the
+            // children below are the authoritative hand-count concern.
+            preview.gameObject.SetActive(owner != localClientSide);
+
             var count = Mathf.Max(0, cardCount);
             Transform template =
                 preview.childCount > 0

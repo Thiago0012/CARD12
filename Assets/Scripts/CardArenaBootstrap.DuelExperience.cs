@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
@@ -249,6 +250,9 @@ namespace ArcaneArena
                 renderedOpponentHandCount = count;
                 RebuildOpponentHandFan(count);
             }
+            DuelTestPerspectiveController.Instance?.SetHiddenHandCardCount(
+                DuelPlayerSide.PlayerTwo,
+                count);
             if (opponentHandCount != null)
                 opponentHandCount.text =
                     $"{count} CARTA{(count == 1 ? string.Empty : "S")}";

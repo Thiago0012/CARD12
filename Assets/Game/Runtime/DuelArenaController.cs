@@ -744,8 +744,7 @@ namespace ArcaneDuel.Game
 
         private void DrawOpponentHand()
         {
-            int count = state.Players[1].Hand.Count;
-            if (count <= 0) count = 5;
+            int count = Mathf.Max(0, state.Players[1].Hand.Count);
             float start = 960f - (Mathf.Min(count, 8) * 25f);
             for (int index = 0; index < Mathf.Min(count, 8); index++)
             {
@@ -1819,6 +1818,37 @@ namespace ArcaneDuel.Game
             return SubmitRaw(response);
         }
 
+        /// <summary>
+        /// Applies a response already validated by the authoritative online
+        /// session. Visual presentation must never hold the network authority
+        /// hostage: later Core events can safely join the presentation queue,
+        /// while the client receives an acknowledgement without waiting for a
+        /// host-only animation to finish.
+        /// </summary>
+        public bool SubmitAuthoritativeNetworkResponse(
+            byte[] response,
+            ulong requestId)
+        {
+            if (networkReplica || response == null || response.Length == 0)
+                return false;
+
+            DuelPrompt prompt = engine?.CurrentPrompt;
+            if (prompt == null ||
+                (requestId != 0 &&
+                 prompt.RequestId != 0 &&
+                 requestId != prompt.RequestId))
+            {
+                DuelDevelopmentLog.Write(
+                    DuelLogCategory.Error,
+                    $"Rejected authoritative network response request={requestId}; " +
+                    $"current={prompt?.RequestId ?? 0}.",
+                    this);
+                return false;
+            }
+
+            return SubmitRaw(response, ignorePresentationLock: true);
+        }
+
         private void TrySubmitDeferredCoreResponse()
         {
             if (presentationDecisionLocked || deferredCoreResponse == null)
@@ -1974,11 +2004,13 @@ namespace ArcaneDuel.Game
             return true;
         }
 
-        private bool SubmitRaw(byte[] response)
+        private bool SubmitRaw(
+            byte[] response,
+            bool ignorePresentationLock = false)
         {
             if (engine == null || response == null || response.Length == 0)
                 return false;
-            if (presentationDecisionLocked)
+            if (presentationDecisionLocked && !ignorePresentationLock)
             {
                 status = "Aguarde a apresentação da carta terminar.";
                 return false;

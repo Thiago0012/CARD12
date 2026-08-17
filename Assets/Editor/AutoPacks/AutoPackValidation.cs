@@ -66,7 +66,7 @@ namespace ArcaneArena.Editor.AutoPacks
             if (settings == null || manifest == null)
                 return result;
             if (!settings.HasNormativeValues)
-                result.Errors.Add("Settings alterado: valores obrigatorios sao 35/38/35.");
+                result.Errors.Add("Settings alterado: valores obrigatorios sao 35/38/25.");
             if (settings.DefaultPackSprite == null)
                 result.Errors.Add("defaultPackSprite nao foi configurado.");
 
@@ -206,7 +206,8 @@ namespace ArcaneArena.Editor.AutoPacks
                 }
                 else if (!string.Equals(metadata.ContentHash, pack.ContentHash,
                              StringComparison.OrdinalIgnoreCase) ||
-                         metadata.PriceCoins != 35 ||
+                         metadata.PriceCoins !=
+                         AutoPackGenerationSettings.RequiredPrice ||
                          metadata.CardIds.Count != pack.CardIds.Count ||
                          metadata.PreviewCardIds.Count != 3 ||
                          metadata.PackSprite == null)

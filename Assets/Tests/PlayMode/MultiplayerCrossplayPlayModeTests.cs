@@ -220,6 +220,115 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator MidDuelStateRepairStillAcceptsTheCurrentPromptResponse()
+        {
+            Type sessionType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelOnlineSession");
+            object session = sessionType.GetMethod(
+                    "EnsureInstance",
+                    BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, null);
+            Assert.That(session, Is.Not.Null);
+
+            BindingFlags hidden = BindingFlags.Instance |
+                                  BindingFlags.NonPublic;
+            sessionType.GetField("clientSynchronizing", hidden)
+                ?.SetValue(session, true);
+            sessionType.GetField("beginDuelApplied", hidden)
+                ?.SetValue(session, true);
+            sessionType.GetField("hostAwaitingLiveStateAck", hidden)
+                ?.SetValue(session, true);
+            sessionType.GetField("hostAwaitingReconnect", hidden)
+                ?.SetValue(session, false);
+            sessionType.GetField("reconnecting", hidden)
+                ?.SetValue(session, false);
+            sessionType.GetField("lastAcceptedClientSequence", hidden)
+                ?.SetValue(session, 4U);
+            sessionType.GetField("authoritativeStateVersion", hidden)
+                ?.SetValue(session, 12UL);
+            sessionType.GetField("currentMatchId", hidden)
+                ?.SetValue(session, "live-repair-match");
+
+            Type responseType = sessionType.GetNestedType(
+                "ResponsePayload",
+                BindingFlags.NonPublic);
+            object response = Activator.CreateInstance(responseType);
+            responseType.GetField("schemaVersion")?.SetValue(response, 1);
+            responseType.GetField("commandType")
+                ?.SetValue(response, "prompt-response");
+            responseType.GetField("commandId")?.SetValue(response, 9UL);
+            responseType.GetField("clientSequence")?.SetValue(response, 5U);
+            responseType.GetField("expectedStateVersion")
+                ?.SetValue(response, 12UL);
+            responseType.GetField("matchId")
+                ?.SetValue(response, "live-repair-match");
+
+            MethodInfo validate = sessionType.GetMethod(
+                "ValidateCommandEnvelope",
+                hidden);
+            Assert.That(validate, Is.Not.Null);
+            Assert.That(
+                (bool)validate.Invoke(session, new[] { response }),
+                Is.True,
+                "A state repair in an active duel must not reject the exact pending response.");
+
+            sessionType.GetField("hostAwaitingLiveStateAck", hidden)
+                ?.SetValue(session, false);
+            Assert.That(
+                (bool)validate.Invoke(session, new[] { response }),
+                Is.False,
+                "Initial/reconnect synchronization must remain closed to gameplay commands.");
+
+            sessionType.GetMethod("ResetMatchState", hidden)
+                ?.Invoke(session, new object[] { false });
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator HiddenOpponentHandPreviewDisplaysZeroWithoutFallbackCards()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type perspectiveType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelTestPerspectiveController");
+            MonoBehaviour perspective = Resources
+                .FindObjectsOfTypeAll<MonoBehaviour>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType() == perspectiveType);
+            Assert.That(perspective, Is.Not.Null);
+
+            MethodInfo setCount = perspectiveType.GetMethod(
+                "SetHiddenHandCardCount",
+                BindingFlags.Instance | BindingFlags.Public);
+            Assert.That(setCount, Is.Not.Null);
+            Type sideType = setCount.GetParameters()[0].ParameterType;
+            object playerTwo = Enum.Parse(sideType, "PlayerTwo");
+            setCount?.Invoke(perspective, new[] { playerTwo, (object)0 });
+
+            Transform playerTwoRoot = perspectiveType.GetField(
+                    "_playerTwo",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(perspective) as Transform;
+            Transform preview = playerTwoRoot?.Find("OpponentHandPreview");
+            Assert.That(preview, Is.Not.Null);
+            Assert.That(
+                preview.Cast<Transform>().Count(card => card.gameObject.activeSelf),
+                Is.Zero,
+                "An empty authoritative hand must not be rendered as five cards.");
+
+            setCount?.Invoke(perspective, new[] { playerTwo, (object)3 });
+            Assert.That(
+                preview.Cast<Transform>().Count(card => card.gameObject.activeSelf),
+                Is.EqualTo(3),
+                "The hidden preview must follow later authoritative hand counts.");
+        }
+
+        [UnityTest]
         public IEnumerator OptionsExposeAllFiveGraphicsLevels()
         {
             SceneManager.LoadScene(ProjectIdentity.MainMenuScene);

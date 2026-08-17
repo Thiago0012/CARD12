@@ -326,6 +326,7 @@ namespace ArcaneArena.Multiplayer
         {
             public ulong Target;
             public LogicalMessage LogicalMessage;
+            public NetworkDelivery Delivery;
             public DuelWireTransfer Transfer;
             public DuelWireAckTracker AckTracker;
             public int MissingCursor;
@@ -384,10 +385,6 @@ namespace ArcaneArena.Multiplayer
         private float nextResponseRetryTime;
         private float pendingResponseStartedAt;
         private float nextPendingResponseResyncTime;
-        private ulong pendingHostResponseRequestId;
-        private byte[] pendingHostResponseBytes;
-        private ulong pendingHostCommandId;
-        private uint pendingHostClientSequence;
         private ulong lastAcknowledgedResponseRequestId;
         private ulong lastAcknowledgedCommandId;
         private uint lastAcceptedClientSequence;
@@ -405,6 +402,7 @@ namespace ArcaneArena.Multiplayer
         private bool reconnecting;
         private bool hostAwaitingReconnect;
         private bool hostAwaitingStateAckUnlock;
+        private bool hostAwaitingLiveStateAck;
         private float reconnectDeadline;
         private Coroutine reconnectCoroutine;
         private Coroutine hostReconnectGraceCoroutine;
@@ -3008,6 +3006,13 @@ namespace ArcaneArena.Multiplayer
                 acknowledgement.stateVersion);
             if (!beginDuelApplied)
                 loadingPresenter?.SetProgress(0.94f);
+            if (beginDuelApplied && hostAwaitingLiveStateAck)
+            {
+                hostAwaitingLiveStateAck = false;
+                clientSynchronizing = false;
+                status = "Estado do rival confirmado. Duelo online sincronizado.";
+                return;
+            }
             if (beginDuelApplied && hostAwaitingStateAckUnlock)
             {
                 hostAwaitingStateAckUnlock = false;
@@ -3187,7 +3192,7 @@ namespace ArcaneArena.Multiplayer
 
             nextHostResyncTime =
                 Time.realtimeSinceStartup + ResyncCooldownSeconds;
-            clientSynchronizing = true;
+            BeginHostLiveStateRepair(request.reason);
             Debug.LogWarning("[MP] stage=resync-send reason=" + request.reason);
             BroadcastState();
         }
@@ -3198,9 +3203,31 @@ namespace ArcaneArena.Multiplayer
                 return;
             nextHostResyncTime =
                 Time.realtimeSinceStartup + ResyncCooldownSeconds;
-            clientSynchronizing = true;
+            BeginHostLiveStateRepair(reason);
             Debug.LogWarning("[MP] stage=resync-send reason=" + reason);
             BroadcastState();
+        }
+
+        private void BeginHostLiveStateRepair(string reason)
+        {
+            clientSynchronizing = true;
+            hostAwaitingLiveStateAck =
+                beginDuelApplied &&
+                !hostAwaitingReconnect &&
+                !reconnecting;
+            RuntimeDiagnosticRecorder.Record(
+                "F08",
+                "MultiplayerState",
+                nameof(DuelOnlineSession),
+                "The host started an authoritative mid-duel state repair.",
+                RuntimeDiagnosticSeverity.Warning,
+                mode: "online-host",
+                details:
+                    $"reason={reason ?? "host-request"}; " +
+                    $"stateVersion={authoritativeStateVersion}; " +
+                    $"prompt={hostController?.CurrentPrompt?.RequestId ?? 0}; " +
+                    $"presentationLocked={hostController?.PresentationDecisionLocked == true}; " +
+                    $"outboundTransfers={outboundWireTransfers.Count}");
         }
 
         private void ProcessResponseMessage(
@@ -3237,11 +3264,6 @@ namespace ArcaneArena.Multiplayer
                 }
                 return;
             }
-            if (response.commandId == pendingHostCommandId &&
-                response.clientSequence == pendingHostClientSequence)
-            {
-                return;
-            }
             if (!ValidateCommandEnvelope(response))
             {
                 SendAuthoritativeResync("invalid-command-envelope");
@@ -3250,15 +3272,6 @@ namespace ArcaneArena.Multiplayer
             if (!TryValidateRemoteResponse(response, bytes))
             {
                 SendAuthoritativeResync("prompt-validation-failed");
-                return;
-            }
-            if (hostController.PresentationDecisionLocked)
-            {
-                pendingHostResponseRequestId = response.requestId;
-                pendingHostResponseBytes = bytes;
-                pendingHostCommandId = response.commandId;
-                pendingHostClientSequence = response.clientSequence;
-                status = "Resposta do rival recebida. Aguardando a apresentação terminar...";
                 return;
             }
             CommitHostResponse(response, bytes);
@@ -3271,56 +3284,29 @@ namespace ArcaneArena.Multiplayer
             if (hostController == null || response == null ||
                 response.Length == 0 ||
                 command == null ||
-                !hostController.SubmitCoreResponse(response, command.requestId))
+                !hostController.SubmitAuthoritativeNetworkResponse(
+                    response,
+                    command.requestId))
             {
                 SendAuthoritativeResync("core-rejected-command");
                 return;
             }
 
-            pendingHostResponseRequestId = 0;
-            pendingHostResponseBytes = null;
-            pendingHostCommandId = 0;
-            pendingHostClientSequence = 0;
             lastAcknowledgedResponseRequestId = command.requestId;
             lastAcknowledgedCommandId = command.commandId;
             lastAcceptedClientSequence = command.clientSequence;
             lastAcceptedCommandPayloadHash =
                 DuelWireProtocol.ComputePayloadChecksum(response);
+            if (hostAwaitingLiveStateAck)
+            {
+                // The response itself proves that the client received a
+                // current prompt/state projection. Do not keep the host in a
+                // synchronization state while the acknowledgement snapshot is
+                // travelling back to the client.
+                hostAwaitingLiveStateAck = false;
+                clientSynchronizing = false;
+            }
             BroadcastState();
-        }
-
-        private void TryProcessPendingHostResponse()
-        {
-            if (!IsHost || pendingHostResponseRequestId == 0 ||
-                pendingHostResponseBytes == null || hostController == null ||
-                hostController.PresentationDecisionLocked)
-            {
-                return;
-            }
-
-            DuelPrompt prompt = hostController.CurrentPrompt;
-            if (prompt == null || prompt.Player != 1 ||
-                prompt.RequestId != pendingHostResponseRequestId)
-            {
-                // The authoritative Core already moved past this request.
-                // A delayed duplicate must never be applied to a new prompt.
-                pendingHostResponseRequestId = 0;
-                pendingHostResponseBytes = null;
-                pendingHostCommandId = 0;
-                pendingHostClientSequence = 0;
-                return;
-            }
-
-            CommitHostResponse(new ResponsePayload
-            {
-                schemaVersion = CommandSchemaVersion,
-                matchId = currentMatchId,
-                commandType = "prompt-response",
-                commandId = pendingHostCommandId,
-                clientSequence = pendingHostClientSequence,
-                expectedStateVersion = authoritativeStateVersion,
-                requestId = pendingHostResponseRequestId
-            }, pendingHostResponseBytes);
         }
 
         private void ProcessPresentationEventMessage(
@@ -4098,7 +4084,21 @@ namespace ArcaneArena.Multiplayer
                 response.clientSequence == lastAcceptedClientSequence + 1 &&
                 response.expectedStateVersion == authoritativeStateVersion &&
                 response.matchId == currentMatchId &&
-                !clientSynchronizing;
+                CanAcceptPromptResponseDuringSynchronization();
+        }
+
+        private bool CanAcceptPromptResponseDuringSynchronization()
+        {
+            if (!clientSynchronizing)
+                return true;
+
+            // A normal mid-duel repair must continue accepting the exact
+            // current prompt response. Initial loading and reconnect recovery
+            // remain closed until their own readiness barriers complete.
+            return beginDuelApplied &&
+                   hostAwaitingLiveStateAck &&
+                   !hostAwaitingReconnect &&
+                   !reconnecting;
         }
 
         private bool ConsumeCommandToken()
@@ -4360,11 +4360,10 @@ namespace ArcaneArena.Multiplayer
             T payload,
             NetworkDelivery delivery)
         {
-            // v4 deliberately ignores the requested NGO delivery mode. Every
-            // logical message travels as small Unreliable packets with its
-            // own chunk ACK, final checksum ACK and selective retry. This
-            // avoids both UTF-16 string inflation and NGO/UTP fragmentation.
-            _ = delivery;
+            // Large snapshots still use the v4 chunk ACK/retry layer. Tiny
+            // control messages additionally use NGO reliable delivery so a
+            // response or state-repair command cannot sit behind presentation
+            // traffic after an isolated packet loss.
             if (networkManager == null ||
                 networkManager.CustomMessagingManager == null)
             {
@@ -4464,6 +4463,7 @@ namespace ArcaneArena.Multiplayer
             {
                 Target = target,
                 LogicalMessage = logicalMessage,
+                Delivery = ResolveWireDelivery(logicalMessage, delivery),
                 Transfer = transfer,
                 AckTracker = new DuelWireAckTracker(transfer),
                 NextSendTime = 0f
@@ -4472,6 +4472,41 @@ namespace ArcaneArena.Multiplayer
                 new WireTransferKey(target, transfer.TransferId),
                 pending);
             return true;
+        }
+
+        private static NetworkDelivery ResolveWireDelivery(
+            LogicalMessage message,
+            NetworkDelivery requested)
+        {
+            if (IsCriticalControlMessage(message))
+                return NetworkDelivery.ReliableSequenced;
+            return requested == NetworkDelivery.Reliable ||
+                   requested == NetworkDelivery.ReliableSequenced ||
+                   requested == NetworkDelivery.ReliableFragmentedSequenced
+                ? NetworkDelivery.ReliableSequenced
+                : NetworkDelivery.Unreliable;
+        }
+
+        private static bool IsCriticalControlMessage(LogicalMessage message)
+        {
+            return message == LogicalMessage.Response ||
+                   message == LogicalMessage.StateAck ||
+                   message == LogicalMessage.ResyncRequest ||
+                   message == LogicalMessage.ClientReady ||
+                   message == LogicalMessage.BeginDuel ||
+                   message == LogicalMessage.Start ||
+                   message == LogicalMessage.MatchReward;
+        }
+
+        private static int WirePriority(LogicalMessage message)
+        {
+            if (IsCriticalControlMessage(message))
+                return 0;
+            if (message == LogicalMessage.State)
+                return 1;
+            if (message == LogicalMessage.PresentationEvent)
+                return 3;
+            return 2;
         }
 
         private static byte[] EncodeLogicalPayload(
@@ -4625,7 +4660,6 @@ namespace ArcaneArena.Multiplayer
             float now = Time.realtimeSinceStartup;
             MaintainFlowTimeout(now);
             MaintainArenaReadyHandshake(now);
-            TryProcessPendingHostResponse();
             TrySendPendingPresentationEvents();
             MaintainPendingClientResponse(now);
             if (now < nextWirePumpTime)
@@ -4641,6 +4675,19 @@ namespace ArcaneArena.Multiplayer
 
             int remainingBudget = WirePacketsPerFrame;
             var keys = new List<WireTransferKey>(outboundWireTransfers.Keys);
+            keys.Sort((left, right) =>
+            {
+                bool hasLeft = outboundWireTransfers.TryGetValue(
+                    left,
+                    out OutboundWireTransfer leftTransfer);
+                bool hasRight = outboundWireTransfers.TryGetValue(
+                    right,
+                    out OutboundWireTransfer rightTransfer);
+                if (!hasLeft || !hasRight)
+                    return hasLeft ? -1 : hasRight ? 1 : 0;
+                return WirePriority(leftTransfer.LogicalMessage).CompareTo(
+                    WirePriority(rightTransfer.LogicalMessage));
+            });
             foreach (WireTransferKey key in keys)
             {
                 if (remainingBudget <= 0)
@@ -4706,7 +4753,8 @@ namespace ArcaneArena.Multiplayer
                 {
                     SendWirePacket(
                         pending.Target,
-                        pending.Transfer.GetPacket(pending.MissingCursor++));
+                        pending.Transfer.GetPacket(pending.MissingCursor++),
+                        pending.Delivery);
                     sentWhileAwaitingFinalAck++;
                 }
 
@@ -4739,7 +4787,8 @@ namespace ArcaneArena.Multiplayer
                     continue;
                 SendWirePacket(
                     pending.Target,
-                    pending.Transfer.GetPacket(packetIndex));
+                    pending.Transfer.GetPacket(packetIndex),
+                    pending.Delivery);
                 sent++;
             }
 
@@ -4755,7 +4804,10 @@ namespace ArcaneArena.Multiplayer
             return sent;
         }
 
-        private void SendWirePacket(ulong target, DuelWirePacket packet)
+        private void SendWirePacket(
+            ulong target,
+            DuelWirePacket packet,
+            NetworkDelivery delivery = NetworkDelivery.Unreliable)
         {
             if (packet == null || networkManager?.CustomMessagingManager == null)
                 return;
@@ -4780,7 +4832,7 @@ namespace ArcaneArena.Multiplayer
                     WirePacketMessage,
                     target,
                     writer,
-                    NetworkDelivery.Unreliable);
+                    delivery);
             }
             catch (Exception exception)
             {
@@ -4838,7 +4890,10 @@ namespace ArcaneArena.Multiplayer
                     out CompletedWireTransfer completed))
             {
                 if (WireMetadataMatches(completed.TransferAck, packet))
-                    SendWirePacket(senderClientId, completed.TransferAck);
+                    SendWirePacket(
+                        senderClientId,
+                        completed.TransferAck,
+                        NetworkDelivery.ReliableSequenced);
                 return;
             }
 
@@ -4871,7 +4926,8 @@ namespace ArcaneArena.Multiplayer
 
             SendWirePacket(
                 senderClientId,
-                DuelWireProtocol.CreateChunkAck(packet));
+                DuelWireProtocol.CreateChunkAck(packet),
+                NetworkDelivery.ReliableSequenced);
             if (IsHost && packet.Kind == DuelWireKind.Deck &&
                 remoteLoadout == null)
             {
@@ -4890,7 +4946,10 @@ namespace ArcaneArena.Multiplayer
                 TransferAck = transferAck,
                 CompletedTime = Time.realtimeSinceStartup
             };
-            SendWirePacket(senderClientId, transferAck);
+            SendWirePacket(
+                senderClientId,
+                transferAck,
+                NetworkDelivery.ReliableSequenced);
             DispatchWirePayload(senderClientId, packet.Kind, payload);
         }
 
@@ -5366,10 +5425,6 @@ namespace ArcaneArena.Multiplayer
             nextResponseRetryTime = 0f;
             pendingResponseStartedAt = 0f;
             nextPendingResponseResyncTime = 0f;
-            pendingHostResponseRequestId = 0;
-            pendingHostResponseBytes = null;
-            pendingHostCommandId = 0;
-            pendingHostClientSequence = 0;
             lastAcknowledgedResponseRequestId = 0;
             lastAcknowledgedCommandId = 0;
             lastAcceptedClientSequence = 0;
@@ -5387,6 +5442,7 @@ namespace ArcaneArena.Multiplayer
             reconnecting = false;
             hostAwaitingReconnect = false;
             hostAwaitingStateAckUnlock = false;
+            hostAwaitingLiveStateAck = false;
             reconnectDeadline = 0f;
             matchStarted = false;
             hostCoreStarted = false;

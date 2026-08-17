@@ -23710,3 +23710,60 @@ MonoBehaviour:
       vez por turno."
     reviewNotes: "Metadados de apresenta\xE7\xE3o sincronizados do cat\xE1logo compilado
       do Core."
+  - stableId: a8271aca1a7d4877ac3209493a89eb49
+    artwork: {fileID: 21300000, guid: a8271aca1a7d4877ac3209493a89eb49, type: 3}
+    displayName: Cards da Pedra Vermelha
+    category: 2
+    monsterFrame: 3
+    officialCardId: 32566831
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Envie 1 monstro "Olhos Vermelhos" de Nível 7 da sua mão para o Cemitério; compre 2 cards e, depois, você pode enviar 1 monstro "Olhos Vermelhos" de Nível 7 do seu Deck para o Cemitério. Você só pode ativar 1 "Cards da Pedra Vermelha" por turno.'
+    reviewNotes: Metadados de apresentação sincronizados do catálogo compilado do Core.
+  - stableId: 8b7f5ec8d87a4340804af1626c6b2eef
+    artwork: {fileID: 21300000, guid: 8b7f5ec8d87a4340804af1626c6b2eef, type: 3}
+    displayName: Fusão dos Olhos Vermelhos
+    category: 2
+    monsterFrame: 3
+    officialCardId: 06172122
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Invoque por Invocação-Fusão do seu Deck Adicional 1 Monstro de Fusão que liste um monstro "Olhos Vermelhos" como matéria, usando monstros da sua mão, do Deck ou do campo como Matéria de Fusão e, se isso acontecer, seu nome se torna "Dragão Negro de Olhos Vermelhos". Você não pode Invocar outros monstros por Invocação-Normal ou Especial no turno em que ativar este card. Você só pode ativar 1 "Fusão dos Olhos Vermelhos" por turno.'
+    reviewNotes: Metadados de apresentação sincronizados do catálogo compilado do Core.
+  - stableId: 4a8b634dffb34686ab385d1953a3e7fa
+    artwork: {fileID: 21300000, guid: 4a8b634dffb34686ab385d1953a3e7fa, type: 3}
+    displayName: Ciclone Cósmico
+    category: 2
+    monsterFrame: 3
+    officialCardId: 08267140
+    typeName: Carta de Magia
+    raceName:
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 1
+    classificationConfidence: 1
+    needsManualReview: 0
+    manuallyConfirmed: 0
+    effectText: 'Pague 1000 PV e, depois, escolha 1 Magia/Armadilha no campo; bana-a.'
+    reviewNotes: Metadados de apresentação sincronizados do catálogo compilado do Core.

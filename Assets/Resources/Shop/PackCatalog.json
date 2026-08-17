@@ -827,6 +827,28 @@
       ]
     },
     {
+      "packId": "pack-suporte-olhos-vermelhos-v1",
+      "displayName": "Pacote Suporte Olhos Vermelhos",
+      "description": "Magias essenciais dos Olhos Vermelhos e uma resposta rápida para fortalecer a coleção.",
+      "priceCoins": 25,
+      "origin": 0,
+      "contentLockedAfterPublish": true,
+      "countsForAutoCoverage": true,
+      "manualVisualOverride": false,
+      "needsPreviewReview": false,
+      "published": true,
+      "previewCardIds": [
+        "32566831",
+        "6172122",
+        "8267140"
+      ],
+      "cardIds": [
+        "32566831",
+        "6172122",
+        "8267140"
+      ]
+    },
+    {
       "packId": "auto-pack-0001",
       "displayName": "Pacote de Expansao 001",
       "description": "Cinco sorteios independentes com reposicao. Duplicatas sao permitidas.",
