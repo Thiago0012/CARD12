@@ -202,6 +202,10 @@ def compile_database(
         text_cards.append(
             {
                 "code": code,
+                # The official English name is retained solely as a stable
+                # metadata key (for example, Master Duel rarity lookup).
+                # Unity continues to present the localized name below.
+                "englishName": text[0] or f"Card {code:08d}",
                 "name": localized.get("name") or text[0] or f"Card {code:08d}",
                 "description": localized.get("description") or text[1] or "",
                 "strings": strings,

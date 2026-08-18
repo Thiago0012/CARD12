@@ -1103,6 +1103,7 @@ namespace ArcaneArena
                 FindTransform(detailPanel.transform, "Texto do Efeito");
             detailEffect = effect != null ? effect.GetComponent<Text>() : null;
             detailCardOutline = detailPanel.GetComponent<Outline>();
+            BuildDetailRarityBadge();
             detailPanel.SetActive(false);
             BindDetailArtworkZoom();
             BuildDetailZoomViewer();
@@ -2987,6 +2988,7 @@ namespace ArcaneArena
             detailPanel.SetActive(true);
             detailPanel.transform.SetAsLastSibling();
             detailArtwork.sprite = SpriteFor(code);
+            RefreshDetailRarity(legacy, card);
             if (detailName != null)
             {
                 detailName.text =

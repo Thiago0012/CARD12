@@ -26,7 +26,7 @@ namespace ArcaneArena.Frontend
         private const string LoginSceneName = "Login";
         private const string DeckEditorSceneName = "DeckEditor";
         private const string DuelArenaSceneName = "DuelArena";
-        public const int CurrentEditorPreviewVersion = 3;
+        public const int CurrentEditorPreviewVersion = 4;
 
         private static readonly Color Background = Hex("#040812");
         private static readonly Color Panel = Hex("#091426");
@@ -2670,13 +2670,14 @@ namespace ArcaneArena.Frontend
                     }
                 });
 
+            BuildCraftWalletBar();
             BuildDeckEditorDetailsPanel();
 
             var deckPanel = CreatePanel(
                 _screenRoot,
                 "Composição do Deck",
                 new Vector2(0.285f, 0.035f),
-                new Vector2(0.69f, 0.885f),
+                new Vector2(0.69f, 0.825f),
                 new Color(0.01f, 0.03f, 0.055f, 0.97f));
             if (deckIsSelected)
             {
@@ -2769,7 +2770,7 @@ namespace ArcaneArena.Frontend
                 _screenRoot,
                 "Lista de Cartas",
                 new Vector2(0.70f, 0.035f),
-                new Vector2(0.985f, 0.885f),
+                new Vector2(0.985f, 0.825f),
                 new Color(0.01f, 0.03f, 0.055f, 0.98f));
             AddOutline(collectionPanel.gameObject, new Color(Lime.r, Lime.g, Lime.b, 0.65f), new Vector2(2f, -2f));
 
@@ -2877,7 +2878,7 @@ namespace ArcaneArena.Frontend
                 _screenRoot,
                 "Detalhes da Carta",
                 new Vector2(0.015f, 0.035f),
-                new Vector2(0.275f, 0.885f),
+                new Vector2(0.275f, 0.825f),
                 new Color(0.008f, 0.026f, 0.045f, 0.98f));
             AddOutline(
                 panel.gameObject,
@@ -2968,8 +2969,8 @@ namespace ArcaneArena.Frontend
             var effectHeader = CreatePanel(
                 panel.transform,
                 "Cabeçalho do Efeito",
-                new Vector2(0.035f, 0.295f),
-                new Vector2(0.965f, 0.345f),
+                new Vector2(0.035f, 0.255f),
+                new Vector2(0.965f, 0.30f),
                 new Color(0.08f, 0.19f, 0.28f, 0.98f));
             _deckEditorEffectHeader = effectHeader;
             CreateText(
@@ -2985,8 +2986,9 @@ namespace ArcaneArena.Frontend
             _deckEditorDetailEffect = CreateScrollableText(
                 panel.transform,
                 "Texto da Carta",
-                new Vector2(0.035f, 0.035f),
-                new Vector2(0.965f, 0.29f));
+                new Vector2(0.035f, 0.115f),
+                new Vector2(0.965f, 0.25f));
+            BuildDeckEditorCraftActions(panel.transform);
             BuildDeckEditorZoomViewer();
         }
 
@@ -3168,6 +3170,7 @@ namespace ArcaneArena.Frontend
                 if (scroll != null)
                     scroll.verticalNormalizedPosition = 1f;
             }
+            RefreshDeckEditorCraftDetails(entry, cardId);
         }
 
         private static string FormatCardStat(int value)
@@ -3198,6 +3201,7 @@ namespace ArcaneArena.Frontend
                     0f,
                     false);
                 AddBanlistBadge(card.transform, cardId);
+                AddCardRarityBadge(card.transform, entry);
                 var removeIndex = i;
                 var trigger = card.gameObject.AddComponent<EventTrigger>();
                 AddTrigger(
@@ -3265,6 +3269,7 @@ namespace ArcaneArena.Frontend
                     0f,
                     false);
                 AddBanlistBadge(card.transform, cardId);
+                AddCardRarityBadge(card.transform, entry);
                 var outlineColor = entry.Category == CardCategory.Spell
                     ? new Color(0.1f, 0.86f, 0.74f, 0.8f)
                     : entry.Category == CardCategory.Trap
@@ -3300,8 +3305,8 @@ namespace ArcaneArena.Frontend
                 var quantityBadge = CreatePanel(
                     card.transform,
                     "Quantidade possuída",
-                    new Vector2(0.64f, 0.76f),
-                    new Vector2(0.97f, 0.98f),
+                    new Vector2(0.66f, 0.015f),
+                    new Vector2(0.98f, 0.215f),
                     ownedCopies > 0
                         ? new Color(Lime.r, Lime.g, Lime.b, 0.94f)
                         : new Color(Danger.r, Danger.g, Danger.b, 0.94f));

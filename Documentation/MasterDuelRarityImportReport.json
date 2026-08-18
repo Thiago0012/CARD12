@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "sourcePdf": "C:\\Users\\Ellen Jennyffer\\Downloads\\guia_raridades_yugioh_master_duel (1).pdf",
+  "output": "Assets\\Resources\\CardData\\MasterDuelRarities.json",
+  "rarityCounts": {
+    "N": 5303,
+    "R": 4013,
+    "SR": 2895,
+    "UR": 1645
+  },
+  "uniqueNames": 13783,
+  "alternativeArtEntries": 73,
+  "variantSensitiveNames": [
+    "Aleister the Invoker",
+    "Aluber the Jester of Despia",
+    "Black Luster Soldier",
+    "Breaker the Magical Warrior",
+    "Dark Magical Circle",
+    "Dogmatika Ecclesia, the Virtuous",
+    "Dragonmaid Hospitality",
+    "Evil★Twin Ki-sikil",
+    "Evil★Twin Lil-la",
+    "Fallen of Albaz",
+    "Hu-Li the Jewel Mikanko",
+    "Incredible Ecclesia, the Virtuous",
+    "Invocation",
+    "Invoked Mechaba",
+    "Mask Change",
+    "Medallion of the Ice Barrier",
+    "Polymerization",
+    "Pot of Extravagance",
+    "Secrets of Dark Magic",
+    "Sky Striker Ace - Hayate",
+    "Sky Striker Ace - Raye",
+    "Sky Striker Ace - Shizuku"
+  ],
+  "coreCards": 1030,
+  "coreCardsResolved": 1001,
+  "coreCardsMissing": [
+    {
+      "cardId": "02625940",
+      "englishName": "Spool Token"
+    },
+    {
+      "cardId": "07293697",
+      "englishName": "Toon World the Perfect World"
+    },
+    {
+      "cardId": "07594154",
+      "englishName": "Zenna's Deceiving Doll Maidens"
+    },
+    {
+      "cardId": "08915275",
+      "englishName": "Evil Box"
+    },
+    {
+      "cardId": "09047461",
+      "englishName": "Steam Token"
+    },
+    {
+      "cardId": "11384280",
+      "englishName": "Cannon Soldier"
+    },
+    {
+      "cardId": "13203964",
+      "englishName": "Perfectron Hydradrive Dragon"
+    },
+    {
+      "cardId": "18807109",
+      "englishName": "Spellbinding Circle"
+    },
+    {
+      "cardId": "21179144",
+      "englishName": "Reptilianne Token"
+    },
+    {
+      "cardId": "23116809",
+      "englishName": "Fireball Token"
+    },
+    {
+      "cardId": "23331401",
+      "englishName": "Data Token"
+    },
+    {
+      "cardId": "23837055",
+      "englishName": "Ogdoadic Token"
+    },
+    {
+      "cardId": "24096228",
+      "englishName": "Double Spell"
+    },
+    {
+      "cardId": "26326542",
+      "englishName": "Shiranui Token"
+    },
+    {
+      "cardId": "27198002",
+      "englishName": "Fox Token"
+    },
+    {
+      "cardId": "27204312",
+      "englishName": "Primal Being Token"
+    },
+    {
+      "cardId": "27519978",
+      "englishName": "Charmer Quartet in Bloom"
+    },
+    {
+      "cardId": "34298391",
+      "englishName": "Mind Scan"
+    },
+    {
+      "cardId": "34314989",
+      "englishName": "Dark-Eyes Illusionist Faceless Mage"
+    },
+    {
+      "cardId": "42719764",
+      "englishName": "Summon Shock"
+    },
+    {
+      "cardId": "44330099",
+      "englishName": "Emissary of Darkness Token"
+    },
+    {
+      "cardId": "45536531",
+      "englishName": "Funny Dark Rabbit"
+    },
+    {
+      "cardId": "48228391",
+      "englishName": "Pyrite Token"
+    },
+    {
+      "cardId": "63101919",
+      "englishName": "Tempest Magician"
+    },
+    {
+      "cardId": "67922703",
+      "englishName": "Mecha Phantom Beast Token"
+    },
+    {
+      "cardId": "70465811",
+      "englishName": "Phantom Glimmer Token"
+    },
+    {
+      "cardId": "71808988",
+      "englishName": "Blue-Eyes Toon Ultimate Dragon"
+    },
+    {
+      "cardId": "72921536",
+      "englishName": "Comic Cat"
+    },
+    {
+      "cardId": "74659583",
+      "englishName": "Runick Token"
+    }
+  ]
+}

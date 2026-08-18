@@ -34,6 +34,12 @@ namespace ArcaneArena.Cards
         [SerializeField] private string stableId;
         [SerializeField] private Sprite artwork;
         [SerializeField] private string displayName;
+        [SerializeField, HideInInspector] private string englishName;
+        [SerializeField] private CardArtVariant rarityVariant;
+        [SerializeField, HideInInspector] private CardRarity rarity;
+        [SerializeField, HideInInspector] private string raritySourceName;
+        [SerializeField] private bool craftingBlocked;
+        [SerializeField] private bool dismantlingBlocked;
         [SerializeField] private CardCategory category;
         [SerializeField] private MonsterFrameKind monsterFrame;
         [SerializeField] private string officialCardId;
@@ -54,6 +60,14 @@ namespace ArcaneArena.Cards
         public string StableId => stableId;
         public Sprite Artwork => artwork;
         public string DisplayName => displayName;
+        public string EnglishName => englishName;
+        public CardArtVariant RarityVariant => rarityVariant;
+        public CardRarity Rarity => rarity;
+        public string RaritySourceName => raritySourceName;
+        public bool IsCraftable =>
+            CardRarityCatalog.IsValid(rarity) && !craftingBlocked;
+        public bool IsDismantlable =>
+            CardRarityCatalog.IsValid(rarity) && !dismantlingBlocked;
         public CardCategory Category => category;
         public MonsterFrameKind MonsterFrame => monsterFrame;
         public string OfficialCardId => officialCardId;
@@ -79,6 +93,12 @@ namespace ArcaneArena.Cards
             stableId = id;
             artwork = sprite;
             displayName = FriendlyName(sprite != null ? sprite.name : id);
+            englishName = string.Empty;
+            rarityVariant = CardArtVariant.Auto;
+            rarity = CardRarity.Unknown;
+            raritySourceName = string.Empty;
+            craftingBlocked = false;
+            dismantlingBlocked = false;
             category = CardCategory.Unknown;
             monsterFrame = MonsterFrameKind.None;
             officialCardId = string.Empty;
@@ -139,6 +159,7 @@ namespace ArcaneArena.Cards
                 return;
 
             officialCardId = card.Code.ToString("00000000");
+            englishName = card.EnglishName ?? string.Empty;
             displayName = card.Name ?? officialCardId;
             category = CategoryFrom(card.Type);
             monsterFrame = FrameFrom(card.Type);
@@ -158,6 +179,30 @@ namespace ArcaneArena.Cards
             classificationConfidence = 1f;
             needsManualReview = false;
             reviewNotes = "Metadados de apresentação sincronizados do catálogo compilado do Core.";
+            RefreshRarity(
+                card.Alias != 0
+                    ? CardArtVariant.Alt
+                    : CardArtVariant.Auto);
+        }
+
+        public void RefreshRarity(
+            CardArtVariant inferredVariant = CardArtVariant.Auto)
+        {
+            CardArtVariant lookupVariant = rarityVariant != CardArtVariant.Auto
+                ? rarityVariant
+                : inferredVariant;
+            if (CardRarityCatalog.TryResolve(
+                    englishName,
+                    lookupVariant,
+                    out CardRarity resolved,
+                    out string matchedName))
+            {
+                rarity = resolved;
+                raritySourceName = matchedName;
+                return;
+            }
+            rarity = CardRarity.Unknown;
+            raritySourceName = string.Empty;
         }
 
         public void ApplyAutomaticClassification(

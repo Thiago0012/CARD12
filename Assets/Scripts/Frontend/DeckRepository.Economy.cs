@@ -26,6 +26,15 @@ namespace ArcaneArena.Frontend
                 new List<PendingPackOpeningRecord>();
             State.processedShopTransactions ??=
                 new List<ShopTransactionRecord>();
+            State.craftPoints ??= new PlayerCraftWallet();
+            State.craftPoints.cpN = Math.Max(0, State.craftPoints.cpN);
+            State.craftPoints.cpR = Math.Max(0, State.craftPoints.cpR);
+            State.craftPoints.cpSR = Math.Max(0, State.craftPoints.cpSR);
+            State.craftPoints.cpUR = Math.Max(0, State.craftPoints.cpUR);
+            State.protectedCardQuantities ??=
+                new List<ProtectedCardQuantityRecord>();
+            State.craftTransactions ??=
+                new List<CraftTransactionRecord>();
 
             var quantities = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (CardQuantityRecord record in State.cardQuantities)
@@ -55,6 +64,31 @@ namespace ArcaneArena.Frontend
                 record.purchaseCount = Math.Max(0, record.purchaseCount);
             }
 
+            if (loadedSchemaVersion < 11)
+            {
+                // Every copy granted by a purchased structure deck is kept
+                // separately from spendable inventory.  This migration uses
+                // the persisted purchase count, so old profiles gain the same
+                // protection without receiving or losing cards.
+                State.protectedCardQuantities.Clear();
+                foreach (StructureDeckPurchaseRecord purchase in
+                         State.structureDeckPurchases)
+                {
+                    DeckShopProduct product = DeckShopCatalog.Find(
+                        purchase.productId);
+                    if (product == null || purchase.purchaseCount <= 0)
+                        continue;
+                    foreach (string cardId in product.MainDeckCardIds.Concat(
+                                 product.ExtraDeckCardIds))
+                    {
+                        AddProtectedCardQuantity(
+                            cardId,
+                            purchase.purchaseCount);
+                    }
+                }
+            }
+            NormalizeProtectedCardQuantities();
+
             State.pendingPackOpenings.RemoveAll(opening =>
                 opening == null || string.IsNullOrWhiteSpace(opening.transactionId) ||
                 ShopPackCatalog.Find(opening.packId) == null);
@@ -82,6 +116,17 @@ namespace ArcaneArena.Frontend
                 transaction.balanceAfter = Math.Max(0, transaction.balanceAfter);
             }
 
+            var craftTransactionIds = new HashSet<string>(StringComparer.Ordinal);
+            State.craftTransactions.RemoveAll(transaction =>
+                transaction == null ||
+                string.IsNullOrWhiteSpace(transaction.transactionId) ||
+                !craftTransactionIds.Add(transaction.transactionId));
+            foreach (CraftTransactionRecord transaction in State.craftTransactions)
+            {
+                transaction.quantity = Math.Max(1, transaction.quantity);
+                transaction.balanceAfter = Math.Max(0, transaction.balanceAfter);
+            }
+
             if (loadedSchemaVersion >= 4)
                 return;
 
@@ -97,6 +142,7 @@ namespace ArcaneArena.Frontend
                              product.ExtraDeckCardIds))
                 {
                     AddCardQuantity(cardId, 1);
+                    AddProtectedCardQuantity(cardId, 1);
                 }
                 StructureDeckPurchaseRecord purchase =
                     FindStructurePurchase(productId, true);
@@ -168,6 +214,7 @@ namespace ArcaneArena.Frontend
                              product.ExtraDeckCardIds))
                 {
                     AddCardQuantity(cardId, 1);
+                    AddProtectedCardQuantity(cardId, 1);
                     granted.Add(cardId);
                 }
 
@@ -439,6 +486,79 @@ namespace ArcaneArena.Frontend
                 State.cardQuantities.Add(record);
             }
             record.quantity = checked(Math.Max(0, record.quantity) + amount);
+        }
+
+        private bool RemoveCardQuantity(string cardId, int amount)
+        {
+            string normalized = FrontendCardIdentity.NormalizeOfficialId(cardId);
+            if (string.IsNullOrWhiteSpace(normalized) || amount <= 0)
+                return false;
+            CardQuantityRecord record = State.cardQuantities.FirstOrDefault(item =>
+                item != null && string.Equals(
+                    FrontendCardIdentity.NormalizeOfficialId(item.cardId),
+                    normalized,
+                    StringComparison.Ordinal));
+            if (record == null || record.quantity < amount)
+                return false;
+            record.quantity -= amount;
+            if (record.quantity == 0)
+                State.cardQuantities.Remove(record);
+            return true;
+        }
+
+        private void AddProtectedCardQuantity(string cardId, int amount)
+        {
+            string normalized = FrontendCardIdentity.NormalizeOfficialId(cardId);
+            if (string.IsNullOrWhiteSpace(normalized) || amount <= 0)
+                return;
+            ProtectedCardQuantityRecord record =
+                State.protectedCardQuantities.FirstOrDefault(item =>
+                    item != null && string.Equals(
+                        FrontendCardIdentity.NormalizeOfficialId(item.cardId),
+                        normalized,
+                        StringComparison.Ordinal));
+            if (record == null)
+            {
+                record = new ProtectedCardQuantityRecord { cardId = normalized };
+                State.protectedCardQuantities.Add(record);
+            }
+            record.quantity = checked(Math.Max(0, record.quantity) + amount);
+        }
+
+        private void NormalizeProtectedCardQuantities()
+        {
+            var explicitQuantities = State.cardQuantities.ToDictionary(
+                record => FrontendCardIdentity.NormalizeOfficialId(record.cardId),
+                record => Math.Max(0, record.quantity),
+                StringComparer.Ordinal);
+            var protectedQuantities = new Dictionary<string, int>(
+                StringComparer.Ordinal);
+            foreach (ProtectedCardQuantityRecord record in
+                     State.protectedCardQuantities)
+            {
+                if (record == null)
+                    continue;
+                string cardId = FrontendCardIdentity.NormalizeOfficialId(
+                    record.cardId);
+                if (string.IsNullOrWhiteSpace(cardId))
+                    continue;
+                protectedQuantities.TryGetValue(cardId, out int current);
+                protectedQuantities[cardId] = checked(
+                    current + Math.Max(0, record.quantity));
+            }
+            State.protectedCardQuantities = protectedQuantities
+                .Select(pair => new ProtectedCardQuantityRecord
+                {
+                    cardId = pair.Key,
+                    quantity = Math.Min(
+                        pair.Value,
+                        explicitQuantities.TryGetValue(pair.Key, out int owned)
+                            ? owned
+                            : 0)
+                })
+                .Where(record => record.quantity > 0)
+                .OrderBy(record => record.cardId, StringComparer.Ordinal)
+                .ToList();
         }
 
         private ShopTransactionRecord CreateTransaction(
