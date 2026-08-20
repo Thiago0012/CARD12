@@ -144,6 +144,8 @@ namespace ArcaneArena
             }
             else if (opponentHandCount == null)
             {
+                DuelTestPerspectiveController.Instance
+                    ?.SetHiddenHandPreviewsEnabled(true);
                 opponentHandCount = CreateText(
                     opponentHandFan.transform,
                     "0 CARTAS",
@@ -161,10 +163,14 @@ namespace ArcaneArena
 
         private void DisableLegacyOpponentHandPreview()
         {
+            DuelTestPerspectiveController perspective =
+                DuelTestPerspectiveController.Instance;
+            if (perspective != null)
+                perspective.SetHiddenHandPreviewsEnabled(false);
+
             foreach (Transform item in
                      FindObjectsByType<MasterDuelArena3D>(
-                             FindObjectsInactive.Include,
-                             FindObjectsSortMode.None)
+                             FindObjectsInactive.Include)
                          .Where(arena =>
                              arena != null &&
                              arena.gameObject.scene == gameObject.scene)
@@ -250,9 +256,13 @@ namespace ArcaneArena
                 renderedOpponentHandCount = count;
                 RebuildOpponentHandFan(count);
             }
-            DuelTestPerspectiveController.Instance?.SetHiddenHandCardCount(
-                DuelPlayerSide.PlayerTwo,
-                count);
+            if (!preserveAuthoredDuelInterface)
+            {
+                DuelTestPerspectiveController.Instance
+                    ?.SetHiddenHandCardCount(
+                        DuelPlayerSide.PlayerTwo,
+                        count);
+            }
             if (opponentHandCount != null)
                 opponentHandCount.text =
                     $"{count} CARTA{(count == 1 ? string.Empty : "S")}";

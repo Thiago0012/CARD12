@@ -1,7 +1,7 @@
 # Auto Pack Generation Report
 
-- UTC: `2026-08-16T21:57:42.0937275Z`
-- Trigger: `ManualRebuild`
+- UTC: `2026-08-18T23:56:48.7387909Z`
+- Trigger: `AssetImport`
 - Previous source hash: `569013511A9104775B4ABCD559942C8EF0AE4EC30596CD9BB5C26235A4C1634E`
 - Current source hash: `569013511A9104775B4ABCD559942C8EF0AE4EC30596CD9BB5C26235A4C1634E`
 - Published packs before generation: `27`

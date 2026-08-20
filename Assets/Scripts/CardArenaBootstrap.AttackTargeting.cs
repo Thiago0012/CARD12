@@ -36,6 +36,9 @@ namespace ArcaneArena
         private DuelZone3D highlightedAttackTarget;
         private GameObject directAttackTargetButton;
         private Coroutine attackTargetAutoSubmitRoutine;
+        private Vector2 lastAttackPointerPosition;
+        private float attackPointerReleaseFallbackAt = -1f;
+        private const float AttackPointerReleaseFallbackSeconds = 0.10f;
 
         public void BeginMonsterAttackDrag(
             DuelZone3D zone,
@@ -62,6 +65,8 @@ namespace ArcaneArena
             PrepareAttackTargeting(zone, attack);
             draggingAttacker = zone;
             capturedAttackPointerId = pointerId;
+            lastAttackPointerPosition = screenPosition;
+            attackPointerReleaseFallbackAt = -1f;
             EnsureAttackLine();
             UpdateMonsterAttackDrag(screenPosition, pointerId);
         }
@@ -75,6 +80,9 @@ namespace ArcaneArena
             {
                 return;
             }
+
+            lastAttackPointerPosition = screenPosition;
+            attackPointerReleaseFallbackAt = -1f;
 
             DuelZone3D source = draggingAttacker ?? pendingAttackSource;
             if (source == null)
@@ -114,15 +122,23 @@ namespace ArcaneArena
             Vector2 screenPosition,
             int pointerId)
         {
-            if (!OwnsAttackPointer(pointerId) || InteractionLocked ||
-                draggingAttacker == null)
+            if (draggingAttacker == null)
             {
+                return;
+            }
+            if (!OwnsAttackPointer(pointerId) || InteractionLocked)
+            {
+                // A lost/cancelled Android touch or a presentation lock that
+                // arrives between press and release must never leave the
+                // targeting arrow and its pending command alive forever.
+                CancelAttackTargeting();
                 return;
             }
 
             DuelZone3D attacker = draggingAttacker;
             draggingAttacker = null;
             capturedAttackPointerId = int.MinValue;
+            attackPointerReleaseFallbackAt = -1f;
             if (TryRaycastZone(screenPosition, out DuelZone3D target) &&
                 target != null && target.Kind == DuelZoneKind.Monster &&
                 target.Owner != attacker.Owner)
@@ -157,6 +173,7 @@ namespace ArcaneArena
 
         private void UpdateAttackTargetingPointer()
         {
+            RecoverReleasedAttackTouch();
             if (!attackTargetingActive || pendingAttackSource == null ||
                 InteractionLocked)
             {
@@ -168,11 +185,13 @@ namespace ArcaneArena
                 touchscreen.primaryTouch.press.isPressed)
             {
                 int touchId = touchscreen.primaryTouch.touchId.ReadValue();
-                if (attackTargetSelectionPointerId == int.MinValue)
-                    attackTargetSelectionPointerId = touchId;
+                // InputSystemUIInputModule's PointerEventData.pointerId is not
+                // guaranteed to equal TouchControl.touchId on every Android
+                // device. Hovering is pointer-neutral; only EventSystem click
+                // events are allowed to capture a selection pointer.
                 UpdateMonsterAttackDrag(
                     touchscreen.primaryTouch.position.ReadValue(),
-                    touchId);
+                    -1);
                 return;
             }
 
@@ -182,6 +201,59 @@ namespace ArcaneArena
                     Mouse.current.position.ReadValue(),
                     -1);
             }
+        }
+
+        private void RecoverReleasedAttackTouch()
+        {
+            if (draggingAttacker == null || capturedAttackPointerId < 0)
+            {
+                attackPointerReleaseFallbackAt = -1f;
+                return;
+            }
+
+            Touchscreen touchscreen = Touchscreen.current;
+            bool anyTouchPressed = false;
+            if (touchscreen != null)
+            {
+                for (int index = 0;
+                     index < touchscreen.touches.Count;
+                     index++)
+                {
+                    if (!touchscreen.touches[index].press.isPressed)
+                        continue;
+                    anyTouchPressed = true;
+                    break;
+                }
+            }
+            if (anyTouchPressed)
+            {
+                attackPointerReleaseFallbackAt = -1f;
+                return;
+            }
+
+            if (attackPointerReleaseFallbackAt < 0f)
+            {
+                attackPointerReleaseFallbackAt =
+                    Time.unscaledTime + AttackPointerReleaseFallbackSeconds;
+                return;
+            }
+            if (Time.unscaledTime < attackPointerReleaseFallbackAt)
+                return;
+
+            int releasedPointerId = capturedAttackPointerId;
+            EndMonsterAttackDrag(
+                lastAttackPointerPosition,
+                releasedPointerId);
+        }
+
+        public void CancelMonsterAttackDrag(DuelZone3D source)
+        {
+            if (source == null ||
+                (draggingAttacker != source && pendingAttackSource != source))
+            {
+                return;
+            }
+            CancelAttackTargeting();
         }
 
         private void PrepareAttackTargeting(
@@ -556,6 +628,8 @@ namespace ArcaneArena
             draggingAttacker = null;
             capturedAttackPointerId = int.MinValue;
             attackTargetSelectionPointerId = int.MinValue;
+            lastAttackPointerPosition = Vector2.zero;
+            attackPointerReleaseFallbackAt = -1f;
             pendingAttackSource = null;
             pendingAttackCommand = null;
             pendingAttackCommandRequestId = 0;

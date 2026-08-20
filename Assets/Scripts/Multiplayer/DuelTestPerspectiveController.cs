@@ -32,6 +32,7 @@ namespace ArcaneArena.Multiplayer
         private Transform _playerTwo;
         private DuelFieldRegistry _fieldRegistry;
         private float _lastStaticFieldAspect = -1f;
+        private bool _hiddenHandPreviewsEnabled = true;
 
         public event Action<DuelPlayerSide> PerspectiveChanged;
         public DuelPlayerSide LocalClientSide => localClientSide;
@@ -237,6 +238,17 @@ namespace ArcaneArena.Multiplayer
             UpdateHiddenHandPreviews();
         }
 
+        /// <summary>
+        /// Selects whether the legacy world-space hand previews own the hidden
+        /// opponent hand presentation. The authored duel HUD has its own
+        /// authoritative fan, so both systems must never be visible together.
+        /// </summary>
+        public void SetHiddenHandPreviewsEnabled(bool enabled)
+        {
+            _hiddenHandPreviewsEnabled = enabled;
+            UpdateHiddenHandPreviews();
+        }
+
         public void SetHiddenHandCardCount(
             DuelPlayerSide owner,
             int cardCount)
@@ -252,6 +264,12 @@ namespace ArcaneArena.Multiplayer
                     : null;
             if (preview == null)
                 return;
+
+            if (!_hiddenHandPreviewsEnabled)
+            {
+                preview.gameObject.SetActive(false);
+                return;
+            }
 
             // The authored preview may have been disabled while the arena UI
             // was binding. Its visibility is a perspective concern; the
@@ -425,6 +443,14 @@ namespace ArcaneArena.Multiplayer
 
             var playerOnePreview = _playerOne.Find("OpponentHandPreview");
             var playerTwoPreview = _playerTwo.Find("OpponentHandPreview");
+            if (!_hiddenHandPreviewsEnabled)
+            {
+                if (playerOnePreview != null)
+                    playerOnePreview.gameObject.SetActive(false);
+                if (playerTwoPreview != null)
+                    playerTwoPreview.gameObject.SetActive(false);
+                return;
+            }
             if (playerOnePreview != null)
                 playerOnePreview.gameObject.SetActive(localClientSide == DuelPlayerSide.PlayerTwo);
             if (playerTwoPreview != null)

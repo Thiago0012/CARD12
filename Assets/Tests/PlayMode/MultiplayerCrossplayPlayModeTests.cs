@@ -305,7 +305,12 @@ namespace ArcaneDuel.Tests.PlayMode
             MethodInfo setCount = perspectiveType.GetMethod(
                 "SetHiddenHandCardCount",
                 BindingFlags.Instance | BindingFlags.Public);
+            MethodInfo setEnabled = perspectiveType.GetMethod(
+                "SetHiddenHandPreviewsEnabled",
+                BindingFlags.Instance | BindingFlags.Public);
             Assert.That(setCount, Is.Not.Null);
+            Assert.That(setEnabled, Is.Not.Null);
+            setEnabled?.Invoke(perspective, new object[] { true });
             Type sideType = setCount.GetParameters()[0].ParameterType;
             object playerTwo = Enum.Parse(sideType, "PlayerTwo");
             setCount?.Invoke(perspective, new[] { playerTwo, (object)0 });
@@ -326,6 +331,109 @@ namespace ArcaneDuel.Tests.PlayMode
                 preview.Cast<Transform>().Count(card => card.gameObject.activeSelf),
                 Is.EqualTo(3),
                 "The hidden preview must follow later authoritative hand counts.");
+        }
+
+        [UnityTest]
+        public IEnumerator AuthoredOpponentHandDisablesLegacyWorldPreview()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type perspectiveType = TypeByName(
+                "ArcaneArena.Multiplayer.DuelTestPerspectiveController");
+            MonoBehaviour perspective = Resources
+                .FindObjectsOfTypeAll<MonoBehaviour>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType() == perspectiveType);
+
+            FieldInfo enabledField = perspectiveType.GetField(
+                "_hiddenHandPreviewsEnabled",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(enabledField, Is.Not.Null);
+            Assert.That(
+                enabledField?.GetValue(perspective),
+                Is.EqualTo(false),
+                "The authored Canvas hand must be the only opponent-hand renderer.");
+
+            MethodInfo setCount = perspectiveType.GetMethod(
+                "SetHiddenHandCardCount",
+                BindingFlags.Instance | BindingFlags.Public);
+            Type sideType = setCount.GetParameters()[0].ParameterType;
+            object playerTwo = Enum.Parse(sideType, "PlayerTwo");
+            setCount?.Invoke(perspective, new[] { playerTwo, (object)5 });
+
+            foreach (string fieldName in new[] { "_playerOne", "_playerTwo" })
+            {
+                Transform playerRoot = perspectiveType.GetField(
+                        fieldName,
+                        BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.GetValue(perspective) as Transform;
+                Transform preview = playerRoot?.Find("OpponentHandPreview");
+                Assert.That(preview, Is.Not.Null);
+                Assert.That(
+                    preview.gameObject.activeSelf,
+                    Is.False,
+                    "The legacy world preview must stay hidden after a count update.");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator MismatchedAttackReleaseCancelsStaleTouchDrag()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            Type arenaType = TypeByName("ArcaneArena.CardArenaBootstrap");
+            MonoBehaviour arena = Resources
+                .FindObjectsOfTypeAll<MonoBehaviour>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType() == arenaType);
+            Type zoneType = TypeByName("ArcaneArena.DuelZone3D");
+            MonoBehaviour zone = Resources
+                .FindObjectsOfTypeAll<MonoBehaviour>()
+                .First(component =>
+                    component != null &&
+                    component.gameObject.activeInHierarchy &&
+                    component.GetType() == zoneType);
+
+            const BindingFlags hidden =
+                BindingFlags.Instance | BindingFlags.NonPublic;
+            FieldInfo dragging = arenaType.GetField(
+                "draggingAttacker",
+                hidden);
+            FieldInfo pending = arenaType.GetField(
+                "pendingAttackSource",
+                hidden);
+            FieldInfo pointer = arenaType.GetField(
+                "capturedAttackPointerId",
+                hidden);
+            dragging?.SetValue(arena, zone);
+            pending?.SetValue(arena, zone);
+            pointer?.SetValue(arena, 41);
+
+            MethodInfo release = arenaType.GetMethod(
+                "EndMonsterAttackDrag",
+                BindingFlags.Instance | BindingFlags.Public,
+                null,
+                new[] { typeof(Vector2), typeof(int) },
+                null);
+            Assert.That(release, Is.Not.Null);
+            release?.Invoke(arena, new object[] { Vector2.zero, 99 });
+
+            Assert.That(dragging?.GetValue(arena), Is.Null);
+            Assert.That(pending?.GetValue(arena), Is.Null);
+            Assert.That(
+                pointer?.GetValue(arena),
+                Is.EqualTo(int.MinValue),
+                "A lost Android pointer must not leave the attack flow locked.");
         }
 
         [UnityTest]

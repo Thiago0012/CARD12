@@ -10,6 +10,7 @@ namespace ArcaneArena
         IPointerClickHandler,
         IPointerEnterHandler,
         IPointerExitHandler,
+        IPointerUpHandler,
         IBeginDragHandler,
         IDragHandler,
         IEndDragHandler
@@ -451,6 +452,7 @@ namespace ArcaneArena
 
         private void OnDestroy()
         {
+            CancelPendingAttackDrag();
             if (specialZoneOutlineMaterial != null)
                 Destroy(specialZoneOutlineMaterial);
             if (dropSurfaceMaterial != null)
@@ -517,6 +519,29 @@ namespace ArcaneArena
             FindAnyObjectByType<CardArenaBootstrap>()?.EndMonsterAttackDrag(
                 eventData.position,
                 eventData.pointerId);
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            // Some Android devices can lose OnEndDrag when the finger leaves
+            // the original 3D raycast target. PointerUp is an idempotent
+            // fallback; EndMonsterAttackDrag ignores it when no drag is active.
+            FindAnyObjectByType<CardArenaBootstrap>()?.EndMonsterAttackDrag(
+                eventData.position,
+                eventData.pointerId);
+        }
+
+        private void OnDisable()
+        {
+            CancelPendingAttackDrag();
+        }
+
+        private void CancelPendingAttackDrag()
+        {
+            if (!Application.isPlaying)
+                return;
+            FindAnyObjectByType<CardArenaBootstrap>()
+                ?.CancelMonsterAttackDrag(this);
         }
 
         private static DuelZoneKind KindFromName(string objectName)

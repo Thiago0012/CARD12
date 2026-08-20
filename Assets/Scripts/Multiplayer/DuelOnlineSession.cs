@@ -45,6 +45,8 @@ namespace ArcaneArena.Multiplayer
         private const string ClientReadyMessage = "arcane.duel.client-ready.v4";
         private const string StateMessage = "arcane.duel.state.v4";
         private const string ResponseMessage = "arcane.duel.response.v4";
+        private const string ResponseFastMessage =
+            "arcane.duel.response-fast.v1";
         private const string StateAckMessage = "arcane.duel.state-ack.v4";
         private const string ResyncRequestMessage = "arcane.duel.resync.v4";
         private const string BeginDuelMessage = "arcane.duel.begin.v8";
@@ -58,6 +60,7 @@ namespace ArcaneArena.Multiplayer
             "arcane.duel.presentation-event.v4";
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
+        private const int MaximumFastResponseBytes = 900;
         private const ushort NgoProtocolVersion = 13;
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
@@ -1185,6 +1188,9 @@ namespace ArcaneArena.Multiplayer
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
                 WirePacketMessage,
                 OnWirePacketMessage);
+            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
+                ResponseFastMessage,
+                OnFastResponseMessage);
             handlersRegistered = true;
         }
 
@@ -1199,6 +1205,8 @@ namespace ArcaneArena.Multiplayer
 
             networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
                 WirePacketMessage);
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
+                ResponseFastMessage);
             handlersRegistered = false;
         }
 
@@ -3976,7 +3984,7 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
-            SendToServer(ResponseMessage, new ResponsePayload
+            var response = new ResponsePayload
             {
                 schemaVersion = CommandSchemaVersion,
                 matchId = currentMatchId,
@@ -3986,9 +3994,97 @@ namespace ArcaneArena.Multiplayer
                 expectedStateVersion = pendingExpectedStateVersion,
                 requestId = pendingResponseRequestId,
                 responseBase64 = Convert.ToBase64String(pendingResponseBytes)
-            });
+            };
+
+            // Prompt responses are tiny and latency-sensitive. Send a direct
+            // reliable copy in addition to the chunked/retry wire path. The
+            // host's command id + sequence + payload hash validation makes
+            // both deliveries idempotent. This prevents a delayed wire ACK on
+            // Android from holding an already-selected attack for minutes.
+            SendFastResponseToServer(response);
+            SendToServer(ResponseMessage, response);
             nextResponseRetryTime =
                 Time.realtimeSinceStartup + ResponseRetrySeconds;
+        }
+
+        private bool SendFastResponseToServer(ResponsePayload response)
+        {
+            if (response == null || role != SessionRole.Client ||
+                networkManager?.CustomMessagingManager == null ||
+                !networkManager.IsConnectedClient)
+            {
+                return false;
+            }
+
+            byte[] jsonBytes;
+            try
+            {
+                jsonBytes = Encoding.UTF8.GetBytes(
+                    JsonUtility.ToJson(response));
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            if (jsonBytes.Length == 0 ||
+                jsonBytes.Length > MaximumFastResponseBytes)
+            {
+                return false;
+            }
+
+            var writer = new FastBufferWriter(
+                jsonBytes.Length + sizeof(ushort),
+                Allocator.Temp,
+                MaximumFastResponseBytes + sizeof(ushort));
+            try
+            {
+                writer.WriteValueSafe((ushort)jsonBytes.Length);
+                writer.WriteBytesSafe(jsonBytes);
+                networkManager.CustomMessagingManager.SendNamedMessage(
+                    ResponseFastMessage,
+                    NetworkManager.ServerClientId,
+                    writer,
+                    NetworkDelivery.ReliableSequenced);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Arcane Duel Online] Fast response indisponivel; " +
+                    "mantendo o envio v4: " +
+                    exception.GetBaseException().Message);
+                return false;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
+        private void OnFastResponseMessage(
+            ulong senderClientId,
+            FastBufferReader reader)
+        {
+            if (!IsHost || senderClientId != remoteClientId)
+                return;
+
+            try
+            {
+                reader.ReadValueSafe(out ushort length);
+                if (length == 0 || length > MaximumFastResponseBytes)
+                    return;
+                var jsonBytes = new byte[length];
+                reader.ReadBytesSafe(ref jsonBytes, length);
+                ResponsePayload response = JsonUtility.FromJson<ResponsePayload>(
+                    Encoding.UTF8.GetString(jsonBytes));
+                ProcessResponseMessage(senderClientId, response);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Arcane Duel Online] Fast response invalida: " +
+                    exception.GetBaseException().Message);
+            }
         }
 
         private void TrySendPendingPresentationEvents()

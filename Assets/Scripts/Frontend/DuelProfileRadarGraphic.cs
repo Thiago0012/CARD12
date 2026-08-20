@@ -34,7 +34,20 @@ namespace ArcaneArena.Frontend
                 return;
 
             Vector2 center = bounds.center;
-            Color grid = new(0.25f, 0.72f, 0.82f, 0.30f);
+            AddUniformPolygon(
+                vertexHelper,
+                center,
+                radius,
+                new Color(0.015f, 0.11f, 0.17f, 0.72f),
+                new Color(0.01f, 0.055f, 0.09f, 0.48f));
+            AddUniformPolygon(
+                vertexHelper,
+                center,
+                radius * 0.5f,
+                new Color(0.03f, 0.18f, 0.24f, 0.34f),
+                new Color(0.02f, 0.10f, 0.15f, 0.20f));
+
+            Color grid = new(0.25f, 0.78f, 0.88f, 0.34f);
             for (int ring = 1; ring <= 4; ring++)
             {
                 float ringRadius = radius * ring / 4f;
@@ -59,22 +72,22 @@ namespace ArcaneArena.Frontend
                     grid);
             }
 
-            int centerIndex = vertexHelper.currentVertCount;
-            AddVertex(vertexHelper, center, new Color(0.05f, 0.72f, 0.96f, 0.34f));
-            for (int axis = 0; axis < AxisCount; axis++)
-            {
-                AddVertex(
-                    vertexHelper,
-                    Point(center, radius * _values[axis], axis),
-                    new Color(0.05f, 0.72f, 0.96f, 0.48f));
-            }
-            for (int axis = 0; axis < AxisCount; axis++)
-            {
-                vertexHelper.AddTriangle(
-                    centerIndex,
-                    centerIndex + 1 + axis,
-                    centerIndex + 1 + (axis + 1) % AxisCount);
-            }
+            AddValuePolygon(
+                vertexHelper,
+                center,
+                radius,
+                _values,
+                new Color(0.05f, 0.72f, 0.96f, 0.22f),
+                new Color(0.05f, 0.72f, 0.96f, 0.18f),
+                1.08f);
+            AddValuePolygon(
+                vertexHelper,
+                center,
+                radius,
+                _values,
+                new Color(0.05f, 0.82f, 1f, 0.60f),
+                new Color(0.10f, 0.66f, 1f, 0.50f),
+                1f);
 
             Color outline = new(0.20f, 0.92f, 1f, 0.96f);
             for (int axis = 0; axis < AxisCount; axis++)
@@ -86,7 +99,78 @@ namespace ArcaneArena.Frontend
                         axis + 1),
                     2.6f,
                     outline);
+                AddPoint(
+                    vertexHelper,
+                    Point(center, radius * _values[axis], axis),
+                    5.5f,
+                    outline);
             }
+        }
+
+        private static void AddUniformPolygon(
+            VertexHelper helper,
+            Vector2 center,
+            float radius,
+            Color centerColor,
+            Color edgeColor)
+        {
+            int start = helper.currentVertCount;
+            AddVertex(helper, center, centerColor);
+            for (int axis = 0; axis < AxisCount; axis++)
+                AddVertex(helper, Point(center, radius, axis), edgeColor);
+            for (int axis = 0; axis < AxisCount; axis++)
+            {
+                helper.AddTriangle(
+                    start,
+                    start + 1 + axis,
+                    start + 1 + (axis + 1) % AxisCount);
+            }
+        }
+
+        private static void AddValuePolygon(
+            VertexHelper helper,
+            Vector2 center,
+            float radius,
+            IReadOnlyList<float> values,
+            Color centerColor,
+            Color edgeColor,
+            float scale)
+        {
+            int start = helper.currentVertCount;
+            AddVertex(helper, center, centerColor);
+            for (int axis = 0; axis < AxisCount; axis++)
+            {
+                float value = values != null && axis < values.Count
+                    ? Mathf.Clamp01(values[axis])
+                    : 0f;
+                AddVertex(
+                    helper,
+                    Point(center, radius * Mathf.Clamp01(value * scale), axis),
+                    edgeColor);
+            }
+            for (int axis = 0; axis < AxisCount; axis++)
+            {
+                helper.AddTriangle(
+                    start,
+                    start + 1 + axis,
+                    start + 1 + (axis + 1) % AxisCount);
+            }
+        }
+
+        private static void AddPoint(
+            VertexHelper helper,
+            Vector2 center,
+            float size,
+            Color color)
+        {
+            float half = size * 0.5f;
+            int start = helper.currentVertCount;
+            AddVertex(helper, center + new Vector2(0f, half), color);
+            AddVertex(helper, center + new Vector2(half, 0f), color);
+            AddVertex(helper, center + new Vector2(0f, -half), color);
+            AddVertex(helper, center + new Vector2(-half, 0f), color);
+            helper.AddTriangle(start, start + 1, start + 2);
+            helper.AddTriangle(start, start + 2, start + 3);
         }
 
         private static Vector2 Point(
