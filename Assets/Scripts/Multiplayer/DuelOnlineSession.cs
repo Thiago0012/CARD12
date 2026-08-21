@@ -410,6 +410,7 @@ namespace ArcaneArena.Multiplayer
         private Coroutine reconnectCoroutine;
         private Coroutine hostReconnectGraceCoroutine;
         private Coroutine persistedReconnectCoroutine;
+        private Coroutine rankedBotFallbackCoroutine;
         private bool matchStarted;
         private bool hostCoreStarted;
         private Coroutine pendingStateBroadcast;
@@ -496,6 +497,8 @@ namespace ArcaneArena.Multiplayer
             CompetitivePolicy.Unranked;
         private bool automaticRankedMatchmaking;
         private bool rankedRoomCreationPanel;
+        private bool rankedBotFallbackInProgress;
+        private float rankedBotFallbackDeadline;
         private RankPlayerSnapshot localRankHandshake;
         private RankPlayerSnapshot remoteRankHandshake;
         private RankedMatchSnapshot sealedRankedMatch;
@@ -821,6 +824,10 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
             competitivePolicy = CompetitivePolicy.Ranked;
+            CancelRankedBotFallback();
+            rankedBotFallbackDeadline = Time.realtimeSinceStartup +
+                RankedBotFallbackPolicy.DelaySeconds(
+                    UnityEngine.Random.value);
             showPanel = true;
             rankedRoomCreationPanel = false;
             // Select the dedicated queue presentation before validation or
@@ -1450,6 +1457,7 @@ namespace ArcaneArena.Multiplayer
                         true);
                     status = "Fila ranqueada criada. Aguardando um rival " +
                         "compativel...";
+                    ScheduleRankedBotFallback();
                 }
                 else
                 {
@@ -1482,6 +1490,102 @@ namespace ArcaneArena.Multiplayer
             {
                 connectionOperationInProgress = false;
             }
+        }
+
+        private void ScheduleRankedBotFallback()
+        {
+            CancelRankedBotFallback();
+            if (rankedBotFallbackDeadline <= 0f)
+            {
+                rankedBotFallbackDeadline = Time.realtimeSinceStartup +
+                    RankedBotFallbackPolicy.DelaySeconds(
+                        UnityEngine.Random.value);
+            }
+            float delay = Mathf.Max(
+                0f,
+                rankedBotFallbackDeadline - Time.realtimeSinceStartup);
+            rankedBotFallbackCoroutine = StartCoroutine(
+                WaitForRankedBotFallback(delay));
+        }
+
+        private IEnumerator WaitForRankedBotFallback(float delaySeconds)
+        {
+            float deadline = Time.realtimeSinceStartup + delaySeconds;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                if (!automaticRankedMatchmaking ||
+                    competitivePolicy != CompetitivePolicy.Ranked ||
+                    !IsHost ||
+                    !IsOnlineDuelActive ||
+                    remoteClientId != ulong.MaxValue ||
+                    matchStarted)
+                {
+                    rankedBotFallbackCoroutine = null;
+                    yield break;
+                }
+
+                int remaining = Mathf.Max(
+                    1,
+                    Mathf.CeilToInt(deadline - Time.realtimeSinceStartup));
+                status = "Buscando rival ranqueado compativel... " +
+                    $"IA disponivel em ate {remaining}s.";
+                yield return new WaitForSecondsRealtime(1f);
+            }
+
+            rankedBotFallbackCoroutine = null;
+            if (automaticRankedMatchmaking &&
+                competitivePolicy == CompetitivePolicy.Ranked &&
+                IsHost &&
+                IsOnlineDuelActive &&
+                remoteClientId == ulong.MaxValue &&
+                !matchStarted)
+            {
+                BeginRankedBotFallback();
+            }
+        }
+
+        private async void BeginRankedBotFallback()
+        {
+            if (rankedBotFallbackInProgress ||
+                !automaticRankedMatchmaking ||
+                !IsHost ||
+                remoteClientId != ulong.MaxValue ||
+                matchStarted)
+            {
+                return;
+            }
+
+            rankedBotFallbackInProgress = true;
+            rankedBotFallbackDeadline = 0f;
+            automaticRankedMatchmaking = false;
+            connectionOperationInProgress = true;
+            status = "Nenhum jogador entrou na fila. Preparando um rival IA " +
+                "compativel com seu elo...";
+            await LeaveRoomAsync();
+            showPanel = false;
+            rankedBotFallbackInProgress = false;
+
+            if (SceneManager.GetActiveScene().name == DuelArenaScene)
+                return;
+            GameFrontendBootstrap frontend =
+                FindAnyObjectByType<GameFrontendBootstrap>(
+                    FindObjectsInactive.Include);
+            if (frontend == null)
+            {
+                status = "A fila expirou, mas a Central de Duelos nao esta " +
+                    "disponivel para iniciar a IA.";
+                showPanel = true;
+                return;
+            }
+            frontend.StartRankedBotFallbackFromMatchmaking();
+        }
+
+        private void CancelRankedBotFallback()
+        {
+            if (rankedBotFallbackCoroutine == null)
+                return;
+            StopCoroutine(rankedBotFallbackCoroutine);
+            rankedBotFallbackCoroutine = null;
         }
 
         private static async Task InitializeServices()
@@ -1760,6 +1864,8 @@ namespace ArcaneArena.Multiplayer
             {
                 if (clientId == NetworkManager.ServerClientId)
                     return;
+                CancelRankedBotFallback();
+                rankedBotFallbackDeadline = 0f;
                 bool resumedMatch = hostAwaitingReconnect && matchStarted &&
                     remoteLoadout != null;
                 remoteClientId = clientId;
@@ -5488,6 +5594,7 @@ namespace ArcaneArena.Multiplayer
                 StopCoroutine(hostReconnectGraceCoroutine);
                 hostReconnectGraceCoroutine = null;
             }
+            CancelRankedBotFallback();
         }
 
         private void ResetMatchState(bool clearLocalLoadout)
@@ -5588,6 +5695,8 @@ namespace ArcaneArena.Multiplayer
             sealedRankedMatch = null;
             localRankResultReceipt = null;
             automaticRankedMatchmaking = false;
+            rankedBotFallbackInProgress = false;
+            rankedBotFallbackDeadline = 0f;
             rewardResultMessage = string.Empty;
             rewardResultVisibleUntil = 0f;
         }

@@ -27,7 +27,7 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator MainMenuUsesTheNewHudAndDedicatedButtons()
+        public IEnumerator MainMenuUsesUnifiedDuelNavigationAndNewArtwork()
         {
             SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
             yield return null;
@@ -58,31 +58,49 @@ namespace ArcaneDuel.Tests.PlayMode
                 null);
             yield return null;
 
-            Assert.That(
-                GameObject.Find("Moldura HUD da Tela Inicial"),
-                Is.Not.Null);
+            Assert.That(GameObject.Find("Nova Tela Inicial"), Is.Not.Null);
             Assert.That(GameObject.Find("Ação DUELAR"), Is.Not.Null);
             Assert.That(GameObject.Find("Ação DECKS"), Is.Not.Null);
             Assert.That(GameObject.Find("Ação LOJA"), Is.Not.Null);
-            Assert.That(GameObject.Find("Ação MULTIPLAYER"), Is.Not.Null);
-            Assert.That(
-                GameObject.Find("Arte Botão MULTIPLAYER")
-                    .GetComponent<RectTransform>().anchorMin.y,
-                Is.EqualTo(0.2065f).Within(0.0001f));
-            Assert.That(
-                GameObject.Find("Arte Botão DECKS")
-                    .GetComponent<RectTransform>().anchorMin.y,
-                Is.EqualTo(-0.1044f).Within(0.0001f));
-            Assert.That(
-                GameObject.Find("Arte Botão LOJA")
-                    .GetComponent<RectTransform>().anchorMin.y,
-                Is.EqualTo(-0.1028f).Within(0.0001f));
+            Assert.That(GameObject.Find("Ação MULTIPLAYER"), Is.Null);
 
             Object assets =
                 Resources.Load("Frontend/MainMenuUiAssets");
             Assert.That(assets, Is.Not.Null);
             Assert.That(
                 assets.GetType().GetField("interfaceClick")?.GetValue(assets),
+                Is.Not.Null);
+            Assert.That(
+                assets.GetType().GetField("mainMenu")?.GetValue(assets),
+                Is.Not.Null);
+            Assert.That(
+                assets.GetType().GetField("duelHub")?.GetValue(assets),
+                Is.Not.Null);
+
+            frontend.GetType().GetMethod("ShowDuelHub")?.Invoke(
+                frontend,
+                null);
+            yield return null;
+
+            Assert.That(GameObject.Find("Nova Central de Duelos"), Is.Not.Null);
+            Assert.That(GameObject.Find("Ação DUELAR OFFLINE"), Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Ação PROCURAR RIVAL RANQUEADO"),
+                Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Ação DUELO MULTIPLAYER CASUAL"),
+                Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Ação DUELO MULTIPLAYER RANQUEADO"),
+                Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Ação ALTERAR DECK ATIVO"),
+                Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Patente atual centralizada"),
+                Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Barra de progresso de elo"),
                 Is.Not.Null);
         }
 

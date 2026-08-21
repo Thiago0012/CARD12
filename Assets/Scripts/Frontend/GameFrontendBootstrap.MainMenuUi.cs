@@ -118,10 +118,10 @@ namespace ArcaneArena.Frontend
         {
             FrontendClickAudio.Play();
             RunMainMenuFeatureTransition(
-                OpenBotDuelSelectionFromMainMenu,
+                ShowDuelHub,
                 LoadingCardMotionStyle.DuelCharge,
-                "PREPARANDO DUELO",
-                "As cartas avançam para o próximo confronto.");
+                "ABRINDO CENTRAL DE DUELOS",
+                "Preparando seus modos, deck ativo e progresso de elo.");
         }
 
         public void MainMenuDecks()
@@ -144,10 +144,10 @@ namespace ArcaneArena.Frontend
         {
             FrontendClickAudio.Play();
             RunMainMenuFeatureTransition(
-                ShowMultiplayerRoom,
+                ShowDuelHub,
                 LoadingCardMotionStyle.MultiplayerCrossflow,
-                "CONECTANDO MULTIPLAYER",
-                "Cruzando rotas para encontrar outros duelistas.");
+                "ABRINDO CENTRAL DE DUELOS",
+                "Salas casuais e ranqueadas agora ficam no mesmo lugar.");
         }
 
         public void MainMenuSettings()
@@ -171,6 +171,12 @@ namespace ArcaneArena.Frontend
                 Debug.LogWarning(
                     "Assets da nova tela inicial não foram sincronizados.");
                 ShowPanelMainMenuLegacy();
+                return;
+            }
+
+            if (_mainMenuAssets.HasUnifiedDuelMenus)
+            {
+                BuildUnifiedMainMenu();
                 return;
             }
 
@@ -236,6 +242,230 @@ namespace ArcaneArena.Frontend
             }
 
             BuildVersionOverlay();
+        }
+
+        private void BuildUnifiedMainMenu()
+        {
+            CreateFullCanvasArtwork(
+                "Nova Tela Inicial",
+                _mainMenuAssets.mainMenu);
+
+            CreateInvisibleButton(
+                "DUELAR",
+                new Vector2(0.071f, 0.457f),
+                new Vector2(0.301f, 0.555f),
+                () => RunMainMenuFeatureTransition(
+                    ShowDuelHub,
+                    LoadingCardMotionStyle.DuelCharge,
+                    "ABRINDO CENTRAL DE DUELOS",
+                    "Preparando seus modos, deck ativo e progresso de elo."));
+            CreateInvisibleButton(
+                "DECKS",
+                new Vector2(0.071f, 0.344f),
+                new Vector2(0.301f, 0.447f),
+                OpenDeckEditorScene);
+            CreateInvisibleButton(
+                "LOJA",
+                new Vector2(0.071f, 0.232f),
+                new Vector2(0.301f, 0.337f),
+                () => RunMainMenuFeatureTransition(
+                    ShowDeckShop,
+                    LoadingCardMotionStyle.ShopSpiral,
+                    "ABRINDO LOJA",
+                    "Organizando pacotes, decks e itens exclusivos."));
+            CreateInvisibleButton(
+                "CONFIGURAÇÕES",
+                new Vector2(0.942f, 0.923f),
+                new Vector2(0.977f, 0.990f),
+                ShowAnimationOptions);
+            CreateInvisibleButton(
+                "PERFIL",
+                new Vector2(0.792f, 0.927f),
+                new Vector2(0.826f, 0.990f),
+                () => ShowPlayerProfileSetup(true));
+        }
+
+        public void ShowDuelHub()
+        {
+            SetDuelPresentation(false);
+            ClearScreen();
+            _mainMenuAssets ??=
+                Resources.Load<MainMenuUiAssets>(MainMenuAssetsPath);
+            if (_mainMenuAssets == null ||
+                _mainMenuAssets.duelHub == null)
+            {
+                ShowDuelRoom();
+                return;
+            }
+
+            CreateFullCanvasArtwork(
+                "Nova Central de Duelos",
+                _mainMenuAssets.duelHub);
+
+            CreateInvisibleButton(
+                "VOLTAR DA CENTRAL DE DUELOS",
+                new Vector2(0.008f, 0.911f),
+                new Vector2(0.058f, 0.985f),
+                () => RunMainMenuTransition(ShowMainMenu));
+            CreateInvisibleButton(
+                "DUELAR OFFLINE",
+                new Vector2(0.020f, 0.679f),
+                new Vector2(0.315f, 0.866f),
+                OpenBotDuelSelectionFromMainMenu);
+            CreateInvisibleButton(
+                "PROCURAR RIVAL RANQUEADO",
+                new Vector2(0.020f, 0.477f),
+                new Vector2(0.315f, 0.663f),
+                StartRankedMatchmakingFromDuelHub);
+            CreateInvisibleButton(
+                "DUELO MULTIPLAYER CASUAL",
+                new Vector2(0.020f, 0.281f),
+                new Vector2(0.315f, 0.466f),
+                () => OpenMultiplayerPanel(
+                    true,
+                    CompetitivePolicy.Unranked));
+            CreateInvisibleButton(
+                "DUELO MULTIPLAYER RANQUEADO",
+                new Vector2(0.020f, 0.080f),
+                new Vector2(0.315f, 0.265f),
+                () => OpenMultiplayerPanel(
+                    true,
+                    CompetitivePolicy.Ranked));
+            CreateInvisibleButton(
+                "ALTERAR DECK ATIVO",
+                new Vector2(0.425f, 0.392f),
+                new Vector2(0.570f, 0.463f),
+                OpenDeckEditorScene);
+
+            BuildDuelHubDeckPresentation();
+            BuildDuelHubRankPresentation();
+        }
+
+        private void StartRankedMatchmakingFromDuelHub()
+        {
+            if (!CanStartWithSelectedDeck())
+                return;
+            ArcaneArenaMultiplayerController.StartRankedMatchmaking();
+        }
+
+        public void StartRankedBotFallbackFromMatchmaking()
+        {
+            ShowRankedBotDeckSelection();
+        }
+
+        private void BuildDuelHubDeckPresentation()
+        {
+            DeckRecord selectedDeck = _repository?.SelectedDeck;
+            if (selectedDeck != null)
+            {
+                CreateDuelDeckPreview(
+                    _screenRoot,
+                    selectedDeck,
+                    new Vector2(0.384f, 0.548f),
+                    new Vector2(0.616f, 0.778f));
+            }
+
+            string deckLabel = selectedDeck != null
+                ? selectedDeck.displayName?.ToUpperInvariant()
+                : "SELECIONE UM DECK VÁLIDO";
+            _duelRoomStatus = CreateText(
+                _screenRoot,
+                deckLabel,
+                19,
+                FontStyle.Bold,
+                selectedDeck != null ? Color.white : Gold,
+                new Vector2(0.382f, 0.476f),
+                new Vector2(0.618f, 0.535f),
+                TextAnchor.MiddleCenter);
+        }
+
+        private void BuildDuelHubRankPresentation()
+        {
+            RankPresentationModel rank = GetRankPresentation();
+            CreateRankBadgeImage(
+                _screenRoot,
+                "Patente atual centralizada",
+                rank.Tier,
+                new Vector2(0.727f, 0.515f),
+                new Vector2(0.905f, 0.795f),
+                1f);
+            CreateText(
+                _screenRoot,
+                RankRules.DisplayName(rank.Tier),
+                24,
+                FontStyle.Bold,
+                Gold,
+                new Vector2(0.704f, 0.474f),
+                new Vector2(0.911f, 0.535f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                _screenRoot,
+                rank.IsMaximum ? "200 PE · ELO MÁXIMO" : $"{rank.Points} PE",
+                22,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.726f, 0.371f),
+                new Vector2(0.900f, 0.455f),
+                TextAnchor.MiddleCenter);
+
+            Image progressTrack = CreatePanel(
+                _screenRoot,
+                "Barra de progresso de elo",
+                new Vector2(0.373f, 0.224f),
+                new Vector2(0.802f, 0.268f),
+                new Color(0.005f, 0.018f, 0.035f, 0.88f));
+            Image progressFill = CreatePanel(
+                progressTrack.transform,
+                "Preenchimento do progresso de elo",
+                new Vector2(0.008f, 0.17f),
+                new Vector2(
+                    Mathf.Lerp(0.008f, 0.992f, rank.Progress01),
+                    0.83f),
+                new Color(0.04f, 0.82f, 0.96f, 0.96f));
+            progressTrack.raycastTarget = false;
+            progressFill.raycastTarget = false;
+
+            CreateText(
+                _screenRoot,
+                rank.Points.ToString(),
+                23,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.379f, 0.095f),
+                new Vector2(0.498f, 0.163f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                _screenRoot,
+                rank.IsMaximum ? "0" : rank.PointsUntilNext.ToString(),
+                23,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.659f, 0.095f),
+                new Vector2(0.784f, 0.163f),
+                TextAnchor.MiddleCenter);
+
+            if (rank.IsMaximum)
+            {
+                CreateText(
+                    _screenRoot,
+                    "MAX",
+                    26,
+                    FontStyle.Bold,
+                    Gold,
+                    new Vector2(0.835f, 0.105f),
+                    new Vector2(0.952f, 0.265f),
+                    TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                CreateRankBadgeImage(
+                    _screenRoot,
+                    "Próximo elo",
+                    rank.NextTier,
+                    new Vector2(0.835f, 0.095f),
+                    new Vector2(0.952f, 0.278f),
+                    0.95f);
+            }
         }
 
         private static void RunMainMenuTransition(Action action)

@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c6e9fd5b8b77db44a3d36d6af7bd335, type: 3}
   m_Name: MainMenuUiAssets
   m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.Frontend.MainMenuUiAssets
+  mainMenu: {fileID: 2800000, guid: c149743e61c011547864490a78fc02a6, type: 3}
+  duelHub: {fileID: 2800000, guid: 8ca10d77180b01242b8cca484202bfce, type: 3}
   hud: {fileID: 2800000, guid: 7d96dee1ab41ee946abe35f4e4c16a32, type: 3}
   duelButton: {fileID: 2800000, guid: 2ef78875385895047b6653266080a24d, type: 3}
   decksButton: {fileID: 2800000, guid: 9722f461bea5fd84880e539b61a315e4, type: 3}

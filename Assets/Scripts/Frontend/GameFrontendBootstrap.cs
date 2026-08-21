@@ -26,7 +26,7 @@ namespace ArcaneArena.Frontend
         private const string LoginSceneName = "Login";
         private const string DeckEditorSceneName = "DeckEditor";
         private const string DuelArenaSceneName = "DuelArena";
-        public const int CurrentEditorPreviewVersion = 5;
+        public const int CurrentEditorPreviewVersion = 6;
 
         private static readonly Color Background = Hex("#040812");
         private static readonly Color Panel = Hex("#091426");
@@ -1966,7 +1966,7 @@ namespace ArcaneArena.Frontend
                     "[Ranked bot] Não foi possível formar um confronto legal. " +
                     deckRejection);
                 _pendingRankedBotDuel = false;
-                RenderMultiplayerRoom(MultiplayerHubMode.Ranked);
+                ShowDuelHub();
                 if (_duelRoomStatus != null)
                 {
                     _duelRoomStatus.text =
@@ -1996,7 +1996,7 @@ namespace ArcaneArena.Frontend
                 _pendingRankedBotDuel
                     ? "ESCOLHA O RIVAL RANQUEADO"
                     : "ESCOLHA O DECK DO BOT",
-                () => RunMainMenuTransition(ShowMainMenu));
+                () => RunMainMenuTransition(ShowDuelHub));
 
             CreateText(
                 _screenRoot,
@@ -3666,7 +3666,7 @@ namespace ArcaneArena.Frontend
                 _pendingRankedBotDuel = false;
                 if (rankedRequest)
                 {
-                    RenderMultiplayerRoom(MultiplayerHubMode.Ranked);
+                    ShowDuelHub();
                 }
                 else
                 {
@@ -5149,6 +5149,13 @@ namespace ArcaneArena.Frontend
                     StringComparison.OrdinalIgnoreCase))
             {
                 ShowDuelRoom();
+            }
+            else if (string.Equals(
+                         captureState,
+                         "duel-hub",
+                         StringComparison.OrdinalIgnoreCase))
+            {
+                ShowDuelHub();
             }
             else if (string.Equals(
                          captureState,
