@@ -32,8 +32,8 @@ namespace ArcaneArena.Frontend
                 new Vector2(1.5f, -1.5f));
             CreateText(
                 bar.transform,
-                "CRAFT POINTS",
-                14,
+                "PONTOS DE GERAÇÃO",
+                12,
                 FontStyle.Bold,
                 Muted,
                 new Vector2(0.015f, 0.08f),
@@ -84,8 +84,8 @@ namespace ArcaneArena.Frontend
                 13,
                 FontStyle.Bold,
                 Muted,
-                new Vector2(0.04f, 0.305f),
-                new Vector2(0.96f, 0.342f),
+                new Vector2(0.04f, 0.485f),
+                new Vector2(0.96f, 0.522f),
                 TextAnchor.MiddleCenter);
             _deckEditorOwnershipText = _deckEditorRarityText;
 
@@ -135,12 +135,17 @@ namespace ArcaneArena.Frontend
             if (_deckEditorDetailArtwork != null &&
                 CardRarityCatalog.IsValid(entry.Rarity))
             {
+                Transform artworkFrame =
+                    _deckEditorDetailArtwork.transform.parent;
+                Transform badgeParent = artworkFrame != null
+                    ? artworkFrame
+                    : _deckEditorDetailArtwork.transform;
                 _deckEditorArtworkRarityBadge = CreateRarityBadge(
-                    _deckEditorDetailArtwork.transform,
+                    badgeParent,
                     entry.Rarity,
-                    new Vector2(0.70f, 0.82f),
-                    new Vector2(0.985f, 0.985f),
-                    13).gameObject;
+                    new Vector2(0.76f, 0.84f),
+                    new Vector2(0.99f, 0.99f),
+                    12).gameObject;
             }
             bool canGenerate =
                 entry.IsCraftable &&
@@ -314,9 +319,9 @@ namespace ArcaneArena.Frontend
             CreateRarityBadge(
                 card,
                 entry.Rarity,
-                new Vector2(0.66f, 0.78f),
-                new Vector2(0.98f, 0.985f),
-                11);
+                new Vector2(0.60f, 0.72f),
+                new Vector2(0.99f, 0.995f),
+                16);
         }
 
         private static Image CreateRarityBadge(
@@ -331,22 +336,32 @@ namespace ArcaneArena.Frontend
                 $"Raridade {rarity}",
                 min,
                 max,
-                RarityColor(rarity));
+                Color.clear);
             badge.raycastTarget = false;
-            if (rarity == CardRarity.UR)
-            {
-                Image blueHalf = CreatePanel(
-                    badge.transform,
-                    "Gradiente azul UR",
-                    new Vector2(0.52f, 0f),
-                    Vector2.one,
-                    new Color(0.12f, 0.55f, 1f, 0.85f));
-                blueHalf.raycastTarget = false;
-            }
-            AddOutline(
-                badge.gameObject,
-                new Color(1f, 1f, 1f, 0.82f),
-                new Vector2(1f, -1f));
+
+            GameObject materialObject = new(
+                "Material graduado da raridade",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(ArcaneRarityBadgeGraphic));
+            materialObject.transform.SetParent(badge.transform, false);
+            RectTransform materialRect =
+                materialObject.GetComponent<RectTransform>();
+            materialRect.anchorMin = Vector2.zero;
+            materialRect.anchorMax = Vector2.one;
+            materialRect.offsetMin = Vector2.zero;
+            materialRect.offsetMax = Vector2.zero;
+            ArcaneRarityBadgeGraphic material =
+                materialObject.GetComponent<ArcaneRarityBadgeGraphic>();
+            material.raycastTarget = false;
+            RarityPalette(
+                rarity,
+                out Color top,
+                out Color bottom,
+                out Color edge,
+                out Color shine);
+            material.SetPalette(top, bottom, edge, shine);
+
             Text label = CreateText(
                 badge.transform,
                 CardRarityCatalog.Label(rarity),
@@ -357,18 +372,63 @@ namespace ArcaneArena.Frontend
                 Vector2.one,
                 TextAnchor.MiddleCenter);
             label.raycastTarget = false;
+            Shadow shadow = label.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.74f);
+            shadow.effectDistance = new Vector2(1f, -1f);
             label.transform.SetAsLastSibling();
             return badge;
+        }
+
+        private static void RarityPalette(
+            CardRarity rarity,
+            out Color top,
+            out Color bottom,
+            out Color edge,
+            out Color shine)
+        {
+            switch (rarity)
+            {
+                case CardRarity.N:
+                    top = Hex("#AAB7C0");
+                    bottom = Hex("#3D4953");
+                    edge = Hex("#D9E2E8");
+                    shine = new Color(0.92f, 0.97f, 1f, 0.30f);
+                    return;
+                case CardRarity.R:
+                    top = Hex("#43C4FF");
+                    bottom = Hex("#1356B8");
+                    edge = Hex("#91E7FF");
+                    shine = new Color(0.82f, 0.96f, 1f, 0.36f);
+                    return;
+                case CardRarity.SR:
+                    top = Hex("#FFD85B");
+                    bottom = Hex("#D76A0D");
+                    edge = Hex("#FFF0A4");
+                    shine = new Color(1f, 0.95f, 0.72f, 0.40f);
+                    return;
+                case CardRarity.UR:
+                    top = Hex("#41C8FF");
+                    bottom = Hex("#762CD2");
+                    edge = Hex("#E6C8FF");
+                    shine = new Color(0.94f, 0.88f, 1f, 0.45f);
+                    return;
+                default:
+                    top = Muted;
+                    bottom = Hex("#35414B");
+                    edge = Color.white;
+                    shine = new Color(1f, 1f, 1f, 0.25f);
+                    return;
+            }
         }
 
         private static Color RarityColor(CardRarity rarity)
         {
             return rarity switch
             {
-                CardRarity.N => Hex("#84919C"),
-                CardRarity.R => Hex("#2588E4"),
-                CardRarity.SR => Hex("#D5A900"),
-                CardRarity.UR => Hex("#8E35EA"),
+                CardRarity.N => Hex("#AAB7C0"),
+                CardRarity.R => Hex("#35AFFF"),
+                CardRarity.SR => Hex("#F2A323"),
+                CardRarity.UR => Hex("#9A55F2"),
                 _ => Muted
             };
         }

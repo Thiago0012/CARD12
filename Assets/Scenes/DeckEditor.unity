@@ -304,6 +304,45 @@ MonoBehaviour:
   defaultDeckCaseSprite: {fileID: 0}
   deckCaseVariants: []
   cardCatalog: {fileID: 11400000, guid: 70f4156a6229ed5458dc495b428f786f, type: 2}
+  deckEditorLevelIconTemplate: {fileID: -8602388585329188993, guid: 573ac203604255a40bbcf2bfbeb8d804, type: 3}
+  deckEditorAttackIconTemplate: {fileID: 5202471418816321632, guid: 8474b8b08c5476546be8f3baaeb5b0ae, type: 3}
+  deckEditorDefenseIconTemplate: {fileID: -706027950249177514, guid: 6fa991e0fd6d7234a9407b842ea51617, type: 3}
+  deckEditorAttributeIconTemplates:
+  - {fileID: -6729511157232288408, guid: 417b61c4e24ce8448b3652f698f6ec5f, type: 3}
+  - {fileID: -8251331209248444001, guid: cb9742afc7af89d48a595ac32181c0b9, type: 3}
+  - {fileID: 5757750083339748195, guid: 1cd7cd0be71356d458483c7ce6a66e0d, type: 3}
+  - {fileID: 8334651344603559088, guid: 54a1502f3ef06c142806126018f59659, type: 3}
+  - {fileID: 905024258411163469, guid: e248e5b1c953d8447a6b17659bfb492e, type: 3}
+  - {fileID: 5012091224111249662, guid: bc547c001eb30ed4ca1618d0896469b3, type: 3}
+  - {fileID: 553103467783823420, guid: e0cf724ba94530740be54a85c05d747d, type: 3}
+  - {fileID: 8509550459451208454, guid: 0e617418a8fd7f642a9dfb1f9b7fa4a1, type: 3}
+  - {fileID: 8605956544606621573, guid: 6d0471b9d85cb3d44a4eb0bea152407e, type: 3}
+  deckEditorTypeIconTemplates:
+  - {fileID: 6123861832460843132, guid: af787512e5773b24a992c3ed11c5d969, type: 3}
+  - {fileID: 2799466649350214131, guid: 5167fd9f11a3f0e44a404feedd1f41a1, type: 3}
+  - {fileID: 5817459760158908400, guid: a5f1fa2207b63a44c96257e1a30092dd, type: 3}
+  - {fileID: -7884247283596142907, guid: 53f501838e82c2b4d8d0db52b422864c, type: 3}
+  - {fileID: -5496665146819337707, guid: ee701ee970c983446bbf04c94266053a, type: 3}
+  - {fileID: 1832371805822345609, guid: ad27a231cd3192b4cbeaabe14985f738, type: 3}
+  - {fileID: -4484411611792290966, guid: 6e38bf1fdcf17db4abd0cd13cc2ada76, type: 3}
+  - {fileID: 1383416921049099307, guid: 57514add4585b0040a0c657172a32324, type: 3}
+  - {fileID: -2722446464792942489, guid: d2468d35d803b764181a0ecf1613f1fb, type: 3}
+  - {fileID: -9177908812363513333, guid: 6ba4e20b27fe16d4487bf9d783e12a1e, type: 3}
+  - {fileID: -1582830776659738494, guid: 18129fd8624ea554f8caef8ff1e6a9e5, type: 3}
+  - {fileID: -3677640513028832434, guid: 357ea2b6c723217418ebfda7bee7f75a, type: 3}
+  - {fileID: 5348374685214027288, guid: 021b414fb795b1647a0f5f5353ae0b32, type: 3}
+  - {fileID: 79323651952207968, guid: a809ec10f5c3972439c13e1753ac406e, type: 3}
+  - {fileID: -246558423055954530, guid: ba3bf57fff2d05c40bcec1693b4a1d9a, type: 3}
+  - {fileID: 4984751758022799425, guid: b8a72a13c151c054b9fcadfb46f5d3ca, type: 3}
+  - {fileID: 4749082865260305014, guid: 976cdb81cc245ae47b423b3033ff9025, type: 3}
+  - {fileID: -3579898928088361677, guid: 70fd853dbf2df5f4d85a3acd88f5e05d, type: 3}
+  - {fileID: 1245691535299658852, guid: 261ab009e8a93b34ca596781ce52cdc9, type: 3}
+  - {fileID: 7856060098241820167, guid: 6ff282e6e4b8e654baec15341f2c5848, type: 3}
+  - {fileID: 2296911562457112072, guid: 4122a69c2eea97d49afc7bb5abd61f41, type: 3}
+  - {fileID: 8570060873187775176, guid: 672e9cd197ac9514ab8d8bb97937e215, type: 3}
+  - {fileID: 3702817124732798413, guid: b5e68c9a7bfa00241aefc456babf74a0, type: 3}
+  - {fileID: -8795156840706257820, guid: c3876350f2af17045bf8b5012192b3f1, type: 3}
+  - {fileID: -7489564826502236253, guid: c3fdf1b7397145245bea1961ab56b003, type: 3}
   authorizedCoinRecipientsCatalog: {fileID: 11400000, guid: 9f4e80118582406d8969147dcff218fe, type: 2}
   editorPreviewVersion: 3
   editorPreviewScreen: 2

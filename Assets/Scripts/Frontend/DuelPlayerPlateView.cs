@@ -274,10 +274,9 @@ namespace ArcaneArena.Frontend
             if (text == null)
                 return;
             SetRect(text.rectTransform, min, max);
-            text.font ??=
-                Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = MasterDuelTypography.Resolve(FontStyle.Bold, size);
             text.fontSize = size;
-            text.fontStyle = FontStyle.Bold;
+            text.fontStyle = FontStyle.Normal;
             text.color = color;
             text.alignment = alignment;
             text.resizeTextForBestFit = true;

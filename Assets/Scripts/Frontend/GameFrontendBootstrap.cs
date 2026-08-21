@@ -26,7 +26,7 @@ namespace ArcaneArena.Frontend
         private const string LoginSceneName = "Login";
         private const string DeckEditorSceneName = "DeckEditor";
         private const string DuelArenaSceneName = "DuelArena";
-        public const int CurrentEditorPreviewVersion = 4;
+        public const int CurrentEditorPreviewVersion = 5;
 
         private static readonly Color Background = Hex("#040812");
         private static readonly Color Panel = Hex("#091426");
@@ -280,6 +280,12 @@ namespace ArcaneArena.Frontend
         {
             _editorLayoutOverrides.Clear();
             _editorLayoutPaths.Clear();
+            // Uma prévia serializada de versão anterior não deve substituir
+            // a composição atual do editor em runtime. Ao reconstruir a cena,
+            // a nova versão volta a ser capturada e permanece editável.
+            if (NeedsEditorPreviewRebuild)
+                return;
+
             var fullEditorPreview =
                 FindDescendantByName(
                     transform,
@@ -791,7 +797,7 @@ namespace ArcaneArena.Frontend
 
         private void BuildCanvas()
         {
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _font = MasterDuelTypography.Resolve(FontStyle.Normal, 17);
             var canvasObject = new GameObject(
                 "Frontend Canvas",
                 typeof(RectTransform),
@@ -2148,23 +2154,7 @@ namespace ArcaneArena.Frontend
             _selectedDeck = null;
             _editingDeck = null;
             ClearScreen();
-            BuildSharedBackground("MEUS DECKS");
-            BuildHeader(
-                $"MEUS DECKS   {_repository.State.decks.Count}",
-                ReturnToMainMenuScene);
-
-            var content = CreateScrollGrid(
-                _screenRoot,
-                "Galeria de Decks",
-                new Vector2(0.055f, 0.09f),
-                new Vector2(0.945f, 0.86f),
-                new Vector2(330f, 265f),
-                new Vector2(26f, 24f),
-                4);
-
-            CreateNewDeckTile(content);
-            foreach (var deck in _repository.State.decks)
-                CreateDeckTile(content, deck);
+            BuildDeckWorkshopGallery();
         }
 
         private void ShowDeckShop()
@@ -2492,108 +2482,7 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             _selectedDeck = deck;
             ClearScreen();
-            BuildSharedBackground("DETALHES DO DECK");
-            BuildHeader(deck.displayName, ShowDeckGallery);
-
-            var panel = CreatePanel(
-                _screenRoot,
-                "Detalhes",
-                new Vector2(0.09f, 0.14f),
-                new Vector2(0.91f, 0.83f),
-                new Color(0.012f, 0.035f, 0.065f, 0.97f));
-            AddOutline(panel.gameObject, new Color(Cyan.r, Cyan.g, Cyan.b, 0.72f), new Vector2(3f, -3f));
-
-            CreateDeckCaseVisual(
-                panel.transform,
-                deck.caseTheme,
-                new Vector2(0.07f, 0.30f),
-                new Vector2(0.28f, 0.78f));
-            CreateFeaturedCards(
-                panel.transform,
-                deck,
-                new Vector2(0.30f, 0.25f),
-                new Vector2(0.67f, 0.82f));
-
-            CreateText(
-                panel.transform,
-                "STANDARD",
-                20,
-                FontStyle.Bold,
-                Blue,
-                new Vector2(0.70f, 0.71f),
-                new Vector2(0.93f, 0.81f),
-                TextAnchor.MiddleCenter);
-            CreateText(
-                panel.transform,
-                deck.displayName,
-                34,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.69f, 0.53f),
-                new Vector2(0.94f, 0.70f),
-                TextAnchor.MiddleCenter);
-            CreateText(
-                panel.transform,
-                $"DECK PRINCIPAL\n{deck.mainDeckCardIds.Count} / {MainDeckMinimum}–{MainDeckMaximum}",
-                20,
-                FontStyle.Bold,
-                deck.mainDeckCardIds.Count >= MainDeckMinimum
-                    ? Lime
-                    : Gold,
-                new Vector2(0.70f, 0.34f),
-                new Vector2(0.93f, 0.51f),
-                TextAnchor.MiddleCenter);
-            CreateText(
-                panel.transform,
-                $"DECK ADICIONAL\n{deck.extraDeckCardIds.Count} / {ExtraDeckMaximum}",
-                18,
-                FontStyle.Bold,
-                Cyan,
-                new Vector2(0.70f, 0.19f),
-                new Vector2(0.93f, 0.34f),
-                TextAnchor.MiddleCenter);
-
-            var isSelected = _repository.IsSelected(deck);
-            var selectionStatus = CreateText(
-                panel.transform,
-                isSelected
-                    ? "✓ ESTE É O DECK ATIVO PARA O PRÓXIMO DUELO"
-                    : "Este deck ainda não foi escolhido para o duelo.",
-                15,
-                FontStyle.Bold,
-                isSelected ? Lime : Muted,
-                new Vector2(0.08f, 0.125f),
-                new Vector2(0.92f, 0.19f),
-                TextAnchor.MiddleCenter);
-
-            CreateButton(
-                panel.transform,
-                isSelected
-                    ? "✓ DECK SELECIONADO"
-                    : "USAR NO DUELO",
-                new Vector2(0.08f, 0.025f),
-                new Vector2(0.47f, 0.12f),
-                isSelected ? Lime : Cyan,
-                () =>
-                {
-                    if (_repository.TrySelectDeck(
-                            deck.deckId,
-                            out var rejection))
-                    {
-                        ShowDeckDetails(deck);
-                        return;
-                    }
-
-                    selectionStatus.text = rejection;
-                    selectionStatus.color = Danger;
-                });
-            CreateButton(
-                panel.transform,
-                "EDITAR DECK",
-                new Vector2(0.53f, 0.025f),
-                new Vector2(0.92f, 0.12f),
-                Lime,
-                () => ShowDeckEditor(deck));
+            BuildDeckWorkshopDetails(deck);
         }
 
         private void ShowDeckEditor(DeckRecord deck)
@@ -2671,48 +2560,48 @@ namespace ArcaneArena.Frontend
                 });
 
             BuildCraftWalletBar();
-            BuildDeckEditorDetailsPanel();
+            Image detailsPanel = BuildDeckEditorDetailsPanel();
 
             var deckPanel = CreatePanel(
                 _screenRoot,
                 "Composição do Deck",
-                new Vector2(0.285f, 0.035f),
+                new Vector2(0.272f, 0.035f),
                 new Vector2(0.69f, 0.825f),
                 new Color(0.01f, 0.03f, 0.055f, 0.97f));
-            if (deckIsSelected)
-            {
-                CreateText(
-                    deckPanel.transform,
-                    deckIsDuelLegal
-                        ? "✓ SELECIONADO PARA O DUELO"
-                        : "⚠ SELECIONADO, MAS AINDA INVÁLIDO",
-                    13,
-                    FontStyle.Bold,
-                    deckIsDuelLegal ? Lime : Gold,
-                    new Vector2(0.52f, 0.92f),
-                    new Vector2(0.97f, 0.98f),
-                    TextAnchor.MiddleRight);
-            }
-
-            CreateText(
+            Image mainDeckHeader = CreatePanel(
                 deckPanel.transform,
+                "Cabeçalho do Deck Principal",
+                new Vector2(0.02f, 0.91f),
+                new Vector2(0.98f, 0.985f),
+                new Color(0.018f, 0.105f, 0.085f, 0.96f));
+            AddOutline(
+                mainDeckHeader.gameObject,
+                new Color(DeckEmerald.r, DeckEmerald.g, DeckEmerald.b, 0.55f),
+                new Vector2(1f, -1f));
+            CreateText(
+                mainDeckHeader.transform,
                 $"DECK PRINCIPAL   {deck.mainDeckCardIds.Count}",
-                22,
+                19,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.025f, 0.91f),
-                new Vector2(0.70f, 0.985f),
+                new Vector2(0.025f, 0.04f),
+                new Vector2(0.67f, 0.96f),
                 TextAnchor.MiddleLeft);
             CreateText(
-                deckPanel.transform,
-                $"{MainDeckMinimum}–{MainDeckMaximum} cartas",
-                14,
+                mainDeckHeader.transform,
+                $"{MainDeckMinimum}–{MainDeckMaximum} CARTAS" +
+                (deckIsSelected
+                    ? deckIsDuelLegal ? "  •  ATIVO" : "  •  INVÁLIDO"
+                    : string.Empty),
+                12,
                 FontStyle.Bold,
-                deck.mainDeckCardIds.Count >= MainDeckMinimum
-                    ? Lime
-                    : Gold,
-                new Vector2(0.70f, 0.91f),
-                new Vector2(0.97f, 0.985f),
+                deckIsSelected && !deckIsDuelLegal
+                    ? Gold
+                    : deck.mainDeckCardIds.Count >= MainDeckMinimum
+                        ? Lime
+                        : Gold,
+                new Vector2(0.62f, 0.04f),
+                new Vector2(0.975f, 0.96f),
                 TextAnchor.MiddleRight);
 
             var mainCellSize = CalculateResponsiveDeckCellSize(
@@ -2720,15 +2609,15 @@ namespace ArcaneArena.Frontend
                 MainDeckGridColumns,
                 740f,
                 493f,
-                new Vector2(70f, 102f),
-                new Vector2(5f, 5f));
+                new Vector2(72f, 105f),
+                new Vector2(4f, 4f));
             var mainContent = CreateFixedGrid(
                 deckPanel.transform,
                 "Cartas do Deck Principal",
                 new Vector2(0.02f, 0.345f),
                 new Vector2(0.98f, 0.90f),
                 mainCellSize,
-                new Vector2(5f, 5f),
+                new Vector2(4f, 4f),
                 MainDeckGridColumns,
                 out _mainDropZone);
             PopulateDeckSection(
@@ -2736,29 +2625,39 @@ namespace ArcaneArena.Frontend
                 deck.mainDeckCardIds,
                 false);
 
-            CreateText(
+            Image extraDeckHeader = CreatePanel(
                 deckPanel.transform,
+                "Cabeçalho do Deck Adicional",
+                new Vector2(0.02f, 0.275f),
+                new Vector2(0.98f, 0.34f),
+                new Color(0.015f, 0.075f, 0.092f, 0.96f));
+            AddOutline(
+                extraDeckHeader.gameObject,
+                new Color(DeckMint.r, DeckMint.g, DeckMint.b, 0.48f),
+                new Vector2(1f, -1f));
+            CreateText(
+                extraDeckHeader.transform,
                 $"DECK ADICIONAL   {deck.extraDeckCardIds.Count} / {ExtraDeckMaximum}",
-                20,
+                17,
                 FontStyle.Bold,
                 Cyan,
-                new Vector2(0.025f, 0.275f),
-                new Vector2(0.97f, 0.34f),
+                new Vector2(0.025f, 0.04f),
+                new Vector2(0.97f, 0.96f),
                 TextAnchor.MiddleLeft);
             var extraCellSize = CalculateResponsiveDeckCellSize(
                 deck.extraDeckCardIds.Count,
                 10,
                 740f,
                 212f,
-                new Vector2(61f, 89f),
-                new Vector2(6f, 5f));
+                new Vector2(64f, 93f),
+                new Vector2(4f, 4f));
             var extraContent = CreateFixedGrid(
                 deckPanel.transform,
                 "Cartas do Deck Adicional",
                 new Vector2(0.02f, 0.035f),
                 new Vector2(0.98f, 0.27f),
                 extraCellSize,
-                new Vector2(6f, 5f),
+                new Vector2(4f, 4f),
                 10,
                 out _extraDropZone);
             PopulateDeckSection(
@@ -2769,7 +2668,7 @@ namespace ArcaneArena.Frontend
             var collectionPanel = CreatePanel(
                 _screenRoot,
                 "Lista de Cartas",
-                new Vector2(0.70f, 0.035f),
+                new Vector2(0.702f, 0.035f),
                 new Vector2(0.985f, 0.825f),
                 new Color(0.01f, 0.03f, 0.055f, 0.98f));
             AddOutline(collectionPanel.gameObject, new Color(Lime.r, Lime.g, Lime.b, 0.65f), new Vector2(2f, -2f));
@@ -2777,13 +2676,13 @@ namespace ArcaneArena.Frontend
             var listTab = CreatePanel(
                 collectionPanel.transform,
                 "Aba Lista de Cartas",
-                new Vector2(0.02f, 0.91f),
-                new Vector2(0.48f, 0.99f),
+                new Vector2(0.03f, 0.925f),
+                new Vector2(0.40f, 0.99f),
                 new Color(Lime.r, Lime.g, Lime.b, 0.96f));
             CreateText(
                 listTab.transform,
-                "▣  LISTA DE CARTAS",
-                20,
+                "▣  COLEÇÃO",
+                15,
                 FontStyle.Bold,
                 Ink,
                 new Vector2(0.04f, 0.03f),
@@ -2793,23 +2692,23 @@ namespace ArcaneArena.Frontend
             CreateCatalogControlButton(
                 collectionPanel.transform,
                 "A–Z",
-                new Vector2(0.51f, 0.91f),
-                new Vector2(0.72f, 0.99f),
+                new Vector2(0.43f, 0.925f),
+                new Vector2(0.63f, 0.99f),
                 Cyan,
                 ToggleCatalogSort);
             CreateCatalogControlButton(
                 collectionPanel.transform,
                 "LIMPAR",
-                new Vector2(0.75f, 0.91f),
-                new Vector2(0.98f, 0.99f),
+                new Vector2(0.66f, 0.925f),
+                new Vector2(0.97f, 0.99f),
                 Gold,
                 ResetCatalogFilters);
 
             _catalogSearchInput = CreateSearchField(
                 collectionPanel.transform,
                 "BUSCAR POR NOME, TIPO OU ID...",
-                new Vector2(0.03f, 0.82f),
-                new Vector2(0.97f, 0.895f));
+                new Vector2(0.03f, 0.842f),
+                new Vector2(0.97f, 0.914f));
             _catalogSearchInput.text = _catalogSearch;
             _catalogSearchInput.onValueChanged.AddListener(value =>
             {
@@ -2823,35 +2722,35 @@ namespace ArcaneArena.Frontend
                     collectionPanel.transform,
                     "TODAS",
                     CardCategory.Unknown,
-                    new Vector2(0.03f, 0.745f),
-                    new Vector2(0.255f, 0.805f));
+                    new Vector2(0.03f, 0.765f),
+                    new Vector2(0.255f, 0.828f));
             _catalogFilterButtons[CardCategory.Monster] =
                 CreateCatalogFilterButton(
                     collectionPanel.transform,
                     "MONSTROS",
                     CardCategory.Monster,
-                    new Vector2(0.275f, 0.745f),
-                    new Vector2(0.50f, 0.805f));
+                    new Vector2(0.275f, 0.765f),
+                    new Vector2(0.50f, 0.828f));
             _catalogFilterButtons[CardCategory.Spell] =
                 CreateCatalogFilterButton(
                     collectionPanel.transform,
                     "MAGIAS",
                     CardCategory.Spell,
-                    new Vector2(0.52f, 0.745f),
-                    new Vector2(0.745f, 0.805f));
+                    new Vector2(0.52f, 0.765f),
+                    new Vector2(0.745f, 0.828f));
             _catalogFilterButtons[CardCategory.Trap] =
                 CreateCatalogFilterButton(
                     collectionPanel.transform,
                     "ARMAD.",
                     CardCategory.Trap,
-                    new Vector2(0.765f, 0.745f),
-                    new Vector2(0.97f, 0.805f));
+                    new Vector2(0.765f, 0.765f),
+                    new Vector2(0.97f, 0.828f));
 
             _catalogContent = CreateScrollGrid(
                 collectionPanel.transform,
                 "Catálogo",
                 new Vector2(0.03f, 0.09f),
-                new Vector2(0.97f, 0.73f),
+                new Vector2(0.97f, 0.75f),
                 new Vector2(76f, 111f),
                 new Vector2(6f, 8f),
                 6);
@@ -2870,15 +2769,22 @@ namespace ArcaneArena.Frontend
             RebuildCatalog();
             ShowInitialDeckEditorCard(deck);
             ApplyEditorLayoutOverrides();
+            ApplyDeckWorkshopEditorVisuals(
+                deck,
+                detailsPanel,
+                deckPanel,
+                collectionPanel,
+                deckIsSelected,
+                deckIsDuelLegal);
         }
 
-        private void BuildDeckEditorDetailsPanel()
+        private Image BuildDeckEditorDetailsPanel()
         {
             var panel = CreatePanel(
                 _screenRoot,
                 "Detalhes da Carta",
                 new Vector2(0.015f, 0.035f),
-                new Vector2(0.275f, 0.825f),
+                new Vector2(0.26f, 0.825f),
                 new Color(0.008f, 0.026f, 0.045f, 0.98f));
             AddOutline(
                 panel.gameObject,
@@ -2900,7 +2806,7 @@ namespace ArcaneArena.Frontend
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.045f, 0.915f),
-                new Vector2(0.955f, 0.985f),
+                new Vector2(0.84f, 0.985f),
                 TextAnchor.MiddleCenter);
             _deckEditorDetailName.gameObject.name =
                 "NOMECARD";
@@ -2908,8 +2814,8 @@ namespace ArcaneArena.Frontend
             var artworkFrame = CreatePanel(
                 panel.transform,
                 "Moldura da Arte",
-                new Vector2(0.06f, 0.49f),
-                new Vector2(0.94f, 0.905f),
+                new Vector2(0.055f, 0.56f),
+                new Vector2(0.58f, 0.875f),
                 new Color(0.025f, 0.105f, 0.15f, 0.98f));
             AddOutline(
                 artworkFrame.gameObject,
@@ -2940,37 +2846,20 @@ namespace ArcaneArena.Frontend
             CreateText(
                 panel.transform,
                 "CLIQUE / TOQUE PARA AMPLIAR",
-                13,
+                10,
                 FontStyle.Bold,
                 Cyan,
-                new Vector2(0.05f, 0.455f),
-                new Vector2(0.95f, 0.49f),
+                new Vector2(0.05f, 0.525f),
+                new Vector2(0.95f, 0.558f),
                 TextAnchor.MiddleCenter);
 
-            _deckEditorDetailType = CreateText(
-                panel.transform,
-                "TIPO • ATRIBUTO • NÍVEL",
-                16,
-                FontStyle.Bold,
-                Gold,
-                new Vector2(0.05f, 0.395f),
-                new Vector2(0.95f, 0.455f),
-                TextAnchor.MiddleCenter);
-            _deckEditorDetailStats = CreateText(
-                panel.transform,
-                "ATK —  /  DEF —",
-                18,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.05f, 0.345f),
-                new Vector2(0.95f, 0.395f),
-                TextAnchor.MiddleCenter);
+            BuildDeckEditorCombatInformation(panel.transform);
 
             var effectHeader = CreatePanel(
                 panel.transform,
                 "Cabeçalho do Efeito",
-                new Vector2(0.035f, 0.255f),
-                new Vector2(0.965f, 0.30f),
+                new Vector2(0.035f, 0.435f),
+                new Vector2(0.965f, 0.48f),
                 new Color(0.08f, 0.19f, 0.28f, 0.98f));
             _deckEditorEffectHeader = effectHeader;
             CreateText(
@@ -2987,9 +2876,10 @@ namespace ArcaneArena.Frontend
                 panel.transform,
                 "Texto da Carta",
                 new Vector2(0.035f, 0.115f),
-                new Vector2(0.965f, 0.25f));
+                new Vector2(0.965f, 0.425f));
             BuildDeckEditorCraftActions(panel.transform);
             BuildDeckEditorZoomViewer();
+            return panel;
         }
 
         private void BuildDeckEditorZoomViewer()
@@ -3124,41 +3014,7 @@ namespace ArcaneArena.Frontend
                 _deckEditorDetailName.text = entry.DisplayName;
             ApplyDeckEditorCardTheme(entry);
 
-            if (_deckEditorDetailType != null)
-            {
-                if (entry.Category == CardCategory.Monster)
-                {
-                    var attribute =
-                        BuiltInCardDatabase.AttributeLabel(entry.Attribute);
-                    _deckEditorDetailType.text =
-                        $"{entry.TypeName}  •  {attribute}  •  " +
-                        $"NÍVEL {entry.Level}\n{entry.RaceName}";
-                    _deckEditorDetailType.color = Gold;
-                }
-                else
-                {
-                    var category = entry.Category == CardCategory.Spell
-                        ? "CARTA DE MAGIA"
-                        : entry.Category == CardCategory.Trap
-                            ? "CARTA DE ARMADILHA"
-                            : "CARTA";
-                    _deckEditorDetailType.text =
-                        $"{category}  •  {entry.TypeName}";
-                    _deckEditorDetailType.color =
-                        entry.Category == CardCategory.Trap
-                            ? new Color(0.98f, 0.4f, 0.78f)
-                            : Cyan;
-                }
-            }
-
-            if (_deckEditorDetailStats != null)
-            {
-                _deckEditorDetailStats.text =
-                    entry.Category == CardCategory.Monster
-                        ? $"ATK {FormatCardStat(entry.Attack)}   /   " +
-                          $"DEF {FormatCardStat(entry.Defense)}"
-                        : $"ID  {DeckRepository.StableCardId(entry)}";
-            }
+            RefreshDeckEditorCombatInformation(entry);
             if (_deckEditorDetailEffect != null)
             {
                 _deckEditorDetailEffect.text =
@@ -3193,15 +3049,22 @@ namespace ArcaneArena.Frontend
                 if (entry == null || entry.Artwork == null)
                     continue;
 
-                var card = CreateCardArtwork(
+                Image slot = CreatePanel(
                     parent,
+                    $"Célula da carta {cardId}",
+                    Vector2.zero,
+                    Vector2.one,
+                    Color.clear);
+                slot.raycastTarget = false;
+                var card = CreateCardArtwork(
+                    slot.transform,
                     entry.Artwork,
                     Vector2.zero,
                     Vector2.one,
                     0f,
                     false);
                 AddBanlistBadge(card.transform, cardId);
-                AddCardRarityBadge(card.transform, entry);
+                AddCardRarityBadge(slot.transform, entry);
                 var removeIndex = i;
                 var trigger = card.gameObject.AddComponent<EventTrigger>();
                 AddTrigger(
@@ -3261,15 +3124,22 @@ namespace ArcaneArena.Frontend
                 if (!uniqueIds.Add(cardId))
                     continue;
 
-                var card = CreateCardArtwork(
+                Image slot = CreatePanel(
                     parent,
+                    $"Célula da coleção {cardId}",
+                    Vector2.zero,
+                    Vector2.one,
+                    Color.clear);
+                slot.raycastTarget = false;
+                var card = CreateCardArtwork(
+                    slot.transform,
                     entry.Artwork,
                     Vector2.zero,
                     Vector2.one,
                     0f,
                     false);
                 AddBanlistBadge(card.transform, cardId);
-                AddCardRarityBadge(card.transform, entry);
+                AddCardRarityBadge(slot.transform, entry);
                 var outlineColor = entry.Category == CardCategory.Spell
                     ? new Color(0.1f, 0.86f, 0.74f, 0.8f)
                     : entry.Category == CardCategory.Trap
@@ -3289,34 +3159,38 @@ namespace ArcaneArena.Frontend
                         "Carta não adquirida",
                         Vector2.zero,
                         Vector2.one,
-                        new Color(0.01f, 0.02f, 0.04f, 0.72f));
+                        new Color(0.005f, 0.015f, 0.025f, 0.48f));
                     lockOverlay.raycastTarget = false;
                     var lockText = CreateText(
                         lockOverlay.transform,
-                        "🔒\nBLOQUEADA",
-                        11,
+                        "NÃO OBTIDA",
+                        8,
                         FontStyle.Bold,
-                        Color.white,
-                        new Vector2(0.03f, 0.28f),
-                        new Vector2(0.97f, 0.72f),
-                        TextAnchor.MiddleCenter);
+                        new Color(0.78f, 0.84f, 0.88f, 0.92f),
+                        new Vector2(0.05f, 0.04f),
+                        new Vector2(0.63f, 0.18f),
+                        TextAnchor.MiddleLeft);
                     lockText.raycastTarget = false;
                 }
                 var quantityBadge = CreatePanel(
                     card.transform,
                     "Quantidade possuída",
-                    new Vector2(0.66f, 0.015f),
-                    new Vector2(0.98f, 0.215f),
-                    ownedCopies > 0
-                        ? new Color(Lime.r, Lime.g, Lime.b, 0.94f)
-                        : new Color(Danger.r, Danger.g, Danger.b, 0.94f));
+                    new Vector2(0.72f, 0.02f),
+                    new Vector2(0.98f, 0.18f),
+                    new Color(0.005f, 0.012f, 0.02f, 0.92f));
                 quantityBadge.raycastTarget = false;
+                AddOutline(
+                    quantityBadge.gameObject,
+                    ownedCopies > 0
+                        ? new Color(DeckMint.r, DeckMint.g, DeckMint.b, 0.78f)
+                        : new Color(Muted.r, Muted.g, Muted.b, 0.52f),
+                    new Vector2(1f, -1f));
                 var quantityText = CreateText(
                     quantityBadge.transform,
                     $"×{ownedCopies}",
-                    12,
+                    10,
                     FontStyle.Bold,
-                    ownedCopies > 0 ? Ink : Color.white,
+                    ownedCopies > 0 ? Color.white : Muted,
                     Vector2.zero,
                     Vector2.one,
                     TextAnchor.MiddleCenter);
@@ -3385,10 +3259,14 @@ namespace ArcaneArena.Frontend
                 }
             }
 
+            Color professionalTint = Color.Lerp(
+                new Color(0.008f, 0.035f, 0.032f, 1f),
+                tint,
+                0.58f);
             if (_deckEditorCardHeader != null)
-                _deckEditorCardHeader.color = tint;
+                _deckEditorCardHeader.color = professionalTint;
             if (_deckEditorEffectHeader != null)
-                _deckEditorEffectHeader.color = tint;
+                _deckEditorEffectHeader.color = professionalTint;
         }
 
         private void RebuildCatalog()
@@ -4015,7 +3893,8 @@ namespace ArcaneArena.Frontend
             presenter.ShowSceneLoading(
                 "CARREGANDO EDITOR DE DECKS",
                 "Preparando suas cartas e ferramentas de edicao.",
-                () => SceneManager.LoadScene(DeckEditorSceneName));
+                LoadingCardMotionStyle.DeckFan,
+                DeckEditorSceneName);
         }
 
         private void ReturnToMainMenuScene()
@@ -4482,47 +4361,40 @@ namespace ArcaneArena.Frontend
                 "Porta-Deck",
                 min,
                 max,
-                color);
+                Color.clear);
             var caseSprite = ResolveDeckCaseSprite(theme);
             if (caseSprite != null)
             {
                 box.sprite = caseSprite;
                 box.preserveAspect = true;
                 box.color = Color.white;
-            }
-            AddOutline(
-                box.gameObject,
-                new Color(0.75f, 0.9f, 1f, 0.85f),
-                new Vector2(3f, -3f));
-            if (caseSprite != null)
+                AddOutline(
+                    box.gameObject,
+                    new Color(0.75f, 0.9f, 1f, 0.85f),
+                    new Vector2(3f, -3f));
                 return;
+            }
 
-            CreatePanel(
-                box.transform,
-                "Lombada",
-                new Vector2(0.02f, 0.03f),
-                new Vector2(0.16f, 0.97f),
-                Color.Lerp(color, Color.black, 0.42f));
-            CreatePanel(
-                box.transform,
-                "Tampa",
-                new Vector2(0.17f, 0.68f),
-                new Vector2(0.96f, 0.96f),
-                Color.Lerp(color, Color.white, 0.18f));
-            CreatePanel(
-                box.transform,
-                "Emblema",
-                new Vector2(0.34f, 0.23f),
-                new Vector2(0.79f, 0.61f),
-                new Color(0.01f, 0.03f, 0.08f, 0.72f));
+            GameObject caseObject = new(
+                "Porta-Deck tridimensional",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(ArcaneDeckCase3DGraphic));
+            caseObject.transform.SetParent(box.transform, false);
+            RectTransform caseRect = caseObject.GetComponent<RectTransform>();
+            Stretch(caseRect);
+            ArcaneDeckCase3DGraphic caseGraphic =
+                caseObject.GetComponent<ArcaneDeckCase3DGraphic>();
+            caseGraphic.raycastTarget = false;
+            caseGraphic.SetStyle(color, DeckEmerald);
             CreateText(
                 box.transform,
-                "ARCANE\nDECK",
-                14,
+                "MD2PU\nDECK",
+                11,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.35f, 0.24f),
-                new Vector2(0.78f, 0.60f),
+                new Vector2(0.31f, 0.12f),
+                new Vector2(0.86f, 0.32f),
                 TextAnchor.MiddleCenter);
         }
 
@@ -4696,7 +4568,7 @@ namespace ArcaneArena.Frontend
             textRect.sizeDelta = new Vector2(0f, 24f);
 
             var text = textObject.GetComponent<Text>();
-            text.font = _font;
+            text.font = MasterDuelTypography.Resolve(FontStyle.Normal, 17);
             text.fontSize = 17;
             text.fontStyle = FontStyle.Normal;
             text.color = Color.white;
@@ -5128,9 +5000,12 @@ namespace ArcaneArena.Frontend
 
             var text = item.GetComponent<Text>();
             text.text = value;
-            text.font = _font;
+            text.font = MasterDuelTypography.Resolve(style, size);
             text.fontSize = size;
-            text.fontStyle = style;
+            text.fontStyle = style == FontStyle.Italic ||
+                             style == FontStyle.BoldAndItalic
+                ? FontStyle.Italic
+                : FontStyle.Normal;
             text.color = color;
             text.alignment = alignment;
             text.resizeTextForBestFit = true;

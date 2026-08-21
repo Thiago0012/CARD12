@@ -53,9 +53,9 @@ namespace ArcaneArena.Frontend
             labelRect.offsetMin = new Vector2(8f, 4f);
             labelRect.offsetMax = new Vector2(-8f, -4f);
             var label = labelObject.GetComponent<Text>();
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.font = MasterDuelTypography.Resolve(FontStyle.Bold, 13);
             label.fontSize = 13;
-            label.fontStyle = FontStyle.Bold;
+            label.fontStyle = FontStyle.Normal;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
             label.raycastTarget = false;

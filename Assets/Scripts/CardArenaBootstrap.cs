@@ -176,7 +176,7 @@ namespace ArcaneArena
                     gameObject.SetActive(false);
                 return;
             }
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            font = MasterDuelTypography.Resolve(FontStyle.Normal, 17);
             core = GetComponent<DuelArenaController>();
             if (core == null)
                 core = gameObject.AddComponent<DuelArenaController>();
@@ -4781,10 +4781,13 @@ namespace ArcaneArena
             rect.anchorMax = anchorMax;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
             Text text = root.GetComponent<Text>();
-            text.font = font;
+            text.font = MasterDuelTypography.Resolve(style, size);
             text.text = value;
             text.fontSize = size;
-            text.fontStyle = style;
+            text.fontStyle = style == FontStyle.Italic ||
+                             style == FontStyle.BoldAndItalic
+                ? FontStyle.Italic
+                : FontStyle.Normal;
             text.color = color;
             text.alignment = alignment;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;

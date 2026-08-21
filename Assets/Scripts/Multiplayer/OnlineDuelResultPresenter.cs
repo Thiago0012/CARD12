@@ -1,4 +1,5 @@
 using System;
+using ArcaneArena.Frontend;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 using UnityEngine.UI;
@@ -104,7 +105,7 @@ namespace ArcaneArena.Multiplayer
             if (canvas != null)
                 return;
 
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            Font font = MasterDuelTypography.Resolve(FontStyle.Normal, 17);
             GameObject canvasObject = new GameObject(
                 "OnlineDuelResultCanvas",
                 typeof(RectTransform),
@@ -424,9 +425,12 @@ namespace ArcaneArena.Multiplayer
             value.transform.SetParent(parent, false);
             Stretch(value.GetComponent<RectTransform>(), anchorMin, anchorMax);
             Text text = value.GetComponent<Text>();
-            text.font = font;
+            text.font = MasterDuelTypography.Resolve(style, size);
             text.fontSize = size;
-            text.fontStyle = style;
+            text.fontStyle = style == FontStyle.Italic ||
+                             style == FontStyle.BoldAndItalic
+                ? FontStyle.Italic
+                : FontStyle.Normal;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;

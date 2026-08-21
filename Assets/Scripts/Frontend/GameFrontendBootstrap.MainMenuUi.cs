@@ -87,12 +87,15 @@ namespace ArcaneArena.Frontend
                 _shopSceneView = null;
             }
 
-            _font = Resources.GetBuiltinResource<Font>(
-                "LegacyRuntime.ttf");
+            _font = MasterDuelTypography.Resolve(
+                FontStyle.Normal,
+                17);
             _canvas = _mainMenuSceneView.SceneCanvas;
             _canvasRect = _canvas != null
                 ? _canvas.GetComponent<RectTransform>()
                 : null;
+            if (_canvas != null)
+                MasterDuelTypography.ApplyToHierarchy(_canvas.transform);
             _screenRoot = _mainMenuSceneView.DynamicRoot;
             if (_canvas == null || _screenRoot == null)
             {
@@ -114,7 +117,11 @@ namespace ArcaneArena.Frontend
         public void MainMenuDuel()
         {
             FrontendClickAudio.Play();
-            RunMainMenuTransition(OpenBotDuelSelectionFromMainMenu);
+            RunMainMenuFeatureTransition(
+                OpenBotDuelSelectionFromMainMenu,
+                LoadingCardMotionStyle.DuelCharge,
+                "PREPARANDO DUELO",
+                "As cartas avançam para o próximo confronto.");
         }
 
         public void MainMenuDecks()
@@ -126,13 +133,21 @@ namespace ArcaneArena.Frontend
         public void MainMenuShop()
         {
             FrontendClickAudio.Play();
-            RunMainMenuTransition(ShowDeckShop);
+            RunMainMenuFeatureTransition(
+                ShowDeckShop,
+                LoadingCardMotionStyle.ShopSpiral,
+                "ABRINDO LOJA",
+                "Organizando pacotes, decks e itens exclusivos.");
         }
 
         public void MainMenuMultiplayer()
         {
             FrontendClickAudio.Play();
-            RunMainMenuTransition(ShowMultiplayerRoom);
+            RunMainMenuFeatureTransition(
+                ShowMultiplayerRoom,
+                LoadingCardMotionStyle.MultiplayerCrossflow,
+                "CONECTANDO MULTIPLAYER",
+                "Cruzando rotas para encontrar outros duelistas.");
         }
 
         public void MainMenuSettings()
@@ -164,14 +179,21 @@ namespace ArcaneArena.Frontend
                 _mainMenuAssets.duelButton,
                 new Vector2(0.0718f, 0.4692f),
                 new Vector2(0.2976f, 0.5654f),
-                () => RunMainMenuTransition(
-                    OpenBotDuelSelectionFromMainMenu));
+                () => RunMainMenuFeatureTransition(
+                    OpenBotDuelSelectionFromMainMenu,
+                    LoadingCardMotionStyle.DuelCharge,
+                    "PREPARANDO DUELO",
+                    "As cartas avançam para o próximo confronto."));
             CreateTemplateButton(
                 "MULTIPLAYER",
                 _mainMenuAssets.multiplayerButton,
                 new Vector2(0.0730f, 0.3624f),
                 new Vector2(0.2988f, 0.4586f),
-                () => RunMainMenuTransition(ShowMultiplayerRoom));
+                () => RunMainMenuFeatureTransition(
+                    ShowMultiplayerRoom,
+                    LoadingCardMotionStyle.MultiplayerCrossflow,
+                    "CONECTANDO MULTIPLAYER",
+                    "Cruzando rotas para encontrar outros duelistas."));
             CreateTemplateButton(
                 "DECKS",
                 _mainMenuAssets.decksButton,
@@ -183,7 +205,11 @@ namespace ArcaneArena.Frontend
                 _mainMenuAssets.shopButton,
                 new Vector2(0.0733f, 0.1557f),
                 new Vector2(0.2991f, 0.2519f),
-                () => RunMainMenuTransition(ShowDeckShop));
+                () => RunMainMenuFeatureTransition(
+                    ShowDeckShop,
+                    LoadingCardMotionStyle.ShopSpiral,
+                    "ABRINDO LOJA",
+                    "Organizando pacotes, decks e itens exclusivos."));
             CreateTemplateButton(
                 "CONFIGURAÇÕES",
                 _mainMenuAssets.settingsButton,
@@ -225,6 +251,30 @@ namespace ArcaneArena.Frontend
                 return;
             }
             presenter.FadeThroughBlack(action);
+        }
+
+        private static void RunMainMenuFeatureTransition(
+            Action action,
+            LoadingCardMotionStyle style,
+            string primary,
+            string secondary)
+        {
+            if (action == null)
+                return;
+            DuelOnlineSession session = DuelOnlineSession.EnsureInstance();
+            OnlineLoadingScreenPresenter presenter =
+                session != null ? session.TransitionPresenter : null;
+            if (presenter == null)
+            {
+                action.Invoke();
+                return;
+            }
+
+            presenter.ShowFeatureTransition(
+                primary,
+                secondary,
+                style,
+                action);
         }
 
         private void OpenBotDuelSelectionFromMainMenu()
