@@ -26,7 +26,7 @@ namespace ArcaneArena.Frontend
         private const string LoginSceneName = "Login";
         private const string DeckEditorSceneName = "DeckEditor";
         private const string DuelArenaSceneName = "DuelArena";
-        public const int CurrentEditorPreviewVersion = 6;
+        public const int CurrentEditorPreviewVersion = 7;
 
         private static readonly Color Background = Hex("#040812");
         private static readonly Color Panel = Hex("#091426");
@@ -2827,6 +2827,14 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.025f, 0.025f),
                 new Vector2(0.975f, 0.975f),
                 Color.clear);
+            ApplyCapturedRectTransform(
+                _deckEditorDetailArtwork.rectTransform,
+                new Vector2(0.025f, 0.025f),
+                new Vector2(0.975f, 0.975f),
+                -43.97125f,
+                -15.47515f,
+                -34.57125f,
+                -54.27515f);
             _deckEditorDetailArtwork.preserveAspect = true;
             _deckEditorDetailArtwork.raycastTarget = true;
             AddOutline(
@@ -2876,7 +2884,10 @@ namespace ArcaneArena.Frontend
                 panel.transform,
                 "Texto da Carta",
                 new Vector2(0.035f, 0.115f),
-                new Vector2(0.965f, 0.425f));
+                new Vector2(0.965f, 0.425f),
+                21,
+                0.1158185f,
+                true);
             BuildDeckEditorCraftActions(panel.transform);
             BuildDeckEditorZoomViewer();
             return panel;
@@ -4285,17 +4296,38 @@ namespace ArcaneArena.Frontend
                 var cardWidth = width * cardWidthFraction;
                 var center = min.x + width *
                     (0.5f + (i - 1) * cardSpacingFraction);
-                CreateCardArtwork(
+                Vector2 cardMin = new Vector2(
+                    center - cardWidth * 0.5f,
+                    min.y + edgeOffset);
+                Vector2 cardMax = new Vector2(
+                    center + cardWidth * 0.5f,
+                    max.y - edgeOffset);
+                Image card = CreateCardArtwork(
                     parent,
                     entry != null ? entry.Artwork : null,
-                    new Vector2(
-                        center - cardWidth * 0.5f,
-                        min.y + edgeOffset),
-                    new Vector2(
-                        center + cardWidth * 0.5f,
-                        max.y - edgeOffset),
+                    cardMin,
+                    cardMax,
                     (i - 1) * 4f,
                     true);
+                bool isCapturedDuelHubCard =
+                    i == 0 &&
+                    Mathf.Abs(cardMin.x - 0.40024f) < 0.0001f &&
+                    Mathf.Abs(cardMin.y - 0.55605f) < 0.0001f &&
+                    Mathf.Abs(cardMax.x - 0.46056f) < 0.0001f &&
+                    Mathf.Abs(cardMax.y - 0.76995f) < 0.0001f;
+                if (isCapturedDuelHubCard)
+                {
+                    ApplyCapturedRectTransform(
+                        card.rectTransform,
+                        new Vector2(0.40024f, 0.55605f),
+                        new Vector2(0.46056f, 0.76995f),
+                        -9.699997f,
+                        -0.6000061f,
+                        9.699997f,
+                        0.6000061f,
+                        1f,
+                        -0.049f);
+                }
             }
         }
 
@@ -4525,7 +4557,10 @@ namespace ArcaneArena.Frontend
             Transform parent,
             string name,
             Vector2 min,
-            Vector2 max)
+            Vector2 max,
+            int fontSize = 17,
+            float handleBottomAnchor = 0f,
+            bool stretchHandleWidth = false)
         {
             var viewport = CreatePanel(
                 parent,
@@ -4568,8 +4603,10 @@ namespace ArcaneArena.Frontend
             textRect.sizeDelta = new Vector2(0f, 24f);
 
             var text = textObject.GetComponent<Text>();
-            text.font = MasterDuelTypography.Resolve(FontStyle.Normal, 17);
-            text.fontSize = 17;
+            text.font = MasterDuelTypography.Resolve(
+                FontStyle.Normal,
+                fontSize);
+            text.fontSize = fontSize;
             text.fontStyle = FontStyle.Normal;
             text.color = Color.white;
             text.alignment = TextAnchor.UpperLeft;
@@ -4606,8 +4643,12 @@ namespace ArcaneArena.Frontend
             var handle = CreatePanel(
                 slidingArea.transform,
                 "Alça",
-                new Vector2(0.1f, 0f),
-                new Vector2(0.9f, 1f),
+                new Vector2(
+                    stretchHandleWidth ? 0f : 0.1f,
+                    handleBottomAnchor),
+                new Vector2(
+                    stretchHandleWidth ? 1f : 0.9f,
+                    1f),
                 new Color(Cyan.r, Cyan.g, Cyan.b, 0.9f));
             var scrollbar =
                 scrollbarTrack.gameObject.AddComponent<Scrollbar>();
@@ -5046,6 +5087,35 @@ namespace ArcaneArena.Frontend
             rect.anchorMax = Vector2.one;
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
+        }
+
+        /// <summary>
+        /// Persiste no gerador os valores exibidos pelo Inspector do Unity.
+        /// Right e Top usam o sinal inverso de offsetMax no RectTransform.
+        /// </summary>
+        private static void ApplyCapturedRectTransform(
+            RectTransform rect,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            float left,
+            float top,
+            float right,
+            float bottom,
+            float uniformScale = 1f,
+            float rotationZ = 0f)
+        {
+            if (rect == null)
+                return;
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = new Vector2(left, bottom);
+            rect.offsetMax = new Vector2(-right, -top);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.localScale = new Vector3(
+                uniformScale,
+                uniformScale,
+                uniformScale);
+            rect.localEulerAngles = new Vector3(0f, 0f, rotationZ);
         }
 
         private void ClearScreen()

@@ -435,7 +435,8 @@ namespace ArcaneArena.Frontend
                 deck,
                 new Vector2(0.31f, 0.08f),
                 new Vector2(0.97f, 0.91f),
-                0.51f);
+                0.51f,
+                true);
 
             bool legal = DeckRepository.TryValidateForDuel(
                 deck,
@@ -849,12 +850,38 @@ namespace ArcaneArena.Frontend
             }
         }
 
+        private static readonly Vector2[] WorkshopHeroCardMin =
+        {
+            new Vector2(0.3298f, 0.12565f),
+            new Vector2(0.4717f, 0.08f),
+            new Vector2(0.6136f, 0.12565f)
+        };
+
+        private static readonly Vector2[] WorkshopHeroCardMax =
+        {
+            new Vector2(0.6664f, 0.91f),
+            new Vector2(0.8083f, 0.91f),
+            new Vector2(0.9502001f, 0.91f)
+        };
+
+        private static readonly float[] WorkshopHeroCardLeft =
+            { -21.2f, -7.4f, -4f };
+        private static readonly float[] WorkshopHeroCardTop =
+            { -2.599991f, -16f, 5.3f };
+        private static readonly float[] WorkshopHeroCardRight =
+            { 21.2f, 7.4f, 4f };
+        private static readonly float[] WorkshopHeroCardBottom =
+            { 2.599991f, 16f, -5.3f };
+        private static readonly float[] WorkshopHeroCardRotation =
+            { 6.388f, -1.615f, -8.335f };
+
         private void CreateWorkshopFeaturedCards(
             Transform parent,
             DeckRecord deck,
             Vector2 min,
             Vector2 max,
-            float widthFraction)
+            float widthFraction,
+            bool useCapturedHeroLayout = false)
         {
             float width = max.x - min.x;
             float height = max.y - min.y;
@@ -874,13 +901,35 @@ namespace ArcaneArena.Frontend
                     (0.5f + (index - 1) * 0.215f);
                 float bottom = min.y +
                     Mathf.Abs(index - 1) * height * 0.055f;
-                CreateCardArtwork(
+                Vector2 cardMin = useCapturedHeroLayout
+                    ? WorkshopHeroCardMin[index]
+                    : new Vector2(center - cardWidth * 0.5f, bottom);
+                Vector2 cardMax = useCapturedHeroLayout
+                    ? WorkshopHeroCardMax[index]
+                    : new Vector2(center + cardWidth * 0.5f, max.y);
+                float rotation = useCapturedHeroLayout
+                    ? WorkshopHeroCardRotation[index]
+                    : (index - 1) * 7f;
+                Image card = CreateCardArtwork(
                     parent,
                     entry != null ? entry.Artwork : null,
-                    new Vector2(center - cardWidth * 0.5f, bottom),
-                    new Vector2(center + cardWidth * 0.5f, max.y),
-                    (index - 1) * 7f,
+                    cardMin,
+                    cardMax,
+                    rotation,
                     true);
+                if (useCapturedHeroLayout)
+                {
+                    ApplyCapturedRectTransform(
+                        card.rectTransform,
+                        WorkshopHeroCardMin[index],
+                        WorkshopHeroCardMax[index],
+                        WorkshopHeroCardLeft[index],
+                        WorkshopHeroCardTop[index],
+                        WorkshopHeroCardRight[index],
+                        WorkshopHeroCardBottom[index],
+                        1f,
+                        WorkshopHeroCardRotation[index]);
+                }
             }
         }
 

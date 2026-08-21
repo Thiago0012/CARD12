@@ -382,13 +382,21 @@ namespace ArcaneArena.Frontend
         private void BuildDuelHubRankPresentation()
         {
             RankPresentationModel rank = GetRankPresentation();
-            CreateRankBadgeImage(
+            Image currentRankBadge = CreateRankBadgeImage(
                 _screenRoot,
                 "Patente atual centralizada",
                 rank.Tier,
                 new Vector2(0.727f, 0.515f),
                 new Vector2(0.905f, 0.795f),
                 1f);
+            ApplyCapturedRectTransform(
+                currentRankBadge.rectTransform,
+                new Vector2(0.727f, 0.515f),
+                new Vector2(0.905f, 0.795f),
+                -9.480713f,
+                5.600006f,
+                9.480713f,
+                -5.600006f);
             CreateText(
                 _screenRoot,
                 RankRules.DisplayName(rank.Tier),
@@ -398,15 +406,26 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.704f, 0.474f),
                 new Vector2(0.911f, 0.535f),
                 TextAnchor.MiddleCenter);
-            CreateText(
+            Text currentRankPoints = CreateText(
                 _screenRoot,
-                rank.IsMaximum ? "200 PE · ELO MÁXIMO" : $"{rank.Points} PE",
-                22,
+                rank.IsMaximum
+                    ? "200 PE · ELO MÁXIMO"
+                    : $"{rank.Points} PE",
+                26,
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.726f, 0.371f),
                 new Vector2(0.900f, 0.455f),
                 TextAnchor.MiddleCenter);
+            currentRankPoints.text = rank.Points.ToString();
+            ApplyCapturedRectTransform(
+                currentRankPoints.rectTransform,
+                new Vector2(0.726f, 0.371f),
+                new Vector2(0.900f, 0.455f),
+                0f,
+                9f,
+                0f,
+                -9f);
 
             Image progressTrack = CreatePanel(
                 _screenRoot,
