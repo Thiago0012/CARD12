@@ -142,7 +142,7 @@ namespace ArcaneArena.Editor
                 Vector2.one,
                 Color.white);
             background.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
-                "Assets/Resources/Shop/ShopBackground.png");
+                "Assets/Resources/Shop/ShopBackgroundGold-v2.png");
             background.raycastTarget = false;
 
             Image veil = CreateImage(
