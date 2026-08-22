@@ -41,7 +41,6 @@ namespace ArcaneArena.Frontend
             duelButton != null &&
             decksButton != null &&
             shopButton != null &&
-            multiplayerButton != null &&
             settingsButton != null;
 
         public void Configure(

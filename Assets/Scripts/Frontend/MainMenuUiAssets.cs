@@ -8,6 +8,10 @@ namespace ArcaneArena.Frontend
     public sealed class MainMenuUiAssets : ScriptableObject
     {
         [Header("Tela inicial")]
+        [Tooltip("Arte completa do novo menu principal unificado.")]
+        public Texture2D mainMenu;
+        [Tooltip("Arte completa da Central de Duelos.")]
+        public Texture2D duelHub;
         public Texture2D hud;
         public Texture2D duelButton;
         public Texture2D decksButton;
@@ -26,7 +30,11 @@ namespace ArcaneArena.Frontend
 
         // A apresentacao visual continua disponivel mesmo se o efeito
         // sonoro opcional for renomeado ou ainda nao tiver sido importado.
+        public bool HasUnifiedDuelMenus =>
+            mainMenu != null && duelHub != null;
+
         public bool IsReady =>
+            HasUnifiedDuelMenus ||
             hud != null &&
             duelButton != null &&
             decksButton != null &&

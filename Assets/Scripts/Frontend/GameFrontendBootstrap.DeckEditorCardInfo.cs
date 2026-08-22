@@ -44,6 +44,14 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.605f, 0.56f),
                 new Vector2(0.955f, 0.905f),
                 new Color(0.006f, 0.025f, 0.035f, 0.92f));
+            ApplyCapturedRectTransform(
+                information.rectTransform,
+                new Vector2(0.605f, 0.56f),
+                new Vector2(0.955f, 0.905f),
+                0f,
+                25.278f,
+                0f,
+                -25.278f);
             information.raycastTarget = false;
             _deckEditorCombatInfoRoot = information.transform;
 
@@ -57,12 +65,21 @@ namespace ArcaneArena.Frontend
             _deckEditorDetailType = CreateText(
                 information.transform,
                 "TIPO DA CARTA",
-                11,
+                13,
                 FontStyle.Bold,
                 Gold,
                 new Vector2(0.32f, 0.69f),
                 new Vector2(0.96f, 0.96f),
                 TextAnchor.MiddleLeft);
+            ApplyCapturedRectTransform(
+                _deckEditorDetailType.rectTransform,
+                new Vector2(0.32f, 0.69f),
+                new Vector2(0.96f, 0.96f),
+                25.3f,
+                2.9069f,
+                -25.3f,
+                -2.9069f,
+                1.39f);
 
             _deckEditorDetailLevelIcon = CreatePanel(
                 information.transform,
@@ -70,16 +87,33 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.05f, 0.49f),
                 new Vector2(0.29f, 0.68f),
                 Color.clear);
+            ApplyCapturedRectTransform(
+                _deckEditorDetailLevelIcon.rectTransform,
+                new Vector2(0.05f, 0.49f),
+                new Vector2(0.29f, 0.68f),
+                -8.7604f,
+                -14.5349f,
+                -20.7606f,
+                -0.0001001358f);
             ConfigureDeckEditorInfoIcon(_deckEditorDetailLevelIcon);
             _deckEditorDetailLevel = CreateText(
                 information.transform,
                 "NÍVEL —",
-                15,
+                18,
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.33f, 0.49f),
                 new Vector2(0.68f, 0.68f),
                 TextAnchor.MiddleLeft);
+            ApplyCapturedRectTransform(
+                _deckEditorDetailLevel.rectTransform,
+                new Vector2(0.33f, 0.49f),
+                new Vector2(0.68f, 0.68f),
+                17.991f,
+                -7.2674f,
+                -17.991f,
+                7.2674f,
+                1.19f);
 
             _deckEditorDetailAttackIcon = CreatePanel(
                 information.transform,
@@ -87,6 +121,14 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.05f, 0.255f),
                 new Vector2(0.29f, 0.46f),
                 Color.clear);
+            ApplyCapturedRectTransform(
+                _deckEditorDetailAttackIcon.rectTransform,
+                new Vector2(0.05f, 0.255f),
+                new Vector2(0.29f, 0.46f),
+                -12.49505f,
+                -25.60825f,
+                -24.49505f,
+                -0.0002498627f);
             ConfigureDeckEditorInfoIcon(_deckEditorDetailAttackIcon);
             _deckEditorDetailAttack = CreateText(
                 information.transform,
@@ -104,16 +146,32 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.05f, 0.035f),
                 new Vector2(0.29f, 0.24f),
                 Color.clear);
+            ApplyCapturedRectTransform(
+                _deckEditorDetailDefenseIcon.rectTransform,
+                new Vector2(0.05f, 0.035f),
+                new Vector2(0.29f, 0.24f),
+                -12.4949f,
+                -17.0724f,
+                -24.4951f,
+                0f);
             ConfigureDeckEditorInfoIcon(_deckEditorDetailDefenseIcon);
             _deckEditorDetailDefense = CreateText(
                 information.transform,
                 "—",
-                16,
+                19,
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.33f, 0.035f),
                 new Vector2(0.96f, 0.24f),
                 TextAnchor.MiddleLeft);
+            ApplyCapturedRectTransform(
+                _deckEditorDetailDefense.rectTransform,
+                new Vector2(0.33f, 0.035f),
+                new Vector2(0.96f, 0.24f),
+                14.9f,
+                -8.5362f,
+                0f,
+                8.5362f);
 
             _deckEditorDetailStats = CreateText(
                 information.transform,

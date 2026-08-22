@@ -56,16 +56,19 @@ namespace ArcaneArena.Editor
                     authoredRoot,
                     "Moldura HUD da Tela Inicial")
                 ?.GetComponent<RawImage>();
-            Material hudOverlayMaterial =
-                MainMenuUiAssetSynchronizer.EnsureHudOverlayMaterial();
-            if (hudOverlay == null || hudOverlayMaterial == null)
+            if (hudOverlay != null)
             {
-                throw new InvalidOperationException(
-                    "A moldura recortada do Main Menu nao foi configurada.");
+                Material hudOverlayMaterial =
+                    MainMenuUiAssetSynchronizer.EnsureHudOverlayMaterial();
+                if (hudOverlayMaterial == null)
+                {
+                    throw new InvalidOperationException(
+                        "A moldura recortada do Main Menu nao foi configurada.");
+                }
+                hudOverlay.material = hudOverlayMaterial;
+                hudOverlay.raycastTarget = false;
+                EditorUtility.SetDirty(hudOverlay);
             }
-            hudOverlay.material = hudOverlayMaterial;
-            hudOverlay.raycastTarget = false;
-            EditorUtility.SetDirty(hudOverlay);
 
             var dynamicObject = new GameObject(
                 "CONTEUDO DINAMICO (NAO EDITAR)",
@@ -82,11 +85,14 @@ namespace ArcaneArena.Editor
             Button duel = FindButton(authoredRoot, "DUELAR");
             Button decks = FindButton(authoredRoot, "DECKS");
             Button shop = FindButton(authoredRoot, "LOJA");
-            Button multiplayer = FindButton(authoredRoot, "MULTIPLAYER");
+            Button multiplayer = FindButton(
+                authoredRoot,
+                "MULTIPLAYER",
+                false);
             Button settings = FindButton(authoredRoot, "CONFIG");
             Button profile = FindButton(authoredRoot, "PERFIL", false);
             if (duel == null || decks == null || shop == null ||
-                multiplayer == null || settings == null)
+                settings == null)
             {
                 throw new InvalidOperationException(
                     "Um ou mais botoes obrigatorios nao foram encontrados.");

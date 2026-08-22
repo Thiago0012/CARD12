@@ -42,6 +42,8 @@ namespace ArcaneArena.Frontend
 
             CardRarity[] rarities =
                 { CardRarity.N, CardRarity.R, CardRarity.SR, CardRarity.UR };
+            float[] capturedHorizontalOffsets =
+                { -171.8f, -180.7f, -192.2f, -201.9f };
             for (int index = 0; index < rarities.Length; index++)
             {
                 CardRarity rarity = rarities[index];
@@ -53,6 +55,15 @@ namespace ArcaneArena.Frontend
                     new Vector2(minX, 0.10f),
                     new Vector2(maxX, 0.90f),
                     new Color(0.02f, 0.065f, 0.10f, 0.98f));
+                float capturedOffset = capturedHorizontalOffsets[index];
+                ApplyCapturedRectTransform(
+                    balance.rectTransform,
+                    new Vector2(minX, 0.10f),
+                    new Vector2(maxX, 0.90f),
+                    capturedOffset,
+                    0f,
+                    -capturedOffset,
+                    0f);
                 AddOutline(
                     balance.gameObject,
                     RarityColor(rarity),
@@ -140,12 +151,21 @@ namespace ArcaneArena.Frontend
                 Transform badgeParent = artworkFrame != null
                     ? artworkFrame
                     : _deckEditorDetailArtwork.transform;
-                _deckEditorArtworkRarityBadge = CreateRarityBadge(
+                Image artworkBadge = CreateRarityBadge(
                     badgeParent,
                     entry.Rarity,
                     new Vector2(0.76f, 0.84f),
                     new Vector2(0.99f, 0.99f),
-                    12).gameObject;
+                    12);
+                ApplyCapturedRectTransform(
+                    artworkBadge.rectTransform,
+                    new Vector2(0.76f, 0.84f),
+                    new Vector2(0.99f, 0.99f),
+                    11.72275f,
+                    -31.96375f,
+                    12.44695f,
+                    51.30625f);
+                _deckEditorArtworkRarityBadge = artworkBadge.gameObject;
             }
             bool canGenerate =
                 entry.IsCraftable &&
@@ -316,12 +336,20 @@ namespace ArcaneArena.Frontend
             {
                 return;
             }
-            CreateRarityBadge(
+            Image badge = CreateRarityBadge(
                 card,
                 entry.Rarity,
                 new Vector2(0.60f, 0.72f),
                 new Vector2(0.99f, 0.995f),
                 16);
+            ApplyCapturedRectTransform(
+                badge.rectTransform,
+                new Vector2(0.60f, 0.72f),
+                new Vector2(0.99f, 0.995f),
+                -1.168f,
+                0f,
+                0f,
+                0f);
         }
 
         private static Image CreateRarityBadge(

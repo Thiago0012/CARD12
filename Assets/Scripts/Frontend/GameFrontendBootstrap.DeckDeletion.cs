@@ -17,6 +17,14 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.82f, 0.79f),
                 new Vector2(0.965f, 0.965f),
                 new Color(0.19f, 0.025f, 0.045f, 0.98f));
+            ApplyCapturedRectTransform(
+                control.rectTransform,
+                new Vector2(0.82f, 0.79f),
+                new Vector2(0.965f, 0.965f),
+                26.24125f,
+                6.6f,
+                3.24125f,
+                -6.6f);
             AddOutline(
                 control.gameObject,
                 new Color(Danger.r, Danger.g, Danger.b, 0.95f),

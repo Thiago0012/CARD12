@@ -22,6 +22,8 @@ namespace ArcaneArena.Editor
         public static void Sync()
         {
             EnsureResourceFolder();
+            ConfigureTexture(Source + "NewMainMenu.png", 4096);
+            ConfigureTexture(Source + "NewDuelMenu.png", 4096);
             ConfigureTexture(Source + "HUD.jpg");
             ConfigureTexture(Source + "Botaoduelar.png");
             ConfigureTexture(Source + "botaodecks.png");
@@ -39,6 +41,8 @@ namespace ArcaneArena.Editor
                 AssetDatabase.CreateAsset(assets, AssetPath);
             }
 
+            assets.mainMenu = Load<Texture2D>("NewMainMenu.png");
+            assets.duelHub = Load<Texture2D>("NewDuelMenu.png");
             assets.hud = Load<Texture2D>("HUD.jpg");
             assets.duelButton = Load<Texture2D>("Botaoduelar.png");
             assets.decksButton = Load<Texture2D>("botaodecks.png");
@@ -97,14 +101,14 @@ namespace ArcaneArena.Editor
             return material;
         }
 
-        private static void ConfigureTexture(string path)
+        private static void ConfigureTexture(string path, int maxSize = 2048)
         {
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
             if (importer == null)
                 return;
             bool changed =
                 importer.mipmapEnabled ||
-                importer.maxTextureSize != 2048 ||
+                importer.maxTextureSize != maxSize ||
                 importer.textureCompression !=
                 TextureImporterCompression.Compressed ||
                 (path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase) &&
@@ -112,7 +116,7 @@ namespace ArcaneArena.Editor
             if (!changed)
                 return;
             importer.mipmapEnabled = false;
-            importer.maxTextureSize = 2048;
+            importer.maxTextureSize = maxSize;
             importer.textureCompression = TextureImporterCompression.Compressed;
             if (path.EndsWith(".png", System.StringComparison.OrdinalIgnoreCase))
                 importer.alphaIsTransparency = true;

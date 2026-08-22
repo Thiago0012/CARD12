@@ -66,6 +66,8 @@ namespace ArcaneArena.Multiplayer
         private readonly List<float> lightStreakAngles = new();
         private readonly List<Sprite> cachedCardArtwork = new();
         private readonly List<Image> burstRings = new();
+        private readonly List<Image> perimeterGlows = new();
+        private readonly List<float> perimeterGlowPhases = new();
         private readonly List<RectTransform> burstSparks = new();
         private readonly List<Image> burstSparkImages = new();
         private readonly List<Vector2> burstSparkDirections = new();
@@ -747,6 +749,36 @@ namespace ArcaneArena.Multiplayer
             burstGlowInner.sprite = glowSprite;
             burstGlowInner.raycastTarget = false;
             burstGlowInner.rectTransform.sizeDelta = new Vector2(250f, 250f);
+            Vector2[] perimeterAnchors =
+            {
+                new Vector2(0.08f, 0.12f),
+                new Vector2(0.50f, 0.06f),
+                new Vector2(0.92f, 0.12f),
+                new Vector2(0.035f, 0.52f),
+                new Vector2(0.965f, 0.52f)
+            };
+            Vector2[] perimeterSizes =
+            {
+                new Vector2(460f, 460f),
+                new Vector2(620f, 430f),
+                new Vector2(460f, 460f),
+                new Vector2(360f, 580f),
+                new Vector2(360f, 580f)
+            };
+            for (int index = 0; index < perimeterAnchors.Length; index++)
+            {
+                Image glow = CreateImage(
+                    parent,
+                    $"Brilho Periférico {index + 1}",
+                    Color.clear,
+                    perimeterAnchors[index],
+                    perimeterAnchors[index]);
+                glow.sprite = glowSprite;
+                glow.raycastTarget = false;
+                glow.rectTransform.sizeDelta = perimeterSizes[index];
+                perimeterGlows.Add(glow);
+                perimeterGlowPhases.Add(index * 1.31f);
+            }
             for (int index = 0; index < 3; index++)
             {
                 Image ring = CreateImage(
@@ -1121,6 +1153,36 @@ namespace ArcaneArena.Multiplayer
                 burstGlowInner.color = color;
             }
 
+            float perimeterReveal = Mathf.SmoothStep(
+                0f,
+                1f,
+                Mathf.Clamp01(burstElapsed / 0.72f));
+            float now = Time.unscaledTime;
+            for (int index = 0; index < perimeterGlows.Count; index++)
+            {
+                Image glow = perimeterGlows[index];
+                if (glow == null)
+                    continue;
+                float phase = index < perimeterGlowPhases.Count
+                    ? perimeterGlowPhases[index]
+                    : index;
+                float pulse = 0.5f + 0.5f * Mathf.Sin(
+                    now * 0.72f + phase);
+                Color color = index % 2 == 0
+                    ? motionAccentA
+                    : motionAccentB;
+                color.a = perimeterReveal * Mathf.Lerp(
+                    0.055f,
+                    0.115f,
+                    pulse);
+                glow.color = color;
+                float scale = Mathf.Lerp(0.92f, 1.12f, pulse);
+                glow.rectTransform.localScale = new Vector3(
+                    scale,
+                    scale,
+                    1f);
+            }
+
             for (int index = 0; index < burstRings.Count; index++)
             {
                 Image ring = burstRings[index];
@@ -1349,7 +1411,11 @@ namespace ArcaneArena.Multiplayer
                 lightStreakAngles[index] = motionStyle switch
                 {
                     LoadingCardMotionStyle.DuelCharge =>
-                        Mathf.Lerp(28f, 152f, normalized),
+                        MirroredFanAngle(
+                            index,
+                            streakCount,
+                            28f,
+                            152f),
                     LoadingCardMotionStyle.MultiplayerCrossflow =>
                         (index % 4) * 90f +
                         Mathf.Lerp(-18f, 18f, normalized),
@@ -1520,6 +1586,26 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
+        private static float MirroredFanAngle(
+            int index,
+            int count,
+            float upperMinimum,
+            float upperMaximum)
+        {
+            int lane = index / 2;
+            int laneCount = Mathf.Max(1, (count + 1) / 2);
+            float laneT = laneCount > 1
+                ? lane / (float)(laneCount - 1)
+                : 0.5f;
+            float upperAngle = Mathf.Lerp(
+                upperMinimum,
+                upperMaximum,
+                laneT);
+            return index % 2 == 0
+                ? upperAngle
+                : upperAngle + 180f;
+        }
+
         private void ConfigureBurstSparks()
         {
             int count = burstSparks.Count;
@@ -1533,7 +1619,11 @@ namespace ArcaneArena.Multiplayer
                 switch (motionStyle)
                 {
                     case LoadingCardMotionStyle.DuelCharge:
-                        angle = Mathf.Lerp(34f, 146f, normalized) +
+                        angle = MirroredFanAngle(
+                                    index,
+                                    count,
+                                    34f,
+                                    146f) +
                                 NextVisual(-5f, 5f);
                         speed = NextVisual(540f, 940f);
                         delay = 0.055f + (index % 7) * 0.018f;
