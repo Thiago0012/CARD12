@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ArcaneArena.Frontend
@@ -6,6 +8,22 @@ namespace ArcaneArena.Frontend
     public sealed partial class GameFrontendBootstrap
     {
         private GameObject _deckDeleteModal;
+
+        private static void ConfigureMobileDeckDeleteLongPress(
+            Image tile,
+            Image deleteControl)
+        {
+            if (!Application.isMobilePlatform ||
+                tile == null ||
+                deleteControl == null)
+            {
+                return;
+            }
+
+            MobileDeckDeleteLongPress gesture =
+                tile.gameObject.AddComponent<MobileDeckDeleteLongPress>();
+            gesture.Configure(deleteControl.gameObject, 1f);
+        }
 
         private Image CreateDeckDeleteControl(
             Transform parent,
@@ -167,6 +185,98 @@ namespace ArcaneArena.Frontend
             if (_deckDeleteModal != null)
                 Destroy(_deckDeleteModal);
             _deckDeleteModal = null;
+        }
+    }
+
+    internal sealed class MobileDeckDeleteLongPress : MonoBehaviour,
+        IPointerDownHandler,
+        IPointerUpHandler,
+        IPointerExitHandler,
+        IBeginDragHandler
+    {
+        private GameObject deleteControl;
+        private Button tileButton;
+        private float holdSeconds = 1f;
+        private float pressedAt;
+        private bool pressed;
+        private bool revealed;
+        private bool suppressReleaseClick;
+
+        public void Configure(GameObject control, float duration)
+        {
+            deleteControl = control;
+            holdSeconds = Mathf.Max(0.1f, duration);
+            tileButton = GetComponent<Button>();
+            if (deleteControl != null)
+                deleteControl.SetActive(false);
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (eventData == null ||
+                eventData.button != PointerEventData.InputButton.Left ||
+                deleteControl == null ||
+                deleteControl.activeSelf)
+            {
+                return;
+            }
+
+            pressed = true;
+            revealed = false;
+            suppressReleaseClick = false;
+            pressedAt = Time.unscaledTime;
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            pressed = false;
+            if (suppressReleaseClick)
+                StartCoroutine(RestoreTileClickNextFrame());
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (!revealed)
+                pressed = false;
+        }
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            pressed = false;
+        }
+
+        private void Update()
+        {
+            if (!pressed || revealed || deleteControl == null)
+                return;
+            if (Time.unscaledTime - pressedAt < holdSeconds)
+                return;
+
+            pressed = false;
+            revealed = true;
+            suppressReleaseClick = true;
+            deleteControl.SetActive(true);
+            deleteControl.transform.SetAsLastSibling();
+            if (tileButton == null)
+                tileButton = GetComponent<Button>();
+            if (tileButton != null)
+                tileButton.enabled = false;
+        }
+
+        private IEnumerator RestoreTileClickNextFrame()
+        {
+            yield return null;
+            if (tileButton != null)
+                tileButton.enabled = true;
+            suppressReleaseClick = false;
+        }
+
+        private void OnDisable()
+        {
+            pressed = false;
+            suppressReleaseClick = false;
+            if (tileButton != null)
+                tileButton.enabled = true;
         }
     }
 }

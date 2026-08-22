@@ -98,11 +98,12 @@ namespace ArcaneArena.Frontend
                 deck.caseTheme,
                 new Vector2(0.06f, 0.18f),
                 new Vector2(0.39f, 0.85f));
-            CreateFeaturedCards(
+            CreateWorkshopFeaturedCards(
                 display.transform,
                 deck,
                 new Vector2(0.31f, 0.12f),
-                new Vector2(0.93f, 0.88f));
+                new Vector2(0.93f, 0.88f),
+                0.46f);
 
             Image information = CreateArcaneSurface(
                 workspace.transform,
@@ -776,19 +777,23 @@ namespace ArcaneArena.Frontend
 
             EventTrigger trigger = tile.gameObject.AddComponent<EventTrigger>();
             Image deleteControl = CreateDeckDeleteControl(tile.transform, deck);
-            bool keepDeleteVisible = Application.isMobilePlatform;
-            deleteControl.gameObject.SetActive(keepDeleteVisible);
+            bool mobileDeleteGesture = Application.isMobilePlatform;
+            deleteControl.gameObject.SetActive(false);
             AddTrigger(trigger, EventTriggerType.PointerEnter, _ =>
             {
+                if (mobileDeleteGesture)
+                    return;
                 deleteControl.gameObject.SetActive(true);
                 deleteControl.transform.SetAsLastSibling();
             });
             AddTrigger(trigger, EventTriggerType.PointerExit, _ =>
             {
-                if (!keepDeleteVisible)
-                    deleteControl.gameObject.SetActive(false);
+                if (mobileDeleteGesture)
+                    return;
+                deleteControl.gameObject.SetActive(false);
             });
             AddDeckWorkshopButton(tile, () => ShowDeckDetails(deck));
+            ConfigureMobileDeckDeleteLongPress(tile, deleteControl);
         }
 
         private void CreateWorkshopDeck()
@@ -909,7 +914,7 @@ namespace ArcaneArena.Frontend
                     : new Vector2(center + cardWidth * 0.5f, max.y);
                 float rotation = useCapturedHeroLayout
                     ? WorkshopHeroCardRotation[index]
-                    : (index - 1) * 7f;
+                    : WorkshopHeroCardRotation[index];
                 Image card = CreateCardArtwork(
                     parent,
                     entry != null ? entry.Artwork : null,

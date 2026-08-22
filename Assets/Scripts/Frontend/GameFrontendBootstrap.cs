@@ -26,7 +26,7 @@ namespace ArcaneArena.Frontend
         private const string LoginSceneName = "Login";
         private const string DeckEditorSceneName = "DeckEditor";
         private const string DuelArenaSceneName = "DuelArena";
-        public const int CurrentEditorPreviewVersion = 7;
+        public const int CurrentEditorPreviewVersion = 8;
 
         private static readonly Color Background = Hex("#040812");
         private static readonly Color Panel = Hex("#091426");
@@ -2455,23 +2455,27 @@ namespace ArcaneArena.Frontend
             Image deleteControl = CreateDeckDeleteControl(
                 tile.transform,
                 deck);
-            bool keepDeleteVisible = Application.isMobilePlatform;
-            deleteControl.gameObject.SetActive(keepDeleteVisible);
+            bool mobileDeleteGesture = Application.isMobilePlatform;
+            deleteControl.gameObject.SetActive(false);
             AddTrigger(trigger, EventTriggerType.PointerEnter, _ =>
             {
+                if (mobileDeleteGesture)
+                    return;
                 showcase.SetActive(true);
                 deleteControl.gameObject.SetActive(true);
                 deleteControl.transform.SetAsLastSibling();
             });
             AddTrigger(trigger, EventTriggerType.PointerExit, _ =>
             {
+                if (mobileDeleteGesture)
+                    return;
                 showcase.SetActive(false);
-                if (!keepDeleteVisible)
-                    deleteControl.gameObject.SetActive(false);
+                deleteControl.gameObject.SetActive(false);
             });
             AddButtonBehaviour(
                 tile,
                 () => ShowDeckDetails(deck));
+            ConfigureMobileDeckDeleteLongPress(tile, deleteControl);
         }
 
         private void ShowDeckDetails(DeckRecord deck)
@@ -4307,7 +4311,7 @@ namespace ArcaneArena.Frontend
                     entry != null ? entry.Artwork : null,
                     cardMin,
                     cardMax,
-                    (i - 1) * 4f,
+                    0f,
                     true);
                 bool isCapturedDuelHubCard =
                     i == 0 &&
@@ -4326,7 +4330,7 @@ namespace ArcaneArena.Frontend
                         9.699997f,
                         0.6000061f,
                         1f,
-                        -0.049f);
+                        0f);
                 }
             }
         }
