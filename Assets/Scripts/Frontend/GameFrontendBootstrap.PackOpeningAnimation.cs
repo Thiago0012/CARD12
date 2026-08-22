@@ -79,12 +79,10 @@ namespace ArcaneArena.Frontend
         private sealed class PackOpeningAnimationView
         {
             public RectTransform Layer;
-            public Image DimOverlay;
             public RectTransform RearGlow;
             public CanvasGroup RearGlowGroup;
             public RectTransform OuterGlow;
             public CanvasGroup OuterGlowGroup;
-            public Image BurstFlash;
             public RectTransform ReleaseBeam;
             public CanvasGroup ReleaseBeamGroup;
             public RectTransform PackRoot;
@@ -154,13 +152,10 @@ namespace ArcaneArena.Frontend
                 Layer = blocker.rectTransform
             };
 
-            view.DimOverlay = CreatePanel(
-                view.Layer,
-                "Escurecimento Cinematográfico",
-                Vector2.zero,
-                Vector2.one,
-                new Color(0f, 0.004f, 0.012f, 0f));
-            view.DimOverlay.raycastTarget = false;
+            // O cenário da loja já funciona como fundo cinematográfico da
+            // abertura. Não adicionamos películas de tela inteira: além de
+            // esconder seus detalhes, a combinação de escurecimento e clarão
+            // dourado produzia um fundo amarelado translúcido.
 
             Image outerGlow = CreatePanel(
                 view.Layer,
@@ -175,14 +170,6 @@ namespace ArcaneArena.Frontend
             view.OuterGlowGroup = AddPackOpeningCanvasGroup(
                 outerGlow.gameObject,
                 0f);
-
-            view.BurstFlash = CreatePanel(
-                view.Layer,
-                "Clarão da Abertura",
-                Vector2.zero,
-                Vector2.one,
-                new Color(1f, 0.92f, 0.68f, 0f));
-            view.BurstFlash.raycastTarget = false;
 
             Image releaseBeam = CreatePanel(
                 view.Layer,
@@ -482,9 +469,6 @@ namespace ArcaneArena.Frontend
                 progress =>
                 {
                     float eased = EaseInOutSine(progress);
-                    SetPackOpeningImageAlpha(
-                        view.DimOverlay,
-                        Mathf.Lerp(0f, 0.58f, eased));
                     SetPackOpeningGroupAlpha(
                         view.OuterGlowGroup,
                         Mathf.Lerp(0f, 0.08f, eased));
@@ -648,7 +632,6 @@ namespace ArcaneArena.Frontend
                         0.72f);
                     SetPackOpeningGroupAlpha(view.RearGlowGroup, flash * 0.92f);
                     SetPackOpeningGroupAlpha(view.OuterGlowGroup, flash * 0.46f);
-                    SetPackOpeningImageAlpha(view.BurstFlash, flash * 0.13f);
                     SetPackOpeningGroupAlpha(
                         view.ReleaseBeamGroup,
                         Mathf.Lerp(0.22f, 0.58f, flash));
@@ -724,9 +707,6 @@ namespace ArcaneArena.Frontend
                         view.RearGlowGroup,
                         Mathf.Lerp(0.42f, 0.72f,
                             EaseOutQuint(progress)));
-                    SetPackOpeningImageAlpha(
-                        view.BurstFlash,
-                        Mathf.Lerp(0.08f, 0f, progress));
                     SetPackOpeningGroupAlpha(
                         view.ReleaseBeamGroup,
                         Mathf.Lerp(0.50f, 0.68f, release));
@@ -931,9 +911,6 @@ namespace ArcaneArena.Frontend
                         view.ReleaseBeamGroup,
                         Mathf.Lerp(0.68f, 0f, release) +
                         strongestLaunchPulse * 0.18f);
-                    SetPackOpeningImageAlpha(
-                        view.BurstFlash,
-                        strongestLaunchPulse * 0.055f);
                 });
 
             _packOpeningPresentationState = PackOpeningPresentationState.Settle;
@@ -974,13 +951,9 @@ namespace ArcaneArena.Frontend
                     SetPackOpeningGroupAlpha(
                         view.RearGlowGroup,
                         Mathf.Lerp(0.18f, 0f, eased));
-                    SetPackOpeningImageAlpha(
-                        view.DimOverlay,
-                        Mathf.Lerp(0.58f, 0f, eased));
                     SetPackOpeningGroupAlpha(
                         view.OuterGlowGroup,
                         Mathf.Lerp(0.16f, 0f, eased));
-                    SetPackOpeningImageAlpha(view.BurstFlash, 0f);
                     SetPackOpeningGroupAlpha(view.ReleaseBeamGroup, 0f);
                 });
 
