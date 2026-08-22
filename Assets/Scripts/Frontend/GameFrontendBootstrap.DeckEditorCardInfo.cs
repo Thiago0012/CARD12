@@ -133,12 +133,20 @@ namespace ArcaneArena.Frontend
             _deckEditorDetailAttack = CreateText(
                 information.transform,
                 "—",
-                16,
+                19,
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.33f, 0.255f),
                 new Vector2(0.96f, 0.46f),
                 TextAnchor.MiddleLeft);
+            ApplyCapturedRectTransform(
+                _deckEditorDetailAttack.rectTransform,
+                new Vector2(0.33f, 0.255f),
+                new Vector2(0.96f, 0.46f),
+                14.9f,
+                -14.624f,
+                -14.9f,
+                14.624f);
 
             _deckEditorDetailDefenseIcon = CreatePanel(
                 information.transform,
@@ -169,9 +177,9 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.33f, 0.035f),
                 new Vector2(0.96f, 0.24f),
                 14.9f,
-                -8.5362f,
-                0f,
-                8.5362f);
+                -14.624f,
+                -14.9f,
+                14.624f);
 
             _deckEditorDetailStats = CreateText(
                 information.transform,
