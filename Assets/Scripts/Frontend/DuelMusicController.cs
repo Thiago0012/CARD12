@@ -290,7 +290,6 @@ namespace ArcaneArena.Frontend
                 return;
             target.Stop();
             target.clip = null;
-            target.time = 0f;
         }
 
         private void StopRoutineOnly()

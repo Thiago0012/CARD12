@@ -145,7 +145,39 @@ namespace ArcaneArena.Frontend
             _repository.ConfigureCoinRewardAuthorization(
                 authorizedCoinRecipientsCatalog);
 
+#if UNITY_EDITOR
+            GrantEditorPackAnimationTestCoins();
+#endif
+
         }
+
+#if UNITY_EDITOR
+        private void GrantEditorPackAnimationTestCoins()
+        {
+            // Crédito único e idempotente para testar compras/animações dentro
+            // do Editor. Este bloco não é compilado em nenhuma build PC ou
+            // Android, portanto não cria uma fonte de moedas no jogo público.
+            const int testCoins = 10000;
+            const string transactionId =
+                "editor-pack-opening-animation-wallet-v2";
+            if (_repository.TryGrantCoins(
+                    testCoins,
+                    "Teste da animação de abertura de pacotes",
+                    transactionId,
+                    out _,
+                    out string rejection))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(rejection))
+            {
+                Debug.LogWarning(
+                    "[Loja/Editor] Não foi possível conceder as moedas de " +
+                    "teste: " + rejection);
+            }
+        }
+#endif
 
         private void ShowEconomyShop()
         {
@@ -164,8 +196,8 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             _shopBackAction = ReturnFromShopToMainMenu;
             BuildShopBackground("LOJA");
-            BuildHeader(
-                "LOJA ARCANE",
+            BuildProfessionalShopHeader(
+                "LOJA",
                 ReturnFromShopToMainMenu);
             CreateCoinBalance(_screenRoot);
 
@@ -244,6 +276,7 @@ namespace ArcaneArena.Frontend
                     ? "Moedas são obtidas exclusivamente em duelos online PvP concluídos."
                     : _shopFeedback,
                 _shopFeedbackIsError ? Danger : Muted);
+            _shopSceneView.ApplyProfessionalTheme();
             _shopSceneView.SetSelectedTab(
                 (int)_shopTab,
                 Lime,
@@ -302,6 +335,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.76f, 0.895f),
                 new Vector2(0.955f, 0.975f),
                 new Color(0.015f, 0.045f, 0.075f, 0.98f));
+            DecorateRuntimeShopSurface(panel, Gold, true, 8f);
             RectTransform panelRect = panel.rectTransform;
             panelRect.pivot = new Vector2(0.5f, 0.5f);
             panelRect.offsetMin = new Vector2(143.7935f, 0f);
@@ -359,6 +393,7 @@ namespace ArcaneArena.Frontend
         {
             Image button = CreateButton(parent, $"{label} {price}", min, max,
                 accent, action);
+            DecorateRuntimeShopButton(button, accent, true, 7f);
             Text labelText = button.GetComponentInChildren<Text>();
             if (labelText != null)
             {
@@ -390,9 +425,7 @@ namespace ArcaneArena.Frontend
         {
             Image badge = CreatePanel(parent, label, min, max,
                 new Color(0.015f, 0.045f, 0.075f, 0.96f));
-            AddOutline(badge.gameObject,
-                new Color(Gold.r, Gold.g, Gold.b, 0.48f),
-                new Vector2(1f, -1f));
+            DecorateRuntimeShopSurface(badge, Gold, false, 7f);
             CreateText(badge.transform, label, 15, FontStyle.Bold, Muted,
                 new Vector2(0.055f, 0.08f), new Vector2(0.43f, 0.92f),
                 TextAnchor.MiddleLeft);
@@ -421,6 +454,11 @@ namespace ArcaneArena.Frontend
                     _shopTab = tab;
                     ShowEconomyShop();
                 });
+            DecorateRuntimeShopButton(
+                button,
+                selected ? Gold : new Color(0.78f, 0.48f, 0.12f, 1f),
+                selected,
+                8f);
             RectTransform rect = button.rectTransform;
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.offsetMin = new Vector2(-12f, -63.347f);
@@ -431,17 +469,26 @@ namespace ArcaneArena.Frontend
             Transform parent,
             ShopPackDefinition pack)
         {
-            Image tile = CreateShopTile(parent, pack.PackId, Cyan);
-            CreateText(tile.transform, "PACOTE", 12, FontStyle.Bold, Cyan,
+            Color accent = ResolveShopProductAccent(pack.PackId, false);
+            Image tile = CreateShopTile(parent, pack.PackId, accent);
+            CreateText(tile.transform, "PACOTE PREMIUM", 11, FontStyle.Bold,
+                accent,
                 new Vector2(0.05f, 0.84f), new Vector2(0.42f, 0.96f),
                 TextAnchor.MiddleLeft);
+            CreateShopMicroBadge(tile.transform, "5 CARTAS", accent,
+                new Vector2(0.73f, 0.855f), new Vector2(0.94f, 0.955f));
             CreateText(tile.transform, pack.DisplayName, 21, FontStyle.Bold,
                 Color.white, new Vector2(shopPackTitleAnchorMinX, 0.66f),
                 new Vector2(0.95f, 0.86f), TextAnchor.MiddleLeft);
 
+            Image previewStage = CreatePanel(tile.transform,
+                "Palco do Pacote", new Vector2(0.035f, 0.17f),
+                new Vector2(0.315f, 0.70f), Color.clear);
+            DecorateRuntimeShopSurface(previewStage, accent, true, 8f);
+            previewStage.raycastTarget = false;
             CreatePackCardFanPreview(tile.transform, pack);
             CreateText(tile.transform,
-                $"5 cartas • duplicatas permitidas\n{pack.CardIds.Count} cartas possíveis",
+                $"SORTEIOS INDEPENDENTES\n{pack.CardIds.Count} CARTAS POSSÍVEIS",
                 13, FontStyle.Bold, Muted,
                 new Vector2(0.34f, 0.32f), new Vector2(0.94f, 0.62f),
                 TextAnchor.MiddleLeft);
@@ -490,31 +537,43 @@ namespace ArcaneArena.Frontend
             DeckShopProduct product,
             int index)
         {
-            Color[] accents = { Cyan, Gold, Danger };
-            Color accent = accents[index % accents.Length];
+            Color accent = ResolveShopProductAccent(
+                product.ProductId + ":" + index, true);
             Image tile = CreateShopTile(parent, product.ProductId, accent);
             int purchased = _repository.StructureDeckPurchaseCount(product.ProductId);
-            CreateText(tile.transform, product.ArchetypeLabel, 12,
+            CreateText(tile.transform, "DECK ESTRUTURAL • " + product.ArchetypeLabel, 11,
                 FontStyle.Bold, accent, new Vector2(0.05f, 0.84f),
-                new Vector2(0.66f, 0.96f), TextAnchor.MiddleLeft);
-            CreateText(tile.transform,
-                $"{purchased}/{product.MaxPurchases}", 12, FontStyle.Bold,
-                purchased >= product.MaxPurchases ? Danger : Muted,
-                new Vector2(0.72f, 0.84f), new Vector2(0.94f, 0.96f),
-                TextAnchor.MiddleRight);
+                new Vector2(0.70f, 0.96f), TextAnchor.MiddleLeft);
+            CreateShopMicroBadge(tile.transform,
+                $"{purchased}/{product.MaxPurchases}",
+                purchased >= product.MaxPurchases ? Danger : accent,
+                new Vector2(0.77f, 0.855f), new Vector2(0.94f, 0.955f));
             CreateText(tile.transform, product.DisplayName, 20, FontStyle.Bold,
                 Color.white, new Vector2(0.05f, 0.67f),
                 new Vector2(0.95f, 0.86f), TextAnchor.MiddleLeft);
 
-            for (int previewIndex = 0; previewIndex < 3; previewIndex++)
+            Image deckCase = CreatePanel(tile.transform,
+                "Estojo do Deck", new Vector2(0.04f, 0.16f),
+                new Vector2(0.48f, 0.65f), Color.clear);
+            DecorateRuntimeShopSurface(deckCase, accent, true, 9f);
+            deckCase.raycastTarget = false;
+            int previewCount = Mathf.Min(3, product.PreviewCardIds.Count);
+            float[] previewRotations = { 8f, 0f, -8f };
+            for (int previewIndex = 0; previewIndex < previewCount; previewIndex++)
             {
                 string cardId = product.PreviewCardIds[previewIndex];
                 CardCatalogEntry entry = DeckRepository.ResolveCard(_catalog, cardId);
-                float left = 0.06f + previewIndex * 0.15f;
+                float left = 0.065f + previewIndex * 0.125f;
                 CreateCardArtwork(tile.transform, entry?.Artwork,
-                    new Vector2(left, 0.25f), new Vector2(left + 0.13f, 0.65f),
-                    0f, true);
+                    new Vector2(left, 0.235f), new Vector2(left + 0.145f, 0.635f),
+                    previewRotations[previewIndex], true);
             }
+            CreateText(tile.transform,
+                $"{product.MainDeckCardIds.Count} PRINCIPAL\n" +
+                $"{product.ExtraDeckCardIds.Count} ADICIONAL",
+                13, FontStyle.Bold, Muted,
+                new Vector2(0.51f, 0.35f), new Vector2(0.94f, 0.62f),
+                TextAnchor.MiddleLeft);
             AddButtonBehaviour(tile, () => ShowStructureDeckDetails(product));
             if (purchased >= product.MaxPurchases)
             {
@@ -531,17 +590,131 @@ namespace ArcaneArena.Frontend
             }
         }
 
+        private static Color ResolveShopProductAccent(
+            string stableId,
+            bool structureDeck)
+        {
+            Color[] packAccents =
+            {
+                new(0.98f, 0.68f, 0.18f, 1f),
+                new(0.42f, 0.80f, 0.92f, 1f),
+                new(0.72f, 0.48f, 0.96f, 1f),
+                new(0.96f, 0.42f, 0.34f, 1f)
+            };
+            Color[] deckAccents =
+            {
+                new(0.95f, 0.76f, 0.30f, 1f),
+                new(0.40f, 0.84f, 0.64f, 1f),
+                new(0.42f, 0.70f, 0.96f, 1f),
+                new(0.88f, 0.52f, 0.24f, 1f)
+            };
+            Color[] accents = structureDeck ? deckAccents : packAccents;
+            int hash = 17;
+            string value = stableId ?? string.Empty;
+            for (int index = 0; index < value.Length; index++)
+                hash = unchecked(hash * 31 + value[index]);
+            return accents[Mathf.Abs(hash % accents.Length)];
+        }
+
+        private static Image CreateShopMicroBadge(
+            Transform parent,
+            string label,
+            Color accent,
+            Vector2 min,
+            Vector2 max)
+        {
+            Image badge = CreatePanel(parent, "Selo " + label, min, max,
+                Color.clear);
+            DecorateRuntimeShopSurface(badge, accent, false, 5f);
+            badge.raycastTarget = false;
+            CreateText(badge.transform, label, 10, FontStyle.Bold,
+                Color.white, new Vector2(0.06f, 0.04f),
+                new Vector2(0.94f, 0.96f), TextAnchor.MiddleCenter);
+            return badge;
+        }
+
         private static Image CreateShopTile(
             Transform parent,
             string name,
             Color accent)
         {
             Image tile = CreatePanel(parent, name, Vector2.zero, Vector2.one,
-                new Color(0.008f, 0.025f, 0.05f, 0.99f));
-            AddOutline(tile.gameObject,
-                new Color(accent.r, accent.g, accent.b, 0.72f),
-                new Vector2(2f, -2f));
+                new Color(0.004f, 0.008f, 0.014f, 0.99f));
+            DecorateRuntimeShopSurface(tile, accent, true, 11f);
+            Image rail = CreatePanel(
+                tile.transform,
+                "Filete superior da vitrine",
+                new Vector2(0.035f, 0.965f),
+                new Vector2(0.965f, 0.985f),
+                new Color(accent.r, accent.g, accent.b, 0.76f));
+            rail.raycastTarget = false;
             return tile;
+        }
+
+        private static ArcaneShopSurfaceGraphic DecorateRuntimeShopSurface(
+            Image target,
+            Color accent,
+            bool raised,
+            float chamfer)
+        {
+            if (target == null)
+                return null;
+            target.color = new Color(0f, 0f, 0f, 0.015f);
+            Transform existing = target.transform.Find("Superfície Dourada");
+            ArcaneShopSurfaceGraphic surface;
+            if (existing != null)
+            {
+                surface = existing.GetComponent<ArcaneShopSurfaceGraphic>();
+            }
+            else
+            {
+                var item = new GameObject(
+                    "Superfície Dourada",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(ArcaneShopSurfaceGraphic));
+                RectTransform rect = item.GetComponent<RectTransform>();
+                rect.SetParent(target.transform, false);
+                rect.SetAsFirstSibling();
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+                surface = item.GetComponent<ArcaneShopSurfaceGraphic>();
+            }
+            if (surface != null)
+            {
+                surface.raycastTarget = false;
+                surface.SetStyle(accent, raised, 1f, chamfer);
+            }
+            return surface;
+        }
+
+        private static void DecorateRuntimeShopButton(
+            Image buttonImage,
+            Color accent,
+            bool raised,
+            float chamfer)
+        {
+            ArcaneShopSurfaceGraphic surface = DecorateRuntimeShopSurface(
+                buttonImage,
+                accent,
+                raised,
+                chamfer);
+            Button button = buttonImage != null
+                ? buttonImage.GetComponent<Button>()
+                : null;
+            if (button == null || surface == null)
+                return;
+            surface.raycastTarget = true;
+            button.targetGraphic = surface;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = Color.Lerp(Color.white, accent, 0.16f);
+            colors.pressedColor = Color.Lerp(Color.white, accent, 0.42f);
+            colors.selectedColor = Color.Lerp(Color.white, accent, 0.22f);
+            colors.fadeDuration = 0.10f;
+            button.colors = colors;
         }
 
         private void ShowPackDetails(ShopPackDefinition pack)
@@ -550,19 +723,33 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             _shopBackAction = ShowEconomyShop;
             BuildShopBackground("CONTEÚDO DO PACOTE");
-            BuildHeader(pack.DisplayName, ShowEconomyShop);
+            BuildProfessionalShopHeader(pack.DisplayName, ShowEconomyShop);
             CreateCoinBalance(_screenRoot);
-            CreateText(_screenRoot,
-                $"{pack.Description}  •  Cada abertura contém 5 sorteios independentes.",
-                16, FontStyle.Bold, Muted, new Vector2(0.08f, 0.81f),
-                new Vector2(0.72f, 0.87f), TextAnchor.MiddleLeft);
-            CreateShopPriceButton(_screenRoot, "COMPRAR POR", pack.PriceCoins,
-                new Vector2(0.76f, 0.81f), new Vector2(0.95f, 0.87f),
-                Gold, () => ShowPackPurchaseConfirmation(pack));
+
+            Color accent = ResolveShopProductAccent(pack.PackId, false);
+            Image summary = CreatePanel(_screenRoot, "Resumo do Pacote",
+                new Vector2(0.055f, 0.735f), new Vector2(0.945f, 0.865f),
+                Color.clear);
+            DecorateRuntimeShopSurface(summary, accent, true, 11f);
+            CreateText(summary.transform, "COLEÇÃO DO PACOTE", 11,
+                FontStyle.Bold, accent, new Vector2(0.025f, 0.67f),
+                new Vector2(0.30f, 0.94f), TextAnchor.MiddleLeft);
+            CreateText(summary.transform, pack.Description, 15,
+                FontStyle.Bold, Color.white, new Vector2(0.025f, 0.16f),
+                new Vector2(0.54f, 0.69f), TextAnchor.MiddleLeft);
+            CreateShopFeatureChip(summary.transform, "5", "CARTAS",
+                accent, new Vector2(0.56f, 0.15f), new Vector2(0.67f, 0.85f));
+            CreateShopFeatureChip(summary.transform,
+                pack.CardIds.Count.ToString(), "POSSÍVEIS", accent,
+                new Vector2(0.685f, 0.15f), new Vector2(0.81f, 0.85f));
+            CreateShopPriceButton(summary.transform, "COMPRAR",
+                pack.PriceCoins, new Vector2(0.825f, 0.15f),
+                new Vector2(0.975f, 0.85f), Gold,
+                () => ShowPackPurchaseConfirmation(pack));
 
             RectTransform content = CreateShopScrollGrid(_screenRoot,
                 "Cartas do Pacote", new Vector2(0.055f, 0.055f),
-                new Vector2(0.945f, 0.79f), new Vector2(205f, 295f),
+                new Vector2(0.945f, 0.715f), new Vector2(205f, 295f),
                 new Vector2(18f, 18f), 7);
             foreach (string cardId in pack.CardIds)
                 CreateShopCardTile(content, cardId, "NO PACOTE");
@@ -574,22 +761,40 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             _shopBackAction = ShowEconomyShop;
             BuildShopBackground("DECK ESTRUTURAL");
-            BuildHeader(product.DisplayName, ShowEconomyShop);
+            BuildProfessionalShopHeader(product.DisplayName, ShowEconomyShop);
             CreateCoinBalance(_screenRoot);
 
-            CreateText(_screenRoot,
-                $"{product.Description}  •  {product.MainDeckCardIds.Count} Principal  •  " +
-                $"{product.ExtraDeckCardIds.Count} Adicional",
-                15, FontStyle.Bold, Muted, new Vector2(0.08f, 0.81f),
-                new Vector2(0.70f, 0.87f), TextAnchor.MiddleLeft);
-            CreateShopPriceButton(_screenRoot, "COMPRAR POR",
-                product.PriceCoins,
-                new Vector2(0.75f, 0.81f), new Vector2(0.95f, 0.87f),
-                Gold, () => ShowStructureDeckPurchaseConfirmation(product));
+            Color accent = ResolveShopProductAccent(product.ProductId, true);
+            int purchased = _repository.StructureDeckPurchaseCount(
+                product.ProductId);
+            Image summary = CreatePanel(_screenRoot, "Resumo do Deck Estrutural",
+                new Vector2(0.055f, 0.735f), new Vector2(0.945f, 0.865f),
+                Color.clear);
+            DecorateRuntimeShopSurface(summary, accent, true, 11f);
+            CreateText(summary.transform,
+                "DECK ESTRUTURAL • " + product.ArchetypeLabel, 11,
+                FontStyle.Bold, accent, new Vector2(0.025f, 0.67f),
+                new Vector2(0.42f, 0.94f), TextAnchor.MiddleLeft);
+            CreateText(summary.transform, product.Description, 14,
+                FontStyle.Bold, Color.white, new Vector2(0.025f, 0.14f),
+                new Vector2(0.50f, 0.69f), TextAnchor.MiddleLeft);
+            CreateShopFeatureChip(summary.transform,
+                product.MainDeckCardIds.Count.ToString(), "PRINCIPAL", accent,
+                new Vector2(0.515f, 0.15f), new Vector2(0.635f, 0.85f));
+            CreateShopFeatureChip(summary.transform,
+                product.ExtraDeckCardIds.Count.ToString(), "ADICIONAL", accent,
+                new Vector2(0.65f, 0.15f), new Vector2(0.77f, 0.85f));
+            CreateShopFeatureChip(summary.transform,
+                $"{purchased}/{product.MaxPurchases}", "ADQUIRIDOS", accent,
+                new Vector2(0.785f, 0.15f), new Vector2(0.885f, 0.85f));
+            CreateShopPriceButton(summary.transform, "COMPRAR",
+                product.PriceCoins, new Vector2(0.895f, 0.15f),
+                new Vector2(0.985f, 0.85f), Gold,
+                () => ShowStructureDeckPurchaseConfirmation(product));
 
             RectTransform content = CreateShopScrollGrid(_screenRoot,
                 "Lista Completa", new Vector2(0.055f, 0.055f),
-                new Vector2(0.945f, 0.79f), new Vector2(205f, 295f),
+                new Vector2(0.945f, 0.715f), new Vector2(205f, 295f),
                 new Vector2(18f, 18f), 7);
             foreach (string cardId in product.MainDeckCardIds)
                 CreateShopCardTile(content, cardId, "PRINCIPAL");
@@ -603,15 +808,50 @@ namespace ArcaneArena.Frontend
             string section)
         {
             CardCatalogEntry entry = DeckRepository.ResolveCard(_catalog, cardId);
-            Image tile = CreateShopTile(parent, "Carta " + cardId, Cyan);
+            Color rarityAccent = entry != null &&
+                CardRarityCatalog.IsValid(entry.Rarity)
+                    ? RarityColor(entry.Rarity)
+                    : Gold;
+            Image tile = CreateShopTile(parent, "Carta " + cardId, rarityAccent);
             Image artwork = CreateCardArtwork(tile.transform, entry?.Artwork,
-                new Vector2(0.09f, 0.20f), new Vector2(0.91f, 0.94f), 0f, true);
+                new Vector2(0.08f, 0.22f), new Vector2(0.92f, 0.91f), 0f, true);
             AddBanlistBadge(artwork.transform, cardId);
-            CreateText(tile.transform, section, 11, FontStyle.Bold, Cyan,
-                new Vector2(0.05f, 0.04f), new Vector2(0.95f, 0.18f),
-                TextAnchor.MiddleCenter);
+            CreateShopMicroBadge(tile.transform,
+                entry != null && CardRarityCatalog.IsValid(entry.Rarity)
+                    ? CardRarityCatalog.Label(entry.Rarity)
+                    : "CARD",
+                rarityAccent, new Vector2(0.69f, 0.86f),
+                new Vector2(0.94f, 0.965f));
+            CreateText(tile.transform, section, 9, FontStyle.Bold,
+                rarityAccent, new Vector2(0.05f, 0.12f),
+                new Vector2(0.95f, 0.21f), TextAnchor.MiddleCenter);
+            Text cardName = CreateText(tile.transform,
+                entry?.DisplayName ?? cardId, 11, FontStyle.Bold,
+                Color.white, new Vector2(0.05f, 0.025f),
+                new Vector2(0.95f, 0.125f), TextAnchor.MiddleCenter);
+            cardName.resizeTextMinSize = 8;
             AddButtonBehaviour(artwork,
                 () => ShowShopCardDetails(cardId, _shopBackAction));
+        }
+
+        private static Image CreateShopFeatureChip(
+            Transform parent,
+            string value,
+            string label,
+            Color accent,
+            Vector2 min,
+            Vector2 max)
+        {
+            Image chip = CreatePanel(parent, label, min, max, Color.clear);
+            DecorateRuntimeShopSurface(chip, accent, false, 6f);
+            chip.raycastTarget = false;
+            CreateText(chip.transform, value, 20, FontStyle.Bold,
+                Color.white, new Vector2(0.04f, 0.30f),
+                new Vector2(0.96f, 0.94f), TextAnchor.MiddleCenter);
+            CreateText(chip.transform, label, 8, FontStyle.Bold,
+                accent, new Vector2(0.04f, 0.05f),
+                new Vector2(0.96f, 0.35f), TextAnchor.MiddleCenter);
+            return chip;
         }
 
         private void ShowShopCardDetails(string cardId, Action returnAction)
@@ -625,14 +865,15 @@ namespace ArcaneArena.Frontend
             _deckEditorSelectedCardId = cardId;
             _shopBackAction = safeReturn;
             BuildShopBackground("DETALHES DA CARTA");
-            BuildHeader(entry.DisplayName, safeReturn);
+            BuildProfessionalShopHeader(entry.DisplayName, safeReturn);
             CreateCoinBalance(_screenRoot);
 
             Image panel = CreatePanel(_screenRoot, "Detalhes da Carta",
                 new Vector2(0.07f, 0.09f), new Vector2(0.93f, 0.82f),
                 new Color(0.008f, 0.025f, 0.05f, 0.98f));
+            DecorateRuntimeShopSurface(panel, Gold, false, 14f);
             AddOutline(panel.gameObject,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.78f),
+                new Color(Gold.r, Gold.g, Gold.b, 0.78f),
                 new Vector2(3f, -3f));
             Image detailArtwork = CreateCardArtwork(panel.transform, entry.Artwork,
                 new Vector2(0.04f, 0.08f), new Vector2(0.34f, 0.92f), 0f, true);
@@ -648,8 +889,13 @@ namespace ArcaneArena.Frontend
                 "Metadados da Carta da Loja", new Vector2(0.39f, 0.65f),
                 new Vector2(0.96f, 0.77f),
                 new Color(0.025f, 0.11f, 0.16f, 0.96f));
+            DecorateRuntimeShopSurface(
+                metadataPanel,
+                new Color(0.92f, 0.62f, 0.18f, 1f),
+                false,
+                7f);
             AddOutline(metadataPanel.gameObject,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.42f),
+                new Color(Gold.r, Gold.g, Gold.b, 0.42f),
                 new Vector2(1f, -1f));
             Text metadata = CreateText(metadataPanel.transform,
                 $"{entry.TypeName}  •  ID {entry.OfficialCardId}\n" +
@@ -662,7 +908,7 @@ namespace ArcaneArena.Frontend
             Image effectHeader = CreatePanel(panel.transform,
                 "Cabeçalho do Efeito da Carta", new Vector2(0.39f, 0.58f),
                 new Vector2(0.96f, 0.64f),
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.92f));
+                new Color(Gold.r, Gold.g, Gold.b, 0.92f));
             CreateText(effectHeader.transform, "EFEITO DA CARTA", 16,
                 FontStyle.Bold, Ink, new Vector2(0.035f, 0f),
                 new Vector2(0.965f, 1f), TextAnchor.MiddleLeft);
@@ -681,7 +927,7 @@ namespace ArcaneArena.Frontend
             if (effectScroll != null)
             {
                 AddOutline(effectScroll.gameObject,
-                    new Color(Cyan.r, Cyan.g, Cyan.b, 0.32f),
+                    new Color(Gold.r, Gold.g, Gold.b, 0.32f),
                     new Vector2(1f, -1f));
                 effectScroll.scrollSensitivity = 56f;
                 effectScroll.verticalNormalizedPosition = 1f;
@@ -696,6 +942,9 @@ namespace ArcaneArena.Frontend
                 $"Você receberá exatamente 5 cartas. Cada posição é sorteada " +
                 $"independentemente e pode conter duplicatas.",
                 pack.PriceCoins,
+                "PACOTE PREMIUM",
+                $"5 CARTAS  •  {pack.CardIds.Count} POSSÍVEIS",
+                ResolveShopBoosterPackSprite(),
                 () =>
                 {
                     if (_shopPurchaseBusy)
@@ -730,6 +979,10 @@ namespace ArcaneArena.Frontend
                 $"A compra concede as quantidades exatas do Deck Principal e " +
                 $"Adicional. Limite: {purchased}/{product.MaxPurchases}.",
                 product.PriceCoins,
+                "DECK ESTRUTURAL",
+                $"{product.MainDeckCardIds.Count} PRINCIPAL  •  " +
+                $"{product.ExtraDeckCardIds.Count} ADICIONAL",
+                DeckRepository.ResolveCard(_catalog, product.CoverCardId)?.Artwork,
                 () =>
                 {
                     string transactionId = Guid.NewGuid().ToString("N");
@@ -753,41 +1006,77 @@ namespace ArcaneArena.Frontend
             string productName,
             string description,
             int price,
+            string productType,
+            string productMetric,
+            Sprite productArtwork,
             Action confirm)
         {
             SetDuelPresentation(false);
             ClearScreen();
             _shopBackAction = ShowEconomyShop;
             BuildShopBackground(section);
-            BuildHeader(section, ShowEconomyShop);
+            BuildProfessionalShopHeader(section, ShowEconomyShop);
             CreateCoinBalance(_screenRoot);
             Image panel = CreatePanel(_screenRoot, "Confirmação de Compra",
-                new Vector2(0.23f, 0.22f), new Vector2(0.77f, 0.78f),
+                new Vector2(0.16f, 0.18f), new Vector2(0.84f, 0.80f),
                 new Color(0.008f, 0.025f, 0.05f, 0.99f));
+            DecorateRuntimeShopSurface(panel, Gold, true, 15f);
             AddOutline(panel.gameObject,
                 new Color(Gold.r, Gold.g, Gold.b, 0.84f),
                 new Vector2(3f, -3f));
-            CreateText(panel.transform, productName, 34, FontStyle.Bold,
-                Color.white, new Vector2(0.08f, 0.69f),
-                new Vector2(0.92f, 0.90f), TextAnchor.MiddleCenter);
-            CreateText(panel.transform, description, 18, FontStyle.Normal,
-                Muted, new Vector2(0.10f, 0.42f),
-                new Vector2(0.90f, 0.68f), TextAnchor.MiddleCenter);
+            CreateText(panel.transform, "REVISÃO DO PEDIDO", 11,
+                FontStyle.Bold, Gold, new Vector2(0.055f, 0.89f),
+                new Vector2(0.45f, 0.965f), TextAnchor.MiddleLeft);
+            Image previewStage = CreatePanel(panel.transform,
+                "Apresentação do Produto", new Vector2(0.055f, 0.28f),
+                new Vector2(0.31f, 0.87f), Color.clear);
+            DecorateRuntimeShopSurface(previewStage, Gold, false, 10f);
+            if (productArtwork != null)
+            {
+                Image preview = CreatePanel(previewStage.transform,
+                    "Arte do Produto", new Vector2(0.12f, 0.08f),
+                    new Vector2(0.88f, 0.92f), Color.white);
+                preview.sprite = productArtwork;
+                preview.preserveAspect = true;
+                preview.raycastTarget = false;
+            }
+            else
+            {
+                CreateText(previewStage.transform, "MD2\nPLUS ULTRA", 23,
+                    FontStyle.Bold, Gold, new Vector2(0.08f, 0.15f),
+                    new Vector2(0.92f, 0.85f), TextAnchor.MiddleCenter);
+            }
+            CreateText(panel.transform, productType, 12, FontStyle.Bold,
+                Gold, new Vector2(0.35f, 0.75f),
+                new Vector2(0.92f, 0.85f), TextAnchor.MiddleLeft);
+            Text productTitle = CreateText(panel.transform, productName, 30,
+                FontStyle.Bold, Color.white, new Vector2(0.35f, 0.61f),
+                new Vector2(0.92f, 0.76f), TextAnchor.MiddleLeft);
+            productTitle.resizeTextMinSize = 20;
+            CreateText(panel.transform, productMetric, 12, FontStyle.Bold,
+                new Color(0.93f, 0.78f, 0.45f, 1f),
+                new Vector2(0.35f, 0.54f), new Vector2(0.92f, 0.63f),
+                TextAnchor.MiddleLeft);
+            CreateText(panel.transform, description, 16, FontStyle.Normal,
+                Muted, new Vector2(0.35f, 0.30f),
+                new Vector2(0.92f, 0.54f), TextAnchor.MiddleLeft);
             Color amountColor = _repository.CoinBalance >= price
                 ? Lime
                 : Danger;
             CreateShopAmountBadge(panel.transform, "PREÇO", price,
-                new Vector2(0.10f, 0.28f), new Vector2(0.48f, 0.43f),
+                new Vector2(0.35f, 0.16f), new Vector2(0.62f, 0.30f),
                 amountColor);
             CreateShopAmountBadge(panel.transform, "SALDO",
-                _repository.CoinBalance, new Vector2(0.52f, 0.28f),
-                new Vector2(0.90f, 0.43f), amountColor);
-            CreateButton(panel.transform, "CANCELAR",
-                new Vector2(0.08f, 0.08f), new Vector2(0.46f, 0.25f),
+                _repository.CoinBalance, new Vector2(0.65f, 0.16f),
+                new Vector2(0.92f, 0.30f), amountColor);
+            Image cancelButton = CreateButton(panel.transform, "CANCELAR",
+                new Vector2(0.055f, 0.055f), new Vector2(0.31f, 0.20f),
                 Danger, ShowEconomyShop);
-            CreateButton(panel.transform, "CONFIRMAR COMPRA",
-                new Vector2(0.54f, 0.08f), new Vector2(0.92f, 0.25f),
+            DecorateRuntimeShopButton(cancelButton, Danger, false, 8f);
+            Image confirmButton = CreateButton(panel.transform, "CONFIRMAR COMPRA",
+                new Vector2(0.35f, 0.035f), new Vector2(0.92f, 0.14f),
                 Gold, confirm);
+            DecorateRuntimeShopButton(confirmButton, Gold, true, 8f);
         }
 
         private void ShowPackOpening(
@@ -812,15 +1101,28 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             _shopBackAction = ReturnFromShopToMainMenu;
             BuildShopBackground("ABERTURA DE PACOTE");
-            BuildHeader(
+            BuildProfessionalShopHeader(
                 pack?.DisplayName ?? "Pacote",
                 ReturnFromShopToMainMenu);
             CreateCoinBalance(_screenRoot);
+            Color accent = ResolveShopProductAccent(
+                pack?.PackId ?? opening.packId,
+                false);
 
             if (!_packOpeningStarted)
             {
+                Image ambientGlow = CreatePanel(_screenRoot,
+                    "Luz Ambiente do Pacote", new Vector2(0.265f, 0.18f),
+                    new Vector2(0.735f, 0.81f),
+                    new Color(accent.r, accent.g, accent.b, 0.22f));
+                ambientGlow.sprite = ResolvePackOpeningGlowSprite();
+                ambientGlow.preserveAspect = true;
+                ambientGlow.raycastTarget = false;
+                CreateText(_screenRoot, "PACOTE SELADO  •  5 CARTAS", 12,
+                    FontStyle.Bold, accent, new Vector2(0.34f, 0.76f),
+                    new Vector2(0.66f, 0.81f), TextAnchor.MiddleCenter);
                 Image closedPack = CreatePanel(_screenRoot, "Pacote Fechado",
-                    new Vector2(0.37f, 0.25f), new Vector2(0.63f, 0.76f),
+                    new Vector2(0.38f, 0.29f), new Vector2(0.62f, 0.75f),
                     new Color(0.025f, 0.10f, 0.18f, 1f));
                 Sprite boosterSprite = ResolveShopBoosterPackSprite();
                 if (boosterSprite != null)
@@ -830,17 +1132,22 @@ namespace ArcaneArena.Frontend
                     closedPack.preserveAspect = true;
                 }
                 AddOutline(closedPack.gameObject,
-                    new Color(Cyan.r, Cyan.g, Cyan.b, 0.95f),
-                    new Vector2(5f, -5f));
+                    new Color(accent.r, accent.g, accent.b, 0.38f),
+                    new Vector2(1f, -1f));
                 if (boosterSprite == null)
                 {
-                    CreateText(closedPack.transform, "ARCANE\nPACK", 45,
+                    CreateText(closedPack.transform, "MASTER DUEL 2\nPLUS ULTRA", 35,
                         FontStyle.Bold, Color.white, new Vector2(0.08f, 0.25f),
                         new Vector2(0.92f, 0.78f), TextAnchor.MiddleCenter);
                 }
-                CreateButton(_screenRoot, "ABRIR PACOTE",
+                Image openButton = CreateButton(_screenRoot, "ABRIR PACOTE",
                     new Vector2(0.38f, 0.13f), new Vector2(0.62f, 0.22f),
-                    Lime, () => StartPackOpeningPresentation(opening));
+                    Gold, () => StartPackOpeningPresentation(opening));
+                DecorateRuntimeShopButton(openButton, accent, true, 10f);
+                CreateText(_screenRoot,
+                    "O conteúdo da compra já está protegido no seu perfil.",
+                    12, FontStyle.Bold, Muted, new Vector2(0.30f, 0.075f),
+                    new Vector2(0.70f, 0.12f), TextAnchor.MiddleCenter);
                 return;
             }
 
@@ -852,9 +1159,9 @@ namespace ArcaneArena.Frontend
                 ? CreatePackOpeningAnimationView(pack)
                 : null;
             Text revealInstruction = CreateText(_screenRoot,
-                "Toque ou clique em cada carta para revelar. O resultado já está salvo.",
-                17, FontStyle.Bold, Muted, new Vector2(0.16f, 0.79f),
-                new Vector2(0.84f, 0.86f), TextAnchor.MiddleCenter);
+                "REVELE AS CINCO CARTAS • O RESULTADO JÁ ESTÁ SALVO",
+                14, FontStyle.Bold, Color.white, new Vector2(0.18f, 0.78f),
+                new Vector2(0.82f, 0.86f), TextAnchor.MiddleCenter);
             revealInstruction.gameObject.SetActive(!animateEntry);
             if (animationView != null)
                 animationView.RevealInstruction = revealInstruction;
@@ -876,10 +1183,12 @@ namespace ArcaneArena.Frontend
                     : _screenRoot;
                 Vector2 finalMin = new Vector2(left, 0.27f);
                 Vector2 finalMax = new Vector2(left + 0.15f, 0.72f);
+                // Sem sombra fixa: durante o voo ela permanecia no destino e
+                // parecia uma caixa preta de encaixe vazia.
                 Image card = CreateCardArtwork(cardParent,
-                    artwork,
-                    finalMin,
-                    finalMax, 0f, true);
+                     artwork,
+                     finalMin,
+                     finalMax, 0f, false);
                 card.gameObject.name = revealed
                     ? $"Carta Revelada {index + 1}"
                     : $"Carta Oculta {index + 1}";
@@ -917,11 +1226,12 @@ namespace ArcaneArena.Frontend
                 }
                 else
                 {
-                    CreateText(_screenRoot, entry?.DisplayName ?? opening.cardIds[index],
-                        13, FontStyle.Bold, Color.white,
-                        new Vector2(left - 0.01f, 0.20f),
-                        new Vector2(left + 0.16f, 0.27f),
-                        TextAnchor.MiddleCenter);
+                    DecorateRevealedPackCard(
+                        opening,
+                        index,
+                        card,
+                        entry,
+                        false);
                     AddButtonBehaviour(card,
                         () => ShowShopCardDetails(
                             opening.cardIds[capturedIndex],
@@ -930,26 +1240,7 @@ namespace ArcaneArena.Frontend
             }
 
             if (allRevealed)
-            {
-                CreateButton(_screenRoot, "CONCLUIR ABERTURA",
-                    new Vector2(0.36f, 0.10f), new Vector2(0.64f, 0.18f),
-                    Lime, () =>
-                    {
-                        if (_repository.TryCompletePackOpening(
-                                opening.transactionId, out string rejection))
-                        {
-                            _activePackOpeningId = string.Empty;
-                            _packOpeningStarted = false;
-                            _shopFeedback = "Pacote concluído. As cartas já estão na coleção.";
-                            _shopFeedbackIsError = false;
-                            ShowEconomyShop();
-                        }
-                        else
-                        {
-                            SetShopFailure(rejection);
-                        }
-                    });
-            }
+                CreatePackOpeningFinishButton(opening);
 
             if (animationView != null)
                 BeginPackOpeningPresentation(animationView);
@@ -961,14 +1252,17 @@ namespace ArcaneArena.Frontend
             Image card)
         {
             _packRevealBusy = true;
-            const float halfDuration = 0.18f;
+            const float halfDuration = 0.22f;
             float elapsed = 0f;
             while (elapsed < halfDuration && card != null)
             {
-                elapsed += Time.unscaledDeltaTime;
+                elapsed += Mathf.Min(Time.unscaledDeltaTime, 1f / 30f);
+                float progress = Mathf.Clamp01(elapsed / halfDuration);
                 float angle = Mathf.Lerp(0f, 90f,
-                    Mathf.Clamp01(elapsed / halfDuration));
+                    EaseInCubic(progress));
                 card.rectTransform.localRotation = Quaternion.Euler(0f, angle, 0f);
+                card.rectTransform.localScale = Vector3.one *
+                    (1f + Mathf.Sin(progress * Mathf.PI) * 0.035f);
                 yield return null;
             }
 
@@ -982,6 +1276,7 @@ namespace ArcaneArena.Frontend
 
             CardCatalogEntry entry = DeckRepository.ResolveCard(
                 _catalog, opening.cardIds[index]);
+            Image revealGlow = CreatePackCardRevealGlow(card, entry, index);
             if (card != null)
             {
                 card.sprite = entry?.Artwork;
@@ -991,14 +1286,155 @@ namespace ArcaneArena.Frontend
             elapsed = 0f;
             while (elapsed < halfDuration && card != null)
             {
-                elapsed += Time.unscaledDeltaTime;
+                elapsed += Mathf.Min(Time.unscaledDeltaTime, 1f / 30f);
+                float progress = Mathf.Clamp01(elapsed / halfDuration);
                 float angle = Mathf.Lerp(90f, 0f,
-                    Mathf.Clamp01(elapsed / halfDuration));
+                    EaseOutQuint(progress));
                 card.rectTransform.localRotation = Quaternion.Euler(0f, angle, 0f);
+                card.rectTransform.localScale = Vector3.one *
+                    Mathf.LerpUnclamped(
+                        1.055f,
+                        1f,
+                        EaseOutBack(progress, 0.025f));
+                if (revealGlow != null)
+                {
+                    float pulse = Mathf.Sin(progress * Mathf.PI);
+                    SetPackOpeningImageAlpha(revealGlow, pulse * 0.42f);
+                    revealGlow.rectTransform.localScale = Vector3.one *
+                        Mathf.Lerp(0.76f, 1.26f, EaseOutQuint(progress));
+                }
                 yield return null;
             }
+            if (card != null)
+            {
+                card.rectTransform.localRotation = Quaternion.identity;
+                card.rectTransform.localScale = Vector3.one;
+                DecorateRevealedPackCard(
+                    opening,
+                    index,
+                    card,
+                    entry,
+                    true);
+            }
+            if (revealGlow != null)
+                Destroy(revealGlow.gameObject);
             _packRevealBusy = false;
-            ShowPackOpening(opening);
+            if (opening.revealed != null &&
+                opening.revealed.All(value => value))
+            {
+                CreatePackOpeningFinishButton(opening);
+            }
+        }
+
+        private void DecorateRevealedPackCard(
+            PendingPackOpeningRecord opening,
+            int index,
+            Image card,
+            CardCatalogEntry entry,
+            bool replaceRevealInteraction)
+        {
+            if (opening == null || card == null || index < 0 ||
+                index >= opening.cardIds.Count)
+            {
+                return;
+            }
+
+            float left = 0.075f + index * 0.185f;
+            Text name = CreateText(
+                _screenRoot,
+                entry?.DisplayName ?? opening.cardIds[index],
+                13,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(left - 0.01f, 0.20f),
+                new Vector2(left + 0.16f, 0.27f),
+                TextAnchor.MiddleCenter);
+            name.gameObject.name = $"Nome da Carta Revelada {index + 1}";
+
+            if (entry != null && CardRarityCatalog.IsValid(entry.Rarity))
+            {
+                CreateRarityBadge(
+                    card.transform,
+                    entry.Rarity,
+                    new Vector2(0.66f, 0.895f),
+                    new Vector2(0.985f, 0.995f),
+                    12);
+            }
+
+            if (!replaceRevealInteraction)
+                return;
+
+            Button button = card.GetComponent<Button>();
+            if (button == null)
+                return;
+            button.onClick.RemoveAllListeners();
+            string cardId = opening.cardIds[index];
+            button.onClick.AddListener(() =>
+            {
+                FrontendClickAudio.Play();
+                ShowShopCardDetails(cardId, () => ShowPackOpening(opening));
+            });
+        }
+
+        private Image CreatePackCardRevealGlow(
+            Image card,
+            CardCatalogEntry entry,
+            int index)
+        {
+            if (card == null || _screenRoot == null)
+                return null;
+            RectTransform cardRect = card.rectTransform;
+            Vector2 padding = new(0.025f, 0.045f);
+            Color tint = entry != null &&
+                CardRarityCatalog.IsValid(entry.Rarity)
+                    ? RarityColor(entry.Rarity)
+                    : Gold;
+            Image glow = CreatePanel(
+                _screenRoot,
+                $"Clarão da Carta Revelada {index + 1}",
+                cardRect.anchorMin - padding,
+                cardRect.anchorMax + padding,
+                new Color(tint.r, tint.g, tint.b, 0f));
+            glow.sprite = ResolvePackOpeningGlowSprite();
+            glow.preserveAspect = true;
+            glow.raycastTarget = false;
+            glow.transform.SetSiblingIndex(card.transform.GetSiblingIndex());
+            return glow;
+        }
+
+        private void CreatePackOpeningFinishButton(
+            PendingPackOpeningRecord opening)
+        {
+            if (opening == null || _screenRoot == null ||
+                _screenRoot.Find("Botão CONCLUIR ABERTURA") != null)
+            {
+                return;
+            }
+
+            Image finishButton = CreateButton(
+                _screenRoot,
+                "CONCLUIR ABERTURA",
+                new Vector2(0.36f, 0.10f),
+                new Vector2(0.64f, 0.18f),
+                Gold,
+                () =>
+                {
+                    if (_repository.TryCompletePackOpening(
+                            opening.transactionId,
+                            out string rejection))
+                    {
+                        _activePackOpeningId = string.Empty;
+                        _packOpeningStarted = false;
+                        _shopFeedback = "Pacote concluído. As cartas já estão na coleção.";
+                        _shopFeedbackIsError = false;
+                        ShowEconomyShop();
+                    }
+                    else
+                    {
+                        SetShopFailure(rejection);
+                    }
+                });
+            DecorateRuntimeShopButton(finishButton, Gold, true, 9f);
         }
 
         private Sprite ResolveShopMysteryCardSprite()
@@ -1037,9 +1473,37 @@ namespace ArcaneArena.Frontend
             if (artwork == null || background == null)
                 return;
 
+            // Remove a linguagem azul da casca compartilhada sem alterar as
+            // outras telas do frontend. Nas páginas da loja, o título real já
+            // é desenhado pelo cabeçalho e a legenda antiga só disputava
+            // espaço com o saldo.
+            Image legacyHeader = background.transform.Find("Faixa Superior")
+                ?.GetComponent<Image>();
+            if (legacyHeader != null)
+            {
+                legacyHeader.color =
+                    new Color(0.012f, 0.010f, 0.009f, 0.92f);
+                Text sectionLabel = legacyHeader.GetComponentInChildren<Text>(true);
+                if (sectionLabel != null)
+                    sectionLabel.gameObject.SetActive(false);
+            }
+            Image legacyAccent = background.transform.Find("Linha Ciano")
+                ?.GetComponent<Image>();
+            if (legacyAccent != null)
+                legacyAccent.color =
+                    new Color(Gold.r, Gold.g, Gold.b, 0.78f);
+            for (int lineIndex = 1; lineIndex <= 9; lineIndex++)
+            {
+                Image line = background.transform.Find($"Linha {lineIndex}")
+                    ?.GetComponent<Image>();
+                if (line != null)
+                    line.color = new Color(
+                        Gold.r, Gold.g, Gold.b, 0.055f);
+            }
+
             Image image = CreatePanel(background.transform,
                 "Arte de Fundo da Loja", Vector2.zero, Vector2.one,
-                new Color(0.62f, 0.66f, 0.76f, 1f));
+                Color.white);
             image.sprite = artwork;
             image.preserveAspect = true;
             image.raycastTarget = false;
@@ -1050,15 +1514,58 @@ namespace ArcaneArena.Frontend
 
             Image veil = CreatePanel(background.transform,
                 "Contraste da Arte da Loja", Vector2.zero, Vector2.one,
-                new Color(0.005f, 0.015f, 0.035f, 0.34f));
+                new Color(0.010f, 0.008f, 0.012f, 0.46f));
             veil.raycastTarget = false;
             veil.transform.SetSiblingIndex(1);
+
+            Image upperRail = CreatePanel(
+                background.transform,
+                "Filete superior dourado",
+                new Vector2(0.035f, 0.902f),
+                new Vector2(0.965f, 0.906f),
+                new Color(Gold.r, Gold.g, Gold.b, 0.76f));
+            upperRail.raycastTarget = false;
+            Image lowerRail = CreatePanel(
+                background.transform,
+                "Filete inferior dourado",
+                new Vector2(0.055f, 0.043f),
+                new Vector2(0.945f, 0.046f),
+                new Color(Gold.r, Gold.g, Gold.b, 0.42f));
+            lowerRail.raycastTarget = false;
+        }
+
+        private void BuildProfessionalShopHeader(
+            string title,
+            Action backAction)
+        {
+            BuildHeader(title, backAction);
+            Image back = _screenRoot.Find("Botão ‹")?.GetComponent<Image>();
+            if (back != null)
+                DecorateRuntimeShopButton(
+                    back,
+                    new Color(0.98f, 0.68f, 0.18f, 1f),
+                    true,
+                    8f);
+
+            Text titleText = _screenRoot.Find(title)?.GetComponent<Text>();
+            if (titleText == null)
+                return;
+            MasterDuelTypography.Apply(
+                titleText,
+                FontStyle.Bold,
+                titleText.fontSize);
+            Shadow shadow = titleText.GetComponent<Shadow>() ??
+                            titleText.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.82f);
+            shadow.effectDistance = new Vector2(2f, -2f);
+            shadow.useGraphicAlpha = true;
         }
 
         private Sprite ResolveShopBackgroundSprite()
         {
             return ResolveShopVisualSprite(shopBackgroundSprite,
-                "Shop/ShopBackground", "Fundo da Loja Arcane",
+                "Shop/ShopBackgroundGold-v2",
+                "Fundo Dourado da Loja",
                 ref _runtimeShopBackgroundSprite);
         }
 
@@ -1104,11 +1611,11 @@ namespace ArcaneArena.Frontend
 
             Image trackImage = track.GetComponent<Image>();
             if (trackImage != null)
-                trackImage.color = new Color(0.04f, 0.09f, 0.13f, 0.96f);
+                trackImage.color = new Color(0.055f, 0.038f, 0.018f, 0.96f);
             Image handle = track.Find("Área Deslizante/Alça")
                 ?.GetComponent<Image>();
             if (handle != null)
-                handle.color = new Color(Cyan.r, Cyan.g, Cyan.b, 0.92f);
+                handle.color = new Color(Gold.r, Gold.g, Gold.b, 0.92f);
             return content;
         }
 

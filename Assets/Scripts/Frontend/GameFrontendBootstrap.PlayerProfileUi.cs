@@ -1121,27 +1121,69 @@ namespace ArcaneArena.Frontend
             bool owned = _repository.OwnsIcon(icon.IconId);
             bool equipped = string.Equals(_repository.EquippedIconId,
                 icon.IconId, StringComparison.Ordinal);
-            Image tile = CreateShopTile(parent, icon.DisplayName,
-                equipped ? Lime : Cyan);
-            CreateBoundedHexIcon(tile.transform, icon.DisplayName, icon.IconId,
-                new Vector2(0.24f, 0.33f), new Vector2(0.76f, 0.91f));
-            CreateText(tile.transform, icon.DisplayName, 17, FontStyle.Bold,
-                Color.white, new Vector2(0.04f, 0.21f),
-                new Vector2(0.96f, 0.34f), TextAnchor.MiddleCenter);
+            Color accent = equipped
+                ? new Color(0.78f, 1f, 0.20f, 1f)
+                : owned
+                    ? new Color(0.34f, 0.88f, 0.96f, 1f)
+                    : new Color(0.98f, 0.68f, 0.18f, 1f);
+            Image tile = CreateShopTile(parent, icon.DisplayName, accent);
+
+            CreateText(tile.transform,
+                equipped ? "EMBLEMA ATIVO" : owned
+                    ? "EMBLEMA ADQUIRIDO"
+                    : "EMBLEMA PREMIUM",
+                10, FontStyle.Bold,
+                new Color(accent.r, accent.g, accent.b, 0.92f),
+                new Vector2(0.055f, 0.885f),
+                new Vector2(0.945f, 0.965f),
+                TextAnchor.MiddleCenter);
+            CreateText(tile.transform, icon.DisplayName, 18, FontStyle.Bold,
+                Color.white, new Vector2(0.055f, 0.765f),
+                new Vector2(0.945f, 0.885f), TextAnchor.MiddleCenter);
+
+            Image pedestal = CreatePanel(tile.transform,
+                "Pedestal do Emblema",
+                new Vector2(0.13f, 0.225f),
+                new Vector2(0.87f, 0.765f),
+                new Color(0.002f, 0.006f, 0.012f, 0.72f));
+            DecorateRuntimeShopSurface(pedestal, accent, false, 18f);
+            CreatePanel(pedestal.transform,
+                "Reflexo do Pedestal",
+                new Vector2(0.18f, 0.06f),
+                new Vector2(0.82f, 0.075f),
+                new Color(accent.r, accent.g, accent.b, 0.62f))
+                .raycastTarget = false;
+            CreatePanel(pedestal.transform,
+                "Luz Superior",
+                new Vector2(0.35f, 0.93f),
+                new Vector2(0.65f, 0.945f),
+                new Color(accent.r, accent.g, accent.b, 0.86f))
+                .raycastTarget = false;
+            CreateBoundedHexIcon(pedestal.transform,
+                "Emblema " + icon.DisplayName,
+                icon.IconId,
+                new Vector2(0.25f, 0.08f),
+                new Vector2(0.75f, 0.92f));
+
             if (owned)
             {
                 string action = equipped ? "EQUIPADO" : "EQUIPAR";
-                CreateButton(tile.transform, action,
+                Image actionButton = CreateButton(tile.transform, action,
                     new Vector2(0.08f, 0.04f),
-                    new Vector2(0.92f, 0.20f), Lime, () =>
+                    new Vector2(0.92f, 0.19f), accent, () =>
                     HandleProfileIconShopAction(icon));
+                DecorateRuntimeShopButton(
+                    actionButton,
+                    accent,
+                    !equipped,
+                    8f);
             }
             else
             {
                 CreateShopPriceButton(tile.transform, "COMPRAR",
                     ProfileIconCatalog.IconPriceCoins,
                     new Vector2(0.08f, 0.04f),
-                    new Vector2(0.92f, 0.20f), Gold, () =>
+                    new Vector2(0.92f, 0.19f), Gold, () =>
                     HandleProfileIconShopAction(icon));
             }
         }
@@ -1172,20 +1214,35 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             BuildShopBackground("CONFIRMAR COMPRA");
-            BuildHeader(icon.DisplayName, ShowEconomyShop);
+            BuildProfessionalShopHeader(icon.DisplayName, ShowEconomyShop);
             CreateCoinBalance(_screenRoot);
             Image panel = CreatePanel(_screenRoot, "Confirmação do Ícone",
                 new Vector2(0.29f, 0.16f), new Vector2(0.71f, 0.80f),
                 new Color(0.008f, 0.025f, 0.05f, 0.99f));
-            AddOutline(panel.gameObject, Cyan, new Vector2(2f, -2f));
-            CreateHexIcon(panel.transform, icon.DisplayName, icon.IconId,
-                new Vector2(0.25f, 0.37f), new Vector2(0.75f, 0.88f));
+            DecorateRuntimeShopSurface(panel, Gold, true, 15f);
+            CreateText(panel.transform, "EMBLEMA PREMIUM", 14,
+                FontStyle.Bold, Gold,
+                new Vector2(0.08f, 0.90f), new Vector2(0.92f, 0.97f),
+                TextAnchor.MiddleCenter);
+            Image pedestal = CreatePanel(panel.transform,
+                "Pedestal de Confirmação",
+                new Vector2(0.22f, 0.39f), new Vector2(0.78f, 0.88f),
+                new Color(0.002f, 0.006f, 0.012f, 0.74f));
+            DecorateRuntimeShopSurface(pedestal, Gold, false, 18f);
+            CreateBoundedHexIcon(pedestal.transform,
+                icon.DisplayName, icon.IconId,
+                new Vector2(0.23f, 0.06f), new Vector2(0.77f, 0.94f));
             CreateText(panel.transform, icon.DisplayName, 27, FontStyle.Bold,
-                Color.white, new Vector2(0.06f, 0.25f),
-                new Vector2(0.94f, 0.38f), TextAnchor.MiddleCenter);
+                Color.white, new Vector2(0.06f, 0.27f),
+                new Vector2(0.94f, 0.39f), TextAnchor.MiddleCenter);
+            CreateText(panel.transform,
+                "O emblema ficará disponível permanentemente no seu perfil.",
+                14, FontStyle.Bold, Muted,
+                new Vector2(0.09f, 0.21f), new Vector2(0.91f, 0.28f),
+                TextAnchor.MiddleCenter);
             CreateShopPriceButton(panel.transform, "COMPRAR POR",
                 ProfileIconCatalog.IconPriceCoins,
-                new Vector2(0.13f, 0.07f), new Vector2(0.87f, 0.22f), Gold,
+                new Vector2(0.13f, 0.055f), new Vector2(0.87f, 0.195f), Gold,
                 () =>
                 {
                     bool ok = _repository.TryPurchaseIcon(icon.IconId,

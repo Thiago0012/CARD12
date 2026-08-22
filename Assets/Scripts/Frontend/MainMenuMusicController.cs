@@ -210,10 +210,7 @@ namespace ArcaneArena.Frontend
         private void StopAndRewind()
         {
             if (_source != null)
-            {
                 _source.Stop();
-                _source.time = 0f;
-            }
 
             _volumeEnvelope = 0f;
             ApplyOutputVolume();
