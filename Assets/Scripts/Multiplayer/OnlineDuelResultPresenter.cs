@@ -125,7 +125,7 @@ namespace ArcaneArena.Multiplayer
             Image blocker = CreateImage(
                 canvasObject.transform,
                 "ResultBlocker",
-                new Color(0.005f, 0.015f, 0.03f, 0.94f),
+                new Color(0.003f, 0.010f, 0.022f, 0.64f),
                 Vector2.zero,
                 Vector2.one);
             blocker.raycastTarget = true;
@@ -155,11 +155,16 @@ namespace ArcaneArena.Multiplayer
             Image buttonImage = CreateImage(
                 safe.transform,
                 "ReturnToMenuButton",
-                new Color(0.17f, 0.88f, 0.98f, 1f),
+                Color.clear,
                 new Vector2(0.34f, 0.20f),
                 new Vector2(0.66f, 0.29f));
             returnButton = buttonImage.gameObject.AddComponent<Button>();
-            returnButton.targetGraphic = buttonImage;
+            returnButton.targetGraphic = AddModernSurface(
+                buttonImage,
+                "Superfície do Botão de Retorno",
+                new Color(0.15f, 0.82f, 1f, 1f),
+                0.96f,
+                12f);
             returnButton.onClick.AddListener(() => returnAction?.Invoke());
             Text buttonText = CreateText(
                 buttonImage.transform,
@@ -170,7 +175,7 @@ namespace ArcaneArena.Multiplayer
                 Vector2.zero,
                 Vector2.one);
             buttonText.text = "VOLTAR AO MENU";
-            buttonText.color = new Color(0.01f, 0.06f, 0.09f, 1f);
+            buttonText.color = Color.white;
             BuildRankedView(safe.transform, font);
             canvasObject.SetActive(false);
         }
@@ -189,12 +194,15 @@ namespace ArcaneArena.Multiplayer
             Image panel = CreateImage(
                 rankedRoot.transform,
                 "RankPanel",
-                new Color(0.015f, 0.035f, 0.075f, 0.96f),
+                Color.clear,
                 new Vector2(0.05f, 0.02f),
                 new Vector2(0.95f, 0.98f));
-            Outline outline = panel.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0.80f, 0.58f, 0.18f, 0.85f);
-            outline.effectDistance = new Vector2(2f, -2f);
+            AddModernSurface(
+                panel,
+                "Superfície do Resultado Ranqueado",
+                new Color(0.93f, 0.66f, 0.18f, 1f),
+                0.95f,
+                18f);
 
             GameObject bannerObject = new GameObject(
                 "RankResultBanner",
@@ -281,7 +289,7 @@ namespace ArcaneArena.Multiplayer
             Image barBackground = CreateImage(
                 panel.transform,
                 "RankBarBackground",
-                new Color(0.02f, 0.02f, 0.03f, 1f),
+                new Color(0.002f, 0.010f, 0.020f, 0.82f),
                 new Vector2(0.22f, 0.11f),
                 new Vector2(0.78f, 0.17f));
             Image barFill = CreateImage(
@@ -314,11 +322,16 @@ namespace ArcaneArena.Multiplayer
             Image skipImage = CreateImage(
                 parent,
                 "SkipRankAnimation",
-                new Color(0.08f, 0.16f, 0.24f, 0.96f),
+                Color.clear,
                 new Vector2(0.70f, 0.20f),
                 new Vector2(0.86f, 0.27f));
             skipButton = skipImage.gameObject.AddComponent<Button>();
-            skipButton.targetGraphic = skipImage;
+            skipButton.targetGraphic = AddModernSurface(
+                skipImage,
+                "Superfície de Pular Animação",
+                new Color(0.15f, 0.82f, 1f, 1f),
+                0.90f,
+                9f);
             Text skipText = CreateText(
                 skipImage.transform,
                 "Label",
@@ -410,6 +423,32 @@ namespace ArcaneArena.Multiplayer
             Image image = value.GetComponent<Image>();
             image.color = color;
             return image;
+        }
+
+        private static DuelHudSurfaceGraphic AddModernSurface(
+            Image legacyImage,
+            string name,
+            Color accent,
+            float opacity,
+            float chamfer)
+        {
+            legacyImage.color = Color.clear;
+            GameObject surfaceObject = new GameObject(
+                name,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(DuelHudSurfaceGraphic));
+            surfaceObject.transform.SetParent(legacyImage.transform, false);
+            Stretch(
+                surfaceObject.GetComponent<RectTransform>(),
+                Vector2.zero,
+                Vector2.one);
+            DuelHudSurfaceGraphic surface =
+                surfaceObject.GetComponent<DuelHudSurfaceGraphic>();
+            surface.raycastTarget = false;
+            surface.SetStyle(accent, true, opacity, false, chamfer);
+            surfaceObject.transform.SetAsFirstSibling();
+            return surface;
         }
 
         private static Text CreateText(

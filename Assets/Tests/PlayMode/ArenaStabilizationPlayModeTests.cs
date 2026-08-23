@@ -573,6 +573,55 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator ModernPhaseControlKeepsTheAuthoredClickTarget()
+        {
+            PlayerPrefs.SetInt("ArcaneAutoStart", 0);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
+            BindingFlags flags =
+                BindingFlags.Instance |
+                BindingFlags.Public |
+                BindingFlags.NonPublic;
+            GameObject phasePanel = arena.GetType()
+                .GetField("phaseControlPanel", flags)
+                ?.GetValue(arena) as GameObject;
+            Button phaseButton = arena.GetType()
+                .GetField("phaseButton", flags)
+                ?.GetValue(arena) as Button;
+
+            Assert.That(phasePanel, Is.Not.Null);
+            Assert.That(phaseButton, Is.Not.Null);
+            Assert.That(phaseButton.name, Does.Contain("Avan"));
+            Assert.That(
+                phasePanel.GetComponentsInChildren<Button>(true).Length,
+                Is.EqualTo(1),
+                "The visual skin must not add a nested competing Button.");
+            Assert.That(phaseButton.targetGraphic, Is.Not.Null);
+            Assert.That(
+                phaseButton.targetGraphic.raycastTarget,
+                Is.True,
+                "The authored phase Button must remain the raycast owner.");
+
+            Component modernSurface = phasePanel
+                .GetComponentsInChildren<Component>(true)
+                .FirstOrDefault(component =>
+                    component != null &&
+                    component.GetType().Name == "DuelPhaseControlGraphic");
+            Assert.That(modernSurface, Is.Not.Null);
+            Assert.That(
+                ((Graphic)modernSurface).raycastTarget,
+                Is.False,
+                "The decorative phase skin must never consume input.");
+        }
+
+        [UnityTest]
         public IEnumerator SetSpellTrapUsesTheCardBackAndHidesItsFace()
         {
             SceneManager.LoadScene(ProjectIdentity.DuelScene);

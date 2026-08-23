@@ -16,6 +16,7 @@ namespace ArcaneArena.Frontend
         private HexIconView _icon;
         private Text _name;
         private Text _rank;
+        private DuelHudSurfaceGraphic _surface;
 
         public void Bind(DuelIdentitySnapshot identity, PlateSide side)
         {
@@ -40,8 +41,8 @@ namespace ArcaneArena.Frontend
             bool local = side == PlateSide.Local;
             RectTransform root = transform as RectTransform;
             Color accent = local
-                ? new Color(0.96f, 0.30f, 0.24f, 1f)
-                : new Color(0.28f, 0.57f, 1f, 1f);
+                ? new Color(0.14f, 0.63f, 1f, 1f)
+                : new Color(1f, 0.25f, 0.32f, 1f);
             ConfigurePlate(root, local, accent);
             Transform iconTransform = transform.Find("Ícone do Perfil");
             if (iconTransform == null)
@@ -82,14 +83,14 @@ namespace ArcaneArena.Frontend
                 local ? new Vector2(0.97f, 0.97f) : new Vector2(0.715f, 0.97f),
                 17,
                 Color.white,
-                TextAnchor.MiddleLeft);
+                local ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
             _rank = EnsureText(
                 "Patente do Duelista",
                 local ? new Vector2(0.285f, 0.625f) : new Vector2(0.03f, 0.625f),
                 local ? new Vector2(0.97f, 0.755f) : new Vector2(0.715f, 0.755f),
                 9,
                 accent,
-                TextAnchor.MiddleLeft);
+                local ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight);
             LayoutAuthoredLifeValues(local);
             _name.raycastTarget = false;
             _rank.raycastTarget = false;
@@ -113,14 +114,15 @@ namespace ArcaneArena.Frontend
                 root.sizeDelta = new Vector2(356f, 108f);
 
             Image plate = GetComponent<Image>() ?? gameObject.AddComponent<Image>();
-            plate.color = new Color(0.008f, 0.018f, 0.028f, 0.76f);
+            plate.color = Color.clear;
             plate.raycastTarget = false;
             Outline outline = GetComponent<Outline>() ??
                 gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(
-                accent.r, accent.g, accent.b, 0.86f);
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            outline.effectColor = Color.clear;
+            outline.effectDistance = Vector2.zero;
             outline.useGraphicAlpha = true;
+
+            EnsureModernSurface(local, accent);
 
             Vector2 contentMin = local
                 ? new Vector2(0.255f, 0.02f)
@@ -128,21 +130,45 @@ namespace ArcaneArena.Frontend
             Vector2 contentMax = local
                 ? new Vector2(0.985f, 0.985f)
                 : new Vector2(0.745f, 0.985f);
-            EnsureImage(
+            Image lifeBackground = EnsureImage(
                 "Fundo da Vida",
                 new Vector2(contentMin.x, 0.02f),
                 new Vector2(contentMax.x, 0.615f),
-                new Color(0.02f, 0.055f, 0.075f, 0.52f));
-            EnsureImage(
+                Color.clear);
+            Image nameBackground = EnsureImage(
                 "Faixa do Nome",
                 new Vector2(contentMin.x, 0.615f),
                 new Vector2(contentMax.x, 0.985f),
-                new Color(0.005f, 0.008f, 0.012f, 0.92f));
+                Color.clear);
+            lifeBackground.enabled = false;
+            nameBackground.enabled = false;
             EnsureImage(
                 "Linha de Destaque",
                 new Vector2(contentMin.x, 0.595f),
                 new Vector2(contentMax.x, 0.62f),
-                new Color(accent.r, accent.g, accent.b, 0.95f));
+                new Color(accent.r, accent.g, accent.b, 0.72f));
+        }
+
+        private void EnsureModernSurface(bool local, Color accent)
+        {
+            Transform existing = transform.Find("Placa Translúcida do Duelista");
+            GameObject surfaceObject = existing != null
+                ? existing.gameObject
+                : new GameObject(
+                    "Placa Translúcida do Duelista",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(DuelHudSurfaceGraphic));
+            if (existing == null)
+                surfaceObject.transform.SetParent(transform, false);
+            SetRect(
+                surfaceObject.GetComponent<RectTransform>(),
+                Vector2.zero,
+                Vector2.one);
+            _surface = surfaceObject.GetComponent<DuelHudSurfaceGraphic>();
+            _surface.raycastTarget = false;
+            _surface.SetStyle(accent, local, 0.96f, true, 12f);
+            surfaceObject.transform.SetAsFirstSibling();
         }
 
         private Text FindAuthoredName(PlateSide side)

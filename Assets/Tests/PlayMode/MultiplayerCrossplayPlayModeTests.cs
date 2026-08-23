@@ -506,6 +506,12 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(
                 labels.Any(label => label == "MANUAL" || label == "CORE"),
                 Is.True);
+            Assert.That(labels, Does.Contain("AVISOS DE ORIENTAÇÃO"));
+            Assert.That(labels, Does.Contain("PAINEL DE CORRENTE"));
+            Assert.That(
+                labels.Any(label =>
+                    label == "VISÍVEIS" || label == "OCULTOS"),
+                Is.True);
         }
 
         [UnityTest]

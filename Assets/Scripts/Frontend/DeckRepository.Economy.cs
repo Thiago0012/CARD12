@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using ArcaneArena.Cards;
 using UnityEngine;
 
 namespace ArcaneArena.Frontend
@@ -305,8 +306,10 @@ namespace ArcaneArena.Frontend
             }
 
             var draws = new List<string>(ShopPackCatalog.CardsPerOpening);
+            Dictionary<CardRarity, List<string>> rarityPools =
+                BuildPackRarityPools(pack.CardIds);
             for (int index = 0; index < ShopPackCatalog.CardsPerOpening; index++)
-                draws.Add(pack.CardIds[SecureIndex(pack.CardIds.Count)]);
+                draws.Add(DrawPackCard(pack.CardIds, rarityPools));
 
             string snapshot = JsonUtility.ToJson(State);
             try
@@ -610,6 +613,59 @@ namespace ArcaneArena.Frontend
                 value = BitConverter.ToInt32(bytes, 0) & int.MaxValue;
             } while (value >= limit);
             return value % count;
+        }
+
+        private Dictionary<CardRarity, List<string>> BuildPackRarityPools(
+            IReadOnlyList<string> cardIds)
+        {
+            var pools = new Dictionary<CardRarity, List<string>>();
+            foreach (CardRarity rarity in PackRarityDistribution.OrderedRarities)
+                pools[rarity] = new List<string>();
+
+            if (cardIds == null)
+                return pools;
+            foreach (string cardId in cardIds)
+            {
+                CardCatalogEntry entry = ResolveCard(_catalog, cardId);
+                CardRarity rarity =
+                    PackRarityDistribution.ResolveCardRarity(entry);
+                pools[rarity].Add(cardId);
+            }
+            return pools;
+        }
+
+        private static string DrawPackCard(
+            IReadOnlyList<string> fallbackPool,
+            IReadOnlyDictionary<CardRarity, List<string>> rarityPools)
+        {
+            if (fallbackPool == null || fallbackPool.Count == 0)
+                throw new InvalidOperationException(
+                    "O pacote não possui cartas disponíveis para sorteio.");
+
+            var available = new List<CardRarity>(4);
+            foreach (CardRarity rarity in PackRarityDistribution.OrderedRarities)
+            {
+                if (rarityPools != null &&
+                    rarityPools.TryGetValue(rarity, out List<string> pool) &&
+                    pool != null && pool.Count > 0)
+                {
+                    available.Add(rarity);
+                }
+            }
+
+            CardRarity selected = available.Count == 4
+                ? PackRarityDistribution.ResolveRoll(SecureIndex(100))
+                : PackRarityDistribution.ResolveAvailableRoll(
+                    SecureIndex(Math.Max(1, available.Sum(
+                        PackRarityDistribution.Weight))),
+                    available);
+            if (rarityPools != null &&
+                rarityPools.TryGetValue(selected, out List<string> selectedPool) &&
+                selectedPool != null && selectedPool.Count > 0)
+            {
+                return selectedPool[SecureIndex(selectedPool.Count)];
+            }
+            return fallbackPool[SecureIndex(fallbackPool.Count)];
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using ArcaneArena.Cards;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,11 +14,14 @@ namespace ArcaneArena.Frontend
             Idle,
             Fade,
             PackEnter,
+            RarityCharge,
+            EnergyCurtain,
             Anticipation,
             Tear,
             FlapOpen,
             Burst,
             StackRise,
+            CardEject,
             FanOut,
             Settle,
             RevealReady
@@ -27,25 +31,33 @@ namespace ArcaneArena.Frontend
         [SerializeField]
         private bool packOpeningAnimationEnabled = true;
         [SerializeField, Range(0.05f, 1f)]
-        private float packOpeningFadeDuration = 0.22f;
+        private float packOpeningFadeDuration = 0.10f;
         [SerializeField, Range(0.05f, 1.5f)]
-        private float packOpeningEnterDuration = 0.62f;
-        [SerializeField, Range(0.05f, 1f)]
-        private float packOpeningAnticipationDuration = 0.30f;
-        [SerializeField, Range(0.05f, 1f)]
-        private float packOpeningTearDuration = 0.52f;
-        [SerializeField, Range(0.05f, 1f)]
-        private float packOpeningFlapDuration = 0.48f;
-        [SerializeField, Range(0.05f, 1f)]
-        private float packOpeningBurstDuration = 0.34f;
-        [SerializeField, Range(0.05f, 1f)]
-        private float packOpeningStackRiseDuration = 0.50f;
+        private float packOpeningEnterDuration = 0.28f;
         [SerializeField, Range(0.10f, 1.5f)]
-        private float packOpeningFanDuration = 0.72f;
-        [SerializeField, Range(0f, 0.20f)]
-        private float packOpeningCardStagger = 0.18f;
+        private float packOpeningRarityChargeDuration = 0.18f;
+        [SerializeField, Range(0.10f, 1.5f)]
+        private float packOpeningEnergyCurtainDuration = 0.20f;
+        [SerializeField, Range(0.05f, 1f)]
+        private float packOpeningAnticipationDuration = 0.10f;
+        [SerializeField, Range(0.05f, 1f)]
+        private float packOpeningTearDuration = 0.36f;
+        [SerializeField, Range(0.05f, 1f)]
+        private float packOpeningFlapDuration = 0.26f;
+        [SerializeField, Range(0.05f, 1f)]
+        private float packOpeningBurstDuration = 0.20f;
+        [SerializeField, Range(0.05f, 1f)]
+        private float packOpeningStackRiseDuration = 0.32f;
+        [SerializeField, Range(0.12f, 0.8f)]
+        private float packOpeningCardEjectDuration = 0.26f;
+        [SerializeField, Range(0.02f, 0.18f)]
+        private float packOpeningEjectStagger = 0.06f;
+        [SerializeField, Range(0.10f, 1.5f)]
+        private float packOpeningFanDuration = 0.48f;
+        [SerializeField, Range(0f, 0.35f)]
+        private float packOpeningCardStagger = 0.10f;
         [SerializeField, Range(0.05f, 0.75f)]
-        private float packOpeningSettleDuration = 0.18f;
+        private float packOpeningSettleDuration = 0.28f;
 
         private sealed class PackOpeningAnimationCard
         {
@@ -59,6 +71,8 @@ namespace ArcaneArena.Frontend
             public Vector2 FinalMin;
             public Vector2 FinalMax;
             public Vector2 StackOffset;
+            public Vector2 EjectApexOffset;
+            public Vector2 EjectStagingOffset;
             public Vector2 ApexOffset;
             public Vector2 ApproachOffset;
             public float LaunchRotation;
@@ -79,17 +93,26 @@ namespace ArcaneArena.Frontend
         private sealed class PackOpeningAnimationView
         {
             public RectTransform Layer;
+            public CardRarity PeakRarity;
+            public Color RarityAccent;
+            public ArcaneRarityRevealGraphic RarityAura;
             public RectTransform RearGlow;
             public CanvasGroup RearGlowGroup;
             public RectTransform OuterGlow;
             public CanvasGroup OuterGlowGroup;
             public RectTransform ReleaseBeam;
             public CanvasGroup ReleaseBeamGroup;
+            public RectTransform HorizonLine;
+            public CanvasGroup HorizonLineGroup;
+            public RectTransform LightCone;
+            public CanvasGroup LightConeGroup;
             public RectTransform PackRoot;
             public CanvasGroup PackGroup;
             public Image InnerDark;
             public RectTransform LeftFlap;
+            public CanvasGroup LeftFlapGroup;
             public RectTransform RightFlap;
+            public CanvasGroup RightFlapGroup;
             public RectTransform FrontLip;
             public CanvasGroup FrontLipGroup;
             public RectTransform TearGlow;
@@ -105,6 +128,8 @@ namespace ArcaneArena.Frontend
             public float PackHeight;
             public readonly List<PackOpeningAnimationCard> Cards = new();
             public readonly List<PackOpeningParticle> Particles = new();
+            public readonly List<RectTransform> EnergyCurtains = new();
+            public readonly List<CanvasGroup> EnergyCurtainGroups = new();
         }
 
         private Coroutine _packOpeningSequenceRoutine;
@@ -120,6 +145,10 @@ namespace ArcaneArena.Frontend
         public string PackOpeningPresentationStateName =>
             _packOpeningPresentationState.ToString();
 
+        public string PendingOpeningPeakRarityName =>
+            ResolvePackOpeningPeakRarity(_repository?.PendingPackOpening)
+                .ToString();
+
         private void StartPackOpeningPresentation(
             PendingPackOpeningRecord opening)
         {
@@ -131,7 +160,8 @@ namespace ArcaneArena.Frontend
         }
 
         private PackOpeningAnimationView CreatePackOpeningAnimationView(
-            ShopPackDefinition pack)
+            ShopPackDefinition pack,
+            PendingPackOpeningRecord opening)
         {
             Image blocker = CreatePanel(
                 _screenRoot,
@@ -149,20 +179,31 @@ namespace ArcaneArena.Frontend
 
             var view = new PackOpeningAnimationView
             {
-                Layer = blocker.rectTransform
+                Layer = blocker.rectTransform,
+                PeakRarity = ResolvePackOpeningPeakRarity(opening)
             };
+            view.RarityAccent = ResolvePackOpeningRarityAccent(view.PeakRarity);
 
             // O cenário da loja já funciona como fundo cinematográfico da
             // abertura. Não adicionamos películas de tela inteira: além de
             // esconder seus detalhes, a combinação de escurecimento e clarão
             // dourado produzia um fundo amarelado translúcido.
 
+            view.RarityAura = CreatePackRarityAura(
+                view.Layer,
+                $"Presságio {view.PeakRarity} da Abertura",
+                new Vector2(0.19f, 0.035f),
+                new Vector2(0.81f, 0.965f),
+                view.PeakRarity,
+                false);
+
             Image outerGlow = CreatePanel(
                 view.Layer,
                 "Aura Exterior do Pacote",
                 new Vector2(0.19f, 0.02f),
                 new Vector2(0.81f, 0.96f),
-                new Color(Gold.r, Gold.g, Gold.b, 0f));
+                new Color(view.RarityAccent.r, view.RarityAccent.g,
+                    view.RarityAccent.b, 1f));
             outerGlow.sprite = ResolvePackOpeningGlowSprite();
             outerGlow.preserveAspect = true;
             outerGlow.raycastTarget = false;
@@ -176,7 +217,8 @@ namespace ArcaneArena.Frontend
                 "Feixe de Liberação das Cartas",
                 new Vector2(0.39f, 0.27f),
                 new Vector2(0.61f, 0.94f),
-                new Color(1f, 0.88f, 0.48f, 0f));
+                new Color(view.RarityAccent.r, view.RarityAccent.g,
+                    view.RarityAccent.b, 1f));
             releaseBeam.sprite = ResolvePackOpeningGlowSprite();
             releaseBeam.preserveAspect = false;
             releaseBeam.raycastTarget = false;
@@ -185,12 +227,79 @@ namespace ArcaneArena.Frontend
                 releaseBeam.gameObject,
                 0f);
 
+            // Referência temporal do GIF: um horizonte luminoso e um cone
+            // vertical anunciam a abertura antes do corte. São elementos
+            // leves de UI, sem película opaca sobre o cenário da loja.
+            Image horizonLine = CreatePanel(
+                view.Layer,
+                "Horizonte Luminoso da Abertura",
+                new Vector2(0.10f, 0.485f),
+                new Vector2(0.90f, 0.502f),
+                new Color(view.RarityAccent.r, view.RarityAccent.g,
+                    view.RarityAccent.b, 1f));
+            horizonLine.sprite = ResolvePackOpeningGlowSprite();
+            horizonLine.preserveAspect = false;
+            horizonLine.raycastTarget = false;
+            view.HorizonLine = horizonLine.rectTransform;
+            view.HorizonLineGroup = AddPackOpeningCanvasGroup(
+                horizonLine.gameObject,
+                0f);
+
+            Image lightCone = CreatePanel(
+                view.Layer,
+                "Cone de Luz sobre o Pacote",
+                new Vector2(0.31f, 0.39f),
+                new Vector2(0.69f, 0.985f),
+                new Color(view.RarityAccent.r, view.RarityAccent.g,
+                    view.RarityAccent.b, 1f));
+            lightCone.sprite = ResolvePackOpeningGlowSprite();
+            lightCone.preserveAspect = false;
+            lightCone.raycastTarget = false;
+            view.LightCone = lightCone.rectTransform;
+            view.LightConeGroup = AddPackOpeningCanvasGroup(
+                lightCone.gameObject,
+                0f);
+
+            const int curtainCount = 7;
+            for (int curtainIndex = 0;
+                 curtainIndex < curtainCount;
+                 curtainIndex++)
+            {
+                float center = Mathf.Lerp(0.285f, 0.715f,
+                    curtainIndex / (curtainCount - 1f));
+                float halfWidth = curtainIndex % 2 == 0 ? 0.010f : 0.006f;
+                Color curtainColor = view.PeakRarity == CardRarity.UR
+                    ? Color.HSVToRGB(
+                        Mathf.Repeat(0.78f + curtainIndex * 0.105f, 1f),
+                        0.72f,
+                        1f)
+                    : curtainIndex % 3 == 0
+                        ? Color.white
+                        : view.RarityAccent;
+                Image curtain = CreatePanel(
+                    view.Layer,
+                    $"Faixa de Energia {curtainIndex + 1}",
+                    new Vector2(center - halfWidth, 0.22f),
+                    new Vector2(center + halfWidth, 0.91f),
+                    new Color(curtainColor.r, curtainColor.g,
+                        curtainColor.b, 1f));
+                curtain.sprite = ResolvePackOpeningGlowSprite();
+                curtain.preserveAspect = false;
+                curtain.raycastTarget = false;
+                CanvasGroup curtainGroup = AddPackOpeningCanvasGroup(
+                    curtain.gameObject,
+                    0f);
+                view.EnergyCurtains.Add(curtain.rectTransform);
+                view.EnergyCurtainGroups.Add(curtainGroup);
+            }
+
             Image rearGlow = CreatePanel(
                 view.Layer,
                 "Clarão Traseiro do Pacote",
                 new Vector2(0.30f, 0.12f),
                 new Vector2(0.70f, 0.84f),
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0f));
+                new Color(view.RarityAccent.r, view.RarityAccent.g,
+                    view.RarityAccent.b, 1f));
             rearGlow.sprite = ResolvePackOpeningGlowSprite();
             rearGlow.preserveAspect = true;
             rearGlow.raycastTarget = false;
@@ -245,6 +354,9 @@ namespace ArcaneArena.Frontend
             leftFlap.raycastTarget = false;
             view.LeftFlap = leftFlap.rectTransform;
             view.LeftFlap.pivot = new Vector2(0.96f, 0.08f);
+            view.LeftFlapGroup = AddPackOpeningCanvasGroup(
+                leftFlap.gameObject,
+                1f);
 
             RawImage rightFlap = CreatePackOpeningSlice(
                 view.PackRoot,
@@ -256,6 +368,9 @@ namespace ArcaneArena.Frontend
             rightFlap.raycastTarget = false;
             view.RightFlap = rightFlap.rectTransform;
             view.RightFlap.pivot = new Vector2(0.04f, 0.08f);
+            view.RightFlapGroup = AddPackOpeningCanvasGroup(
+                rightFlap.gameObject,
+                1f);
 
             view.FrontLipBasePosition = view.PackBasePosition +
                 new Vector2(0f, view.PackHeight * 0.255f);
@@ -309,8 +424,76 @@ namespace ArcaneArena.Frontend
                 view,
                 0.54f,
                 view.PackEnterOffset,
-                -5.5f);
+                0f);
             return view;
+        }
+
+        private CardRarity ResolvePackOpeningPeakRarity(
+            PendingPackOpeningRecord opening)
+        {
+            CardRarity peak = CardRarity.N;
+            if (opening?.cardIds == null)
+                return peak;
+
+            foreach (string cardId in opening.cardIds)
+            {
+                CardCatalogEntry entry = DeckRepository.ResolveCard(
+                    _catalog,
+                    cardId);
+                CardRarity rarity =
+                    PackRarityDistribution.ResolveCardRarity(entry);
+                if (rarity > peak)
+                {
+                    peak = rarity;
+                }
+            }
+            return peak;
+        }
+
+        private static Color ResolvePackOpeningRarityAccent(CardRarity rarity)
+        {
+            return rarity switch
+            {
+                CardRarity.R => new Color(0.12f, 0.67f, 1f, 1f),
+                CardRarity.SR => new Color(1f, 0.66f, 0.08f, 1f),
+                CardRarity.UR => new Color(0.96f, 0.16f, 0.78f, 1f),
+                _ => new Color(0.70f, 0.78f, 0.87f, 1f)
+            };
+        }
+
+        private static ArcaneRarityRevealGraphic CreatePackRarityAura(
+            Transform parent,
+            string objectName,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            CardRarity rarity,
+            bool animateIdle)
+        {
+            if (parent == null)
+                return null;
+
+            var auraObject = new GameObject(objectName, typeof(RectTransform));
+            auraObject.transform.SetParent(parent, false);
+            RectTransform rect = auraObject.GetComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
+            rect.localRotation = Quaternion.identity;
+            var aura = auraObject.AddComponent<ArcaneRarityRevealGraphic>();
+            aura.Configure(rarity, animateIdle);
+            return aura;
+        }
+
+        private static void SetPackOpeningRarityAura(
+            PackOpeningAnimationView view,
+            float progress,
+            float pulse)
+        {
+            view?.RarityAura?.SetState(
+                Mathf.Clamp01(SanitizeFinite(progress, 0f)),
+                Mathf.Clamp01(SanitizeFinite(pulse, 0f)));
         }
 
         private void RegisterPackOpeningCard(
@@ -346,8 +529,27 @@ namespace ArcaneArena.Frontend
             var approachCenter = new Vector2(
                 finalCenter.x - lane * 0.004f,
                 finalCenter.y + 0.105f + Mathf.Abs(lane) * 0.008f);
+            // A ejeção e a distribuição são movimentos distintos. Primeiro
+            // todas as cartas deixam fisicamente a boca do pacote e formam uma
+            // pequena pilha aberta no alto; só então seguem para seus destinos.
+            // O limite vertical mantém a carta inteira visível em 16:9 e em
+            // telas Android mais estreitas.
+            var ejectStagingCenter = new Vector2(
+                0.5f + lane * 0.022f,
+                Mathf.Min(0.84f,
+                    mouthCenter.y + 0.105f +
+                    (2f - Mathf.Abs(lane)) * 0.006f));
+            var ejectApexCenter = new Vector2(
+                Mathf.Lerp(mouthCenter.x, ejectStagingCenter.x, 0.42f),
+                Mathf.Min(0.925f, ejectStagingCenter.y + 0.075f));
             Vector2 stackOffset = Vector2.Scale(
                 mouthCenter - finalCenter,
+                layerSize);
+            Vector2 ejectApexOffset = Vector2.Scale(
+                ejectApexCenter - finalCenter,
+                layerSize);
+            Vector2 ejectStagingOffset = Vector2.Scale(
+                ejectStagingCenter - finalCenter,
                 layerSize);
             Vector2 apexOffset = Vector2.Scale(
                 apexCenter - finalCenter,
@@ -373,7 +575,7 @@ namespace ArcaneArena.Frontend
                 $"Rastro da Carta {index + 1}",
                 finalMin,
                 finalMax,
-                new Color(0.36f, 0.92f, 1f, 0f));
+                new Color(0.36f, 0.92f, 1f, 1f));
             trail.sprite = ResolvePackOpeningGlowSprite();
             trail.preserveAspect = false;
             trail.raycastTarget = false;
@@ -391,7 +593,7 @@ namespace ArcaneArena.Frontend
                 $"Impacto da Carta {index + 1}",
                 finalMin,
                 finalMax,
-                new Color(1f, 0.82f, 0.34f, 0f));
+                new Color(1f, 0.82f, 0.34f, 1f));
             landingGlow.sprite = ResolvePackOpeningGlowSprite();
             landingGlow.preserveAspect = true;
             landingGlow.raycastTarget = false;
@@ -428,6 +630,8 @@ namespace ArcaneArena.Frontend
                 FinalMin = finalMin,
                 FinalMax = finalMax,
                 StackOffset = stackOffset,
+                EjectApexOffset = ejectApexOffset,
+                EjectStagingOffset = ejectStagingOffset,
                 ApexOffset = apexOffset,
                 ApproachOffset = approachOffset,
                 LaunchRotation = launchRotation,
@@ -472,6 +676,7 @@ namespace ArcaneArena.Frontend
                     SetPackOpeningGroupAlpha(
                         view.OuterGlowGroup,
                         Mathf.Lerp(0f, 0.08f, eased));
+                    SetPackOpeningRarityAura(view, eased * 0.16f, eased);
                 });
 
             _packOpeningPresentationState =
@@ -487,12 +692,11 @@ namespace ArcaneArena.Frontend
                         view.PackEnterOffset,
                         Vector2.zero,
                         eased);
-                    float rotation = Mathf.Lerp(-5.5f, 0f, eased);
                     SetPackOpeningCompositePose(
                         view,
                         scale,
                         offset,
-                        rotation);
+                        0f);
                     float visibility = Mathf.SmoothStep(0f, 1f,
                         Mathf.Clamp01(progress * 1.65f));
                     SetPackOpeningGroupAlpha(view.PackGroup, visibility);
@@ -503,6 +707,10 @@ namespace ArcaneArena.Frontend
                     SetPackOpeningGroupAlpha(
                         view.OuterGlowGroup,
                         Mathf.Lerp(0.08f, 0.16f, eased));
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.14f, 0.34f, eased),
+                        visibility);
                     if (view.OuterGlow != null)
                     {
                         view.OuterGlow.localScale = Vector3.one *
@@ -513,20 +721,120 @@ namespace ArcaneArena.Frontend
                 });
 
             _packOpeningPresentationState =
+                PackOpeningPresentationState.RarityCharge;
+            yield return AnimatePackOpeningPhase(
+                packOpeningRarityChargeDuration,
+                progress =>
+                {
+                    float eased = EaseInOutSine(progress);
+                    float pulse = 0.5f + 0.5f *
+                        Mathf.Sin(progress * Mathf.PI * 4f);
+                    float envelope = Mathf.Sin(progress * Mathf.PI);
+                    float lift = envelope * 2.5f;
+                    SetPackOpeningCompositePose(
+                        view,
+                        1f + envelope * 0.006f,
+                        new Vector2(0f, lift),
+                        0f);
+                    SetPackOpeningGroupAlpha(
+                        view.HorizonLineGroup,
+                        envelope * (0.26f + pulse * 0.22f));
+                    if (view.HorizonLine != null)
+                    {
+                        view.HorizonLine.localScale = new Vector3(
+                            Mathf.Lerp(0.12f, 1f, eased),
+                            Mathf.Lerp(0.35f, 1.15f, pulse),
+                            1f);
+                    }
+                    SetPackOpeningGroupAlpha(
+                        view.LightConeGroup,
+                        envelope * (0.09f + pulse * 0.08f));
+                    if (view.LightCone != null)
+                    {
+                        view.LightCone.localScale = new Vector3(
+                            Mathf.Lerp(0.30f, 0.92f, eased),
+                            Mathf.Lerp(0.62f, 1.08f, eased),
+                            1f);
+                    }
+                    SetPackOpeningGroupAlpha(
+                        view.OuterGlowGroup,
+                        0.15f + envelope * (0.08f + pulse * 0.08f));
+                    SetPackOpeningGroupAlpha(
+                        view.RearGlowGroup,
+                        0.12f + envelope * 0.22f);
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.30f, 0.62f, eased),
+                        Mathf.Clamp01(0.42f + pulse * envelope));
+                });
+
+            _packOpeningPresentationState =
+                PackOpeningPresentationState.EnergyCurtain;
+            yield return AnimatePackOpeningPhase(
+                packOpeningEnergyCurtainDuration,
+                progress =>
+                {
+                    float eased = EaseInOutCubic(progress);
+                    float envelope = Mathf.Sin(progress * Mathf.PI);
+                    for (int index = 0;
+                         index < view.EnergyCurtains.Count;
+                         index++)
+                    {
+                        RectTransform curtain = view.EnergyCurtains[index];
+                        CanvasGroup group = index <
+                            view.EnergyCurtainGroups.Count
+                                ? view.EnergyCurtainGroups[index]
+                                : null;
+                        float phase = Mathf.Repeat(
+                            progress * 1.35f + index * 0.137f,
+                            1f);
+                        float wave = Mathf.Sin(phase * Mathf.PI);
+                        SetPackOpeningGroupAlpha(
+                            group,
+                            envelope * wave * (index % 2 == 0 ? 0.30f : 0.20f));
+                        if (curtain != null)
+                        {
+                            curtain.anchoredPosition = new Vector2(
+                                Mathf.Lerp(-20f, 20f, phase),
+                                Mathf.Sin((progress + index * 0.11f) *
+                                    Mathf.PI * 2f) * 12f);
+                            curtain.localScale = new Vector3(
+                                Mathf.Lerp(0.55f, 1.45f, wave),
+                                Mathf.Lerp(0.30f, 1.08f, eased),
+                                1f);
+                        }
+                    }
+                    SetPackOpeningGroupAlpha(
+                        view.HorizonLineGroup,
+                        Mathf.Lerp(0.30f, 0.58f, envelope));
+                    SetPackOpeningGroupAlpha(
+                        view.LightConeGroup,
+                        envelope * 0.22f);
+                    SetPackOpeningGroupAlpha(
+                        view.ReleaseBeamGroup,
+                        envelope * 0.20f);
+                    SetPackOpeningGroupAlpha(
+                        view.RearGlowGroup,
+                        0.20f + envelope * 0.30f);
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.58f, 0.76f, eased),
+                        Mathf.Clamp01(0.58f + envelope * 0.42f));
+                });
+
+            _packOpeningPresentationState =
                 PackOpeningPresentationState.Anticipation;
             yield return AnimatePackOpeningPhase(
                 packOpeningAnticipationDuration,
                 progress =>
                 {
-                    float pulse = Mathf.Sin(progress * Mathf.PI) * 0.018f;
-                    float lift = Mathf.Sin(progress * Mathf.PI) * 7f;
-                    float lean = Mathf.Sin(progress * Mathf.PI * 2f) *
-                        (1f - progress) * 0.18f;
+                    float pulse = Mathf.Sin(progress * Mathf.PI) * 0.006f;
+                    float lift = Mathf.Sin(progress * Mathf.PI) * 2f;
                     SetPackOpeningCompositePose(
                         view,
                         1f + pulse,
                         new Vector2(0f, lift),
-                        lean);
+                        0f);
                     SetPackOpeningGroupAlpha(
                         view.RearGlowGroup,
                         0.16f + pulse * 6f);
@@ -536,6 +844,10 @@ namespace ArcaneArena.Frontend
                     SetPackOpeningGroupAlpha(
                         view.ReleaseBeamGroup,
                         pulse * 2.5f);
+                    SetPackOpeningRarityAura(
+                        view,
+                        0.30f + Mathf.Sin(progress * Mathf.PI) * 0.16f,
+                        0.55f + Mathf.Sin(progress * Mathf.PI) * 0.45f);
                 });
 
             _packOpeningPresentationState = PackOpeningPresentationState.Tear;
@@ -551,19 +863,35 @@ namespace ArcaneArena.Frontend
                     SetPackOpeningGroupAlpha(view.TearGlowGroup, linePulse);
                     view.TearGraphic?.SetState(eased, linePulse);
                     view.TearGlow.localScale = Vector3.one;
-                    SetPackOpeningImageAlpha(
-                        view.InnerDark,
-                        Mathf.Lerp(0f, 0.98f, eased));
-                    float microShake = Mathf.Sin(progress * Mathf.PI * 8f) *
-                        linePulse * 1.25f;
+                    // O interior preto era percebido como uma faixa solta e
+                    // desalinhada. A abertura agora depende apenas do rasgo
+                    // luminoso; o vazio não é desenhado sobre a arte.
+                    SetPackOpeningImageAlpha(view.InnerDark, 0f);
                     SetPackOpeningCompositePose(
                         view,
                         1f,
-                        new Vector2(microShake, 0f),
+                        Vector2.zero,
                         0f);
+                    float lipExit = Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        Mathf.Clamp01((progress - 0.42f) / 0.58f));
+                    SetPackOpeningGroupAlpha(
+                        view.FrontLipGroup,
+                        1f - lipExit);
                     SetPackOpeningGroupAlpha(
                         view.ReleaseBeamGroup,
                         Mathf.Lerp(0.02f, 0.12f, eased));
+                    SetPackOpeningGroupAlpha(
+                        view.HorizonLineGroup,
+                        Mathf.Lerp(0.30f, 0.07f, eased));
+                    SetPackOpeningGroupAlpha(
+                        view.LightConeGroup,
+                        Mathf.Lerp(0.12f, 0.03f, eased));
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.42f, 0.64f, eased),
+                        linePulse);
                 });
 
             _packOpeningPresentationState =
@@ -598,6 +926,17 @@ namespace ArcaneArena.Frontend
                         new Vector2(view.PackWidth * 0.085f,
                             view.PackHeight * 0.045f),
                         eased);
+                    float flapExit = Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        Mathf.Clamp01((progress - 0.10f) / 0.66f));
+                    SetPackOpeningGroupAlpha(
+                        view.LeftFlapGroup,
+                        1f - flapExit);
+                    SetPackOpeningGroupAlpha(
+                        view.RightFlapGroup,
+                        1f - flapExit);
+                    SetPackOpeningGroupAlpha(view.FrontLipGroup, 0f);
                     SetPackOpeningGroupAlpha(
                         view.TearGlowGroup,
                         Mathf.Lerp(0.65f, 0.08f, progress));
@@ -614,6 +953,10 @@ namespace ArcaneArena.Frontend
                             Mathf.Lerp(0.18f, 0.72f, eased),
                             1f);
                     }
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.58f, 0.78f, eased),
+                        Mathf.Lerp(0.55f, 1f, eased));
                 });
 
             _packOpeningPresentationState = PackOpeningPresentationState.Burst;
@@ -646,8 +989,8 @@ namespace ArcaneArena.Frontend
                     }
                     SetPackOpeningCompositePose(
                         view,
-                        1f + flash * 0.026f,
-                        new Vector2(0f, -flash * 5f),
+                        1f + flash * 0.010f,
+                        Vector2.zero,
                         0f);
                     if (view.OuterGlow != null)
                     {
@@ -656,6 +999,10 @@ namespace ArcaneArena.Frontend
                         view.OuterGlow.localRotation = Quaternion.Euler(
                             0f, 0f, Mathf.Lerp(0f, 12f, progress));
                     }
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.72f, 1f, EaseOutQuint(progress)),
+                        flash);
                     AnimatePackOpeningParticles(view, progress);
                 });
 
@@ -692,14 +1039,16 @@ namespace ArcaneArena.Frontend
                     SetPackOpeningCompositePose(
                         view,
                         Mathf.Lerp(1f, 0.972f, release),
-                        new Vector2(0f, Mathf.Lerp(0f, -11f, release)),
+                        new Vector2(0f, Mathf.Lerp(0f, -42f, release)),
                         0f);
                     SetPackOpeningGroupAlpha(
                         view.PackGroup,
                         1f);
                     SetPackOpeningGroupAlpha(
                         view.FrontLipGroup,
-                        1f);
+                        0f);
+                    SetPackOpeningGroupAlpha(view.LeftFlapGroup, 0f);
+                    SetPackOpeningGroupAlpha(view.RightFlapGroup, 0f);
                     view.RearGlow.anchoredPosition =
                         new Vector2(0f, Mathf.Lerp(0f, 42f,
                             EaseOutQuint(progress)));
@@ -716,6 +1065,155 @@ namespace ArcaneArena.Frontend
                             0f,
                             Mathf.Lerp(0f, 28f, release));
                     }
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.94f, 0.82f, release),
+                        0.86f);
+                    AnimatePackOpeningReleaseCurtains(
+                        view,
+                        progress * 0.34f,
+                        EaseOutCubic(progress));
+                });
+
+            _packOpeningPresentationState =
+                PackOpeningPresentationState.CardEject;
+            float ejectTotal = packOpeningCardEjectDuration +
+                packOpeningEjectStagger * Mathf.Max(0, view.Cards.Count - 1);
+            yield return AnimatePackOpeningPhase(
+                ejectTotal,
+                progress =>
+                {
+                    float elapsed = progress * ejectTotal;
+                    float strongestEjectPulse = 0f;
+                    for (int index = 0; index < view.Cards.Count; index++)
+                    {
+                        PackOpeningAnimationCard card = view.Cards[index];
+                        if (card.Rect == null)
+                            continue;
+
+                        float delay = card.LaunchOrder *
+                            packOpeningEjectStagger;
+                        float local = Mathf.Clamp01(
+                            (elapsed - delay) /
+                            Mathf.Max(0.01f, packOpeningCardEjectDuration));
+                        if (local <= 0f)
+                        {
+                            SetPackOpeningGroupAlpha(card.CanvasGroup, 0f);
+                            SetPackOpeningGroupAlpha(card.MotionTrailGroup, 0f);
+                            SetPackOpeningCardPerspectivePose(
+                                card.Rect,
+                                card.StackOffset,
+                                new Vector2(0.25f, 0.36f),
+                                card.LaunchRotation);
+                            continue;
+                        }
+
+                        if (!card.ReleasedToFront)
+                            PromotePackOpeningCard(view, card);
+
+                        // 72%: saída vertical rápida. 28%: pequena acomodação
+                        // no alto. Assim cada carta produz um "pum" completo
+                        // antes de começar a distribuição para a mesa.
+                        float ascent = Mathf.Clamp01(local / 0.72f);
+                        float staging = Mathf.Clamp01(
+                            (local - 0.72f) / 0.28f);
+                        float travel = EaseOutCubic(ascent);
+                        Vector2 position = QuadraticBezier(
+                            card.StackOffset,
+                            card.EjectApexOffset,
+                            card.EjectStagingOffset,
+                            travel);
+                        if (staging > 0f)
+                        {
+                            position.y += Mathf.Sin(staging * Mathf.PI) *
+                                (1f - staging) * 8f;
+                        }
+
+                        float launchScale = Mathf.LerpUnclamped(
+                            0.25f,
+                            0.60f,
+                            EaseOutBack(ascent, 0.020f));
+                        float scale = staging <= 0f
+                            ? launchScale
+                            : Mathf.Lerp(0.60f, 0.56f,
+                                EaseOutCubic(staging));
+                        float stagingRotation = (index - 2f) * 2.1f;
+                        float rotation = Mathf.Lerp(
+                            card.LaunchRotation,
+                            stagingRotation,
+                            EaseOutQuint(ascent));
+                        rotation += Mathf.Sin(staging * Mathf.PI * 3f) *
+                            (1f - staging) * 1.4f;
+                        SetPackOpeningCardPerspectivePose(
+                            card.Rect,
+                            position,
+                            new Vector2(scale, scale),
+                            rotation);
+                        SetPackOpeningGroupAlpha(
+                            card.CanvasGroup,
+                            Mathf.SmoothStep(0f, 1f,
+                                Mathf.Clamp01(local * 9f)));
+
+                        float trailLocal = Mathf.Clamp01(
+                            (local - 0.035f) / 0.70f);
+                        Vector2 trailPosition = QuadraticBezier(
+                            card.StackOffset,
+                            card.EjectApexOffset,
+                            card.EjectStagingOffset,
+                            EaseOutCubic(trailLocal));
+                        float trailPulse = Mathf.Max(
+                            0f,
+                            Mathf.Sin(Mathf.Clamp01(local / 0.78f) *
+                                Mathf.PI));
+                        SetPackOpeningGroupAlpha(
+                            card.MotionTrailGroup,
+                            trailPulse * 0.56f);
+                        SetPackOpeningCardPerspectivePose(
+                            card.MotionTrail,
+                            trailPosition,
+                            new Vector2(
+                                0.16f + trailPulse * 0.10f,
+                                0.82f + trailPulse * 0.82f),
+                            rotation);
+                        SetPackOpeningGroupAlpha(card.LandingGlowGroup, 0f);
+
+                        if (local < 0.24f)
+                        {
+                            strongestEjectPulse = Mathf.Max(
+                                strongestEjectPulse,
+                                1f - local / 0.24f);
+                        }
+                    }
+
+                    // O pacote apenas cede alguns pixels nesta fase; sua queda
+                    // completa acontece quando as cinco cartas já estão fora.
+                    // Isso mantém a origem física dos cinco disparos legível.
+                    float packYield = EaseInOutCubic(progress);
+                    SetPackOpeningCompositePose(
+                        view,
+                        Mathf.Lerp(0.972f, 0.945f, packYield),
+                        new Vector2(0f, Mathf.Lerp(-42f, -72f, packYield)),
+                        0f);
+                    SetPackOpeningGroupAlpha(view.PackGroup, 1f);
+                    SetPackOpeningGroupAlpha(view.FrontLipGroup, 0f);
+                    SetPackOpeningGroupAlpha(
+                        view.RearGlowGroup,
+                        Mathf.Clamp01(0.46f + strongestEjectPulse * 0.46f));
+                    SetPackOpeningGroupAlpha(
+                        view.ReleaseBeamGroup,
+                        Mathf.Clamp01(0.44f + strongestEjectPulse * 0.48f));
+                    SetPackOpeningGroupAlpha(
+                        view.HorizonLineGroup,
+                        Mathf.Clamp01(0.18f + strongestEjectPulse * 0.38f));
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.84f, 0.62f, progress),
+                        Mathf.Clamp01(0.58f + strongestEjectPulse));
+                    AnimatePackOpeningReleaseCurtains(
+                        view,
+                        progress,
+                        Mathf.Clamp01(0.78f + strongestEjectPulse * 0.22f));
+                    AnimatePackOpeningParticles(view, progress);
                 });
 
             _packOpeningPresentationState = PackOpeningPresentationState.FanOut;
@@ -737,8 +1235,6 @@ namespace ArcaneArena.Frontend
                         float local = Mathf.Clamp01(
                             (elapsed - delay) /
                             Mathf.Max(0.01f, packOpeningFanDuration));
-                        if (local >= 0.07f && !card.ReleasedToFront)
-                            PromotePackOpeningCard(view, card);
                         // O voo ocupa a primeira parte da janela. O restante
                         // representa o contato com a mesa e um rebote curto,
                         // como uma carta fisicamente arremessada e acomodada.
@@ -747,7 +1243,7 @@ namespace ArcaneArena.Frontend
                             (local - 0.78f) / 0.22f);
                         float travel = EaseOutCubic(flight);
                         Vector2 position = CubicBezier(
-                            card.StackOffset,
+                            card.EjectStagingOffset,
                             card.ApexOffset,
                             card.ApproachOffset,
                             Vector2.zero,
@@ -760,7 +1256,7 @@ namespace ArcaneArena.Frontend
                               bounceEnvelope * 14f;
                         position.y += bounceLift;
                         float flightScale = Mathf.LerpUnclamped(
-                            0.31f,
+                            0.56f,
                             1.035f,
                             EaseOutBack(flight, 0.022f));
                         float flightPerspective = Mathf.Lerp(
@@ -787,10 +1283,9 @@ namespace ArcaneArena.Frontend
                             (1f - landing * 0.72f);
                         SetPackOpeningGroupAlpha(
                             card.CanvasGroup,
-                            Mathf.SmoothStep(0f, 1f,
-                                Mathf.Clamp01(local * 7f)));
+                            1f);
                         Vector2 tangent = CubicBezierDerivative(
-                            card.StackOffset,
+                            card.EjectStagingOffset,
                             card.ApexOffset,
                             card.ApproachOffset,
                             Vector2.zero,
@@ -817,8 +1312,8 @@ namespace ArcaneArena.Frontend
                                     (1f + impact * 0.025f),
                                 baseScale * (1f - impact * 0.018f)),
                             Mathf.Lerp(
-                            card.LaunchRotation,
-                            0f,
+                                (index - 2f) * 2.1f,
+                                0f,
                                 EaseOutQuint(flight)) +
                             pathLean * (1f - EaseOutQuint(flight)) +
                             Mathf.Sin(flight * Mathf.PI * 2f) *
@@ -827,7 +1322,7 @@ namespace ArcaneArena.Frontend
 
                         float trailLocal = Mathf.Clamp01(local - 0.055f);
                         Vector2 trailPosition = CubicBezier(
-                            card.StackOffset,
+                            card.EjectStagingOffset,
                             card.ApexOffset,
                             card.ApproachOffset,
                             Vector2.zero,
@@ -846,7 +1341,7 @@ namespace ArcaneArena.Frontend
                                 0.13f + trailPulse * 0.09f,
                                 0.74f + trailPulse * 0.64f),
                             Mathf.Lerp(
-                                card.LaunchRotation,
+                                (index - 2f) * 2.1f,
                                 0f,
                                 EaseOutQuint(trailLocal)));
 
@@ -897,20 +1392,28 @@ namespace ArcaneArena.Frontend
                         Mathf.Lerp(0.972f, 0.91f, packExit),
                         new Vector2(
                             0f,
-                            Mathf.Lerp(-11f, -layerHeight * 0.88f,
+                            Mathf.Lerp(-42f, -layerHeight * 0.88f,
                                 packExit)),
-                        Mathf.Sin(packExit * Mathf.PI) * -1.4f);
+                        0f);
                     SetPackOpeningGroupAlpha(
                         view.PackGroup,
                         packExit < 0.995f ? 1f : 0f);
                     SetPackOpeningGroupAlpha(
                         view.FrontLipGroup,
-                        packExit < 0.995f ? 1f : 0f);
+                        0f);
                     SetPackOpeningGroupAlpha(view.TearGlowGroup, 0f);
                     SetPackOpeningGroupAlpha(
                         view.ReleaseBeamGroup,
                         Mathf.Lerp(0.68f, 0f, release) +
                         strongestLaunchPulse * 0.18f);
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.82f, 0.24f, progress),
+                        Mathf.Clamp01(0.38f + strongestLaunchPulse));
+                    AnimatePackOpeningReleaseCurtains(
+                        view,
+                        Mathf.Lerp(0.34f, 1f, progress),
+                        Mathf.Lerp(1f, 0f, EaseInCubic(progress)));
                 });
 
             _packOpeningPresentationState = PackOpeningPresentationState.Settle;
@@ -955,6 +1458,17 @@ namespace ArcaneArena.Frontend
                         view.OuterGlowGroup,
                         Mathf.Lerp(0.16f, 0f, eased));
                     SetPackOpeningGroupAlpha(view.ReleaseBeamGroup, 0f);
+                    SetPackOpeningGroupAlpha(view.HorizonLineGroup, 0f);
+                    SetPackOpeningGroupAlpha(view.LightConeGroup, 0f);
+                    foreach (CanvasGroup curtainGroup in
+                             view.EnergyCurtainGroups)
+                    {
+                        SetPackOpeningGroupAlpha(curtainGroup, 0f);
+                    }
+                    SetPackOpeningRarityAura(
+                        view,
+                        Mathf.Lerp(0.24f, 0f, eased),
+                        0f);
                 });
 
             CompletePackOpeningPresentation(view);
@@ -974,10 +1488,10 @@ namespace ArcaneArena.Frontend
             float elapsed = 0f;
             while (elapsed < duration && !_packOpeningSkipRequested)
             {
-                // Um frame lento não deve fazer a apresentação saltar vários
-                // centímetros, mas um limite de 30 FPS alongava demais a
-                // sequência em Android durante um hitch. O teto de 50 ms
-                // preserva a trajetória sem criar a sensação de congelamento.
+                // A rotina é atualizada uma vez por frame renderizado (30/60+
+                // FPS conforme o aparelho). O teto de 50 ms abaixo é apenas
+                // uma proteção contra um hitch isolado; ele não limita a
+                // apresentação a 20 FPS nem usa quadros pré-renderizados.
                 float frameDelta = Mathf.Min(
                     Mathf.Max(
                         0f,
@@ -1139,9 +1653,59 @@ namespace ArcaneArena.Frontend
             return _packOpeningGlowSprite;
         }
 
+        private static void AnimatePackOpeningReleaseCurtains(
+            PackOpeningAnimationView view,
+            float progress,
+            float intensity)
+        {
+            if (view == null)
+                return;
+
+            progress = Mathf.Clamp01(SanitizeFinite(progress, 0f));
+            intensity = Mathf.Clamp01(SanitizeFinite(intensity, 0f));
+            float rise = EaseOutQuint(progress);
+            float verticalTravel = view.PackHeight * 0.76f;
+            for (int index = 0; index < view.EnergyCurtains.Count; index++)
+            {
+                RectTransform curtain = view.EnergyCurtains[index];
+                CanvasGroup group = index < view.EnergyCurtainGroups.Count
+                    ? view.EnergyCurtainGroups[index]
+                    : null;
+                float lane = view.EnergyCurtains.Count <= 1
+                    ? 0.5f
+                    : index / (view.EnergyCurtains.Count - 1f);
+                float wave = 0.5f + 0.5f * Mathf.Sin(
+                    progress * Mathf.PI * 3f + index * 0.83f);
+                float envelope = Mathf.Sin(progress * Mathf.PI);
+                SetPackOpeningGroupAlpha(
+                    group,
+                    envelope * intensity *
+                    (index % 2 == 0 ? 0.64f : 0.44f));
+                if (curtain == null)
+                    continue;
+
+                curtain.anchoredPosition = new Vector2(
+                    Mathf.Lerp(-18f, 18f, lane) +
+                    Mathf.Sin(progress * Mathf.PI * 2f + index) * 4f,
+                    Mathf.Lerp(-verticalTravel * 0.28f,
+                        verticalTravel,
+                        rise));
+                curtain.localScale = new Vector3(
+                    Mathf.Lerp(0.46f, 1.06f, wave),
+                    Mathf.Lerp(0.42f, 1.24f, rise),
+                    1f);
+            }
+        }
+
         private void CreatePackOpeningParticles(PackOpeningAnimationView view)
         {
-            const int particleCount = 20;
+            int particleCount = view.PeakRarity switch
+            {
+                CardRarity.UR => 30,
+                CardRarity.SR => 24,
+                CardRarity.R => 18,
+                _ => 14
+            };
             for (int index = 0; index < particleCount; index++)
             {
                 float normalized = index / (particleCount - 1f);
@@ -1155,9 +1719,16 @@ namespace ArcaneArena.Frontend
                     Mathf.Cos(angle) * distance,
                     -Mathf.Sin(angle) * distance + 64f);
                 float startRotation = index * 47f;
-                Color particleColor = index % 5 == 0
-                    ? new Color(1f, 0.98f, 0.88f, 1f)
-                    : index % 2 == 0 ? Gold : Cyan;
+                Color particleColor = view.PeakRarity == CardRarity.UR
+                    ? Color.HSVToRGB(
+                        Mathf.Repeat(index * 0.173205f, 1f),
+                        0.72f,
+                        1f)
+                    : index % 5 == 0
+                        ? new Color(1f, 0.98f, 0.88f, 1f)
+                        : index % 2 == 0
+                            ? view.RarityAccent
+                            : Cyan;
                 Image particle = CreatePackOpeningSizedImage(
                     view.Layer,
                     $"Partícula do Pacote {index + 1}",

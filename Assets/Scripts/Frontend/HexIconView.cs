@@ -7,7 +7,10 @@ namespace ArcaneArena.Frontend
     public sealed class HexIconView : MonoBehaviour
     {
         public const float RegularHexAspect = 0.8660254f;
+        // 5,5% em cada lado preserva a espessura visual já aprovada da moldura.
+        public const float PortraitFrameInset = 0.055f;
         private static Sprite _hexMaskSprite;
+        private static Sprite _hexGradientSprite;
         private RawImage _portrait;
         private AspectRatioFitter _portraitFitter;
         private AspectRatioFitter _rootFitter;
@@ -29,10 +32,10 @@ namespace ArcaneArena.Frontend
             Texture2D texture = ProfileIconCatalog.LoadTexture(IconId);
             _portrait.texture = texture;
             _portrait.uvRect = definition.PortraitUv;
-            _portraitFitter.aspectRatio = texture != null && texture.height > 0
-                ? (texture.width * definition.PortraitUv.width) /
-                  (texture.height * definition.PortraitUv.height)
-                : 1f;
+            // O viewport final sempre representa um hexágono regular. Não
+            // usamos a proporção do arquivo-fonte porque as artes vieram de
+            // telas com dimensões diferentes (paisagem, quadrada e retrato).
+            _portraitFitter.aspectRatio = RegularHexAspect;
         }
 
         public void SetAccent(Color accent)
@@ -47,9 +50,9 @@ namespace ArcaneArena.Frontend
             _containerImage = GetComponent<Image>() ??
                 gameObject.AddComponent<Image>();
             _containerImage.raycastTarget = false;
-            _containerImage.sprite = GetHexMaskSprite();
+            _containerImage.sprite = GetHexGradientSprite();
             _containerImage.type = Image.Type.Simple;
-            _containerImage.color = _accent;
+            ApplyFrameTint();
             Mask legacyMask = GetComponent<Mask>();
             if (legacyMask != null)
                 legacyMask.enabled = false;
@@ -76,8 +79,10 @@ namespace ArcaneArena.Frontend
                 clipTransform = clipObject.transform;
             }
             RectTransform clipRect = (RectTransform)clipTransform;
-            clipRect.anchorMin = new Vector2(0.055f, 0.055f);
-            clipRect.anchorMax = new Vector2(0.945f, 0.945f);
+            clipRect.anchorMin = new Vector2(
+                PortraitFrameInset, PortraitFrameInset);
+            clipRect.anchorMax = new Vector2(
+                1f - PortraitFrameInset, 1f - PortraitFrameInset);
             clipRect.offsetMin = Vector2.zero;
             clipRect.offsetMax = Vector2.zero;
             _clipImage = clipTransform.GetComponent<Image>();
@@ -115,13 +120,77 @@ namespace ArcaneArena.Frontend
 
         private void ApplyUniformHexMode()
         {
-            _containerImage.sprite = GetHexMaskSprite();
-            _containerImage.color = _accent;
+            _containerImage.sprite = GetHexGradientSprite();
+            ApplyFrameTint();
             _clipImage.sprite = GetHexMaskSprite();
             _clipMask.enabled = true;
             _portraitFitter.aspectMode =
                 AspectRatioFitter.AspectMode.EnvelopeParent;
             _portrait.rectTransform.localScale = Vector3.one;
+        }
+
+        private void ApplyFrameTint()
+        {
+            if (_containerImage == null)
+                return;
+            // Mantém todos os emblemas na mesma família ciano/azul. A cor de
+            // estado (equipado, adquirido ou premium) influencia apenas de
+            // forma sutil, sem criar nove molduras visualmente diferentes.
+            Color softTint = Color.Lerp(Color.white, _accent, 0.16f);
+            softTint.a = Mathf.Clamp01(_accent.a);
+            _containerImage.color = softTint;
+        }
+
+        private static Sprite GetHexGradientSprite()
+        {
+            if (_hexGradientSprite != null)
+                return _hexGradientSprite;
+            const int size = 256;
+            Texture2D texture = new(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "Arcane Hexagonal Gradient Frame",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            Color highlight = new(0.64f, 1f, 1f, 1f);
+            Color cyan = new(0.02f, 0.84f, 1f, 1f);
+            Color blue = new(0.10f, 0.33f, 1f, 1f);
+            Color violet = new(0.45f, 0.16f, 0.93f, 1f);
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                int insideSamples = 0;
+                const int samples = 4;
+                for (int sy = 0; sy < samples; sy++)
+                for (int sx = 0; sx < samples; sx++)
+                {
+                    float sampleU = (x + (sx + 0.5f) / samples) / size;
+                    float sampleV = (y + (sy + 0.5f) / samples) / size;
+                    if (IsInsideRegularHex(sampleU, sampleV))
+                        insideSamples++;
+                }
+                float alpha = insideSamples / (float)(samples * samples);
+                float u = (x + 0.5f) / size;
+                float v = (y + 0.5f) / size;
+                float diagonal = Mathf.Clamp01(u * 0.46f + (1f - v) * 0.54f);
+                Color upper = Color.Lerp(highlight, cyan,
+                    Mathf.Clamp01(v * 1.4f));
+                Color lower = Color.Lerp(blue, violet,
+                    Mathf.Clamp01((1f - v) * 0.72f + u * 0.28f));
+                Color color = Color.Lerp(upper, lower, diagonal * 0.72f);
+                color.a = alpha;
+                texture.SetPixel(x, y, color);
+            }
+            texture.Apply(false, true);
+            _hexGradientSprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, size, size),
+                new Vector2(0.5f, 0.5f),
+                100f,
+                0,
+                SpriteMeshType.FullRect);
+            _hexGradientSprite.name = "Arcane Hexagonal Gradient Frame";
+            return _hexGradientSprite;
         }
 
         private static Sprite GetHexMaskSprite()

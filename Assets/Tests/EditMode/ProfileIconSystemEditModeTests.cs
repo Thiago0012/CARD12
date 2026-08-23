@@ -56,10 +56,22 @@ namespace ArcaneDuel.Tests.EditMode
                     AspectRatioFitter rootFitter =
                         root.GetComponent<AspectRatioFitter>();
                     Assert.That(portrait, Is.Not.Null);
+                    AspectRatioFitter portraitFitter =
+                        portrait.GetComponent<AspectRatioFitter>();
                     Assert.That(clip.GetComponent<Mask>().enabled, Is.True);
                     Assert.That(rootFitter, Is.Not.Null);
                     Assert.That(rootFitter.aspectRatio,
                         Is.EqualTo(0.8660254f).Within(0.0001f));
+                    Assert.That(portraitFitter.aspectRatio,
+                        Is.EqualTo(0.8660254f).Within(0.0001f));
+                    Assert.That(((RectTransform)clip).anchorMin.x,
+                        Is.EqualTo(0.055f).Within(0.0001f));
+                    Assert.That(((RectTransform)clip).anchorMin.y,
+                        Is.EqualTo(0.055f).Within(0.0001f));
+                    Assert.That(((RectTransform)clip).anchorMax.x,
+                        Is.EqualTo(0.945f).Within(0.0001f));
+                    Assert.That(((RectTransform)clip).anchorMax.y,
+                        Is.EqualTo(0.945f).Within(0.0001f));
                     Assert.That(portrait.localScale.x,
                         Is.EqualTo(1f).Within(0.001f));
                     Assert.That(portrait.localScale.y,

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneArena.Frontend;
 using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Protocol;
@@ -19,6 +20,11 @@ namespace ArcaneArena
     /// </summary>
     public sealed partial class CardArenaBootstrap
     {
+        private static readonly Color LocalTurnBlue =
+            new(0.12f, 0.62f, 1f, 1f);
+        private static readonly Color OpponentTurnRed =
+            new(1f, 0.22f, 0.30f, 1f);
+
         private sealed class ArenaAnnouncement
         {
             public string Title;
@@ -35,12 +41,15 @@ namespace ArcaneArena
         private readonly GameObject[] phaseNodes = new GameObject[6];
         private readonly Button[] phaseNodeButtons = new Button[6];
         private readonly Text[] phaseNodeLabels = new Text[6];
+        private readonly DuelPhaseNodeGraphic[] phaseNodeSurfaces =
+            new DuelPhaseNodeGraphic[6];
 
         private GameObject announcementRoot;
         private CanvasGroup announcementGroup;
         private Image announcementAccent;
         private Text announcementTitle;
         private Text announcementSubtitle;
+        private DuelHudSurfaceGraphic announcementSurface;
         private Coroutine announcementRoutine;
         private bool openingTitlePresentationActive;
 
@@ -48,6 +57,7 @@ namespace ArcaneArena
         private CanvasGroup battleHudGroup;
         private Text battleHudTitle;
         private Text battleHudSubtitle;
+        private DuelHudSurfaceGraphic battleHudSurface;
         private LineRenderer battlePresentationLine;
         private Material battlePresentationMaterial;
         private Coroutine battlePresentationRoutine;
@@ -61,14 +71,22 @@ namespace ArcaneArena
         private Text phaseNavigatorSubtitle;
         private Sprite phaseCircleSprite;
         private Texture2D phaseCircleTexture;
+        private DuelPhaseControlGraphic phaseControlSurface;
+        private DuelTurnFieldGlowGraphic turnOwnershipGlow;
+        private CanvasGroup turnOwnershipGlowGroup;
+        private Coroutine turnOwnershipGlowRoutine;
+        private int lastTurnOwnerVisual = -1;
+        private bool turnOwnershipActionObserved;
 
         private void BuildArenaPresentation()
         {
+            BuildTurnOwnershipGlow();
             BuildAnnouncementBanner();
             BuildBattleHud();
             BuildPhaseNavigator();
             BuildDuelExperience();
             PolishPhaseControl();
+            RefreshTurnOwnershipVisuals(false);
         }
 
         private void DisposeArenaPresentation()
@@ -80,6 +98,8 @@ namespace ArcaneArena
             ResetTurnFlowPresentation(true);
             if (battlePresentationRoutine != null)
                 StopCoroutine(battlePresentationRoutine);
+            if (turnOwnershipGlowRoutine != null)
+                StopCoroutine(turnOwnershipGlowRoutine);
             ResetBattlePresentationVisuals();
             if (battlePresentationMaterial != null)
                 Destroy(battlePresentationMaterial);
@@ -89,10 +109,171 @@ namespace ArcaneArena
                 Destroy(phaseCircleTexture);
         }
 
+        private void BuildTurnOwnershipGlow()
+        {
+            GameObject glowObject = new(
+                "Transição Visual do Dono do Turno",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(DuelTurnFieldGlowGraphic),
+                typeof(CanvasGroup));
+            glowObject.transform.SetParent(frame, false);
+            RectTransform rect = glowObject.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            turnOwnershipGlow = glowObject.GetComponent<DuelTurnFieldGlowGraphic>();
+            turnOwnershipGlow.raycastTarget = false;
+            turnOwnershipGlowGroup = glowObject.GetComponent<CanvasGroup>();
+            turnOwnershipGlowGroup.alpha = 0f;
+            turnOwnershipGlowGroup.interactable = false;
+            turnOwnershipGlowGroup.blocksRaycasts = false;
+            glowObject.transform.SetAsFirstSibling();
+        }
+
+        /// <summary>
+        /// Mantém o controle lateral azul/vermelho durante o turno e executa
+        /// a névoa somente quando a posse realmente muda. A névoa é uma
+        /// confirmação transitória, não um filtro persistente sobre a arena.
+        /// </summary>
+        private void RefreshTurnOwnershipVisuals(
+            bool forcePulse = false,
+            byte? ownerOverride = null)
+        {
+            byte owner = ownerOverride ?? state?.TurnPlayer ?? 0;
+            bool localTurn = owner == 0;
+            Color accent = localTurn ? LocalTurnBlue : OpponentTurnRed;
+            phaseControlSurface?.SetStyle(accent, true);
+
+            int ownerIndex = localTurn ? 0 : 1;
+            if (!forcePulse && ownerIndex == lastTurnOwnerVisual)
+                return;
+
+            lastTurnOwnerVisual = ownerIndex;
+            turnOwnershipActionObserved = false;
+            if (turnOwnershipGlow == null || turnOwnershipGlowGroup == null)
+                return;
+
+            turnOwnershipGlow.SetTurn(localTurn, accent);
+            if (turnOwnershipGlowRoutine != null)
+                StopCoroutine(turnOwnershipGlowRoutine);
+            turnOwnershipGlowRoutine =
+                StartCoroutine(PlayTurnOwnershipTransition());
+        }
+
+        private IEnumerator PlayTurnOwnershipTransition()
+        {
+            const float fadeInSeconds = 0.24f;
+            const float minimumStrongHoldSeconds = 1.75f;
+            const float maximumVisibleSeconds = 4.60f;
+            const float fadeOutSeconds = 0.85f;
+
+            turnOwnershipGlowGroup.alpha = 0f;
+            float startedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - startedAt < fadeInSeconds)
+            {
+                float t = Mathf.Clamp01(
+                    (Time.realtimeSinceStartup - startedAt) / fadeInSeconds);
+                turnOwnershipGlowGroup.alpha = Mathf.SmoothStep(0f, 1f, t);
+                yield return null;
+            }
+
+            turnOwnershipGlowGroup.alpha = 1f;
+            yield return new WaitForSecondsRealtime(
+                minimumStrongHoldSeconds);
+
+            // A indicação permanece presente para orientar o jogador, mas
+            // cai para uma intensidade discreta. Assim que a primeira ação
+            // real do turno acontece, ela pode desaparecer sem encobrir o
+            // campo. Caso ninguém aja, há um limite para não virar filtro.
+            float visibleStartedAt = Time.realtimeSinceStartup;
+            while (!turnOwnershipActionObserved &&
+                   Time.realtimeSinceStartup - visibleStartedAt <
+                       maximumVisibleSeconds - minimumStrongHoldSeconds)
+            {
+                turnOwnershipGlowGroup.alpha = Mathf.MoveTowards(
+                    turnOwnershipGlowGroup.alpha,
+                    0.68f,
+                    Time.unscaledDeltaTime * 0.72f);
+                yield return null;
+            }
+
+            startedAt = Time.realtimeSinceStartup;
+            float fadeStartAlpha = turnOwnershipGlowGroup.alpha;
+            while (Time.realtimeSinceStartup - startedAt < fadeOutSeconds)
+            {
+                float t = Mathf.Clamp01(
+                    (Time.realtimeSinceStartup - startedAt) / fadeOutSeconds);
+                turnOwnershipGlowGroup.alpha =
+                    Mathf.Lerp(
+                        fadeStartAlpha,
+                        0f,
+                        Mathf.SmoothStep(0f, 1f, t));
+                yield return null;
+            }
+
+            turnOwnershipGlowGroup.alpha = 0f;
+            turnOwnershipGlowRoutine = null;
+        }
+
+        private static DuelHudSurfaceGraphic AttachDuelSurface(
+            GameObject root,
+            string objectName,
+            Color accent,
+            bool strongOnLeft,
+            float opacity,
+            bool directional,
+            float chamfer = 10f)
+        {
+            if (root == null)
+                return null;
+            Image legacy = root.GetComponent<Image>();
+            if (legacy != null)
+            {
+                legacy.color = Color.clear;
+                legacy.raycastTarget = false;
+            }
+            Outline outline = root.GetComponent<Outline>();
+            if (outline != null)
+            {
+                outline.effectColor = Color.clear;
+                outline.effectDistance = Vector2.zero;
+            }
+            Transform existing = root.transform.Find(objectName);
+            GameObject surfaceObject = existing != null
+                ? existing.gameObject
+                : new GameObject(
+                    objectName,
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(DuelHudSurfaceGraphic));
+            if (existing == null)
+                surfaceObject.transform.SetParent(root.transform, false);
+            RectTransform rect = surfaceObject.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            DuelHudSurfaceGraphic surface =
+                surfaceObject.GetComponent<DuelHudSurfaceGraphic>();
+            surface.raycastTarget = false;
+            surface.SetStyle(
+                accent,
+                strongOnLeft,
+                opacity,
+                directional,
+                chamfer);
+            surfaceObject.transform.SetAsFirstSibling();
+            return surface;
+        }
+
         private void HandleArenaPresentationEvent(DuelEvent duelEvent)
         {
             if (duelEvent == null)
                 return;
+            if (BeginsVisibleTurnAction(duelEvent.Message))
+                turnOwnershipActionObserved = true;
             if (!replayingDeferredPresentation)
                 HandleDuelExperienceEvent(duelEvent);
             if (DeferBattlePresentationIfNeeded(duelEvent))
@@ -101,12 +282,13 @@ namespace ArcaneArena
             switch (duelEvent.Message)
             {
                 case CoreMessage.NewTurn:
+                    RefreshTurnOwnershipVisuals(true, duelEvent.Player);
                     QueueAnnouncement(
                         duelEvent.Player == 0
                             ? "SEU TURNO"
                             : "TURNO DO OPONENTE",
                         $"TURNO {Mathf.Max(1, state?.TurnNumber ?? 1)}",
-                        duelEvent.Player == 0 ? Cyan : Gold,
+                        duelEvent.Player == 0 ? LocalTurnBlue : OpponentTurnRed,
                         0.48f,
                         0x001U,
                         true);
@@ -119,7 +301,7 @@ namespace ArcaneArena
                         turnPlayer == 0
                             ? "VOCÊ TEM A PRIORIDADE"
                             : "O OPONENTE TEM A PRIORIDADE",
-                        PhaseAccent(duelEvent.Value),
+                        turnPlayer == 0 ? LocalTurnBlue : OpponentTurnRed,
                         IsMajorPhase(duelEvent.Value) ? 0.66f : 0.42f,
                         duelEvent.Value,
                         true);
@@ -165,6 +347,23 @@ namespace ArcaneArena
             }
         }
 
+        private static bool BeginsVisibleTurnAction(CoreMessage message)
+        {
+            switch (message)
+            {
+                case CoreMessage.Summoning:
+                case CoreMessage.SpecialSummoning:
+                case CoreMessage.FlipSummoning:
+                case CoreMessage.Set:
+                case CoreMessage.Chaining:
+                case CoreMessage.Attack:
+                case CoreMessage.PositionChange:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private bool PrepareArenaPresentationCapture(string captureState)
         {
             if (PrepareDuelExperienceCapture(captureState))
@@ -202,9 +401,9 @@ namespace ArcaneArena
             announcementRoot = CreatePanel(
                 frame,
                 "Anúncio de Turno e Fase",
-                new Vector2(0.17f, 0.43f),
-                new Vector2(0.83f, 0.585f),
-                new Color(0.003f, 0.018f, 0.036f, 0.96f));
+                new Vector2(0.215f, 0.445f),
+                new Vector2(0.785f, 0.565f),
+                Color.clear);
             announcementRoot.transform.SetAsLastSibling();
             announcementGroup =
                 announcementRoot.AddComponent<CanvasGroup>();
@@ -213,23 +412,30 @@ namespace ArcaneArena
             announcementGroup.blocksRaycasts = false;
             Image background = announcementRoot.GetComponent<Image>();
             background.raycastTarget = false;
-            AddOutline(announcementRoot, Cyan);
+            announcementSurface = AttachDuelSurface(
+                announcementRoot,
+                "Moldura do Anúncio",
+                Cyan,
+                true,
+                0.91f,
+                false,
+                14f);
 
             announcementAccent = CreateImage(
                 announcementRoot.transform,
                 "Linha de Energia",
                 new Vector2(0f, 0f),
-                new Vector2(0.012f, 1f),
+                new Vector2(0.009f, 1f),
                 Cyan);
             announcementAccent.raycastTarget = false;
             announcementTitle = CreateText(
                 announcementRoot.transform,
                 "FASE PRINCIPAL 1",
-                32,
+                27,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.06f, 0.38f),
-                new Vector2(0.94f, 0.88f),
+                new Vector2(0.07f, 0.38f),
+                new Vector2(0.93f, 0.88f),
                 TextAnchor.MiddleCenter);
             announcementSubtitle = CreateText(
                 announcementRoot.transform,
@@ -250,27 +456,34 @@ namespace ArcaneArena
             battleHud = CreatePanel(
                 frame,
                 "Apresentação da Batalha",
-                new Vector2(0.30f, 0.73f),
-                new Vector2(0.70f, 0.865f),
-                new Color(0.005f, 0.022f, 0.045f, 0.94f));
+                new Vector2(0.31f, 0.75f),
+                new Vector2(0.69f, 0.855f),
+                Color.clear);
             battleHud.transform.SetAsLastSibling();
             battleHudGroup = battleHud.AddComponent<CanvasGroup>();
             battleHudGroup.alpha = 0f;
             battleHudGroup.interactable = false;
             battleHudGroup.blocksRaycasts = false;
             battleHud.GetComponent<Image>().raycastTarget = false;
-            AddOutline(battleHud, Gold);
+            battleHudSurface = AttachDuelSurface(
+                battleHud,
+                "Moldura da Batalha",
+                Gold,
+                true,
+                0.92f,
+                false,
+                12f);
             Image topLine = CreateImage(
                 battleHud.transform,
                 "Linha de Ataque",
-                new Vector2(0f, 0.92f),
+                new Vector2(0.10f, 0.95f),
                 new Vector2(1f, 1f),
-                Gold);
+                new Color(Gold.r, Gold.g, Gold.b, 0.78f));
             topLine.raycastTarget = false;
             battleHudTitle = CreateText(
                 battleHud.transform,
                 "DECLARAÇÃO DE ATAQUE",
-                23,
+                20,
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.04f, 0.43f),
@@ -292,29 +505,35 @@ namespace ArcaneArena
 
         private void BuildPhaseNavigator()
         {
-            phaseCircleSprite = CreateCircleSprite();
             phaseNavigator = CreatePanel(
                 frame,
                 "Navegador Profissional de Fases",
                 Vector2.zero,
                 Vector2.one,
-                new Color(0f, 0.008f, 0.018f, 0.78f));
+                new Color(0f, 0.006f, 0.018f, 0.56f));
             phaseNavigator.transform.SetAsLastSibling();
 
             GameObject window = CreatePanel(
                 phaseNavigator.transform,
                 "Painel de Fases",
-                new Vector2(0.105f, 0.13f),
-                new Vector2(0.895f, 0.50f),
-                new Color(0.006f, 0.035f, 0.06f, 0.985f));
-            AddOutline(window, Cyan);
+                new Vector2(0.10f, 0.15f),
+                new Vector2(0.90f, 0.53f),
+                Color.clear);
+            AttachDuelSurface(
+                window,
+                "Moldura do Navegador",
+                Cyan,
+                true,
+                0.96f,
+                false,
+                18f);
             CreateText(
                 window.transform,
                 "SELECIONE UMA FASE PARA AVANÇAR",
-                23,
+                21,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.04f, 0.79f),
+                new Vector2(0.04f, 0.82f),
                 new Vector2(0.96f, 0.96f),
                 TextAnchor.MiddleCenter);
             phaseNavigatorSubtitle = CreateText(
@@ -323,16 +542,16 @@ namespace ArcaneArena
                 12,
                 FontStyle.Bold,
                 Muted,
-                new Vector2(0.04f, 0.70f),
-                new Vector2(0.96f, 0.80f),
+                new Vector2(0.04f, 0.71f),
+                new Vector2(0.96f, 0.81f),
                 TextAnchor.MiddleCenter);
 
             Image rail = CreateImage(
                 window.transform,
                 "Trilho das Fases",
-                new Vector2(0.12f, 0.42f),
-                new Vector2(0.88f, 0.435f),
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.38f));
+                new Vector2(0.085f, 0.465f),
+                new Vector2(0.915f, 0.476f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.30f));
             rail.raycastTarget = false;
 
             string[] labels =
@@ -346,49 +565,87 @@ namespace ArcaneArena
             };
             for (int index = 0; index < phaseNodes.Length; index++)
             {
-                float x = Mathf.Lerp(0.12f, 0.88f, index / 5f);
+                float x = Mathf.Lerp(0.092f, 0.908f, index / 5f);
                 GameObject node = CreatePanel(
                     window.transform,
                     $"Fase {labels[index]}",
-                    new Vector2(x, 0.43f),
-                    new Vector2(x, 0.43f),
-                    new Color(0.015f, 0.075f, 0.11f, 1f));
-                RectTransform rect =
-                    node.GetComponent<RectTransform>();
-                rect.sizeDelta = new Vector2(104f, 104f);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-                Image image = node.GetComponent<Image>();
-                image.sprite = phaseCircleSprite;
-                image.preserveAspect = true;
-                AddOutline(node, new Color(Cyan.r, Cyan.g, Cyan.b, 0.32f));
+                    new Vector2(x - 0.058f, 0.335f),
+                    new Vector2(x + 0.058f, 0.605f),
+                    Color.clear);
+                Image legacyNodeImage = node.GetComponent<Image>();
+                legacyNodeImage.color = Color.clear;
+                legacyNodeImage.raycastTarget = false;
+                GameObject surfaceObject = new(
+                    "Superfície Angular da Fase",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(DuelPhaseNodeGraphic));
+                surfaceObject.transform.SetParent(node.transform, false);
+                RectTransform surfaceRect =
+                    surfaceObject.GetComponent<RectTransform>();
+                surfaceRect.anchorMin = Vector2.zero;
+                surfaceRect.anchorMax = Vector2.one;
+                surfaceRect.offsetMin = Vector2.zero;
+                surfaceRect.offsetMax = Vector2.zero;
+                DuelPhaseNodeGraphic nodeSurface =
+                    surfaceObject.GetComponent<DuelPhaseNodeGraphic>();
+                nodeSurface.raycastTarget = true;
+                nodeSurface.SetState(Cyan, false, false);
+                surfaceObject.transform.SetAsFirstSibling();
                 Button button = node.AddComponent<Button>();
-                button.targetGraphic = image;
+                button.targetGraphic = nodeSurface;
+                ColorBlock nodeColors = button.colors;
+                nodeColors.normalColor = Color.white;
+                nodeColors.highlightedColor = new Color(1f, 1f, 1f, 1f);
+                nodeColors.pressedColor = new Color(0.82f, 0.92f, 1f, 1f);
+                nodeColors.disabledColor = new Color(0.38f, 0.44f, 0.48f, 0.62f);
+                nodeColors.fadeDuration = 0.08f;
+                button.colors = nodeColors;
                 int captured = index;
                 button.onClick.AddListener(
                     () => SubmitPhaseNode(captured));
                 Text label = CreateText(
                     node.transform,
                     labels[index],
-                    14,
+                    12,
                     FontStyle.Bold,
                     Color.white,
-                    new Vector2(0.08f, 0.12f),
-                    new Vector2(0.92f, 0.88f),
+                    new Vector2(0.06f, 0.10f),
+                    new Vector2(0.94f, 0.90f),
                     TextAnchor.MiddleCenter);
                 label.raycastTarget = false;
                 phaseNodes[index] = node;
                 phaseNodeButtons[index] = button;
                 phaseNodeLabels[index] = label;
+                phaseNodeSurfaces[index] = nodeSurface;
             }
 
-            CreateButton(
+            Button cancel = CreateButton(
                 window.transform,
                 "Cancelar Navegação",
                 "CANCELAR",
-                new Vector2(0.39f, 0.045f),
-                new Vector2(0.61f, 0.18f),
+                new Vector2(0.40f, 0.055f),
+                new Vector2(0.60f, 0.18f),
                 Gold,
                 ClosePhaseNavigatorFromUser);
+            if (cancel != null)
+            {
+                DuelHudSurfaceGraphic cancelSurface = AttachDuelSurface(
+                    cancel.gameObject,
+                    "Superfície de Cancelamento",
+                    Gold,
+                    true,
+                    0.88f,
+                    false,
+                    8f);
+                cancelSurface.raycastTarget = true;
+                cancel.targetGraphic = cancelSurface;
+                foreach (Text cancelLabel in
+                         cancel.GetComponentsInChildren<Text>(true))
+                {
+                    cancelLabel.raycastTarget = false;
+                }
+            }
             phaseNavigator.SetActive(false);
         }
 
@@ -396,17 +653,61 @@ namespace ArcaneArena
         {
             if (phaseButton == null)
                 return;
-            Graphic graphic = phaseButton.targetGraphic;
-            if (graphic != null)
-                graphic.color = new Color(0.01f, 0.16f, 0.20f, 0.98f);
-            AddOutline(phaseButton.gameObject, Cyan);
-            ColorBlock colors = phaseButton.colors;
-            colors.normalColor = Color.white;
-            colors.highlightedColor = Lime;
-            colors.pressedColor = Gold;
-            colors.disabledColor = new Color(0.35f, 0.45f, 0.50f, 0.72f);
-            colors.fadeDuration = 0.10f;
-            phaseButton.colors = colors;
+            GameObject controlRoot = phaseControlPanel != null
+                ? phaseControlPanel
+                : phaseButton.gameObject;
+            foreach (Graphic graphic in
+                     controlRoot.GetComponentsInChildren<Graphic>(true))
+            {
+                if (graphic is Image)
+                {
+                    graphic.color = Color.clear;
+                    graphic.raycastTarget = false;
+                }
+            }
+            GameObject surfaceObject = new(
+                "Superfície Moderna do Controle de Fases",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(DuelPhaseControlGraphic));
+            surfaceObject.transform.SetParent(controlRoot.transform, false);
+            RectTransform surfaceRect =
+                surfaceObject.GetComponent<RectTransform>();
+            surfaceRect.anchorMin = Vector2.zero;
+            surfaceRect.anchorMax = Vector2.one;
+            surfaceRect.offsetMin = Vector2.zero;
+            surfaceRect.offsetMax = Vector2.zero;
+            phaseControlSurface =
+                surfaceObject.GetComponent<DuelPhaseControlGraphic>();
+            // Esta camada só desenha. O clique continua pertencendo ao Button
+            // "Avançar Fase" original da cena, que já era funcional.
+            phaseControlSurface.raycastTarget = false;
+            phaseControlSurface.SetStyle(LocalTurnBlue, true);
+            surfaceObject.transform.SetAsFirstSibling();
+
+            Graphic inputGraphic =
+                phaseButton.GetComponent<Graphic>() ??
+                phaseControlPanel?.GetComponent<Graphic>();
+            if (inputGraphic != null)
+            {
+                inputGraphic.color = Color.clear;
+                inputGraphic.raycastTarget = true;
+                phaseButton.targetGraphic = inputGraphic;
+            }
+            phaseButton.transition = Selectable.Transition.None;
+
+            foreach (Text label in controlRoot.GetComponentsInChildren<Text>(true))
+            {
+                label.raycastTarget = false;
+                label.color = Color.white;
+                label.fontStyle = FontStyle.Bold;
+                if (label != phaseLabel &&
+                    label.text.IndexOf("FASES", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    label.color = Gold;
+                    label.fontSize = Mathf.Min(label.fontSize, 12);
+                }
+            }
         }
 
         private void OpenPhaseNavigator(
@@ -444,38 +745,22 @@ namespace ArcaneArena
             {
                 bool legal = phaseNodeChoices[index] != null;
                 bool active = index == current;
-                Image image = phaseNodes[index].GetComponent<Image>();
-                Outline outline = phaseNodes[index].GetComponent<Outline>();
+                DuelPhaseNodeGraphic surface = phaseNodeSurfaces[index];
                 if (legal)
                 {
-                    image.color = new Color(
-                        Lime.r,
-                        Lime.g,
-                        Lime.b,
-                        0.96f);
-                    phaseNodeLabels[index].color =
-                        new Color(0.01f, 0.04f, 0.03f, 1f);
-                    outline.effectColor = Lime;
+                    surface?.SetState(Lime, true, active);
+                    phaseNodeLabels[index].color = Color.white;
                 }
                 else if (active)
                 {
-                    image.color = new Color(
-                        Cyan.r,
-                        Cyan.g,
-                        Cyan.b,
-                        0.90f);
-                    phaseNodeLabels[index].color =
-                        new Color(0.01f, 0.04f, 0.06f, 1f);
-                    outline.effectColor = Color.white;
+                    surface?.SetState(Cyan, false, true);
+                    phaseNodeLabels[index].color = Color.white;
                 }
                 else
                 {
-                    image.color =
-                        new Color(0.02f, 0.075f, 0.10f, 0.92f);
+                    surface?.SetState(Muted, false, false);
                     phaseNodeLabels[index].color =
                         new Color(Muted.r, Muted.g, Muted.b, 0.58f);
-                    outline.effectColor =
-                        new Color(Cyan.r, Cyan.g, Cyan.b, 0.20f);
                 }
                 phaseNodeButtons[index].interactable = legal;
             }
@@ -498,7 +783,10 @@ namespace ArcaneArena
 
         private void SubmitPhaseNode(int index)
         {
-            if (activeDuelUiSurface != DuelUiSurfaceKind.PhaseNavigator)
+            // A visibilidade real é a autoridade do clique. O estado de
+            // coordenação pode mudar no mesmo frame ao fechar painéis antigos;
+            // não deve descartar uma escolha legal que o jogador acabou de ver.
+            if (phaseNavigator?.activeInHierarchy != true)
                 return;
             if (index < 0 || index >= phaseNodeChoices.Length)
                 return;
@@ -603,7 +891,7 @@ namespace ArcaneArena
             QueueAnnouncement(
                 turnPlayer == 0 ? "SEU TURNO" : "TURNO DO OPONENTE",
                 $"TURNO {Mathf.Max(1, state?.TurnNumber ?? 1)}",
-                turnPlayer == 0 ? Cyan : Gold,
+                turnPlayer == 0 ? LocalTurnBlue : OpponentTurnRed,
                 0.48f,
                 phase,
                 true);
@@ -612,7 +900,7 @@ namespace ArcaneArena
                 turnPlayer == 0
                     ? "VOCÊ TEM A PRIORIDADE"
                     : "O OPONENTE TEM A PRIORIDADE",
-                PhaseAccent(phase),
+                turnPlayer == 0 ? LocalTurnBlue : OpponentTurnRed,
                 IsMajorPhase(phase) ? 0.66f : 0.42f,
                 phase,
                 true);
@@ -645,10 +933,12 @@ namespace ArcaneArena
                     announcementSubtitle.text = item.Subtitle;
                     announcementSubtitle.color = item.Accent;
                     announcementAccent.color = item.Accent;
-                    Outline outline =
-                        announcementRoot.GetComponent<Outline>();
-                    if (outline != null)
-                        outline.effectColor = item.Accent;
+                    announcementSurface?.SetStyle(
+                        item.Accent,
+                        true,
+                        0.91f,
+                        false,
+                        14f);
 
                     RectTransform rect =
                         announcementRoot.GetComponent<RectTransform>();
@@ -982,9 +1272,12 @@ namespace ArcaneArena
             battleHudTitle.text = title;
             battleHudSubtitle.text = subtitle ?? string.Empty;
             battleHudSubtitle.color = accent;
-            Outline outline = battleHud.GetComponent<Outline>();
-            if (outline != null)
-                outline.effectColor = accent;
+            battleHudSurface?.SetStyle(
+                accent,
+                true,
+                0.92f,
+                false,
+                12f);
         }
 
         private void HideBattleHud()
@@ -1037,50 +1330,80 @@ namespace ArcaneArena
                 frame,
                 "Dano Flutuante",
                 player == 0
-                    ? new Vector2(0.035f, 0.12f)
-                    : new Vector2(0.72f, 0.78f),
+                    ? new Vector2(0.055f, 0.135f)
+                    : new Vector2(0.73f, 0.79f),
                 player == 0
-                    ? new Vector2(0.27f, 0.23f)
-                    : new Vector2(0.965f, 0.89f),
-                new Color(0.09f, 0.005f, 0.012f, 0.88f));
+                    ? new Vector2(0.245f, 0.205f)
+                    : new Vector2(0.945f, 0.86f),
+                Color.clear);
             floating.transform.SetAsLastSibling();
             floating.GetComponent<Image>().raycastTarget = false;
-            AddOutline(floating, Red);
             CanvasGroup group = floating.AddComponent<CanvasGroup>();
             group.interactable = false;
             group.blocksRaycasts = false;
+
+            Color damageRed = new(1f, 0.22f, 0.30f, 1f);
+            Image leadingLine = CreateImage(
+                floating.transform,
+                "Traço de Impacto",
+                new Vector2(0.01f, 0.19f),
+                new Vector2(0.035f, 0.81f),
+                damageRed);
+            leadingLine.raycastTarget = false;
+            Image energyLine = CreateImage(
+                floating.transform,
+                "Linha de Energia",
+                new Vector2(0.04f, 0.47f),
+                new Vector2(0.96f, 0.53f),
+                new Color(damageRed.r, damageRed.g, damageRed.b, 0.72f));
+            energyLine.raycastTarget = false;
             Text amount = CreateText(
                 floating.transform,
-                $"-{value:N0} PV",
-                29,
+                $"− {value:N0} LP",
+                28,
                 FontStyle.Bold,
                 Color.white,
-                Vector2.zero,
+                new Vector2(0.06f, 0f),
                 Vector2.one,
                 TextAnchor.MiddleCenter);
             amount.raycastTarget = false;
+            Shadow shadow = amount.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.82f);
+            shadow.effectDistance = new Vector2(2f, -2f);
             RectTransform rect =
                 floating.GetComponent<RectTransform>();
             Vector2 from = rect.anchoredPosition;
             float duration =
-                DuelAnimationPreferences.Duration(0.62f);
+                DuelAnimationPreferences.Duration(0.72f);
             for (float elapsed = 0f;
                  elapsed < duration;
                  elapsed += Time.unscaledDeltaTime)
             {
                 float t = Mathf.Clamp01(elapsed / duration);
+                float impact = Mathf.Clamp01(t / 0.24f);
+                float settle = Mathf.Clamp01((t - 0.24f) / 0.26f);
+                float scale = t < 0.24f
+                    ? Mathf.Lerp(0.68f, 1.10f, EaseOutBack(impact))
+                    : Mathf.Lerp(1.10f, 1f, Mathf.SmoothStep(0f, 1f, settle));
                 rect.anchoredPosition =
-                    from + Vector2.up * Mathf.Lerp(0f, 54f, t);
-                rect.localScale =
-                    Vector3.one *
-                    (1f + Mathf.Sin(t * Mathf.PI) * 0.16f);
+                    from + Vector2.up * Mathf.Lerp(0f, 38f, t);
+                rect.localScale = Vector3.one * scale;
                 group.alpha =
-                    t < 0.62f
+                    t < 0.66f
                         ? 1f
-                        : 1f - (t - 0.62f) / 0.38f;
+                        : 1f - (t - 0.66f) / 0.34f;
                 yield return null;
             }
             Destroy(floating);
+        }
+
+        private static float EaseOutBack(float value)
+        {
+            const float overshoot = 1.70158f;
+            float shifted = Mathf.Clamp01(value) - 1f;
+            return 1f +
+                   (overshoot + 1f) * shifted * shifted * shifted +
+                   overshoot * shifted * shifted;
         }
 
         private IEnumerator ShakeArenaCamera(

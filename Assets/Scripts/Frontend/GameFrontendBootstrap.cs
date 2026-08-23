@@ -1294,310 +1294,12 @@ namespace ArcaneArena.Frontend
 
         private void ShowAnimationOptions()
         {
-            SetDuelPresentation(false);
-            ClearScreen();
-            BuildSharedBackground("OPÇÕES");
-            BuildHeader(
-                "OPÇÕES",
-                ShowMainMenu);
-
-            var panel = CreatePanel(
-                _screenRoot,
-                "Opções de Animação",
-                new Vector2(0.11f, 0.10f),
-                new Vector2(0.89f, 0.86f),
-                new Color(0.015f, 0.04f, 0.075f, 0.97f));
-            AddOutline(
-                panel.gameObject,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.8f),
-                new Vector2(3f, -3f));
-
-            CreateText(
-                panel.transform,
-                "GRÁFICOS E ANIMAÇÕES",
-                40,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.08f, 0.86f),
-                new Vector2(0.92f, 0.97f),
-                TextAnchor.MiddleCenter);
-            CreateText(
-                panel.transform,
-                "Configuração local: altera somente a apresentação deste dispositivo.",
-                19,
-                FontStyle.Normal,
-                Muted,
-                new Vector2(0.10f, 0.79f),
-                new Vector2(0.90f, 0.86f),
-                TextAnchor.MiddleCenter);
-
-            BuildGraphicsQualityRow(panel.transform, 0.73f);
-            BuildAudioVolumeRow(panel.transform, 0.585f);
-
-            BuildAnimationOptionRow(
-                panel.transform,
-                "INVOCAÇÃO DE MONSTROS",
-                DuelAnimationPreferences.MonsterEnabled,
-                DuelAnimationPreferences.MonsterSpeedMultiplier,
-                0.43f,
-                () =>
-                {
-                    DuelAnimationPreferences.MonsterEnabled =
-                        !DuelAnimationPreferences.MonsterEnabled;
-                    ShowAnimationOptions();
-                },
-                speed =>
-                {
-                    DuelAnimationPreferences
-                        .MonsterSpeedMultiplier = speed;
-                    ShowAnimationOptions();
-                });
-            BuildAnimationOptionRow(
-                panel.transform,
-                "ATIVAÇÃO DE MAGIAS / ARMADILHAS",
-                DuelAnimationPreferences.SpellTrapEnabled,
-                DuelAnimationPreferences
-                    .SpellTrapSpeedMultiplier,
-                0.285f,
-                () =>
-                {
-                    DuelAnimationPreferences.SpellTrapEnabled =
-                        !DuelAnimationPreferences.SpellTrapEnabled;
-                    ShowAnimationOptions();
-                },
-                speed =>
-                {
-                    DuelAnimationPreferences
-                        .SpellTrapSpeedMultiplier = speed;
-                    ShowAnimationOptions();
-                });
-            BuildAnimationOptionRow(
-                panel.transform,
-                "APRESENTAÇÃO DA CORRENTE",
-                DuelAnimationPreferences.ChainEnabled,
-                DuelAnimationPreferences.ChainSpeedMultiplier,
-                0.14f,
-                () =>
-                {
-                    DuelAnimationPreferences.ChainEnabled =
-                        !DuelAnimationPreferences.ChainEnabled;
-                    ShowAnimationOptions();
-                },
-                speed =>
-                {
-                    DuelAnimationPreferences
-                        .ChainSpeedMultiplier = speed;
-                    ShowAnimationOptions();
-                });
-
-            CreateButton(
-                panel.transform,
-                "PERFIL DO DUELISTA",
-                new Vector2(0.055f, 0.025f),
-                new Vector2(0.265f, 0.095f),
-                Cyan,
-                () => ShowPlayerProfileSetup(true));
-            CreateButton(
-                panel.transform,
-                "RESPOSTAS",
-                new Vector2(0.285f, 0.025f),
-                new Vector2(0.495f, 0.095f),
-                Lime,
-                ShowDuelResponseOptions);
-            CreateButton(
-                panel.transform,
-                "TEXTO\n" + ArcaneUiTextPreferences.DisplayName(
-                    ArcaneUiTextPreferences.Current),
-                new Vector2(0.515f, 0.025f),
-                new Vector2(0.725f, 0.095f),
-                Blue,
-                () =>
-                {
-                    ArcaneUiTextPreferences.Set(
-                        ArcaneUiTextPreferences.Next(
-                            ArcaneUiTextPreferences.Current));
-                    ShowAnimationOptions();
-                });
-            CreateButton(
-                panel.transform,
-                "RESTAURAR PADRÃO",
-                new Vector2(0.745f, 0.025f),
-                new Vector2(0.945f, 0.095f),
-                Gold,
-                () =>
-                {
-                    DuelAnimationPreferences
-                        .ResetToDefaults();
-                    DuelActivationPreferences.RestoreDefaults();
-                    ArcaneAudioPreferences.ResetToDefaults();
-                    ArcaneMusicPreferences.ResetToDefaults();
-                    ArcaneGraphicsPreferences.ResetToAutomatic();
-                    ArcaneUiTextPreferences.ResetToDefault();
-                    ShowAnimationOptions();
-                });
+            BuildModernAnimationOptionsScreen();
         }
 
         private void ShowDuelResponseOptions()
         {
-            SetDuelPresentation(false);
-            ClearScreen();
-            BuildSharedBackground("OPÇÕES");
-            BuildHeader("RESPOSTAS DO DUELO", ShowAnimationOptions);
-
-            var panel = CreatePanel(
-                _screenRoot,
-                "Respostas e Correntes",
-                new Vector2(0.17f, 0.14f),
-                new Vector2(0.83f, 0.84f),
-                new Color(0.015f, 0.04f, 0.075f, 0.97f));
-            AddOutline(
-                panel.gameObject,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.8f),
-                new Vector2(3f, -3f));
-
-            CreateText(
-                panel.transform,
-                "CONFIRMAÇÃO DE ATIVAÇÃO",
-                34,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.07f, 0.86f),
-                new Vector2(0.93f, 0.97f),
-                TextAnchor.MiddleCenter);
-            CreateText(
-                panel.transform,
-                "Estas opções só controlam perguntas e PASSAR. " +
-                "A legalidade e os candidatos continuam vindo do Core.",
-                17,
-                FontStyle.Normal,
-                Muted,
-                new Vector2(0.08f, 0.77f),
-                new Vector2(0.92f, 0.85f),
-                TextAnchor.MiddleCenter);
-
-            var modeRow = CreatePanel(
-                panel.transform,
-                "Modo de confirmação",
-                new Vector2(0.07f, 0.57f),
-                new Vector2(0.93f, 0.75f),
-                new Color(0.025f, 0.09f, 0.135f, 0.94f));
-            CreateText(
-                modeRow.transform,
-                "JANELAS OPCIONAIS",
-                17,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.03f, 0.55f),
-                new Vector2(0.31f, 0.92f),
-                TextAnchor.MiddleLeft);
-            CreateText(
-                modeRow.transform,
-                "ON pergunta sempre · AUTO padrão · OFF passa opções",
-                12,
-                FontStyle.Normal,
-                Muted,
-                new Vector2(0.03f, 0.10f),
-                new Vector2(0.45f, 0.52f),
-                TextAnchor.MiddleLeft);
-            ActivationPromptMode[] modes =
-            {
-                ActivationPromptMode.On,
-                ActivationPromptMode.Auto,
-                ActivationPromptMode.Off
-            };
-            for (int index = 0; index < modes.Length; index++)
-            {
-                ActivationPromptMode mode = modes[index];
-                float xMin = 0.49f + index * 0.16f;
-                CreateButton(
-                    modeRow.transform,
-                    DuelActivationPreferences.DisplayName(mode),
-                    new Vector2(xMin, 0.20f),
-                    new Vector2(xMin + 0.135f, 0.80f),
-                    DuelActivationPreferences.Mode == mode ? Lime : Cyan,
-                    () =>
-                    {
-                        DuelActivationPreferences.Mode = mode;
-                        ShowDuelResponseOptions();
-                    });
-            }
-
-            var selfChainRow = CreatePanel(
-                panel.transform,
-                "Self Chain",
-                new Vector2(0.07f, 0.36f),
-                new Vector2(0.93f, 0.53f),
-                new Color(0.025f, 0.09f, 0.135f, 0.94f));
-            CreateText(
-                selfChainRow.transform,
-                "SELF CHAIN",
-                18,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.03f, 0.18f),
-                new Vector2(0.53f, 0.82f),
-                TextAnchor.MiddleLeft);
-            CreateButton(
-                selfChainRow.transform,
-                DuelActivationPreferences.SelfChainEnabled
-                    ? "ATIVADO" : "DESATIVADO",
-                new Vector2(0.69f, 0.20f),
-                new Vector2(0.94f, 0.80f),
-                DuelActivationPreferences.SelfChainEnabled ? Lime : Gold,
-                () =>
-                {
-                    DuelActivationPreferences.SelfChainEnabled =
-                        !DuelActivationPreferences.SelfChainEnabled;
-                    ShowDuelResponseOptions();
-                });
-
-            var orderRow = CreatePanel(
-                panel.transform,
-                "Ordem de ativação",
-                new Vector2(0.07f, 0.15f),
-                new Vector2(0.93f, 0.32f),
-                new Color(0.025f, 0.09f, 0.135f, 0.94f));
-            CreateText(
-                orderRow.transform,
-                "ORDEM DE ATIVAÇÃO SIMULTÂNEA",
-                18,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.03f, 0.18f),
-                new Vector2(0.62f, 0.82f),
-                TextAnchor.MiddleLeft);
-            CreateButton(
-                orderRow.transform,
-                DuelActivationPreferences.ManualChainOrder
-                    ? "MANUAL" : "CORE",
-                new Vector2(0.69f, 0.20f),
-                new Vector2(0.94f, 0.80f),
-                DuelActivationPreferences.ManualChainOrder ? Lime : Cyan,
-                () =>
-                {
-                    DuelActivationPreferences.ManualChainOrder =
-                        !DuelActivationPreferences.ManualChainOrder;
-                    ShowDuelResponseOptions();
-                });
-
-            CreateButton(
-                panel.transform,
-                "RESTAURAR RESPOSTAS",
-                new Vector2(0.12f, 0.025f),
-                new Vector2(0.44f, 0.10f),
-                Gold,
-                () =>
-                {
-                    DuelActivationPreferences.RestoreDefaults();
-                    ShowDuelResponseOptions();
-                });
-            CreateButton(
-                panel.transform,
-                "VOLTAR",
-                new Vector2(0.56f, 0.025f),
-                new Vector2(0.88f, 0.10f),
-                Cyan,
-                ShowAnimationOptions);
+            BuildModernDuelResponseOptionsScreen();
         }
 
         private void BuildGraphicsQualityRow(Transform parent, float yMin)
@@ -1991,33 +1693,61 @@ namespace ArcaneArena.Frontend
 
             SetDuelPresentation(false);
             ClearScreen();
-            BuildSharedBackground("DECK DO BOT");
-            BuildHeader(
+            Color modeAccent = _pendingRankedBotDuel
+                ? DuelRankedAccent
+                : DuelOfflineAccent;
+            BuildDuelModeBackground(
+                _pendingRankedBotDuel
+                    ? "RANQUEADO"
+                    : "SOLO / OFFLINE",
+                modeAccent);
+            BuildDuelModeHeader(
                 _pendingRankedBotDuel
                     ? "ESCOLHA O RIVAL RANQUEADO"
                     : "ESCOLHA O DECK DO BOT",
+                _pendingRankedBotDuel
+                    ? "RANQUEADO  •  O RESULTADO ALTERA PE E ELO"
+                    : "DUELAR OFFLINE  •  LISTAS TEMÁTICAS COMPLETAS",
+                modeAccent,
                 () => RunMainMenuTransition(ShowDuelHub));
 
-            CreateText(
+            Image instruction = CreateDuelModeSurface(
                 _screenRoot,
+                "Orientação da seleção de rival",
+                new Vector2(0.055f, 0.795f),
+                new Vector2(0.945f, 0.866f),
+                modeAccent,
+                true,
+                0.78f);
+            CreateText(
+                instruction.transform,
                 _pendingRankedBotDuel
-                    ? "ESCOLHA UM BOT · O RESULTADO ALTERA PE E ELO"
-                    : "ESCOLHA UM DECK TEMÁTICO COMPLETO OU SORTEIE UM OPONENTE",
-                20,
+                    ? "SELECIONE UMA IA COMPATÍVEL OU SORTEIE UM RIVAL · O DECK ATIVO SERÁ VALIDADO"
+                    : "ESCOLHA UM DECK TEMÁTICO COMPLETO OU SORTEIE UM OPONENTE · MAIN E EXTRA PERMANECEM JUNTOS",
+                16,
                 FontStyle.Bold,
-                Cyan,
-                new Vector2(0.06f, 0.82f),
-                new Vector2(0.94f, 0.88f),
+                Color.white,
+                new Vector2(0.035f, 0.12f),
+                new Vector2(0.965f, 0.88f),
                 TextAnchor.MiddleCenter);
 
-            var content = CreateScrollGrid(
+            Image galleryFrame = CreateDuelModeSurface(
                 _screenRoot,
+                "Galeria de rivais",
+                new Vector2(0.040f, 0.055f),
+                new Vector2(0.960f, 0.780f),
+                modeAccent,
+                false,
+                0.72f);
+            var content = CreateScrollGrid(
+                galleryFrame.transform,
                 "Decks temáticos do bot",
-                new Vector2(0.055f, 0.09f),
-                new Vector2(0.945f, 0.80f),
+                new Vector2(0.010f, 0.020f),
+                new Vector2(0.990f, 0.985f),
                 new Vector2(330f, 265f),
                 new Vector2(26f, 24f),
                 4);
+            TintDuelModeScrollGrid(content, modeAccent);
 
             IReadOnlyList<DeckRecord> opponentDecks =
                 DeckShopCatalog.CreateOpponentRoster();
@@ -2036,24 +1766,25 @@ namespace ArcaneArena.Frontend
             Transform parent,
             int availableDecks)
         {
-            Image tile = CreatePanel(
+            Color accent = _pendingRankedBotDuel
+                ? DuelRankedAccent
+                : DuelOfflineAccent;
+            Image tile = CreateDuelModeSurface(
                 parent,
                 "Deck temático aleatório do bot",
                 Vector2.zero,
                 Vector2.one,
-                new Color(0.035f, 0.075f, 0.03f, 0.98f));
-            AddOutline(
-                tile.gameObject,
-                new Color(Lime.r, Lime.g, Lime.b, 0.82f),
-                new Vector2(3f, -3f));
+                accent,
+                true,
+                0.94f);
             CreateText(
                 tile.transform,
-                "DECK TEMÁTICO\nALEATÓRIO",
-                25,
+                "RIVAL TEMÁTICO\nALEATÓRIO",
+                24,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.08f, 0.49f),
-                new Vector2(0.92f, 0.82f),
+                new Vector2(0.08f, 0.51f),
+                new Vector2(0.92f, 0.84f),
                 TextAnchor.MiddleCenter);
             CreateText(
                 tile.transform,
@@ -2068,10 +1799,10 @@ namespace ArcaneArena.Frontend
                 tile.transform,
                 _pendingRankedBotDuel
                     ? "IA DINÂMICA  •  PARTIDA RANQUEADA"
-                    : "IA TÁTICA  •  SEM MISTURAR ARQUÉTIPOS",
+                    : "IA TÁTICA  •  SORTEIO INTEGRAL DE ARQUÉTIPO",
                 11,
                 FontStyle.Bold,
-                Lime,
+                accent,
                 new Vector2(0.05f, 0.055f),
                 new Vector2(0.95f, 0.18f),
                 TextAnchor.MiddleCenter);
@@ -2092,20 +1823,19 @@ namespace ArcaneArena.Frontend
                 deck,
                 _catalog,
                 out var rejection);
-            var tile = CreatePanel(
+            Color modeAccent = _pendingRankedBotDuel
+                ? DuelRankedAccent
+                : DuelOfflineAccent;
+            var tile = CreateDuelModeSurface(
                 parent,
                 $"Deck do bot {deck.deckId}",
                 Vector2.zero,
                 Vector2.one,
-                new Color(0.01f, 0.025f, 0.045f, 0.98f));
-            AddOutline(
-                tile.gameObject,
                 valid
-                    ? new Color(Lime.r, Lime.g, Lime.b, 0.78f)
-                    : new Color(Danger.r, Danger.g, Danger.b, 0.62f),
-                valid
-                    ? new Vector2(3f, -3f)
-                    : new Vector2(2f, -2f));
+                    ? modeAccent
+                    : Danger,
+                true,
+                valid ? 0.90f : 0.76f);
 
             CreateDeckCaseVisual(
                 tile.transform,
@@ -2135,7 +1865,7 @@ namespace ArcaneArena.Frontend
                     : rejection,
                 valid ? 11 : 10,
                 FontStyle.Bold,
-                valid ? Lime : Danger,
+                valid ? modeAccent : Danger,
                 new Vector2(0.05f, 0.01f),
                 new Vector2(0.95f, 0.10f),
                 TextAnchor.MiddleCenter);

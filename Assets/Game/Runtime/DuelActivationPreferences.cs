@@ -20,6 +20,9 @@ namespace ArcaneDuel.Game
         private const string ModeKey = "ArcaneDuel.ActivationPromptMode";
         private const string SelfChainKey = "ArcaneDuel.SelfChain";
         private const string ManualOrderKey = "ArcaneDuel.ManualChainOrder";
+        private const string GuidanceMessagesKey =
+            "ArcaneDuel.GuidanceMessages";
+        private const string ChainPanelKey = "ArcaneDuel.ChainPanel";
 
         public static ActivationPromptMode Mode
         {
@@ -60,6 +63,34 @@ namespace ArcaneDuel.Game
             }
         }
 
+        /// <summary>
+        /// Controls only the large, non-interactive guidance ribbon shown at
+        /// the top of the field. Required choices remain available.
+        /// </summary>
+        public static bool GuidanceMessagesEnabled
+        {
+            get => PlayerPrefs.GetInt(GuidanceMessagesKey, 1) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(GuidanceMessagesKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
+        /// <summary>
+        /// Controls the non-interactive red chain summary panel. The chain
+        /// itself and every legal response continue to be processed by Core.
+        /// </summary>
+        public static bool ChainPanelEnabled
+        {
+            get => PlayerPrefs.GetInt(ChainPanelKey, 1) != 0;
+            set
+            {
+                PlayerPrefs.SetInt(ChainPanelKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
         public static string DisplayName(ActivationPromptMode mode)
         {
             return mode switch
@@ -77,6 +108,8 @@ namespace ArcaneDuel.Game
                 (int)ActivationPromptMode.Auto);
             PlayerPrefs.SetInt(SelfChainKey, 1);
             PlayerPrefs.SetInt(ManualOrderKey, 1);
+            PlayerPrefs.SetInt(GuidanceMessagesKey, 1);
+            PlayerPrefs.SetInt(ChainPanelKey, 1);
             PlayerPrefs.Save();
         }
     }

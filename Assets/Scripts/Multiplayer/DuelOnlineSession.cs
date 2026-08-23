@@ -5822,12 +5822,23 @@ namespace ArcaneArena.Multiplayer
             DrawRewardResultOverlay();
             if (!showPanel)
                 return;
+            EnsureLobbyStyles();
             const float width = 640f;
             const float height = 500f;
             Color originalColor = GUI.color;
-            GUI.color = new Color(0.008f, 0.022f, 0.045f, 0.985f);
+            Color accent = GetLobbyVisualAccent();
+            GUI.color = new Color(0.002f, 0.008f, 0.016f, 0.96f);
             GUI.DrawTexture(
                 new Rect(0f, 0f, Screen.width, Screen.height),
+                Texture2D.whiteTexture);
+            GUI.color = new Color(accent.r, accent.g, accent.b, 0.08f);
+            GUI.DrawTexture(
+                new Rect(0f, Screen.height * 0.12f,
+                    Screen.width, Mathf.Max(2f, Screen.height * 0.002f)),
+                Texture2D.whiteTexture);
+            GUI.DrawTexture(
+                new Rect(0f, Screen.height * 0.88f,
+                    Screen.width, Mathf.Max(2f, Screen.height * 0.002f)),
                 Texture2D.whiteTexture);
             GUI.color = originalColor;
             Matrix4x4 previousMatrix = GUI.matrix;
@@ -5844,12 +5855,20 @@ namespace ArcaneArena.Multiplayer
                 width,
                 height);
             Color originalBackground = GUI.backgroundColor;
-            GUI.color = new Color(0.16f, 0.91f, 1f, 0.95f);
-            GUI.DrawTexture(new Rect(area.x - 3f, area.y - 3f,
-                area.width + 6f, area.height + 6f), Texture2D.whiteTexture);
+            GUI.color = new Color(0f, 0f, 0f, 0.56f);
+            GUI.DrawTexture(new Rect(area.x + 10f, area.y + 12f,
+                area.width, area.height), Texture2D.whiteTexture);
+            GUI.color = new Color(accent.r, accent.g, accent.b, 0.28f);
+            GUI.DrawTexture(new Rect(area.x - 2f, area.y - 2f,
+                area.width + 4f, area.height + 4f), Texture2D.whiteTexture);
             GUI.color = originalColor;
-            GUI.backgroundColor = new Color(0.035f, 0.13f, 0.17f, 1f);
-            GUI.ModalWindow(912701, area, DrawPanel, string.Empty);
+            GUI.backgroundColor = Color.white;
+            GUI.ModalWindow(
+                912701,
+                area,
+                DrawPanel,
+                string.Empty,
+                lobbyWindowStyle);
             GUI.backgroundColor = originalBackground;
             GUI.matrix = previousMatrix;
         }
@@ -5899,32 +5918,48 @@ namespace ArcaneArena.Multiplayer
             const float margin = 38f;
             const float contentWidth = 564f;
 
-            GUI.Label(new Rect(margin, 22f, contentWidth, 38f),
-                "MULTIPLAYER ONLINE", lobbyHeadingStyle);
-            GUI.Label(new Rect(margin, 64f, contentWidth, 28f),
-                GetRelayLobbyInfo(),
-                lobbySubheadingStyle);
-            GUI.Label(new Rect(margin, 96f, contentWidth, 38f),
-                status ?? string.Empty, lobbyStatusStyle);
-
             bool roomActive = IsOnlineDuelActive;
             bool automaticQueue = automaticRankedMatchmaking &&
                 competitivePolicy == CompetitivePolicy.Ranked;
             bool rankedRoomSetup = rankedRoomCreationPanel &&
                 competitivePolicy == CompetitivePolicy.Ranked &&
                 !automaticQueue;
+            Color accent = GetLobbyVisualAccent();
+            string heading = automaticQueue
+                ? "ENCONTRAR RIVAL"
+                : competitivePolicy == CompetitivePolicy.Ranked
+                    ? "MULTIPLAYER RANQUEADO"
+                    : "MULTIPLAYER CASUAL";
+            string eyebrow = automaticQueue
+                ? "RANQUEADO  •  PAREAMENTO COMPETITIVO"
+                : competitivePolicy == CompetitivePolicy.Ranked
+                    ? "SALA PRIVADA  •  RESULTADO COMPETITIVO"
+                    : "SALA PRIVADA  •  DUELO SEM ALTERAÇÃO DE ELO";
+
+            GUI.Label(new Rect(margin, 22f, contentWidth, 38f),
+                heading, lobbyHeadingStyle);
+            GUI.Label(new Rect(margin, 58f, contentWidth, 20f),
+                eyebrow, lobbyEyebrowStyle);
+            GUI.Label(new Rect(margin, 77f, contentWidth, 25f),
+                GetRelayLobbyInfo(),
+                lobbySubheadingStyle);
+            GUI.Box(new Rect(margin, 105f, contentWidth, 42f),
+                GUIContent.none, lobbyStatusBoxStyle);
+            GUI.Label(new Rect(margin + 12f, 107f, contentWidth - 24f, 38f),
+                status ?? string.Empty, lobbyStatusStyle);
+
             string code = roomActive ? roomCode : string.Empty;
-            GUI.Label(new Rect(margin, 140f, contentWidth, 34f),
+            GUI.Label(new Rect(margin, 151f, contentWidth, 30f),
                 automaticQueue
-                    ? "RANQUEADO  •  BUSCA AUTOMATICA"
+                    ? "BUSCA AUTOMÁTICA  •  DECK VALIDADO"
                     : rankedRoomSetup
-                        ? "RANQUEADO  •  CRIAR SALA PRIVADA"
-                    : $"CODIGO DA SALA  •  {(string.IsNullOrWhiteSpace(code) ? "—" : code)}",
+                        ? "CRIAR SALA RANQUEADA PRIVADA"
+                    : $"CÓDIGO DA SALA  •  {(string.IsNullOrWhiteSpace(code) ? "—" : code)}",
                 lobbyCodeStyle);
 
             if (!automaticQueue && !string.IsNullOrWhiteSpace(code))
             {
-                GUI.backgroundColor = new Color(0.22f, 0.52f, 1f, 1f);
+                GUI.backgroundColor = Color.Lerp(accent, Color.white, 0.08f);
                 if (GUI.Button(new Rect(458f, 178f, 144f, 38f), "COPIAR", lobbyButtonStyle))
                     GUIUtility.systemCopyBuffer = code;
             }
@@ -5935,7 +5970,7 @@ namespace ArcaneArena.Multiplayer
                 {
                     GUI.Label(
                         new Rect(margin, 188f, contentWidth, 58f),
-                        "PROCURANDO UM JOGADOR COM A MESMA VERSAO, " +
+                        "PROCURANDO UM JOGADOR COM A MESMA VERSÃO, " +
                         "REGRAS E BAN LIST...",
                         lobbyDeckStyle);
                 }
@@ -5950,8 +5985,7 @@ namespace ArcaneArena.Multiplayer
                         (networkManager == null ||
                          !networkManager.ShutdownInProgress);
                     GUI.enabled = canStartConnection;
-                    GUI.backgroundColor =
-                        new Color(0.78f, 0.56f, 0.08f, 1f);
+                    GUI.backgroundColor = accent;
                     if (GUI.Button(
                             new Rect(margin, 212f, contentWidth, 42f),
                             "CRIAR SALA RANQUEADA",
@@ -5981,8 +6015,7 @@ namespace ArcaneArena.Multiplayer
                     if (focusJoinCode)
                         GUI.FocusControl("ArcaneJoinCode");
 
-                    GUI.backgroundColor =
-                        new Color(0.22f, 0.82f, 0.90f, 1f);
+                    GUI.backgroundColor = accent;
                     if (GUI.Button(
                             new Rect(464f, 204f, 138f, 42f),
                             "CRIAR SALA",
@@ -5990,7 +6023,7 @@ namespace ArcaneArena.Multiplayer
                     {
                         BeginHosting();
                     }
-                    GUI.backgroundColor = new Color(0.68f, 1f, 0.16f, 1f);
+                    GUI.backgroundColor = Color.Lerp(accent, Color.white, 0.14f);
                     if (GUI.Button(
                             new Rect(464f, 254f, 138f, 42f),
                             "ENTRAR",
@@ -6002,8 +6035,9 @@ namespace ArcaneArena.Multiplayer
                 }
             }
 
-            GUI.backgroundColor = new Color(0.035f, 0.12f, 0.21f, 1f);
-            GUI.Box(new Rect(margin, 264f, 412f, 92f), GUIContent.none);
+            GUI.backgroundColor = Color.white;
+            GUI.Box(new Rect(margin, 264f, 412f, 92f),
+                GUIContent.none, lobbySectionStyle);
             bool peerConnected = IsHost
                 ? remoteClientId != ulong.MaxValue
                 : role == SessionRole.Client && networkManager != null &&
@@ -6048,8 +6082,8 @@ namespace ArcaneArena.Multiplayer
                             : "CRIE OU ENTRE EM UMA SALA";
             GUI.enabled = canStartMatch && !automaticQueue;
             GUI.backgroundColor = GUI.enabled
-                ? new Color(0.78f, 0.56f, 0.08f, 1f)
-                : new Color(0.22f, 0.20f, 0.14f, 1f);
+                ? accent
+                : new Color(0.24f, 0.27f, 0.30f, 1f);
             if (GUI.Button(new Rect(margin, 366f, contentWidth, 42f),
                     matchButtonLabel, lobbyButtonStyle))
             {
@@ -6069,7 +6103,7 @@ namespace ArcaneArena.Multiplayer
                     LeaveRoom();
                 }
             }
-            GUI.backgroundColor = new Color(0.22f, 0.52f, 1f, 1f);
+            GUI.backgroundColor = new Color(0.28f, 0.38f, 0.48f, 1f);
             if (GUI.Button(new Rect(398f, 420f, 204f, 34f),
                     "FECHAR PAINEL", lobbyButtonStyle))
             {
@@ -6155,6 +6189,7 @@ namespace ArcaneArena.Multiplayer
         }
 
         private GUIStyle lobbyHeadingStyle;
+        private GUIStyle lobbyEyebrowStyle;
         private GUIStyle lobbySubheadingStyle;
         private GUIStyle lobbyStatusStyle;
         private GUIStyle lobbyCodeStyle;
@@ -6162,23 +6197,70 @@ namespace ArcaneArena.Multiplayer
         private GUIStyle lobbyDeckStyle;
         private GUIStyle lobbyInputStyle;
         private GUIStyle lobbyButtonStyle;
+        private GUIStyle lobbyWindowStyle;
+        private GUIStyle lobbySectionStyle;
+        private GUIStyle lobbyStatusBoxStyle;
+        private int lobbyVisualThemeKey = int.MinValue;
 
         private void EnsureLobbyStyles()
         {
-            if (lobbyHeadingStyle != null)
+            int themeKey = GetLobbyVisualThemeKey();
+            if (lobbyHeadingStyle != null &&
+                lobbyVisualThemeKey == themeKey)
                 return;
+
+            lobbyVisualThemeKey = themeKey;
+            Color accent = GetLobbyVisualAccent();
+            Texture2D windowTexture = CreateLobbySurfaceTexture(
+                accent, false, 0.98f, 128);
+            Texture2D sectionTexture = CreateLobbySurfaceTexture(
+                accent, false, 0.78f, 64);
+            Texture2D raisedTexture = CreateLobbySurfaceTexture(
+                accent, true, 0.96f, 64);
+            Texture2D pressedTexture = CreateLobbySurfaceTexture(
+                Color.Lerp(accent, Color.white, 0.24f),
+                true,
+                1f,
+                64);
+
+            lobbyWindowStyle = new GUIStyle(GUI.skin.window)
+            {
+                border = new RectOffset(14, 14, 14, 14),
+                normal = { background = windowTexture }
+            };
+            lobbySectionStyle = new GUIStyle(GUI.skin.box)
+            {
+                border = new RectOffset(9, 9, 9, 9),
+                normal = { background = sectionTexture }
+            };
+            lobbyStatusBoxStyle = new GUIStyle(GUI.skin.box)
+            {
+                border = new RectOffset(9, 9, 9, 9),
+                normal = { background = sectionTexture }
+            };
 
             lobbyHeadingStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 28,
+                fontSize = 27,
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = Color.white }
+            };
+            lobbyEyebrowStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 11,
+                fontStyle = FontStyle.Bold,
+                normal =
+                {
+                    textColor = new Color(
+                        accent.r, accent.g, accent.b, 0.94f)
+                }
             };
             lobbySubheadingStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 15,
+                fontSize = 13,
                 normal = { textColor = new Color(0.66f, 0.75f, 0.82f, 1f) }
             };
             lobbyStatusStyle = new GUIStyle(GUI.skin.label)
@@ -6187,14 +6269,17 @@ namespace ArcaneArena.Multiplayer
                 fontSize = 15,
                 fontStyle = FontStyle.Bold,
                 wordWrap = true,
-                normal = { textColor = new Color(0.72f, 1f, 0.1f, 1f) }
+                normal =
+                {
+                    textColor = Color.Lerp(accent, Color.white, 0.26f)
+                }
             };
             lobbyCodeStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 21,
                 fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.2f, 0.88f, 1f, 1f) }
+                normal = { textColor = Color.Lerp(accent, Color.white, 0.15f) }
             };
             lobbySmallLabelStyle = new GUIStyle(GUI.skin.label)
             {
@@ -6215,15 +6300,140 @@ namespace ArcaneArena.Multiplayer
                 alignment = TextAnchor.MiddleLeft,
                 fontSize = 15,
                 fontStyle = FontStyle.Bold,
-                normal = { textColor = Color.white }
+                padding = new RectOffset(14, 12, 8, 8),
+                border = new RectOffset(9, 9, 9, 9),
+                normal =
+                {
+                    textColor = Color.white,
+                    background = sectionTexture
+                },
+                focused =
+                {
+                    textColor = Color.white,
+                    background = raisedTexture
+                }
             };
             lobbyButtonStyle = new GUIStyle(GUI.skin.button)
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 13,
                 fontStyle = FontStyle.Bold,
-                normal = { textColor = Color.black }
+                border = new RectOffset(9, 9, 9, 9),
+                normal =
+                {
+                    textColor = Color.white,
+                    background = raisedTexture
+                },
+                hover =
+                {
+                    textColor = Color.white,
+                    background = pressedTexture
+                },
+                active =
+                {
+                    textColor = Color.white,
+                    background = pressedTexture
+                },
+                focused =
+                {
+                    textColor = Color.white,
+                    background = raisedTexture
+                }
             };
+        }
+
+        private int GetLobbyVisualThemeKey()
+        {
+            if (automaticRankedMatchmaking &&
+                competitivePolicy == CompetitivePolicy.Ranked)
+            {
+                return 1;
+            }
+            return competitivePolicy == CompetitivePolicy.Ranked ? 3 : 2;
+        }
+
+        private Color GetLobbyVisualAccent()
+        {
+            return GetLobbyVisualThemeKey() switch
+            {
+                1 => new Color(0.20f, 0.48f, 1f, 1f),
+                2 => new Color(1f, 0.30f, 0.16f, 1f),
+                _ => new Color(0.62f, 0.32f, 1f, 1f)
+            };
+        }
+
+        private static Texture2D CreateLobbySurfaceTexture(
+            Color accent,
+            bool raised,
+            float opacity,
+            int size)
+        {
+            int dimension = Mathf.Max(16, size);
+            var texture = new Texture2D(
+                dimension,
+                dimension,
+                TextureFormat.RGBA32,
+                false)
+            {
+                name = raised
+                    ? "Duel Mode Raised Surface"
+                    : "Duel Mode Panel Surface",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            var pixels = new Color[dimension * dimension];
+            float cut = dimension * (raised ? 0.11f : 0.065f);
+            float border = Mathf.Max(1.4f, dimension * 0.025f);
+            for (int y = 0; y < dimension; y++)
+            {
+                float ny = y / (dimension - 1f);
+                for (int x = 0; x < dimension; x++)
+                {
+                    float cornerDistance = Mathf.Min(
+                        x + y,
+                        Mathf.Min(
+                            (dimension - 1 - x) + y,
+                            Mathf.Min(
+                                x + (dimension - 1 - y),
+                                (dimension - 1 - x) +
+                                (dimension - 1 - y))));
+                    if (cornerDistance < cut)
+                    {
+                        pixels[y * dimension + x] = Color.clear;
+                        continue;
+                    }
+
+                    float edgeDistance = Mathf.Min(
+                        Mathf.Min(x, dimension - 1 - x),
+                        Mathf.Min(y, dimension - 1 - y));
+                    bool diagonalEdge = cornerDistance < cut + border * 1.8f;
+                    bool isBorder = edgeDistance < border || diagonalEdge;
+                    if (isBorder)
+                    {
+                        pixels[y * dimension + x] = new Color(
+                            accent.r,
+                            accent.g,
+                            accent.b,
+                            (raised ? 0.82f : 0.54f) * opacity);
+                        continue;
+                    }
+
+                    Color bottom = new(0.003f, 0.012f, 0.023f, 0.98f * opacity);
+                    Color top = new(0.030f, 0.065f, 0.090f, 0.94f * opacity);
+                    Color fill = Color.Lerp(bottom, top, ny);
+                    float sheen = Mathf.Clamp01(
+                        1f - Mathf.Abs((x / (dimension - 1f) + ny) - 1.42f) * 7f);
+                    fill = Color.Lerp(
+                        fill,
+                        new Color(accent.r, accent.g, accent.b, fill.a),
+                        sheen * (raised ? 0.16f : 0.06f));
+                    pixels[y * dimension + x] = fill;
+                }
+            }
+            texture.SetPixels(pixels);
+            texture.Apply(false, true);
+            return texture;
         }
     }
 }

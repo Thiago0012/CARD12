@@ -10,7 +10,10 @@ namespace ArcaneArena.Frontend
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class ArcanePackTearGraphic : MaskableGraphic
     {
-        private const int SegmentCount = 18;
+        // Mais segmentos deixam a cabeça do corte avançar continuamente em
+        // telas de 30/60 FPS, sem o efeito de "degraus" dos 18 segmentos
+        // anteriores. O buffer é reutilizado para não gerar lixo por frame.
+        private const int SegmentCount = 36;
 
         [SerializeField, Range(0f, 1f)] private float progress;
         [SerializeField, Range(0f, 1.5f)] private float energy = 1f;
@@ -21,12 +24,8 @@ namespace ArcaneArena.Frontend
         [SerializeField]
         private Color coreColor = new(0.92f, 1f, 1f, 1f);
 
-        private static readonly float[] JaggedProfile =
-        {
-            0.00f, 0.18f, -0.11f, 0.24f, -0.20f, 0.08f, -0.05f,
-            0.27f, -0.18f, 0.13f, -0.24f, 0.05f, 0.21f, -0.09f,
-            0.16f, -0.20f, 0.09f, -0.04f, 0.00f
-        };
+        private readonly Vector2[] _points =
+            new Vector2[SegmentCount + 1];
 
         public void SetPalette(Color outer, Color middle, Color core)
         {
@@ -60,26 +59,29 @@ namespace ArcaneArena.Frontend
             Rect rect = GetPixelAdjustedRect();
             int visibleSegments = Mathf.Clamp(
                 Mathf.CeilToInt(SegmentCount * progress), 1, SegmentCount);
-            var points = new Vector2[visibleSegments + 1];
             float centerY = rect.center.y;
             float amplitude = Mathf.Max(2.5f, rect.height * 0.18f);
             for (int index = 0; index <= visibleSegments; index++)
             {
                 float normalized = index / (float)SegmentCount;
                 float clipped = Mathf.Min(normalized, progress);
-                points[index] = new Vector2(
+                _points[index] = new Vector2(
                     Mathf.Lerp(rect.xMin, rect.xMax, clipped),
-                    centerY + JaggedProfile[index] * amplitude);
+                    centerY + JaggedOffset(clipped) * amplitude);
             }
 
-            AddStrip(helper, points, Mathf.Max(13f, rect.height * 0.72f),
+            int pointCount = visibleSegments + 1;
+            AddStrip(helper, _points, pointCount,
+                Mathf.Max(13f, rect.height * 0.72f),
                 WithEnergy(outerColor, 0.78f));
-            AddStrip(helper, points, Mathf.Max(5.5f, rect.height * 0.31f),
+            AddStrip(helper, _points, pointCount,
+                Mathf.Max(5.5f, rect.height * 0.31f),
                 WithEnergy(middleColor, 0.94f));
-            AddStrip(helper, points, Mathf.Max(1.8f, rect.height * 0.10f),
+            AddStrip(helper, _points, pointCount,
+                Mathf.Max(1.8f, rect.height * 0.10f),
                 WithEnergy(coreColor, 1f));
 
-            Vector2 head = points[points.Length - 1];
+            Vector2 head = _points[visibleSegments];
             float headSize = Mathf.Max(8f, rect.height * 0.46f) *
                 Mathf.Lerp(0.72f, 1.18f,
                     Mathf.Max(0f, Mathf.Sin(progress * Mathf.PI * 5f)));
@@ -117,14 +119,15 @@ namespace ArcaneArena.Frontend
         private static void AddStrip(
             VertexHelper helper,
             Vector2[] points,
+            int pointCount,
             float thickness,
             Color color)
         {
-            if (points == null || points.Length < 2)
+            if (points == null || pointCount < 2)
                 return;
 
             float half = thickness * 0.5f;
-            for (int index = 0; index < points.Length - 1; index++)
+            for (int index = 0; index < pointCount - 1; index++)
             {
                 Vector2 start = points[index];
                 Vector2 end = points[index + 1];
@@ -134,7 +137,7 @@ namespace ArcaneArena.Frontend
                 direction.Normalize();
                 Vector2 normal = new(-direction.y, direction.x);
                 float taper = Mathf.Lerp(0.72f, 1f,
-                    index / Mathf.Max(1f, points.Length - 2f));
+                    index / Mathf.Max(1f, pointCount - 2f));
                 Vector2 offset = normal * half * taper;
                 int vertex = helper.currentVertCount;
                 helper.AddVert(start - offset, color, Vector2.zero);
@@ -144,6 +147,16 @@ namespace ArcaneArena.Frontend
                 helper.AddTriangle(vertex, vertex + 1, vertex + 2);
                 helper.AddTriangle(vertex, vertex + 2, vertex + 3);
             }
+        }
+
+        private static float JaggedOffset(float normalized)
+        {
+            normalized = Mathf.Clamp01(normalized);
+            float envelope = Mathf.Sin(normalized * Mathf.PI);
+            float position = normalized * SegmentCount;
+            float detail = Mathf.Sin(position * 2.21f) * 0.17f +
+                Mathf.Sin(position * 5.17f + 0.43f) * 0.085f;
+            return detail * envelope;
         }
 
         private static void AddDiamond(

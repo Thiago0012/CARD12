@@ -307,15 +307,19 @@ MonoBehaviour:
   deckEditorAttributeIconTemplates: []
   deckEditorTypeIconTemplates: []
   packOpeningAnimationEnabled: 1
-  packOpeningFadeDuration: 0.22
-  packOpeningEnterDuration: 0.62
-  packOpeningAnticipationDuration: 0.3
-  packOpeningTearDuration: 0.52
-  packOpeningFlapDuration: 0.48
-  packOpeningBurstDuration: 0.34
-  packOpeningStackRiseDuration: 0.5
-  packOpeningFanDuration: 0.72
-  packOpeningCardStagger: 0.085
+  packOpeningFadeDuration: 0.1
+  packOpeningEnterDuration: 0.28
+  packOpeningRarityChargeDuration: 0.18
+  packOpeningEnergyCurtainDuration: 0.2
+  packOpeningAnticipationDuration: 0.1
+  packOpeningTearDuration: 0.36
+  packOpeningFlapDuration: 0.26
+  packOpeningBurstDuration: 0.2
+  packOpeningStackRiseDuration: 0.32
+  packOpeningCardEjectDuration: 0.26
+  packOpeningEjectStagger: 0.06
+  packOpeningFanDuration: 0.48
+  packOpeningCardStagger: 0.1
   packOpeningSettleDuration: 0.32
   shopBackgroundSprite: {fileID: 0}
   shopCoinSprite: {fileID: 0}
