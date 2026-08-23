@@ -19,6 +19,7 @@ namespace ArcaneArena.Frontend
             "Audio/Music/ThemeSong";
         private const float FadeInDuration = 1.5f;
         private const float FadeOutDuration = 1.25f;
+        private const float DeckEditorTransitionDuration = 0.30f;
 
         private static MainMenuMusicController _instance;
 
@@ -26,6 +27,7 @@ namespace ArcaneArena.Frontend
         private Coroutine _fadeRoutine;
         private bool _frontendActive;
         private bool _playbackRequested;
+        private bool _deckEditorMode;
         private float _volumeEnvelope;
 
         [RuntimeInitializeOnLoadMethod(
@@ -44,6 +46,16 @@ namespace ArcaneArena.Frontend
 
             var musicObject = new GameObject("Musica do Menu Principal");
             musicObject.AddComponent<MainMenuMusicController>();
+        }
+
+        public static void SetDeckEditorMode(bool active)
+        {
+            if (!Application.isPlaying)
+                return;
+
+            if (_instance != null)
+                _instance.SetDeckEditorMuted(active);
+            DeckEditorMusicController.SetPlaybackActive(active);
         }
 
         private void Awake()
@@ -151,7 +163,32 @@ namespace ArcaneArena.Frontend
             ApplyOutputVolume();
             _source.Play();
             _fadeRoutine = StartCoroutine(
-                FadeEnvelope(1f, FadeInDuration, false));
+                FadeEnvelope(
+                    _deckEditorMode ? 0f : 1f,
+                    FadeInDuration,
+                    false));
+        }
+
+        private void SetDeckEditorMuted(bool active)
+        {
+            if (_deckEditorMode == active)
+                return;
+
+            _deckEditorMode = active;
+            if (!_frontendActive || _source == null)
+                return;
+
+            CancelFade();
+            if (!_source.isPlaying)
+            {
+                StartFromBeginning();
+                return;
+            }
+            _fadeRoutine = StartCoroutine(
+                FadeEnvelope(
+                    active ? 0f : 1f,
+                    DeckEditorTransitionDuration,
+                    false));
         }
 
         private void StopWithFade()

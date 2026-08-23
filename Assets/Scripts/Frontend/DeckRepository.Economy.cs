@@ -153,6 +153,22 @@ namespace ArcaneArena.Frontend
 
         public int OwnedCardQuantity(string cardId)
         {
+            string normalized =
+                FrontendCardIdentity.NormalizeOfficialId(cardId);
+            CardCatalogEntry entry = ResolveCard(_catalog, normalized);
+            if (entry != null && !entry.HasAuthoredArtwork)
+            {
+                if (State?.cardQuantities == null)
+                    return 0;
+
+                CardQuantityRecord record = State.cardQuantities.FirstOrDefault(
+                    item => item != null && string.Equals(
+                        FrontendCardIdentity.NormalizeOfficialId(item.cardId),
+                        normalized,
+                        StringComparison.Ordinal));
+                return Math.Max(0, record?.quantity ?? 0);
+            }
+
             return DeckShopCatalog.OwnedCopies(State, cardId);
         }
 

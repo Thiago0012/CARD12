@@ -10,8 +10,6 @@ namespace ArcaneArena.Frontend
     public sealed partial class GameFrontendBootstrap
     {
         private readonly Dictionary<CardRarity, Text> _craftWalletTexts = new();
-        private Text _deckEditorRarityText;
-        private Text _deckEditorOwnershipText;
         private Button _generateCardButton;
         private Button _dismantleCardButton;
         private GameObject _deckEditorArtworkRarityBadge;
@@ -89,17 +87,6 @@ namespace ArcaneArena.Frontend
 
         private void BuildDeckEditorCraftActions(Transform panel)
         {
-            _deckEditorRarityText = CreateText(
-                panel,
-                "RARIDADE ?  •  POSSUI 0  •  DESMONTÁVEIS 0",
-                13,
-                FontStyle.Bold,
-                Muted,
-                new Vector2(0.04f, 0.485f),
-                new Vector2(0.96f, 0.522f),
-                TextAnchor.MiddleCenter);
-            _deckEditorOwnershipText = _deckEditorRarityText;
-
             Image dismantle = CreateButton(
                 panel,
                 "DESMANTELAR  +10",
@@ -124,22 +111,7 @@ namespace ArcaneArena.Frontend
         {
             if (entry == null || _repository == null)
                 return;
-            int owned = _repository.OwnedCardQuantity(cardId);
             int eligible = _repository.DismantlableCardQuantity(cardId);
-            int protectedQuantity = _repository.ProtectedCardQuantity(cardId);
-            string protectedLabel = protectedQuantity > 0
-                ? $"  •  PROTEGIDAS {protectedQuantity}"
-                : string.Empty;
-            if (_deckEditorOwnershipText != null)
-            {
-                _deckEditorOwnershipText.text =
-                    $"RARIDADE {CardRarityCatalog.Label(entry.Rarity)}  •  " +
-                    $"POSSUI {owned}  •  DESMONTÁVEIS {eligible}" + protectedLabel;
-                _deckEditorOwnershipText.color =
-                    CardRarityCatalog.IsValid(entry.Rarity)
-                        ? RarityColor(entry.Rarity)
-                        : Muted;
-            }
             if (_deckEditorArtworkRarityBadge != null)
                 Destroy(_deckEditorArtworkRarityBadge);
             _deckEditorArtworkRarityBadge = null;
@@ -295,6 +267,7 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            DeckEditorCraftAudio.Play(!generate);
             CloseCraftConfirmation();
             ShowDeckEditor(_editingDeck);
             ShowDeckEditorCardDetails(cardId);

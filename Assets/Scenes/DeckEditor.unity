@@ -343,6 +343,7 @@ MonoBehaviour:
   - {fileID: 3702817124732798413, guid: b5e68c9a7bfa00241aefc456babf74a0, type: 3}
   - {fileID: -8795156840706257820, guid: c3876350f2af17045bf8b5012192b3f1, type: 3}
   - {fileID: -7489564826502236253, guid: c3fdf1b7397145245bea1961ab56b003, type: 3}
+  - {fileID: 4380519687453211076, guid: 96abe663b4cf4c3cbf97be625abce272, type: 3}
   authorizedCoinRecipientsCatalog: {fileID: 11400000, guid: 9f4e80118582406d8969147dcff218fe, type: 2}
   editorPreviewVersion: 3
   editorPreviewScreen: 2

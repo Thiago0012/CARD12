@@ -62,24 +62,22 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.29f, 0.95f),
                 Color.clear);
             ConfigureDeckEditorInfoIcon(_deckEditorDetailTypeIcon);
+            ApplyDeckEditorTypeIconLayout();
             _deckEditorDetailType = CreateText(
                 information.transform,
                 "TIPO DA CARTA",
-                13,
+                19,
                 FontStyle.Bold,
                 Gold,
-                new Vector2(0.32f, 0.69f),
-                new Vector2(0.96f, 0.96f),
+                new Vector2(0.40f, 0.69f),
+                new Vector2(0.94f, 0.96f),
                 TextAnchor.MiddleLeft);
-            ApplyCapturedRectTransform(
-                _deckEditorDetailType.rectTransform,
-                new Vector2(0.32f, 0.69f),
-                new Vector2(0.96f, 0.96f),
-                25.3f,
-                2.9069f,
-                -25.3f,
-                -2.9069f,
-                1.39f);
+            ApplyDeckEditorTypeLayout(false);
+            _deckEditorDetailType.horizontalOverflow =
+                HorizontalWrapMode.Wrap;
+            _deckEditorDetailType.verticalOverflow =
+                VerticalWrapMode.Truncate;
+            _deckEditorDetailType.resizeTextMinSize = 10;
 
             _deckEditorDetailLevelIcon = CreatePanel(
                 information.transform,
@@ -181,15 +179,6 @@ namespace ArcaneArena.Frontend
                 -14.9f,
                 14.624f);
 
-            _deckEditorDetailStats = CreateText(
-                information.transform,
-                string.Empty,
-                11,
-                FontStyle.Bold,
-                Muted,
-                new Vector2(0.08f, 0.08f),
-                new Vector2(0.92f, 0.48f),
-                TextAnchor.MiddleCenter);
         }
 
         private void RefreshDeckEditorCombatInformation(
@@ -224,26 +213,27 @@ namespace ArcaneArena.Frontend
                 _deckEditorDetailTypeIcon,
                 typeIcon,
                 monster && typeIcon != null);
+            ApplyDeckEditorTypeIconLayout();
 
             if (_deckEditorDetailType != null)
             {
                 if (monster)
                 {
-                    _deckEditorDetailType.text =
-                        $"{entry.RaceName}\n{entry.TypeName}";
+                    _deckEditorDetailType.text = entry.RaceName;
                     _deckEditorDetailType.color = Gold;
                 }
                 else
                 {
                     _deckEditorDetailType.text = spell
-                        ? $"CARTA DE MAGIA\n{entry.TypeName}"
+                        ? "CARTA DE MAGIA"
                         : trap
-                            ? $"CARTA DE ARMADILHA\n{entry.TypeName}"
+                            ? "CARTA DE ARMADILHA"
                             : entry.TypeName;
                     _deckEditorDetailType.color = trap
                         ? new Color(0.98f, 0.4f, 0.78f)
                         : Cyan;
                 }
+                ApplyDeckEditorTypeLayout(monster);
             }
 
             bool hasLevel = monster && entry.Level > 0;
@@ -278,13 +268,37 @@ namespace ArcaneArena.Frontend
                 hasDefense,
                 hasDefense ? FormatCardStat(entry.Defense) : string.Empty);
 
-            if (_deckEditorDetailStats != null)
-            {
-                _deckEditorDetailStats.gameObject.SetActive(!monster);
-                _deckEditorDetailStats.text = !monster
-                    ? $"ID {DeckRepository.StableCardId(entry)}"
-                    : string.Empty;
-            }
+        }
+
+        private void ApplyDeckEditorTypeLayout(bool monster)
+        {
+            if (_deckEditorDetailType == null)
+                return;
+
+            ApplyCapturedRectTransform(
+                _deckEditorDetailType.rectTransform,
+                new Vector2(0.40f, 0.69f),
+                new Vector2(0.94f, 0.96f),
+                monster ? -29.3377f : -66.87469f,
+                monster ? -4.1667f : -4.4896f,
+                monster ? -51.36969f : -13.8327f,
+                monster ? 4.1667f : 4.4896f,
+                0.7f);
+        }
+
+        private void ApplyDeckEditorTypeIconLayout()
+        {
+            if (_deckEditorDetailTypeIcon == null)
+                return;
+
+            ApplyCapturedRectTransform(
+                _deckEditorDetailTypeIcon.rectTransform,
+                new Vector2(0.05f, 0.73f),
+                new Vector2(0.29f, 0.95f),
+                6.000103f,
+                0f,
+                -6.000103f,
+                0f);
         }
 
         private static void ConfigureDeckEditorInfoIcon(Image icon)
@@ -372,6 +386,7 @@ namespace ArcaneArena.Frontend
                 "piro" or "pyro" => "pyro",
                 "reptil" or "reptile" => "reptile",
                 "rocha" or "rock" => "rock",
+                "aqua" => "aqua",
                 "wyrm" => "wyrm",
                 _ => NormalizeDeckEditorIconKey(raceName)
             };

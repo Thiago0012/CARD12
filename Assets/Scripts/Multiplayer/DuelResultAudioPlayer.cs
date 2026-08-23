@@ -1,4 +1,5 @@
 using System.Collections;
+using ArcaneArena.Frontend;
 using ArcaneDuel.Game;
 using UnityEngine;
 
@@ -13,10 +14,11 @@ namespace ArcaneArena.Multiplayer
     public sealed class DuelResultAudioPlayer : MonoBehaviour
     {
         private const string Root = "Audio/SFX/Duel/";
-        private const float VoiceDelaySeconds = 0.50f;
+        private const float VoicePositionRatio = 0.50f;
         private static DuelResultAudioPlayer instance;
 
-        private AudioSource source;
+        private AudioSource songSource;
+        private AudioSource voiceSource;
         private AudioClip victorySound;
         private AudioClip defeatSound;
         private AudioClip victoryVoice;
@@ -58,19 +60,22 @@ namespace ArcaneArena.Multiplayer
             }
 
             instance = this;
-            source = gameObject.AddComponent<AudioSource>();
-            source.playOnAwake = false;
-            source.loop = false;
-            source.spatialBlend = 0f;
-            victorySound = Resources.Load<AudioClip>(Root + "victorysound");
-            defeatSound = Resources.Load<AudioClip>(Root + "losesound");
+            songSource = gameObject.AddComponent<AudioSource>();
+            voiceSource = gameObject.AddComponent<AudioSource>();
+            ConfigureSource(songSource, 20);
+            ConfigureSource(voiceSource, 18);
+            victorySound = Resources.Load<AudioClip>(Root + "winsong") ??
+                           Resources.Load<AudioClip>(Root + "victorysound");
+            defeatSound = Resources.Load<AudioClip>(Root + "losesong") ??
+                          Resources.Load<AudioClip>(Root + "losesound");
             victoryVoice = Resources.Load<AudioClip>(Root + "victoryvoice");
             defeatVoice = Resources.Load<AudioClip>(Root + "losevoice");
         }
 
         private void Update()
         {
-            if (source != null && source.isPlaying)
+            if ((songSource != null && songSource.isPlaying) ||
+                (voiceSource != null && voiceSource.isPlaying))
                 ApplyPreferences();
         }
 
@@ -105,6 +110,7 @@ namespace ArcaneArena.Multiplayer
             if (resultPlaybackLatched && latchedResult == result)
                 return;
             StopCurrent(false);
+            DuelMusicController.StopForResult();
             resultPlaybackLatched = true;
             latchedResult = result;
             playbackRoutine = StartCoroutine(PlaySequence(sound, voice));
@@ -112,27 +118,50 @@ namespace ArcaneArena.Multiplayer
 
         private IEnumerator PlaySequence(AudioClip sound, AudioClip voice)
         {
-            yield return PlayClip(sound);
-            if (sound != null && voice != null)
-                yield return new WaitForSecondsRealtime(VoiceDelaySeconds);
-            yield return PlayClip(voice);
-            playbackRoutine = null;
-        }
-
-        private IEnumerator PlayClip(AudioClip clip)
-        {
-            if (clip == null || source == null)
-                yield break;
-
-            source.clip = clip;
-            source.time = 0f;
             ApplyPreferences();
-            source.Play();
-            while (source != null && source.isPlaying)
+            if (sound != null && songSource != null)
+            {
+                songSource.clip = sound;
+                songSource.time = 0f;
+                songSource.Play();
+            }
+
+            float voiceAt = sound != null
+                ? Mathf.Max(0f, sound.length * VoicePositionRatio)
+                : 0f;
+            float elapsed = 0f;
+            while (sound != null && songSource != null &&
+                   songSource.isPlaying && elapsed < voiceAt)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                ApplyPreferences();
+                yield return null;
+            }
+
+            if (voice != null && voiceSource != null)
+            {
+                voiceSource.clip = voice;
+                voiceSource.time = 0f;
+                voiceSource.Play();
+            }
+
+            while ((songSource != null && songSource.isPlaying) ||
+                   (voiceSource != null && voiceSource.isPlaying))
             {
                 ApplyPreferences();
                 yield return null;
             }
+            playbackRoutine = null;
+        }
+
+        private static void ConfigureSource(AudioSource target, int priority)
+        {
+            target.playOnAwake = false;
+            target.loop = false;
+            target.spatialBlend = 0f;
+            target.dopplerLevel = 0f;
+            target.priority = priority;
+            target.ignoreListenerPause = true;
         }
 
         private void StopCurrent(bool releaseResultLatch)
@@ -142,10 +171,15 @@ namespace ArcaneArena.Multiplayer
                 StopCoroutine(playbackRoutine);
                 playbackRoutine = null;
             }
-            if (source != null)
+            if (songSource != null)
             {
-                source.Stop();
-                source.clip = null;
+                songSource.Stop();
+                songSource.clip = null;
+            }
+            if (voiceSource != null)
+            {
+                voiceSource.Stop();
+                voiceSource.clip = null;
             }
             if (releaseResultLatch)
                 resultPlaybackLatched = false;
@@ -153,11 +187,14 @@ namespace ArcaneArena.Multiplayer
 
         private void ApplyPreferences()
         {
-            if (source == null)
-                return;
-            source.mute = !ArcaneAudioPreferences.Enabled ||
-                          ArcaneAudioPreferences.Volume <= 0.0001f;
-            source.volume = ArcaneAudioPreferences.Volume;
+            if (songSource != null)
+                ArcaneMusicPreferences.ApplyTo(songSource, 1f);
+            if (voiceSource != null)
+            {
+                voiceSource.mute = !ArcaneAudioPreferences.Enabled ||
+                                   ArcaneAudioPreferences.Volume <= 0.0001f;
+                voiceSource.volume = ArcaneAudioPreferences.Volume;
+            }
         }
     }
 }

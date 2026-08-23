@@ -49,6 +49,12 @@ namespace ArcaneArena.Frontend
             EnsureInstance()?.SchedulePlayback();
         }
 
+        public static void StopForResult()
+        {
+            if (instance != null)
+                instance.StopPlayback();
+        }
+
         private static DuelMusicController EnsureInstance()
         {
             if (instance != null)

@@ -589,9 +589,7 @@ namespace ArcaneArena.Frontend
 
             foreach (var pair in copies)
             {
-                var owned = DeckShopCatalog.OwnedCopies(
-                    State,
-                    pair.Key);
+                var owned = OwnedCardQuantity(pair.Key);
                 if (pair.Value <= owned)
                     continue;
 
