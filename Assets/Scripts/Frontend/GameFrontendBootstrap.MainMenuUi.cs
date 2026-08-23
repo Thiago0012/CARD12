@@ -38,6 +38,11 @@ namespace ArcaneArena.Frontend
 
         public void ShowMainMenu()
         {
+            if (_deckEditorNewMarkersWereShown)
+            {
+                _repository?.ClearPendingDeckEditorNewCards();
+                _deckEditorNewMarkersWereShown = false;
+            }
             MainMenuMusicController.SetDeckEditorMode(false);
             _tournamentPage = TournamentPage.None;
             if (_repository != null && _repository.NeedsStarterDeckSelection)

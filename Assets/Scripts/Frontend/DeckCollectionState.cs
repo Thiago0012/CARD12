@@ -8,7 +8,7 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 11;
+        public int schemaVersion = 12;
         public string localProfileId;
         public string playerDisplayName;
         public bool starterDeckClaimed;
@@ -28,6 +28,8 @@ namespace ArcaneArena.Frontend
             new List<StructureDeckPurchaseRecord>();
         public List<PendingPackOpeningRecord> pendingPackOpenings =
             new List<PendingPackOpeningRecord>();
+        public List<string> pendingDeckEditorNewCardIds =
+            new List<string>();
         public List<ShopTransactionRecord> processedShopTransactions =
             new List<ShopTransactionRecord>();
         public PlayerCraftWallet craftPoints = new PlayerCraftWallet();

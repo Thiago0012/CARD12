@@ -18,6 +18,7 @@ namespace ArcaneArena.Frontend
         private void BuildCraftWalletBar()
         {
             _craftWalletTexts.Clear();
+            DeckEditorCraftAudio.Preload();
             Image bar = CreatePanel(
                 _screenRoot,
                 "Saldos de Craft Points",
@@ -87,21 +88,27 @@ namespace ArcaneArena.Frontend
 
         private void BuildDeckEditorCraftActions(Transform panel)
         {
-            Image dismantle = CreateButton(
+            Image dismantle = CreateCatalogControlButton(
                 panel,
                 "DESMANTELAR  +10",
                 new Vector2(0.035f, 0.025f),
                 new Vector2(0.49f, 0.105f),
                 Danger,
                 () => ShowCraftConfirmation(false));
+            Text dismantleLabel = dismantle.GetComponentInChildren<Text>(true);
+            if (dismantleLabel != null)
+                dismantleLabel.fontSize = 16;
             _dismantleCardButton = dismantle.GetComponent<Button>();
-            Image generate = CreateButton(
+            Image generate = CreateCatalogControlButton(
                 panel,
                 "GERAR  -30",
                 new Vector2(0.51f, 0.025f),
                 new Vector2(0.965f, 0.105f),
                 Blue,
                 () => ShowCraftConfirmation(true));
+            Text generateLabel = generate.GetComponentInChildren<Text>(true);
+            if (generateLabel != null)
+                generateLabel.fontSize = 16;
             _generateCardButton = generate.GetComponent<Button>();
         }
 
@@ -176,9 +183,16 @@ namespace ArcaneArena.Frontend
                 generate ? "Confirmar geração" : "Confirmar desmontagem",
                 new Vector2(0.27f, 0.24f),
                 new Vector2(0.73f, 0.76f),
-                new Color(0.015f, 0.045f, 0.075f, 1f));
+                Color.clear);
             Color accent = generate ? Blue : Danger;
-            AddOutline(modal.gameObject, accent, new Vector2(3f, -3f));
+            SkinDeckEditorSurface(modal, accent, true, 0.98f);
+            Image headerEnergy = CreatePanel(
+                modal.transform,
+                "Energia da confirmação",
+                new Vector2(0.10f, 0.785f),
+                new Vector2(0.90f, 0.795f),
+                new Color(accent.r, accent.g, accent.b, 0.92f));
+            headerEnergy.raycastTarget = false;
             CreateText(
                 modal.transform,
                 generate ? "CONFIRMAR GERAÇÃO" : "CONFIRMAR DESMONTAGEM",
@@ -215,14 +229,14 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.08f, 0.29f),
                 new Vector2(0.92f, 0.42f),
                 TextAnchor.MiddleCenter);
-            CreateButton(
+            CreateCatalogControlButton(
                 modal.transform,
                 "CANCELAR",
                 new Vector2(0.08f, 0.08f),
                 new Vector2(0.46f, 0.22f),
                 Muted,
                 CloseCraftConfirmation);
-            CreateButton(
+            CreateCatalogControlButton(
                 modal.transform,
                 "CONFIRMAR",
                 new Vector2(0.54f, 0.08f),
@@ -267,15 +281,36 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            Sprite craftSprite = _deckEditorDetailArtwork != null
+                ? _deckEditorDetailArtwork.sprite
+                : entry.Artwork;
             DeckEditorCraftAudio.Play(!generate);
             CloseCraftConfirmation();
-            ShowDeckEditor(_editingDeck);
+            PlayDeckEditorCraftVisual(generate, craftSprite);
+            RefreshCraftWalletValues();
+            if (!generate)
+                RefreshDeckEditorComposition();
+            RebuildVirtualCatalog();
             ShowDeckEditorCardDetails(cardId);
             SetEditorStatus(
                 generate
                     ? $"{entry.DisplayName} foi gerada por 30 CP {entry.Rarity}."
                     : $"{entry.DisplayName} foi desmantelada por 10 CP {entry.Rarity}.",
                 Lime);
+        }
+
+        private void RefreshCraftWalletValues()
+        {
+            if (_repository == null)
+                return;
+            foreach (KeyValuePair<CardRarity, Text> pair in _craftWalletTexts)
+            {
+                if (pair.Value != null)
+                {
+                    pair.Value.text =
+                        _repository.CraftPointBalance(pair.Key).ToString();
+                }
+            }
         }
 
         private void CloseCraftConfirmation()

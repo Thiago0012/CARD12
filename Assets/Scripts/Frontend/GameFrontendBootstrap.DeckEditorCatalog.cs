@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using ArcaneArena.Cards;
+using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,8 +26,13 @@ namespace ArcaneArena.Frontend
             public Image LockedOverlay;
             public Outline ArtworkOutline;
             public DeckEditorCardDrag Drag;
-            public GameObject RarityBadge;
+            public Image BanlistBadge;
+            public CardRestrictionBadgeTooltip BanlistTooltip;
+            public Image RarityBadge;
+            public ArcaneRarityBadgeGraphic RarityMaterial;
+            public Text RarityLabel;
             public Text OwnedCount;
+            public DeckEditorNewBadgePulse NewBadge;
             public int DataIndex = -1;
         }
 
@@ -35,6 +41,12 @@ namespace ArcaneArena.Frontend
         private readonly HashSet<CardRarity> _catalogRarityFilters = new();
         private readonly HashSet<CardAttribute> _catalogAttributeFilters = new();
         private readonly HashSet<MonsterFrameKind> _catalogFrameFilters = new();
+        private readonly Dictionary<string, int> _catalogOwnedCopies =
+            new(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _catalogExplicitOwnedCopies =
+            new(StringComparer.Ordinal);
+        private readonly HashSet<string> _catalogNewCardIds =
+            new(StringComparer.Ordinal);
         private HashSet<string> _catalogRelatedCardIds;
         private ScrollRect _catalogScroll;
         private Image _catalogAdvancedFilterButton;
@@ -43,6 +55,7 @@ namespace ArcaneArena.Frontend
         private int _catalogOwnershipFilter;
         private bool _catalogCraftableOnly;
         private int _catalogFirstVirtualRow = -1;
+        private bool _deckEditorNewMarkersWereShown;
 
         private void ConfigureVirtualCatalog()
         {
@@ -136,6 +149,70 @@ namespace ArcaneArena.Frontend
                 ownedCount.gameObject,
                 new Color(0f, 0f, 0f, 0.96f),
                 new Vector2(1.5f, -1.5f));
+
+            Image banlistBadge = CreatePanel(
+                artwork.transform,
+                "Restrição da Banlist reciclável",
+                new Vector2(0.015f, 0.76f),
+                new Vector2(0.27f, 0.985f),
+                Color.white);
+            banlistBadge.preserveAspect = true;
+            banlistBadge.raycastTarget = true;
+            CardRestrictionBadgeTooltip banlistTooltip =
+                banlistBadge.gameObject.AddComponent<
+                    CardRestrictionBadgeTooltip>();
+            banlistTooltip.Initialize(0);
+            banlistBadge.gameObject.SetActive(false);
+
+            Image rarityBadge = CreateRarityBadge(
+                root,
+                CardRarity.N,
+                new Vector2(0.60f, 0.72f),
+                new Vector2(0.99f, 0.995f),
+                16);
+            ApplyCapturedRectTransform(
+                rarityBadge.rectTransform,
+                new Vector2(0.60f, 0.72f),
+                new Vector2(0.99f, 0.995f),
+                -1.168f,
+                0f,
+                0f,
+                0f);
+            ArcaneRarityBadgeGraphic rarityMaterial =
+                rarityBadge.GetComponentInChildren<
+                    ArcaneRarityBadgeGraphic>(true);
+            Text rarityLabel = rarityBadge.GetComponentInChildren<Text>(true);
+
+            Image newBadgePanel = CreatePanel(
+                artwork.transform,
+                "Selo NEW",
+                new Vector2(0.25f, 0.78f),
+                new Vector2(0.75f, 0.985f),
+                new Color(0.015f, 0.12f, 0.18f, 0.96f));
+            newBadgePanel.raycastTarget = false;
+            AddOutline(
+                newBadgePanel.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.96f),
+                new Vector2(1.5f, -1.5f));
+            Text newLabel = CreateText(
+                newBadgePanel.transform,
+                "NEW",
+                10,
+                FontStyle.Bold,
+                Color.white,
+                Vector2.zero,
+                Vector2.one,
+                TextAnchor.MiddleCenter);
+            newLabel.raycastTarget = false;
+            AddOutline(
+                newLabel.gameObject,
+                new Color(0f, 0f, 0f, 0.95f),
+                new Vector2(1f, -1f));
+            newBadgePanel.gameObject.AddComponent<CanvasGroup>();
+            DeckEditorNewBadgePulse newBadge =
+                newBadgePanel.gameObject.AddComponent<
+                    DeckEditorNewBadgePulse>();
+            newBadge.SetVisible(false);
             root.gameObject.SetActive(false);
             return new CatalogVirtualCell
             {
@@ -144,7 +221,13 @@ namespace ArcaneArena.Frontend
                 LockedOverlay = locked,
                 ArtworkOutline = outline,
                 Drag = drag,
-                OwnedCount = ownedCount
+                BanlistBadge = banlistBadge,
+                BanlistTooltip = banlistTooltip,
+                RarityBadge = rarityBadge,
+                RarityMaterial = rarityMaterial,
+                RarityLabel = rarityLabel,
+                OwnedCount = ownedCount,
+                NewBadge = newBadge
             };
         }
 
@@ -154,6 +237,21 @@ namespace ArcaneArena.Frontend
                 return;
 
             _catalogFilteredEntries.Clear();
+            _catalogOwnedCopies.Clear();
+            _catalogNewCardIds.Clear();
+            if (_repository?.State?.pendingDeckEditorNewCardIds != null)
+            {
+                foreach (string newCardId in
+                         _repository.State.pendingDeckEditorNewCardIds)
+                {
+                    string normalized =
+                        FrontendCardIdentity.NormalizeOfficialId(newCardId);
+                    if (!string.IsNullOrWhiteSpace(normalized))
+                        _catalogNewCardIds.Add(normalized);
+                }
+            }
+            _deckEditorNewMarkersWereShown |= _catalogNewCardIds.Count > 0;
+            BuildCatalogExplicitOwnershipIndex();
             var uniqueIds = new HashSet<string>(StringComparer.Ordinal);
             List<CardCatalogEntry> entries = ReadyCatalogEntries();
 
@@ -264,7 +362,7 @@ namespace ArcaneArena.Frontend
             if (_catalogCraftableOnly && !entry.IsCraftable)
                 return false;
 
-            int owned = DeckEditorOwnedCopies(entry, cardId);
+            int owned = CatalogOwnedCopies(entry, cardId);
             return _catalogOwnershipFilter switch
             {
                 1 => owned > 0,
@@ -351,7 +449,7 @@ namespace ArcaneArena.Frontend
             CardCatalogEntry entry = _catalogFilteredEntries[dataIndex];
             string cardId = DeckRepository.StableCardId(entry);
             Sprite artwork = entry.Artwork;
-            int ownedCopies = DeckEditorOwnedCopies(entry, cardId);
+            int ownedCopies = CatalogOwnedCopies(entry, cardId);
 
             cell.DataIndex = dataIndex;
             cell.Root.gameObject.name = $"Célula da coleção {cardId}";
@@ -368,13 +466,97 @@ namespace ArcaneArena.Frontend
             cell.OwnedCount.color = ownedCopies > 0 ? Lime : Muted;
             cell.ArtworkOutline.effectColor = CatalogCardOutlineColor(entry);
             cell.Drag.Setup(this, cardId, artwork, ownedCopies > 0);
-            RefreshBanlistBadge(cell.Artwork.transform, cardId);
+            cell.NewBadge?.SetVisible(_catalogNewCardIds.Contains(cardId));
+            BindVirtualCatalogBanlist(cell, cardId);
+            BindVirtualCatalogRarity(cell, entry);
+        }
 
-            if (cell.RarityBadge != null)
-                Destroy(cell.RarityBadge);
-            cell.RarityBadge = CreateVirtualCatalogRarityBadge(
-                cell.Root,
-                entry);
+        private int CatalogOwnedCopies(
+            CardCatalogEntry entry,
+            string cardId)
+        {
+            if (string.IsNullOrWhiteSpace(cardId))
+                return 0;
+            if (_catalogOwnedCopies.TryGetValue(cardId, out int cached))
+                return cached;
+            _catalogExplicitOwnedCopies.TryGetValue(
+                cardId,
+                out int explicitQuantity);
+            int owned = entry == null || _repository == null
+                ? 0
+                : !entry.HasAuthoredArtwork
+                    ? explicitQuantity
+                    : DeckShopCatalog.OwnedCopies(
+                        _repository.State,
+                        cardId,
+                        explicitQuantity);
+            _catalogOwnedCopies[cardId] = owned;
+            return owned;
+        }
+
+        private void BuildCatalogExplicitOwnershipIndex()
+        {
+            _catalogExplicitOwnedCopies.Clear();
+            if (_repository?.State?.cardQuantities == null)
+                return;
+            foreach (CardQuantityRecord record in
+                     _repository.State.cardQuantities)
+            {
+                if (record == null)
+                    continue;
+                string cardId = FrontendCardIdentity.NormalizeOfficialId(
+                    record.cardId);
+                if (string.IsNullOrWhiteSpace(cardId))
+                    continue;
+                _catalogExplicitOwnedCopies.TryGetValue(
+                    cardId,
+                    out int current);
+                _catalogExplicitOwnedCopies[cardId] =
+                    Mathf.Max(current, Mathf.Max(0, record.quantity));
+            }
+        }
+
+        private static void BindVirtualCatalogBanlist(
+            CatalogVirtualCell cell,
+            string cardId)
+        {
+            if (cell?.BanlistBadge == null)
+                return;
+            Sprite sprite = BanlistService.Active.BadgeFor(cardId);
+            cell.BanlistBadge.sprite = sprite;
+            cell.BanlistBadge.gameObject.SetActive(sprite != null);
+            if (sprite != null && cell.BanlistTooltip != null)
+            {
+                cell.BanlistTooltip.Initialize(
+                    BanlistService.Active.MaximumCopies(cardId));
+            }
+        }
+
+        private static void BindVirtualCatalogRarity(
+            CatalogVirtualCell cell,
+            CardCatalogEntry entry)
+        {
+            if (cell?.RarityBadge == null)
+                return;
+            bool valid = entry != null &&
+                         CardRarityCatalog.IsValid(entry.Rarity);
+            cell.RarityBadge.gameObject.SetActive(valid);
+            if (!valid)
+                return;
+
+            CardRarity rarity = entry.Rarity;
+            cell.RarityBadge.gameObject.name = $"Raridade {rarity}";
+            if (cell.RarityLabel != null)
+                cell.RarityLabel.text = CardRarityCatalog.Label(rarity);
+            if (cell.RarityMaterial == null)
+                return;
+            RarityPalette(
+                rarity,
+                out Color top,
+                out Color bottom,
+                out Color edge,
+                out Color shine);
+            cell.RarityMaterial.SetPalette(top, bottom, edge, shine);
         }
 
         private void SortCatalogEntriesOwnedFirst()
@@ -383,12 +565,16 @@ namespace ArcaneArena.Frontend
             {
                 string leftId = DeckRepository.StableCardId(left);
                 string rightId = DeckRepository.StableCardId(right);
-                int leftGroup = DeckEditorOwnedCopies(left, leftId) > 0
+                int leftGroup = _catalogNewCardIds.Contains(leftId)
                     ? 0
-                    : 1;
-                int rightGroup = DeckEditorOwnedCopies(right, rightId) > 0
+                    : CatalogOwnedCopies(left, leftId) > 0
+                        ? 1
+                        : 2;
+                int rightGroup = _catalogNewCardIds.Contains(rightId)
                     ? 0
-                    : 1;
+                    : CatalogOwnedCopies(right, rightId) > 0
+                        ? 1
+                        : 2;
                 int ownership = leftGroup.CompareTo(rightGroup);
                 if (ownership != 0)
                     return ownership;
@@ -415,29 +601,6 @@ namespace ArcaneArena.Frontend
                 : entry.Category == CardCategory.Trap
                     ? new Color(0.9f, 0.24f, 0.64f, 0.8f)
                     : new Color(Gold.r, Gold.g, Gold.b, 0.75f);
-        }
-
-        private static GameObject CreateVirtualCatalogRarityBadge(
-            Transform parent,
-            CardCatalogEntry entry)
-        {
-            if (entry == null || !CardRarityCatalog.IsValid(entry.Rarity))
-                return null;
-            Image badge = CreateRarityBadge(
-                parent,
-                entry.Rarity,
-                new Vector2(0.60f, 0.72f),
-                new Vector2(0.99f, 0.995f),
-                16);
-            ApplyCapturedRectTransform(
-                badge.rectTransform,
-                new Vector2(0.60f, 0.72f),
-                new Vector2(0.99f, 0.995f),
-                -1.168f,
-                0f,
-                0f,
-                0f);
-            return badge.gameObject;
         }
 
         private static void PositionVirtualCatalogCell(
@@ -682,8 +845,22 @@ namespace ArcaneArena.Frontend
                 "Painel de filtros avançados",
                 new Vector2(0.22f, 0.10f),
                 new Vector2(0.78f, 0.90f),
-                new Color(0.008f, 0.035f, 0.055f, 1f));
-            AddOutline(panel.gameObject, Cyan, new Vector2(3f, -3f));
+                Color.clear);
+            SkinDeckEditorSurface(panel, DeckEmerald, true, 0.98f);
+            Image topEnergy = CreatePanel(
+                panel.transform,
+                "Energia superior dos filtros",
+                new Vector2(0.05f, 0.887f),
+                new Vector2(0.95f, 0.893f),
+                new Color(DeckAmber.r, DeckAmber.g, DeckAmber.b, 0.92f));
+            topEnergy.raycastTarget = false;
+            Image lowerEnergy = CreatePanel(
+                panel.transform,
+                "Energia inferior dos filtros",
+                new Vector2(0.18f, 0.012f),
+                new Vector2(0.82f, 0.018f),
+                new Color(DeckEmerald.r, DeckEmerald.g, DeckEmerald.b, 0.78f));
+            lowerEnergy.raycastTarget = false;
             CreateText(
                 panel.transform,
                 "FILTROS AVANÇADOS",
@@ -692,6 +869,15 @@ namespace ArcaneArena.Frontend
                 Color.white,
                 new Vector2(0.05f, 0.90f),
                 new Vector2(0.78f, 0.98f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                panel.transform,
+                "OFICINA DE DECKS  •  FILTRAGEM TÁTICA",
+                10,
+                FontStyle.Bold,
+                new Color(DeckMint.r, DeckMint.g, DeckMint.b, 0.82f),
+                new Vector2(0.05f, 0.852f),
+                new Vector2(0.60f, 0.882f),
                 TextAnchor.MiddleLeft);
             CreateCatalogControlButton(
                 panel.transform,
@@ -801,15 +987,30 @@ namespace ArcaneArena.Frontend
             string label,
             float bottom)
         {
-            CreateText(
+            Image marker = CreatePanel(
+                parent,
+                $"Marcador {label}",
+                new Vector2(0.05f, bottom + 0.016f),
+                new Vector2(0.058f, bottom + 0.054f),
+                DeckAmber);
+            marker.raycastTarget = false;
+            Text section = CreateText(
                 parent,
                 label,
                 15,
                 FontStyle.Bold,
-                Cyan,
-                new Vector2(0.05f, bottom),
-                new Vector2(0.95f, bottom + 0.07f),
+                new Color(DeckMint.r, DeckMint.g, DeckMint.b, 1f),
+                new Vector2(0.07f, bottom),
+                new Vector2(0.34f, bottom + 0.07f),
                 TextAnchor.MiddleLeft);
+            section.gameObject.name = $"Título {label}";
+            Image line = CreatePanel(
+                parent,
+                $"Linha {label}",
+                new Vector2(0.34f, bottom + 0.033f),
+                new Vector2(0.95f, bottom + 0.037f),
+                new Color(DeckEmerald.r, DeckEmerald.g, DeckEmerald.b, 0.44f));
+            line.raycastTarget = false;
         }
 
         private void CreateOwnershipFilterToggle(
@@ -857,12 +1058,10 @@ namespace ArcaneArena.Frontend
         {
             if (button == null)
                 return;
-            button.color = selected
-                ? new Color(Lime.r, Lime.g, Lime.b, 0.95f)
-                : new Color(0.015f, 0.055f, 0.085f, 0.98f);
-            Text label = button.GetComponentInChildren<Text>();
-            if (label != null)
-                label.color = selected ? Ink : Color.white;
+            StyleCatalogControlButton(
+                button,
+                selected ? DeckAmber : DeckMint,
+                selected);
         }
 
         private static void ToggleSetValue<T>(HashSet<T> set, T value)
@@ -903,11 +1102,10 @@ namespace ArcaneArena.Frontend
                 _catalogAdvancedFilterButton.GetComponentInChildren<Text>();
             if (label != null)
                 label.text = count > 0 ? $"FILTROS ({count})" : "FILTROS";
-            _catalogAdvancedFilterButton.color = count > 0
-                ? new Color(Lime.r, Lime.g, Lime.b, 0.95f)
-                : new Color(0.015f, 0.055f, 0.085f, 0.98f);
-            if (label != null)
-                label.color = count > 0 ? Ink : Color.white;
+            StyleCatalogControlButton(
+                _catalogAdvancedFilterButton,
+                count > 0 ? DeckAmber : DeckMint,
+                count > 0);
         }
 
         private void CloseAdvancedCatalogFilters()
@@ -925,6 +1123,8 @@ namespace ArcaneArena.Frontend
             _catalogAdvancedFilterModal = null;
             _catalogVirtualCells.Clear();
             _catalogFilteredEntries.Clear();
+            _catalogOwnedCopies.Clear();
+            _catalogExplicitOwnedCopies.Clear();
             _catalogFirstVirtualRow = -1;
         }
     }

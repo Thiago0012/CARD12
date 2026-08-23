@@ -354,6 +354,18 @@ namespace ArcaneArena.Frontend
                 }
             }
 
+            return OwnedCopies(state, normalized, explicitQuantity);
+        }
+
+        public static int OwnedCopies(
+            DeckCollectionState state,
+            string cardId,
+            int explicitQuantity)
+        {
+            string normalized =
+                FrontendCardIdentity.NormalizeOfficialId(cardId);
+            explicitQuantity = Math.Max(0, explicitQuantity);
+
             if (!IsLockedShopCard(normalized))
                 return Math.Max(3, explicitQuantity);
             if (state?.unlockedDeckProductIds == null)

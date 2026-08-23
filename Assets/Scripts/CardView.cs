@@ -101,6 +101,15 @@ namespace ArcaneArena
             HandIndex = index;
         }
 
+        public void SetHoveredFromArena(bool value)
+        {
+            if (hovered == value)
+                return;
+
+            hovered = value;
+            ApplyPose();
+        }
+
         public void ConfigureHandMotion(
             float configuredSelectedLift,
             float configuredHoverLift,
@@ -206,18 +215,19 @@ namespace ArcaneArena
         public void OnPointerEnter(PointerEventData eventData)
         {
             if (!interactive || dragging) return;
-            hovered = true;
-            transform.SetAsLastSibling();
-            ApplyPose();
-            arena?.NotifyHandHoverChanged(this, true);
+            if (arena != null)
+                arena.NotifyHandHoverChanged(this, true);
+            else
+                SetHoveredFromArena(true);
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
             if (!interactive || dragging) return;
-            hovered = false;
-            ApplyPose();
-            arena?.NotifyHandHoverChanged(this, false);
+            if (arena != null)
+                arena.NotifyHandHoverChanged(this, false);
+            else
+                SetHoveredFromArena(false);
         }
 
         public void OnPointerClick(PointerEventData eventData)
@@ -313,16 +323,16 @@ namespace ArcaneArena
             Vector2 target = restPosition;
             float scale = 1f;
             float angle = restAngle;
-            if (hovered)
-            {
-                target += new Vector2(0f, hoverLift);
-                scale = hoverScale;
-                angle = 0f;
-            }
             if (selected)
             {
                 target += new Vector2(0f, selectedLift);
                 scale = selectedScale;
+                angle = 0f;
+            }
+            else if (hovered)
+            {
+                target += new Vector2(0f, hoverLift);
+                scale = hoverScale;
                 angle = 0f;
             }
             if (poseRoutine != null) StopCoroutine(poseRoutine);

@@ -147,7 +147,7 @@ namespace ArcaneArena
             float duration = CardTransitionDuration(
                 snapshot.Code,
                 snapshot.Kind == CardTransitionKind.Destruction
-                    ? 0.66f
+                    ? 0.40f
                     : snapshot.EntersField ? 0.32f : 0.42f);
             if (duration <= 0f)
             {
