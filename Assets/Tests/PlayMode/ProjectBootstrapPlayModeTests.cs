@@ -191,6 +191,93 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator StoryCardRewardsOpenEffectDetailsAndFullscreenZoom()
+        {
+            SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour frontend = Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Include)
+                .FirstOrDefault(candidate =>
+                    candidate.GetType().Name == "GameFrontendBootstrap");
+            Assert.That(frontend, Is.Not.Null);
+
+            MethodInfo showDetails = frontend.GetType().GetMethod(
+                "ShowStoryCardDetails",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(showDetails, Is.Not.Null);
+            showDetails.Invoke(
+                frontend,
+                new object[] { "32138660", null });
+            yield return null;
+
+            GameObject artwork = GameObject.Find(
+                "Carta ampliável das Crônicas");
+            GameObject effect = GameObject.Find(
+                "Efeito da carta nas Crônicas");
+            GameObject zoom = Object.FindObjectsByType<Transform>(
+                    FindObjectsInactive.Include)
+                .FirstOrDefault(candidate => candidate.name ==
+                    "Visualizador Ampliado do Editor")
+                ?.gameObject;
+            Assert.That(artwork, Is.Not.Null);
+            Assert.That(artwork.GetComponent<Button>(), Is.Not.Null);
+            Assert.That(effect, Is.Not.Null);
+            Assert.That(effect.GetComponent<ScrollRect>(), Is.Not.Null);
+            Assert.That(zoom, Is.Not.Null);
+            Assert.That(zoom.activeSelf, Is.False);
+
+            artwork.GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            Assert.That(zoom.activeSelf, Is.True);
+            Assert.That(GameObject.Find("Carta em Tela Cheia"), Is.Not.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator StoryLivesUseFilledAndLostHeartStates()
+        {
+            SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour frontend = Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Include)
+                .FirstOrDefault(candidate =>
+                    candidate.GetType().Name == "GameFrontendBootstrap");
+            Assert.That(frontend, Is.Not.Null);
+            RectTransform screenRoot = frontend.GetType().GetField(
+                    "_screenRoot",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(frontend) as RectTransform;
+            MethodInfo buildHearts = frontend.GetType().GetMethod(
+                "BuildStorySealHearts",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(screenRoot, Is.Not.Null);
+            Assert.That(buildHearts, Is.Not.Null);
+
+            buildHearts.Invoke(
+                frontend,
+                new object[] { screenRoot, 2, 3 });
+            yield return null;
+
+            Transform[] allTransforms = Object.FindObjectsByType<Transform>(
+                FindObjectsInactive.Include);
+            Text full = allTransforms.FirstOrDefault(candidate =>
+                    candidate.name == "Coração 2 · cheio")
+                ?.GetComponent<Text>();
+            Text lost = allTransforms.FirstOrDefault(candidate =>
+                    candidate.name == "Coração 3 · perdido")
+                ?.GetComponent<Text>();
+            Assert.That(full, Is.Not.Null);
+            Assert.That(lost, Is.Not.Null);
+            Assert.That(full.text, Is.EqualTo("♥"));
+            Assert.That(lost.text, Is.EqualTo("♥"));
+            Assert.That(full.color.r, Is.GreaterThan(0.8f));
+            Assert.That(lost.color.grayscale, Is.LessThan(0.05f));
+        }
+
+        [UnityTest]
         public IEnumerator ShopUsesPersistentAuthoredHierarchyAtRuntime()
         {
             SceneManager.LoadScene(ProjectIdentity.MainMenuScene);

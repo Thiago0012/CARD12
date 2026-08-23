@@ -78,6 +78,82 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void StoryUiLayout_MatchesTheAuthoredReferenceScale()
+        {
+            Assert.That(
+                StoryRogueliteUiLayout.MapBaseSize,
+                Is.EqualTo(new Vector2(1232f, 1657.6f)));
+            Assert.That(
+                StoryRogueliteUiLayout.InitialMapZoom,
+                Is.EqualTo(1f));
+            Assert.That(
+                StoryRogueliteUiLayout.MarkerHalfSize,
+                Is.EqualTo(new Vector2(0.031f, 0.031f)));
+            Assert.That(
+                StoryRogueliteUiLayout.MarkerRectOffsets,
+                Is.EqualTo(new Vector4(
+                    -30.22862f,
+                    23.55465f,
+                    -30.22858f,
+                    -21.64555f)));
+            Assert.That(
+                StoryRogueliteUiLayout.EncounterPortraitMin,
+                Is.EqualTo(new Vector2(0.325f, 0.23f)));
+            Assert.That(
+                StoryRogueliteUiLayout.EncounterPortraitMax,
+                Is.EqualTo(new Vector2(0.675f, 0.88f)));
+            Assert.That(
+                StoryRogueliteUiLayout.EncounterVeilOffsets,
+                Is.EqualTo(new Vector4(-109.074f, 0f, -109.074f, 0f)));
+            Assert.That(
+                StoryRogueliteUiLayout.EncounterPortraitOffsets,
+                Is.EqualTo(new Vector4(
+                    -184.6499f,
+                    -86.96864f,
+                    -28.64995f,
+                    -312.9686f)));
+            Assert.That(
+                StoryRogueliteUiLayout.EncounterDuelButtonMin,
+                Is.EqualTo(new Vector2(0.72f, 0.10f)));
+            Assert.That(
+                StoryRogueliteUiLayout.EncounterDuelButtonMax,
+                Is.EqualTo(new Vector2(0.96f, 0.40f)));
+        }
+
+        [Test]
+        public void StoryPlayerMarker_NeverOverlapsAnObjectiveButton()
+        {
+            var maps = new List<StoryMapRecord>(
+                StoryContentCatalog.Load().maps);
+            foreach (long seed in new[]
+                     {
+                         1L,
+                         77123944L,
+                         2026082201L,
+                         long.MaxValue
+                     })
+            {
+                maps.AddRange(StoryProceduralMapGenerator.GenerateRun(seed));
+            }
+
+            foreach (StoryMapRecord map in maps)
+            {
+                foreach (StoryMapNodeRecord node in map.nodes)
+                {
+                    Vector2 marker = StoryRogueliteUiLayout
+                        .ResolveMarkerPosition(map, node);
+                    Assert.That(
+                        StoryRogueliteUiLayout.OverlapsAnyObjective(
+                            map,
+                            marker),
+                        Is.False,
+                        $"O marcador de {map.mapId}/{node.nodeId} cobre " +
+                        "um botão de objetivo.");
+                }
+            }
+        }
+
+        [Test]
         public void ContentCatalog_HasOfficialNpcNamesFromSpecification()
         {
             StoryContentCatalog.ClearCache();
@@ -136,6 +212,75 @@ namespace ArcaneDuel.Tests.EditMode
                         StoryProceduralMapGenerator.MinimumDuelsBeforeBoss),
                     map.mapId);
             }
+        }
+
+        [Test]
+        public void ProceduralObjectives_RespectEconomyAndVaryByRun()
+        {
+            var openingSignatures = new HashSet<string>(
+                StringComparer.Ordinal);
+            var allowedOpeningTypes = new HashSet<RogueliteNodeType>
+            {
+                RogueliteNodeType.CardPack,
+                RogueliteNodeType.SpellRuins,
+                RogueliteNodeType.TreasureVault,
+                RogueliteNodeType.DeckWorkshop,
+                RogueliteNodeType.RestCamp,
+                RogueliteNodeType.MysteryEvent
+            };
+
+            for (long seed = 1; seed <= 32; seed++)
+            {
+                foreach (StoryMapRecord map in
+                         StoryProceduralMapGenerator.GenerateRun(seed))
+                {
+                    List<StoryMapNodeRecord> opening = map.nodes.Where(node =>
+                            ProceduralLayer(node) == 1)
+                        .OrderBy(node => node.nodeId)
+                        .ToList();
+                    Assert.That(opening, Is.Not.Empty);
+                    Assert.That(opening.All(node =>
+                            allowedOpeningTypes.Contains(node.NodeType)),
+                        Is.True,
+                        $"{map.mapId} oferece um objetivo sem utilidade " +
+                        "econômica logo na abertura.");
+                    Assert.That(opening.Select(node => node.NodeType)
+                            .Distinct().Count(),
+                        Is.EqualTo(opening.Count),
+                        $"{map.mapId} repete objetivos na abertura.");
+                    openingSignatures.Add(string.Join(",",
+                        opening.Select(node => node.NodeType.ToString())));
+
+                    List<StoryMapNodeRecord> merchants = map.nodes.Where(
+                            node => node.NodeType ==
+                                RogueliteNodeType.CardMerchant)
+                        .ToList();
+                    Assert.That(merchants, Has.Count.EqualTo(1), map.mapId);
+                    Assert.That(
+                        ProceduralLayer(merchants[0]),
+                        Is.GreaterThanOrEqualTo(
+                            StoryProceduralMapGenerator.MinimumMerchantLayer),
+                        $"{map.mapId} oferece Loja antes de duas vitórias " +
+                        "poderem financiar a compra mais barata.");
+
+                    foreach (IGrouping<int, StoryMapNodeRecord> layer in
+                             map.nodes.Where(node =>
+                                     ProceduralLayer(node) >= 1)
+                                 .GroupBy(ProceduralLayer))
+                    {
+                        if (layer.Key == 2 || layer.Key == 5)
+                            continue;
+                        Assert.That(layer.Select(node => node.NodeType)
+                                .Distinct().Count(),
+                            Is.EqualTo(layer.Count()),
+                            $"{map.mapId} repete o mesmo objetivo como " +
+                            $"escolha paralela na camada {layer.Key}.");
+                    }
+                }
+            }
+
+            Assert.That(openingSignatures.Count, Is.GreaterThan(6),
+                "As aberturas procedurais variaram pouco entre as seeds.");
         }
 
         [Test]
@@ -454,6 +599,16 @@ namespace ArcaneDuel.Tests.EditMode
                 map, edge.toNodeId, visiting));
             visiting.Remove(nodeId);
             return here + minimum;
+        }
+
+        private static int ProceduralLayer(StoryMapNodeRecord node)
+        {
+            if (node == null || string.IsNullOrWhiteSpace(node.nodeId) ||
+                node.nodeId.Length < 3 || node.nodeId[0] != 'l')
+                return -1;
+            return int.TryParse(node.nodeId.Substring(1, 2), out int layer)
+                ? layer
+                : -1;
         }
     }
 }

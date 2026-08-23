@@ -295,16 +295,16 @@ namespace ArcaneArena.Frontend
             Image stage = CreatePanel(
                 _screenRoot,
                 "Mapa roguelite",
-                new Vector2(0.035f, 0.075f),
-                new Vector2(0.725f, 0.875f),
+                StoryRogueliteUiLayout.MapPanelMin,
+                StoryRogueliteUiLayout.MapPanelMax,
                 new Color(0.005f, 0.010f, 0.014f, 0.98f));
             DecorateRuntimeShopSurface(stage, Cyan, false, 13f);
 
             Image viewport = CreatePanel(
                 stage.transform,
                 "Janela navegável do mapa procedural",
-                new Vector2(0.018f, 0.025f),
-                new Vector2(0.982f, 0.975f),
+                StoryRogueliteUiLayout.MapViewportMin,
+                StoryRogueliteUiLayout.MapViewportMax,
                 new Color(0.006f, 0.025f, 0.034f, 0.98f));
             viewport.gameObject.AddComponent<Mask>().showMaskGraphic = false;
             ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
@@ -327,7 +327,7 @@ namespace ArcaneArena.Frontend
             _storyMapStage.anchorMax = new Vector2(0f, 1f);
             _storyMapStage.pivot = new Vector2(0f, 1f);
             _storyMapStage.anchoredPosition = Vector2.zero;
-            Vector2 baseMapSize = new(1100f, 1480f);
+            Vector2 baseMapSize = StoryRogueliteUiLayout.MapBaseSize;
             _storyMapStage.sizeDelta = baseMapSize;
             Image proceduralSurface = contentObject.GetComponent<Image>();
             proceduralSurface.color = new Color(
@@ -355,9 +355,8 @@ namespace ArcaneArena.Frontend
                     !_storyManager.HasArtifact("marked-map")
                         ? RogueliteNodeType.Mystery
                         : runtime.NodeType;
-                Vector2 half = visibleType == RogueliteNodeType.Boss
-                    ? new Vector2(0.080f, 0.028f)
-                    : new Vector2(0.060f, 0.024f);
+                Vector2 half = StoryRogueliteUiLayout.NodeHalfSize(
+                    visibleType);
                 string label = StoryNodeGlyph(visibleType) + "\n" +
                                StoryNodeShortLabel(visibleType);
                 Image nodeButton = CreateButton(
@@ -387,7 +386,11 @@ namespace ArcaneArena.Frontend
 
             _storyMapViewport = viewport.gameObject.AddComponent<
                 StoryMapViewportController>();
-            _storyMapViewport.Configure(scroll, _storyMapStage, baseMapSize);
+            _storyMapViewport.Configure(
+                scroll,
+                _storyMapStage,
+                baseMapSize,
+                StoryRogueliteUiLayout.InitialMapZoom);
 
             Image zoomOut = CreateButton(stage.transform,
                 "−", new Vector2(0.02f, 0.89f), new Vector2(0.075f, 0.965f),
@@ -421,8 +424,11 @@ namespace ArcaneArena.Frontend
                 _storyMapMarker.color = Color.white;
                 _storyMapMarker.raycastTarget = false;
                 RectTransform marker = _storyMapMarker.rectTransform;
-                SetStoryMarkerPosition(marker,
-                    current.NormalizedPosition + current.MarkerOffset);
+                SetStoryMarkerPosition(
+                    marker,
+                    StoryRogueliteUiLayout.ResolveMarkerPosition(
+                        map,
+                        current));
                 Outline outline = markerObject.AddComponent<Outline>();
                 outline.effectColor = Gold;
                 outline.effectDistance = new Vector2(2f, -2f);
@@ -450,24 +456,31 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.07f, 0.91f), new Vector2(0.93f, 0.98f),
                 TextAnchor.MiddleCenter);
             CreateText(panel.transform,
-                $"ATO  {save.actIndex} / {save.mapSequence.Count}\n\n" +
-                $"VIDAS / SELOS  {save.seals} / {_storyManager.MaxSeals}\n" +
+                $"ATO  {save.actIndex} / {save.mapSequence.Count}",
+                15, FontStyle.Bold, Color.white,
+                new Vector2(0.08f, 0.84f), new Vector2(0.92f, 0.90f),
+                TextAnchor.MiddleLeft);
+            BuildStorySealHearts(
+                panel.transform,
+                save.seals,
+                _storyManager.MaxSeals);
+            CreateText(panel.transform,
                 $"FRAGMENTOS DA RUN  {save.fragments}\n" +
                 $"MOEDAS DA CONTA  {_repository?.CoinBalance ?? 0}\n" +
                 $"GANHAS NESTA RUN  {save.accountCoinsEarned}",
-                15, FontStyle.Bold, Color.white,
-                new Vector2(0.08f, 0.73f), new Vector2(0.92f, 0.90f),
+                13, FontStyle.Bold, Color.white,
+                new Vector2(0.08f, 0.65f), new Vector2(0.92f, 0.72f),
                 TextAnchor.UpperLeft);
             CreateText(panel.transform,
                 "RELÍQUIAS ATIVAS",
                 14, FontStyle.Bold, Cyan,
-                new Vector2(0.08f, 0.66f), new Vector2(0.92f, 0.72f),
+                new Vector2(0.08f, 0.59f), new Vector2(0.92f, 0.65f),
                 TextAnchor.MiddleLeft);
             Text relics = CreateScrollableText(
                 panel.transform,
                 "Detalhes das relíquias",
                 new Vector2(0.07f, 0.39f),
-                new Vector2(0.93f, 0.66f),
+                new Vector2(0.93f, 0.59f),
                 12);
             relics.text = StoryRelicSummary(save);
 
@@ -497,6 +510,64 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.08f, 0.075f), new Vector2(0.92f, 0.135f),
                 Danger, ShowStoryAbandonConfirmation);
             DecorateRuntimeShopButton(abandon, Danger, false, 7f);
+        }
+
+        private void BuildStorySealHearts(
+            Transform parent,
+            int currentSeals,
+            int maximumSeals)
+        {
+            int total = Mathf.Max(1, maximumSeals);
+            int filledCount = Mathf.Clamp(currentSeals, 0, total);
+            Image band = CreatePanel(
+                parent,
+                "Corações das vidas da jornada",
+                new Vector2(0.08f, 0.72f),
+                new Vector2(0.92f, 0.84f),
+                Color.clear);
+            band.raycastTarget = false;
+            Text label = CreateText(
+                band.transform,
+                $"VIDAS DA JORNADA  {filledCount} / {total}",
+                12,
+                FontStyle.Bold,
+                Gold,
+                new Vector2(0f, 0.62f),
+                new Vector2(1f, 1f),
+                TextAnchor.MiddleLeft);
+            label.raycastTarget = false;
+
+            const float maximumHeartRowWidth = 0.78f;
+            float rowWidth = Mathf.Min(
+                maximumHeartRowWidth,
+                0.18f * total);
+            float firstX = 0.5f - rowWidth * 0.5f;
+            float heartWidth = rowWidth / total;
+            for (int index = 0; index < total; index++)
+            {
+                bool filled = index < filledCount;
+                Text heart = CreateText(
+                    band.transform,
+                    "♥",
+                    31,
+                    FontStyle.Bold,
+                    filled
+                        ? new Color(0.94f, 0.09f, 0.16f, 1f)
+                        : new Color(0.018f, 0.020f, 0.027f, 1f),
+                    new Vector2(firstX + index * heartWidth, 0f),
+                    new Vector2(firstX + (index + 1) * heartWidth, 0.68f),
+                    TextAnchor.MiddleCenter);
+                heart.name = filled
+                    ? $"Coração {index + 1} · cheio"
+                    : $"Coração {index + 1} · perdido";
+                heart.raycastTarget = false;
+                AddOutline(
+                    heart.gameObject,
+                    filled
+                        ? new Color(1f, 0.64f, 0.20f, 1f)
+                        : new Color(0.50f, 0.09f, 0.13f, 1f),
+                    new Vector2(1.5f, -1.5f));
+            }
         }
 
         private void ExitStoryRunToHub()
@@ -588,10 +659,10 @@ namespace ArcaneArena.Frontend
             StoryMapNodeRecord from = map.Node(_storyManager.Save.currentNodeId);
             StoryMapNodeRecord to = map.Node(destinationNodeId);
             Vector2 start = from != null
-                ? from.NormalizedPosition + from.MarkerOffset
+                ? StoryRogueliteUiLayout.ResolveMarkerPosition(map, from)
                 : Vector2.zero;
             Vector2 end = to != null
-                ? to.NormalizedPosition + to.MarkerOffset
+                ? StoryRogueliteUiLayout.ResolveMarkerPosition(map, to)
                 : start;
             const float duration = 0.48f;
             float elapsed = 0f;
@@ -632,14 +703,34 @@ namespace ArcaneArena.Frontend
                 "Escurecimento do encontro",
                 Vector2.zero, Vector2.one,
                 new Color(0f, 0f, 0f, 0.78f));
+            Vector4 veilOffsets =
+                StoryRogueliteUiLayout.EncounterVeilOffsets;
+            ApplyCapturedRectTransform(
+                veil.rectTransform,
+                Vector2.zero,
+                Vector2.one,
+                veilOffsets.x,
+                veilOffsets.y,
+                veilOffsets.z,
+                veilOffsets.w);
             veil.transform.SetAsLastSibling();
 
             Sprite portrait = StoryLoadSprite(encounter.portraitResourcePath);
             Image portraitPanel = CreatePanel(veil.transform,
                 "Retrato central do NPC",
-                new Vector2(0.325f, 0.23f),
-                new Vector2(0.675f, 0.88f),
+                StoryRogueliteUiLayout.EncounterPortraitMin,
+                StoryRogueliteUiLayout.EncounterPortraitMax,
                 Color.clear);
+            Vector4 portraitOffsets =
+                StoryRogueliteUiLayout.EncounterPortraitOffsets;
+            ApplyCapturedRectTransform(
+                portraitPanel.rectTransform,
+                StoryRogueliteUiLayout.EncounterPortraitMin,
+                StoryRogueliteUiLayout.EncounterPortraitMax,
+                portraitOffsets.x,
+                portraitOffsets.y,
+                portraitOffsets.z,
+                portraitOffsets.w);
             if (portrait != null)
             {
                 portraitPanel.sprite = portrait;
@@ -650,8 +741,8 @@ namespace ArcaneArena.Frontend
 
             Image dialogue = CreatePanel(veil.transform,
                 "Caixa de diálogo da loja",
-                new Vector2(0.12f, 0.055f),
-                new Vector2(0.88f, 0.34f),
+                StoryRogueliteUiLayout.EncounterDialogueMin,
+                StoryRogueliteUiLayout.EncounterDialogueMax,
                 Color.clear);
             DecorateRuntimeShopSurface(dialogue, Gold, true, 17f);
             CreateText(dialogue.transform,
@@ -672,7 +763,8 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleCenter);
             Image duel = CreateButton(dialogue.transform,
                 "ACEITAR DUELO",
-                new Vector2(0.72f, 0.10f), new Vector2(0.96f, 0.40f),
+                StoryRogueliteUiLayout.EncounterDuelButtonMin,
+                StoryRogueliteUiLayout.EncounterDuelButtonMax,
                 Gold, () => LaunchStoryDuel(encounter));
             DecorateRuntimeShopButton(duel, Gold, true, 8f);
         }
@@ -778,12 +870,35 @@ namespace ArcaneArena.Frontend
                 float x = firstX + index * (tileWidth + gap);
                 Image tile = CreatePanel(_screenRoot,
                     entry?.DisplayName ?? cardId,
-                    new Vector2(x, 0.20f), new Vector2(x + tileWidth, 0.75f),
+                    new Vector2(x, StoryRogueliteUiLayout.RewardTileY.x),
+                    new Vector2(
+                        x + tileWidth,
+                        StoryRogueliteUiLayout.RewardTileY.y),
                     Color.clear);
                 DecorateRuntimeShopSurface(tile, Gold, true, 12f);
-                CreateCardArtwork(tile.transform, entry?.Artwork,
-                    new Vector2(0.15f, 0.25f), new Vector2(0.85f, 0.91f),
-                    0f, true).raycastTarget = false;
+                Image artwork = CreateCardArtwork(
+                    tile.transform,
+                    entry?.Artwork,
+                    StoryRogueliteUiLayout.RewardCardMin,
+                    StoryRogueliteUiLayout.RewardCardMax,
+                    0f,
+                    true);
+                artwork.name = "Carta inspecionável · " +
+                               (entry?.DisplayName ?? cardId);
+                AddButtonBehaviour(
+                    artwork,
+                    () => ShowStoryCardDetails(
+                        cardId,
+                        () => ShowStoryReward(reward)));
+                CreateText(
+                    tile.transform,
+                    "CLIQUE NA CARTA PARA VER O EFEITO",
+                    9,
+                    FontStyle.Bold,
+                    Cyan,
+                    new Vector2(0.06f, 0.19f),
+                    new Vector2(0.94f, 0.245f),
+                    TextAnchor.MiddleCenter).raycastTarget = false;
                 int cost = index < reward.costs.Count
                     ? reward.costs[index]
                     : 0;
@@ -837,6 +952,128 @@ namespace ArcaneArena.Frontend
                     });
                 DecorateRuntimeShopButton(leave, Gold, true, 8f);
             }
+        }
+
+        private void ShowStoryCardDetails(
+            string cardId,
+            Action returnAction)
+        {
+            CardCatalogEntry entry = DeckRepository.ResolveCard(
+                _catalog,
+                cardId);
+            if (entry == null)
+                return;
+
+            Action safeReturn = returnAction ?? ShowStoryRoguelite;
+            SetDuelPresentation(false);
+            ClearScreen();
+            _deckEditorSelectedCardId = cardId;
+            _shopBackAction = safeReturn;
+            BuildShopBackground("DETALHES DA CARTA");
+            BuildProfessionalShopHeader(entry.DisplayName, safeReturn);
+
+            Image panel = CreatePanel(
+                _screenRoot,
+                "Detalhes da carta nas Crônicas",
+                new Vector2(0.065f, 0.08f),
+                new Vector2(0.935f, 0.82f),
+                new Color(0.008f, 0.025f, 0.05f, 0.98f));
+            DecorateRuntimeShopSurface(panel, Gold, false, 14f);
+            AddOutline(
+                panel.gameObject,
+                new Color(Gold.r, Gold.g, Gold.b, 0.78f),
+                new Vector2(3f, -3f));
+
+            _deckEditorDetailArtwork = CreateCardArtwork(
+                panel.transform,
+                entry.Artwork,
+                new Vector2(0.04f, 0.11f),
+                new Vector2(0.37f, 0.92f),
+                0f,
+                true);
+            _deckEditorDetailArtwork.name =
+                "Carta ampliável das Crônicas";
+            AddButtonBehaviour(
+                _deckEditorDetailArtwork,
+                OpenDeckEditorZoom);
+            AddOutline(
+                _deckEditorDetailArtwork.gameObject,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.72f),
+                new Vector2(2f, -2f));
+            CreateText(
+                panel.transform,
+                "CLIQUE NA CARTA PARA AMPLIAR",
+                12,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.04f, 0.035f),
+                new Vector2(0.37f, 0.105f),
+                TextAnchor.MiddleCenter);
+
+            Text title = CreateText(
+                panel.transform,
+                entry.DisplayName,
+                30,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.42f, 0.78f),
+                new Vector2(0.96f, 0.92f),
+                TextAnchor.MiddleLeft);
+            title.name = "Título da carta nas Crônicas";
+            title.resizeTextMinSize = 22;
+
+            Image metadataPanel = CreatePanel(
+                panel.transform,
+                "Metadados da carta nas Crônicas",
+                new Vector2(0.42f, 0.66f),
+                new Vector2(0.96f, 0.77f),
+                new Color(0.025f, 0.11f, 0.16f, 0.96f));
+            DecorateRuntimeShopSurface(metadataPanel, Gold, false, 7f);
+            CreateText(
+                metadataPanel.transform,
+                $"{entry.TypeName}  •  ID {entry.OfficialCardId}",
+                17,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.035f, 0.08f),
+                new Vector2(0.965f, 0.92f),
+                TextAnchor.MiddleLeft);
+
+            Image effectHeader = CreatePanel(
+                panel.transform,
+                "Cabeçalho do efeito nas Crônicas",
+                new Vector2(0.42f, 0.59f),
+                new Vector2(0.96f, 0.65f),
+                new Color(Gold.r, Gold.g, Gold.b, 0.92f));
+            CreateText(
+                effectHeader.transform,
+                "EFEITO DA CARTA",
+                16,
+                FontStyle.Bold,
+                Ink,
+                new Vector2(0.035f, 0f),
+                new Vector2(0.965f, 1f),
+                TextAnchor.MiddleLeft);
+
+            Text effect = CreateScrollableText(
+                panel.transform,
+                "Efeito da carta nas Crônicas",
+                new Vector2(0.42f, 0.10f),
+                new Vector2(0.96f, 0.58f),
+                19);
+            effect.text = string.IsNullOrWhiteSpace(entry.EffectText)
+                ? "Esta carta não possui texto de efeito."
+                : entry.EffectText;
+            effect.color = new Color(0.92f, 0.96f, 1f, 1f);
+            effect.lineSpacing = 1.14f;
+            ScrollRect effectScroll = effect.GetComponentInParent<ScrollRect>();
+            if (effectScroll != null)
+            {
+                effectScroll.scrollSensitivity = 56f;
+                effectScroll.verticalNormalizedPosition = 1f;
+            }
+
+            BuildDeckEditorZoomViewer();
         }
 
         private void ShowStoryChoice(StoryPendingChoice choice)
@@ -1142,11 +1379,12 @@ namespace ArcaneArena.Frontend
             RectTransform marker,
             Vector2 position)
         {
-            const float half = 0.031f;
-            marker.anchorMin = position - new Vector2(half, half);
-            marker.anchorMax = position + new Vector2(half, half);
-            marker.offsetMin = Vector2.zero;
-            marker.offsetMax = Vector2.zero;
+            Vector2 half = StoryRogueliteUiLayout.MarkerHalfSize;
+            Vector4 offsets = StoryRogueliteUiLayout.MarkerRectOffsets;
+            marker.anchorMin = position - half;
+            marker.anchorMax = position + half;
+            marker.offsetMin = new Vector2(offsets.x, offsets.w);
+            marker.offsetMax = new Vector2(-offsets.z, -offsets.y);
         }
 
         private static Color StoryNodeColor(StoryRuntimeNode node)

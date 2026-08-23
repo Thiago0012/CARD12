@@ -91,9 +91,10 @@ namespace ArcaneArena.StoryRoguelite
     /// </summary>
     public static class StoryProceduralMapGenerator
     {
-        public const int GeneratorVersion = 2;
+        public const int GeneratorVersion = 3;
         public const int ActCount = 3;
         public const int MinimumDuelsBeforeBoss = 2;
+        public const int MinimumMerchantLayer = 6;
 
         private static readonly string[] ActNames =
         {
@@ -102,11 +103,25 @@ namespace ArcaneArena.StoryRoguelite
             "Trono do Arcano"
         };
 
-        private static readonly RogueliteNodeType[] UtilityPool =
+        // A abertura oferece preparação ou recursos sem exigir moeda. Assim,
+        // toda primeira escolha é útil mesmo com zero Fragmentos Arcanos.
+        private static readonly RogueliteNodeType[] OpeningPool =
         {
             RogueliteNodeType.CardPack,
             RogueliteNodeType.SpellRuins,
-            RogueliteNodeType.CardMerchant,
+            RogueliteNodeType.TreasureVault,
+            RogueliteNodeType.DeckWorkshop,
+            RogueliteNodeType.RestCamp,
+            RogueliteNodeType.MysteryEvent
+        };
+
+        // O mercador é planejado separadamente para aparecer somente depois
+        // dos dois duelos que garantem moeda. Os demais objetivos continuam
+        // procedurais e não se repetem dentro da mesma camada.
+        private static readonly RogueliteNodeType[] ProgressionPool =
+        {
+            RogueliteNodeType.CardPack,
+            RogueliteNodeType.SpellRuins,
             RogueliteNodeType.TreasureVault,
             RogueliteNodeType.RelicShrine,
             RogueliteNodeType.DeckWorkshop,
@@ -116,6 +131,14 @@ namespace ArcaneArena.StoryRoguelite
             RogueliteNodeType.Mystery,
             RogueliteNodeType.MysteryEvent,
             RogueliteNodeType.ForbiddenAltar
+        };
+
+        private static readonly RogueliteNodeType[] PreparationPool =
+        {
+            RogueliteNodeType.HealingSpring,
+            RogueliteNodeType.DeckForge,
+            RogueliteNodeType.RelicShrine,
+            RogueliteNodeType.RestCamp
         };
 
         public static List<StoryMapRecord> GenerateRun(long seed)
@@ -213,7 +236,7 @@ namespace ArcaneArena.StoryRoguelite
                 float jitter = (StoryDeterminism.Index(
                     101, seed, mapId, layer, lane, "jitter") - 50) / 2500f;
                 RogueliteNodeType type = ResolveLayerType(
-                    seed, act, layer, layerCount, lane);
+                    seed, act, layer, layerCount, lane, laneCount);
                 result.Add(CreateNode(
                     $"l{layer:00}-n{lane + 1:00}",
                     type,
@@ -228,7 +251,8 @@ namespace ArcaneArena.StoryRoguelite
             int act,
             int layer,
             int layerCount,
-            int lane)
+            int lane,
+            int laneCount)
         {
             // Toda rota atravessa as camadas 2 e 5. Como todos os nós dessas
             // camadas são combates, qualquer caminho válido contém ao menos
@@ -238,26 +262,57 @@ namespace ArcaneArena.StoryRoguelite
                 return act == 1 && lane % 2 == 0
                     ? RogueliteNodeType.NormalDuel
                     : RogueliteNodeType.EliteDuel;
-            if (layer == layerCount - 2)
-            {
-                RogueliteNodeType[] preparation =
-                {
-                    RogueliteNodeType.HealingSpring,
-                    RogueliteNodeType.DeckForge,
-                    RogueliteNodeType.RelicShrine
-                };
-                return preparation[lane % preparation.Length];
-            }
-            if (layer == 1 && lane == 0)
-                return RogueliteNodeType.CardMerchant;
-            if (layer == 3 && lane == 0)
-                return RogueliteNodeType.RelicShrine;
             if (act >= 2 && layer == layerCount - 3 && lane == 0)
                 return RogueliteNodeType.FinalDuelArena;
 
-            int index = StoryDeterminism.Index(
-                UtilityPool.Length, seed, act, layer, lane, "node-type");
-            return UtilityPool[index];
+            int merchantLayer = ResolveMerchantLayer(
+                seed, act, layerCount);
+            int merchantLane = StoryDeterminism.Index(
+                laneCount, seed, act, merchantLayer, "merchant-lane");
+            if (layer == merchantLayer && lane == merchantLane)
+                return RogueliteNodeType.CardMerchant;
+
+            if (layer == 1)
+                return ResolvePoolType(
+                    OpeningPool, seed, act, layer, lane, "opening");
+            if (layer == layerCount - 2)
+                return ResolvePoolType(
+                    PreparationPool, seed, act, layer, lane, "preparation");
+            return ResolvePoolType(
+                ProgressionPool, seed, act, layer, lane, "progression");
+        }
+
+        private static int ResolveMerchantLayer(
+            long seed,
+            int act,
+            int layerCount)
+        {
+            var candidates = new List<int>();
+            for (int candidate = MinimumMerchantLayer;
+                 candidate <= layerCount - 2;
+                 candidate++)
+            {
+                // Nos atos avançados, a Arena Final ocupa a primeira rota da
+                // camada narrativa. Reservá-la evita escolhas contraditórias.
+                if (act >= 2 && candidate == layerCount - 3)
+                    continue;
+                candidates.Add(candidate);
+            }
+            return candidates[StoryDeterminism.Index(
+                candidates.Count, seed, act, "merchant-layer")];
+        }
+
+        private static RogueliteNodeType ResolvePoolType(
+            IEnumerable<RogueliteNodeType> pool,
+            long seed,
+            int act,
+            int layer,
+            int lane,
+            string phase)
+        {
+            List<RogueliteNodeType> shuffled = StoryDeterminism.Shuffle(
+                pool, seed, act, layer, phase);
+            return shuffled[lane % shuffled.Count];
         }
 
         private static StoryMapNodeRecord CreateNode(
@@ -278,7 +333,7 @@ namespace ArcaneArena.StoryRoguelite
                     : 0.050f,
                 encounterPoolId = "procedural",
                 rewardTableId = "story-default",
-                configId = "procedural-v2"
+                configId = "procedural-v3"
             };
         }
 

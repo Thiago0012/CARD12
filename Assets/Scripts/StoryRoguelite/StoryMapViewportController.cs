@@ -15,8 +15,8 @@ namespace ArcaneArena.StoryRoguelite
         private ScrollRect scrollRect;
         private RectTransform content;
         private Vector2 baseSize;
-        private float zoom = 1f;
-        private float minimumZoom = 0.72f;
+        private float zoom = StoryRogueliteUiLayout.InitialMapZoom;
+        private float minimumZoom = StoryRogueliteUiLayout.MinimumMapZoom;
         private float maximumZoom = 1.65f;
         private float previousPinchDistance;
 #if ENABLE_INPUT_SYSTEM
@@ -29,7 +29,7 @@ namespace ArcaneArena.StoryRoguelite
             ScrollRect targetScrollRect,
             RectTransform targetContent,
             Vector2 unscaledSize,
-            float initialZoom = 0.86f)
+            float initialZoom = StoryRogueliteUiLayout.InitialMapZoom)
         {
             scrollRect = targetScrollRect;
             content = targetContent;
@@ -39,7 +39,8 @@ namespace ArcaneArena.StoryRoguelite
 
         public void ZoomIn() => SetZoom(zoom + 0.12f);
         public void ZoomOut() => SetZoom(zoom - 0.12f);
-        public void ResetZoom() => SetZoom(0.86f);
+        public void ResetZoom() => SetZoom(
+            StoryRogueliteUiLayout.InitialMapZoom);
 
         public void Focus(Vector2 normalizedPosition)
         {
