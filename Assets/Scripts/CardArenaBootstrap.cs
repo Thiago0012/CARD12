@@ -11,6 +11,7 @@ using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
 using ArcaneArena.StoryRoguelite;
 using ArcaneDuel.DuelEngine.Data;
+using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
@@ -2001,6 +2002,33 @@ namespace ArcaneArena
                     out DuelChoice automaticPass,
                     out string automaticPassReason))
             {
+                List<DuelChoice> actionableChoices =
+                    DuelPromptPresentationRules
+                        .ActionableResponseChoices(prompt);
+                if (actionableChoices.Count > 0)
+                {
+                    DuelChoice firstActionable = actionableChoices[0];
+                    string candidateSummary = string.Join(
+                        " | ",
+                        actionableChoices.Select(choice =>
+                            $"{choice.ChoiceIndex}:{choice.CardCode}:" +
+                            $"{choice.DescriptionId}:{choice.Label}"));
+                    RuntimeDiagnosticRecorder.Record(
+                        "F10",
+                        "EffectFlow",
+                        nameof(CardArenaBootstrap),
+                        "A legal optional effect response was passed by the local activation preference.",
+                        RuntimeDiagnosticSeverity.Warning,
+                        firstActionable.CardCode,
+                        prompt.Player,
+                        core.IsNetworkReplica
+                            ? "online-replica"
+                            : "local",
+                        $"request={prompt.RequestId}; " +
+                        $"message={prompt.Message}; " +
+                        $"reason={automaticPassReason}; " +
+                        $"candidates=[{candidateSummary}]");
+                }
                 ScheduleAutomaticPromptChoice(
                     prompt,
                     automaticPass,
@@ -2137,7 +2165,15 @@ namespace ArcaneArena
             }
             if (prompt == null)
             {
-                InspectZone(zone);
+                if (zone.Kind == DuelZoneKind.Graveyard ||
+                    zone.Kind == DuelZoneKind.Banishment)
+                {
+                    OpenZoneChoices(zone, null);
+                }
+                else
+                {
+                    InspectZone(zone);
+                }
                 return;
             }
 
@@ -2318,6 +2354,30 @@ namespace ArcaneArena
                 uint code = CodeAt(zone);
                 uint position = PositionAt(zone);
                 CardInstanceState instance = InstanceAt(zone);
+                DuelSpecialZoneWellVisual specialWell =
+                    zone.GetComponent<DuelSpecialZoneWellVisual>();
+                if (specialWell != null)
+                {
+                    int pileOwner = StatePlayerForZone(zone);
+                    int pileCount = zone.Kind == DuelZoneKind.Graveyard
+                        ? state.Players[pileOwner].Graveyard.Count
+                        : zone.Kind == DuelZoneKind.Banishment
+                            ? state.Players[pileOwner].Banished.Count
+                            : 0;
+                    specialWell.SetCardCount(pileCount);
+                }
+                // O Cemitério e o Banimento são poços físicos: as cartas
+                // continuam integralmente no estado autoritativo e no
+                // navegador da zona, mas não devem permanecer como uma carta
+                // 3D pousada sobre o campo. A transição termina no centro do
+                // poço e o contador é a única representação persistente.
+                if (IsConcealedSpecialPile(zone))
+                {
+                    ClearWorldCard(zone);
+                    zone.ClearPlacedCard();
+                    renderedZones[zone.StableId] = default;
+                    continue;
+                }
                 bool occupied = code != 0 || instance != null;
                 CardInstanceKey key = instance != null
                     ? instance.Key
@@ -2487,11 +2547,13 @@ namespace ArcaneArena
                 // Main/Extra Decks are represented by authored pile proxies,
                 // not by one WorldCardInstanceView per private card. Requiring
                 // an individual view here both creates false repair loops and
-                // risks coupling hidden identity to presentation. Field,
-                // Graveyard and Banished top cards still use runtime-bound
-                // world views and remain fully validated below.
+                // risks coupling hidden identity to presentation. Graveyard
+                // and Banished are concealed wells: their authoritative cards
+                // are inspected through the zone browser, never through a
+                // persistent world view beside the board.
                 if (zone.Kind == DuelZoneKind.MainDeck ||
-                    zone.Kind == DuelZoneKind.ExtraDeck)
+                    zone.Kind == DuelZoneKind.ExtraDeck ||
+                    IsConcealedSpecialPile(zone))
                 {
                     continue;
                 }
@@ -2528,6 +2590,20 @@ namespace ArcaneArena
             }
             if (problems.Count > 0)
             {
+                RuntimeDiagnosticRecorder.Record(
+                    "CARD_INSTANCE_CONSERVATION",
+                    "DuelState",
+                    nameof(CardArenaBootstrap),
+                    "A card instance or its presentation address became inconsistent.",
+                    RuntimeDiagnosticSeverity.Warning,
+                    cause?.Code ?? 0,
+                    mode: Multiplayer.DuelOnlineSession.Instance
+                        ?.IsOnlineDuelActive == true
+                        ? "multiplayer"
+                        : "offline",
+                    details:
+                        $"event={cause?.Message.ToString() ?? "manual"}; " +
+                        string.Join(" | ", problems));
                 DuelDevelopmentLog.Write(
                     DuelLogCategory.StateSync,
                     $"event={cause?.Message.ToString() ?? "manual"}; " +
@@ -2560,7 +2636,10 @@ namespace ArcaneArena
             canvasObject.transform.localPosition = Vector3.zero;
             canvasObject.transform.localRotation =
                 CardRotation(monster, position);
-            Vector3 finalScale = Vector3.one * 0.00745f;
+            bool specialPile = zone.Kind == DuelZoneKind.Graveyard ||
+                               zone.Kind == DuelZoneKind.Banishment;
+            Vector3 finalScale = Vector3.one *
+                                 (specialPile ? 0.00485f : 0.00745f);
             canvasObject.transform.localScale =
                 Application.isPlaying
                     ? finalScale * 0.18f
@@ -3820,15 +3899,20 @@ namespace ArcaneArena
                 zone.Kind == DuelZoneKind.ExtraDeck &&
                 IsLocalZone(zone);
             List<ZoneBrowserEntry> entries = BuildZoneBrowserEntries(
+                zone,
                 browsingExtraDeck,
                 choices);
+            bool browsingPublicPile =
+                zone.Kind == DuelZoneKind.Graveyard ||
+                zone.Kind == DuelZoneKind.Banishment;
             bool summonMode =
                 browsingExtraDeck &&
                 prompt != null &&
                 prompt == core.CurrentPrompt &&
                 prompt.Message == CoreMessage.SelectIdleCommand &&
                 choices.Count > 0;
-            if (!browsingExtraDeck && choices.Count == 0)
+            if (!browsingExtraDeck && !browsingPublicPile &&
+                choices.Count == 0)
             {
                 InspectZone(zone);
                 return;
@@ -3847,7 +3931,17 @@ namespace ArcaneArena
                 ? legalCardCount > 0
                     ? $"DECK ADICIONAL · {legalCardCount} INVOCÁVEL(IS) AGORA"
                     : $"DECK ADICIONAL · {entries.Count} CARTA(S) · SOMENTE CONSULTA"
-                : PileLabel(zone).ToUpperInvariant();
+                : $"{PileLabel(zone).ToUpperInvariant()} · {entries.Count} CARTA(S)";
+
+            Text cancelLabel = zoneBrowserCancel != null
+                ? zoneBrowserCancel.GetComponentInChildren<Text>(true)
+                : null;
+            if (cancelLabel != null &&
+                (browsingPublicPile ||
+                 (browsingExtraDeck && legalCardCount == 0)))
+            {
+                cancelLabel.text = "FECHAR";
+            }
 
             for (int index = 0; index < entries.Count; index++)
             {
@@ -3863,7 +3957,11 @@ namespace ArcaneArena
             {
                 CreateText(
                     zoneBrowserContent,
-                    "O Deck Adicional está vazio.",
+                    browsingExtraDeck
+                        ? "O Deck Adicional está vazio."
+                        : zone.Kind == DuelZoneKind.Graveyard
+                            ? "O Cemitério está vazio."
+                            : "O Banimento está vazio.",
                     18,
                     FontStyle.Bold,
                     Muted,
@@ -3905,7 +4003,7 @@ namespace ArcaneArena
                 new Vector2(0.07f, 0.06f),
                 new Vector2(0.93f, 0.96f),
                 Color.white);
-            artwork.sprite = SpriteFor(code);
+            artwork.sprite = code == 0 ? cardBackSprite : SpriteFor(code);
             artwork.preserveAspect = true;
             var inspectButton = card.AddComponent<Button>();
             inspectButton.targetGraphic = card.GetComponent<Image>();
@@ -4506,6 +4604,13 @@ namespace ArcaneArena
                    kind == DuelZoneKind.ExtraDeck ||
                    kind == DuelZoneKind.Graveyard ||
                    kind == DuelZoneKind.Banishment;
+        }
+
+        private static bool IsConcealedSpecialPile(DuelZone3D zone)
+        {
+            return zone != null &&
+                   (zone.Kind == DuelZoneKind.Graveyard ||
+                    zone.Kind == DuelZoneKind.Banishment);
         }
 
         private string PileLabel(DuelZone3D zone)

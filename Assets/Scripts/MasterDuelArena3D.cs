@@ -1,12 +1,14 @@
+using System.Collections;
 using UnityEngine;
 using ArcaneArena.Multiplayer;
+using ArcaneArena.Presentation;
 using ArcaneDuel.Game;
 
 namespace ArcaneArena
 {
     public sealed class MasterDuelArena3D : MonoBehaviour
     {
-        public const int CurrentLayoutVersion = 13;
+        public const int CurrentLayoutVersion = 16;
         public const float StaticFieldWidth = 18.8f;
         public const float StaticFieldDepth = 10.586f;
         private const float SourceFieldWidth = 1672f;
@@ -43,6 +45,18 @@ namespace ArcaneArena
                 Rebuild();
             else
                 RefreshRegistry();
+        }
+
+        private IEnumerator Start()
+        {
+            // DuelAuthoredZoneLayout applies the camera-authored positions two
+            // frames after scene load. Repair and validate the four physical
+            // special zones immediately afterwards so an older serialized
+            // arena or a partial scene merge can never leave only one well.
+            yield return null;
+            yield return null;
+            yield return null;
+            EnsureSpecialZonePairs();
         }
 
         public void Rebuild()
@@ -264,9 +278,9 @@ namespace ArcaneArena
                 _playerTwoMainDeck = mainDeck;
                 _playerTwoExtraDeck = extraDeck;
             }
-            CreateWell(specials, "Graveyard", new Vector3(rightSide, 0.16f, sign * 3.1f),
+            CreateWell(specials, "Graveyard", new Vector3(rightSide, 0.16f, sign * 3.2f),
                 _blueWell, owner, DuelZoneKind.Graveyard);
-            CreateWell(specials, "Banishment", new Vector3(rightSide, 0.16f, sign * 0.62f),
+            CreateWell(specials, "Banishment", new Vector3(rightSide, 0.16f, sign * 1.8f),
                 _violetWell, owner, DuelZoneKind.Banishment);
             CreateCardZone(
                 specials,
@@ -336,12 +350,20 @@ namespace ArcaneArena
             Vector3 fieldZonePosition = opponent
                 ? FieldPixel(1255f, 282f, 0.11f)
                 : FieldPixel(385f, 604f, 0.11f);
+            // These two fixtures form one compact pair on the local player's
+            // right. The opponent pair is derived by an exact 180-degree
+            // rotation, so both sides always keep the same spacing and remain
+            // visually aligned even when the source field art changes.
+            Vector3 localGraveyardPosition =
+                FieldPixel(1307f, 646f, 0.11f);
+            Vector3 localBanishmentPosition =
+                FieldPixel(1307f, 530f, 0.11f);
             Vector3 graveyardPosition = opponent
-                ? FieldPixel(365f, 298f, 0.11f)
-                : FieldPixel(1307f, 646f, 0.11f);
+                ? RotateFieldPosition180(localGraveyardPosition)
+                : localGraveyardPosition;
             Vector3 banishmentPosition = opponent
-                ? FieldPixel(365f, 401f, 0.11f)
-                : FieldPixel(1307f, 530f, 0.11f);
+                ? RotateFieldPosition180(localBanishmentPosition)
+                : localBanishmentPosition;
 
             var extraDeck = CreateDeckPedestal(specials, "ExtraDeck", extraDeckPosition,
                 rotation, _extraBack, false, owner, DuelZoneKind.ExtraDeck);
@@ -604,42 +626,290 @@ namespace ArcaneArena
                 0f);
         }
 
-        private void CreateWell(Transform parent, string name, Vector3 position, Material innerMaterial,
+        private DuelZone3D CreateWell(Transform parent, string name, Vector3 position, Material innerMaterial,
             DuelPlayerSide owner, DuelZoneKind kind)
         {
             var root = new GameObject(name);
             root.transform.SetParent(parent, false);
             root.transform.localPosition = position;
-            root.AddComponent<DuelZone3D>().Setup(owner, kind, 0, false);
+            root.transform.localRotation = owner == DuelPlayerSide.PlayerTwo
+                ? Quaternion.Euler(0f, 180f, 0f)
+                : Quaternion.identity;
+            DuelZone3D zone = root.AddComponent<DuelZone3D>();
+            zone.Setup(owner, kind, 0, false);
 
-            if (UseStaticField)
-            {
-                root.AddComponent<BoxCollider>().size =
-                    new Vector3(1.42f, 0.45f, 1.62f);
-                CreateBlock(
-                    root.transform,
-                    "Card Inset",
-                    new Vector3(0f, 0.025f, 0f),
-                    new Vector3(1.3f, 0.025f, 1.5f),
-                    _invisibleZone,
-                    false);
+            BuildWellPresentation(zone, innerMaterial, kind);
+            return zone;
+        }
+
+        private void BuildWellPresentation(
+            DuelZone3D zone,
+            Material innerMaterial,
+            DuelZoneKind kind)
+        {
+            if (zone == null)
                 return;
+
+            Transform root = zone.transform;
+            var interaction = root.GetComponent<BoxCollider>();
+            if (interaction == null)
+                interaction = root.gameObject.AddComponent<BoxCollider>();
+            interaction.enabled = true;
+            interaction.center = new Vector3(0f, 0.12f, 0f);
+            interaction.size = new Vector3(1.48f, 0.55f, 1.48f);
+
+            // Remove the former static-field placeholder. It was intentionally
+            // invisible and is the reason an upgraded scene could retain a
+            // clickable zone without showing its physical fixture.
+            Transform legacyInset = root.Find("Card Inset");
+            if (legacyInset != null)
+            {
+                legacyInset.gameObject.SetActive(false);
+                if (Application.isPlaying)
+                    Destroy(legacyInset.gameObject);
+                else
+                    DestroyImmediate(legacyInset.gameObject);
             }
 
-            var rim = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            rim.name = "Stone Ring";
-            rim.transform.SetParent(root.transform, false);
-            rim.transform.localScale = new Vector3(1.08f, 0.16f, 1.08f);
-            rim.GetComponent<Renderer>().sharedMaterial = _gold;
-            RemoveCollider(rim);
+            // The card is intentionally recessed inside the fixture instead
+            // of being laid directly on the field texture. This keeps the top
+            // public card visible while preserving the impression that the
+            // remaining pile is stored below the battlefield.
+            zone.CardPresentationAnchor.localPosition =
+                new Vector3(0f, 0.145f, 0f);
 
-            var inner = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            inner.name = "Energy Well";
-            inner.transform.SetParent(root.transform, false);
-            inner.transform.localPosition = new Vector3(0, 0.19f, 0);
-            inner.transform.localScale = new Vector3(0.78f, 0.08f, 0.78f);
-            inner.GetComponent<Renderer>().sharedMaterial = innerMaterial;
-            RemoveCollider(inner);
+            CreateWellCylinder(
+                root,
+                "Base de Pedra",
+                new Vector3(0f, 0.018f, 0f),
+                new Vector3(0.72f, 0.075f, 0.72f),
+                _darkStone);
+            CreateWellCylinder(
+                root,
+                "Aro Esculpido",
+                new Vector3(0f, 0.076f, 0f),
+                new Vector3(0.63f, 0.035f, 0.63f),
+                UseStaticField ? _stone : _gold);
+            CreateWellCylinder(
+                root,
+                "Canal de Energia",
+                new Vector3(0f, 0.104f, 0f),
+                new Vector3(0.54f, 0.018f, 0.54f),
+                innerMaterial);
+
+            Material coreMaterial = kind == DuelZoneKind.Banishment
+                ? _darkStone
+                : innerMaterial;
+            Renderer core = CreateWellCylinder(
+                root,
+                kind == DuelZoneKind.Banishment
+                    ? "Abismo do Banimento"
+                    : "Nucleo do Cemiterio",
+                new Vector3(0f, 0.098f, 0f),
+                new Vector3(0.46f, 0.012f, 0.46f),
+                coreMaterial);
+
+            var accents = new Renderer[8];
+            for (int index = 0; index < accents.Length; index++)
+            {
+                float angle = index * Mathf.PI * 2f / accents.Length;
+                Vector3 runePosition = new Vector3(
+                    Mathf.Cos(angle) * 0.305f,
+                    0.126f,
+                    Mathf.Sin(angle) * 0.305f);
+                GameObject rune = CreateBlock(
+                    root,
+                    $"Runa {index + 1}",
+                    runePosition,
+                    new Vector3(0.105f, 0.025f, 0.038f),
+                    innerMaterial,
+                    false);
+                rune.transform.localRotation = Quaternion.Euler(
+                    0f,
+                    -index * 45f,
+                    0f);
+                accents[index] = rune.GetComponent<Renderer>();
+            }
+
+            if (kind == DuelZoneKind.Banishment)
+            {
+                Renderer vortex = CreateWellCylinder(
+                    root,
+                    "Vortice Banido",
+                    new Vector3(0f, 0.108f, 0f),
+                    new Vector3(0.25f, 0.009f, 0.25f),
+                    innerMaterial);
+                core = vortex;
+            }
+
+            var visual = root.GetComponent<DuelSpecialZoneWellVisual>();
+            if (visual == null)
+                visual = root.gameObject.AddComponent<DuelSpecialZoneWellVisual>();
+            visual.Configure(kind, core, accents, innerMaterial.color);
+        }
+
+        /// <summary>
+        /// Guarantees one visible and interactive Graveyard/Banishment pair
+        /// for each player. Safe to call repeatedly after scene upgrades.
+        /// </summary>
+        public void EnsureSpecialZonePairs()
+        {
+            EnsureWellMaterials();
+
+            var layout = FindFirstObjectByType<DuelAuthoredZoneLayout>(
+                FindObjectsInactive.Include);
+            EnsureSpecialZonePair(
+                DuelPlayerSide.PlayerOne,
+                FieldPixel(1307f, 646f, 0.11f),
+                FieldPixel(1307f, 530f, 0.11f),
+                layout);
+            EnsureSpecialZonePair(
+                DuelPlayerSide.PlayerTwo,
+                RotateFieldPosition180(FieldPixel(1307f, 646f, 0.11f)),
+                RotateFieldPosition180(FieldPixel(1307f, 530f, 0.11f)),
+                layout);
+            RefreshRegistry();
+        }
+
+        private void EnsureSpecialZonePair(
+            DuelPlayerSide owner,
+            Vector3 graveyardPosition,
+            Vector3 banishmentPosition,
+            DuelAuthoredZoneLayout layout)
+        {
+            string playerName = owner == DuelPlayerSide.PlayerOne
+                ? "PLAYER_1"
+                : "PLAYER_2";
+            Transform player = transform.Find("Players/" + playerName);
+            if (player == null)
+                return;
+            Transform specials = player.Find("SpecialZones");
+            if (specials == null)
+                specials = CreateGroup(player, "SpecialZones");
+
+            DuelZone3D graveyard = EnsureSpecialZone(
+                specials,
+                "Graveyard",
+                owner,
+                DuelZoneKind.Graveyard,
+                graveyardPosition,
+                _blueWell);
+            DuelZone3D banishment = EnsureSpecialZone(
+                specials,
+                "Banishment",
+                owner,
+                DuelZoneKind.Banishment,
+                banishmentPosition,
+                _violetWell);
+
+            ApplyAndShowSpecialZone(graveyard, layout);
+            ApplyAndShowSpecialZone(banishment, layout);
+        }
+
+        private DuelZone3D EnsureSpecialZone(
+            Transform parent,
+            string name,
+            DuelPlayerSide owner,
+            DuelZoneKind kind,
+            Vector3 fallbackPosition,
+            Material material)
+        {
+            DuelZone3D result = null;
+            DuelZone3D[] candidates =
+                parent.GetComponentsInChildren<DuelZone3D>(true);
+            for (int index = 0; index < candidates.Length; index++)
+            {
+                DuelZone3D candidate = candidates[index];
+                if (candidate.Owner == owner && candidate.Kind == kind)
+                {
+                    result = candidate;
+                    break;
+                }
+            }
+
+            if (result == null)
+            {
+                result = CreateWell(
+                    parent,
+                    name,
+                    fallbackPosition,
+                    material,
+                    owner,
+                    kind);
+            }
+            else
+            {
+                result.gameObject.name = name;
+                result.Setup(owner, kind, 0, false);
+                if (result.GetComponent<DuelSpecialZoneWellVisual>() == null ||
+                    result.transform.Find("Base de Pedra") == null)
+                {
+                    BuildWellPresentation(result, material, kind);
+                }
+            }
+
+            return result;
+        }
+
+        private static void ApplyAndShowSpecialZone(
+            DuelZone3D zone,
+            DuelAuthoredZoneLayout layout)
+        {
+            if (zone == null)
+                return;
+
+            zone.gameObject.SetActive(true);
+            BoxCollider collider = zone.GetComponent<BoxCollider>();
+            if (collider != null)
+                collider.enabled = true;
+            Renderer[] renderers =
+                zone.GetComponentsInChildren<Renderer>(true);
+            for (int index = 0; index < renderers.Length; index++)
+            {
+                Renderer renderer = renderers[index];
+                if (renderer == null)
+                    continue;
+                renderer.gameObject.SetActive(true);
+                renderer.enabled = true;
+                renderer.forceRenderingOff = false;
+            }
+
+            // ApplyOne receives the exact active instance under this arena;
+            // it cannot accidentally select a detached legacy duplicate.
+            layout?.ApplyOne(zone);
+        }
+
+        private void EnsureWellMaterials()
+        {
+            if (_darkStone != null && _stone != null &&
+                _blueWell != null && _violetWell != null)
+            {
+                return;
+            }
+            CreateMaterials();
+        }
+
+        private static Renderer CreateWellCylinder(
+            Transform parent,
+            string name,
+            Vector3 position,
+            Vector3 scale,
+            Material material)
+        {
+            var item = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            item.name = name;
+            item.transform.SetParent(parent, false);
+            item.transform.localPosition = position;
+            item.transform.localScale = scale;
+            Renderer renderer = item.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            RemoveCollider(item);
+            return renderer;
+        }
+
+        private static Vector3 RotateFieldPosition180(Vector3 position)
+        {
+            return new Vector3(-position.x, position.y, -position.z);
         }
 
         private void CreateOpponentHand(Transform side)

@@ -181,6 +181,150 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void DetachedXyzMaterialKeepsItsIdentityInTheGraveyard()
+        {
+            DuelPresentationState state = NewState();
+            ApplyDraw(state, 0, DarkMagician);
+            ulong materialRuntimeId =
+                state.Players[0].HandInstances[0].RuntimeId;
+
+            ApplyMove(
+                state,
+                DarkMagician,
+                0,
+                (byte)DuelLocation.Hand,
+                0,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                1,
+                FaceUpAttack);
+            ApplyMove(
+                state,
+                DarkMagician,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                1,
+                0,
+                (byte)DuelLocation.Overlay,
+                2,
+                0);
+            ApplyMove(
+                state,
+                DarkMagician,
+                0,
+                (byte)DuelLocation.Overlay,
+                2,
+                0,
+                (byte)DuelLocation.Graveyard,
+                0,
+                0);
+
+            Assert.That(state.Players[0].OverlayInstances[2], Is.Empty);
+            Assert.That(
+                state.Players[0].GraveyardInstances[0].RuntimeId,
+                Is.EqualTo(materialRuntimeId));
+            Assert.That(state.ValidateInstanceConsistency(), Is.Empty);
+        }
+
+        [Test]
+        public void PhysicalCopySurvivesFieldGraveyardAndBanishmentMoves()
+        {
+            DuelPresentationState state = NewState();
+            ApplyDraw(state, 0, DarkMagician);
+            ulong runtimeId =
+                state.Players[0].HandInstances[0].RuntimeId;
+
+            ApplyMove(
+                state,
+                DarkMagician,
+                0,
+                (byte)DuelLocation.Hand,
+                0,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                1,
+                FaceUpAttack);
+            ApplyMove(
+                state,
+                DarkMagician,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                1,
+                0,
+                (byte)DuelLocation.Graveyard,
+                0,
+                0);
+
+            Assert.That(state.Players[0].MonsterInstances[1], Is.Null);
+            Assert.That(
+                state.Players[0].GraveyardInstances[0].RuntimeId,
+                Is.EqualTo(runtimeId));
+
+            ApplyMove(
+                state,
+                DarkMagician,
+                0,
+                (byte)DuelLocation.Graveyard,
+                0,
+                0,
+                (byte)DuelLocation.Banished,
+                0,
+                FaceUpAttack);
+
+            Assert.That(state.Players[0].GraveyardInstances, Is.Empty);
+            Assert.That(
+                state.Players[0].BanishedInstances[0].RuntimeId,
+                Is.EqualTo(runtimeId));
+            Assert.That(state.ValidateInstanceConsistency(), Is.Empty);
+        }
+
+        [Test]
+        public void ConservationAuditDetectsOneCopyStoredInTwoZones()
+        {
+            DuelPresentationState state = NewState();
+            ApplyDraw(state, 0, EffectVeiler);
+            CardInstanceState duplicate =
+                state.Players[0].HandInstances[0];
+
+            state.Players[0].Graveyard.Add(EffectVeiler);
+            state.Players[0].GraveyardInstances.Add(duplicate);
+
+            string[] problems = state.ValidateInstanceConsistency();
+
+            Assert.That(
+                problems.Any(problem =>
+                    problem.Contains(
+                        $"Physical runtime {duplicate.RuntimeId}") &&
+                    problem.Contains("both")),
+                Is.True,
+                string.Join(" | ", problems));
+        }
+
+        [Test]
+        public void ConservationAuditDetectsMoveFromMissingPhysicalSource()
+        {
+            DuelPresentationState state = NewState();
+
+            ApplyMove(
+                state,
+                EffectVeiler,
+                0,
+                (byte)DuelLocation.Hand,
+                0,
+                0,
+                (byte)DuelLocation.Graveyard,
+                0,
+                0);
+
+            string[] problems = state.ValidateInstanceConsistency();
+            Assert.That(
+                problems.Any(problem =>
+                    problem.Contains("could not recover its physical instance")),
+                Is.True,
+                string.Join(" | ", problems));
+        }
+
+        [Test]
         public void CoreActionsBindToTheSelectedDuplicateSequence()
         {
             DuelPresentationState state = NewState();

@@ -17,6 +17,7 @@ namespace ArcaneArena.Frontend
         private Image _containerImage;
         private Image _clipImage;
         private Mask _clipMask;
+        private HexIconAuraView _aura;
         private Color _accent = new(0.24f, 0.91f, 0.96f, 1f);
 
         public string IconId { get; private set; } =
@@ -28,10 +29,11 @@ namespace ArcaneArena.Frontend
             IconId = ProfileIconCatalog.ResolveId(iconId);
             ProfileIconDefinition definition =
                 ProfileIconCatalog.Resolve(IconId);
-            ApplyUniformHexMode();
+            ApplyUniformHexMode(definition.AuraTheme);
             Texture2D texture = ProfileIconCatalog.LoadTexture(IconId);
             _portrait.texture = texture;
             _portrait.uvRect = definition.PortraitUv;
+            _aura.SetTheme(definition.AuraTheme);
             // O viewport final sempre representa um hexágono regular. Não
             // usamos a proporção do arquivo-fonte porque as artes vieram de
             // telas com dimensões diferentes (paisagem, quadrada e retrato).
@@ -116,12 +118,49 @@ namespace ArcaneArena.Frontend
                 _portrait.raycastTarget = false;
                 _portraitFitter = portraitObject.GetComponent<AspectRatioFitter>();
             }
+
+            EnsureAuraLayer();
         }
 
-        private void ApplyUniformHexMode()
+        private void EnsureAuraLayer()
+        {
+            Transform auraTransform =
+                transform.Find(HexIconAuraView.LayerObjectName);
+            if (auraTransform == null)
+            {
+                GameObject auraObject = new(
+                    HexIconAuraView.LayerObjectName,
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer));
+                auraObject.transform.SetParent(transform, false);
+                auraTransform = auraObject.transform;
+            }
+
+            RectTransform auraRect = (RectTransform)auraTransform;
+            // A geometria do efeito mantém um centro totalmente vazio. O
+            // retângulo maior dá espaço para a energia sair da moldura sem
+            // alterar o tamanho oficial do ícone nem o recorte do retrato.
+            auraRect.anchorMin = new Vector2(-0.16f, -0.16f);
+            auraRect.anchorMax = new Vector2(1.16f, 1.16f);
+            auraRect.offsetMin = Vector2.zero;
+            auraRect.offsetMax = Vector2.zero;
+            auraRect.localScale = Vector3.one;
+            auraRect.localRotation = Quaternion.identity;
+            _aura = auraTransform.GetComponent<HexIconAuraView>() ??
+                auraTransform.gameObject.AddComponent<HexIconAuraView>();
+            _aura.raycastTarget = false;
+            auraTransform.SetAsLastSibling();
+        }
+
+        private void ApplyUniformHexMode(ProfileIconAuraTheme auraTheme)
         {
             _containerImage.sprite = GetHexGradientSprite();
             ApplyFrameTint();
+            // Molduras de aura são visuais completos e exclusivos. A imagem
+            // azul padrão fica realmente fora da renderização (não apenas
+            // transparente), impedindo qualquer resquício nas bordas.
+            _containerImage.enabled =
+                auraTheme == ProfileIconAuraTheme.None;
             _clipImage.sprite = GetHexMaskSprite();
             _clipMask.enabled = true;
             _portraitFitter.aspectMode =

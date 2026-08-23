@@ -41,7 +41,22 @@ namespace ArcaneDuel.Tests.PlayMode
             DuelLocation.MonsterZone,
             DuelLocation.Banished,
             0U,
-            "None")]
+            "Travel")]
+        [TestCase(
+            DuelLocation.Hand,
+            DuelLocation.Graveyard,
+            0U,
+            "Travel")]
+        [TestCase(
+            DuelLocation.Deck,
+            DuelLocation.Banished,
+            0U,
+            "Travel")]
+        [TestCase(
+            DuelLocation.Graveyard,
+            DuelLocation.Banished,
+            0U,
+            "Travel")]
         public void MoveReasonSelectsOnlyTheExpectedVisual(
             uint previousLocation,
             uint currentLocation,
@@ -206,6 +221,30 @@ namespace ArcaneDuel.Tests.PlayMode
                 Is.EqualTo(0));
             yield return new WaitForSecondsRealtime(1.0f);
             Assert.That(GameObject.Find("Fragmentos da Carta"), Is.Null);
+            AssertConcealedSpecialPilesReflectState(arena, state);
+
+            DuelEvent banishment = MoveEvent(
+                (byte)DuelLocation.Graveyard,
+                (byte)DuelLocation.Banished,
+                0U,
+                code,
+                0U,
+                0U,
+                0x1U);
+            object banishmentVisual =
+                CaptureBeforeStateChange(arena, banishment);
+            state.Apply(banishment);
+            RefreshAndBegin(arena, banishmentVisual);
+
+            Assert.That(state.Players[0].Graveyard, Is.Empty);
+            Assert.That(state.Players[0].Banished[^1], Is.EqualTo(code));
+            Assert.That(
+                GameObject.Find("Carta em Movimento"),
+                Is.Not.Null,
+                "A carta banida deve viajar visualmente até o poço de banimento.");
+            yield return new WaitForSecondsRealtime(1.0f);
+            Assert.That(GameObject.Find("Carta em Movimento"), Is.Null);
+            AssertConcealedSpecialPilesReflectState(arena, state);
 
             state.Apply(draw);
             refreshHand.Invoke(arena, new object[] { true });
@@ -256,6 +295,102 @@ namespace ArcaneDuel.Tests.PlayMode
                 Is.EqualTo(code));
             yield return new WaitForSecondsRealtime(0.3f);
             Assert.That(GameObject.Find("Carta em Movimento"), Is.Null);
+        }
+
+        private static void AssertConcealedSpecialPilesReflectState(
+            MonoBehaviour arena,
+            DuelPresentationState state)
+        {
+            int presentedGraveyardCards = 0;
+            int presentedBanishedCards = 0;
+            int graveyardWellCount = 0;
+            int banishedWellCount = 0;
+            Type wellType = Type.GetType(
+                "ArcaneArena.DuelSpecialZoneWellVisual, Assembly-CSharp");
+            Assert.That(wellType, Is.Not.Null);
+            MethodInfo buildEntries = arena.GetType().GetMethod(
+                "BuildZoneBrowserEntries",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(buildEntries, Is.Not.Null);
+            MonoBehaviour[] components =
+                Resources.FindObjectsOfTypeAll<MonoBehaviour>();
+            foreach (MonoBehaviour component in components)
+            {
+                if (component == null ||
+                    !component.gameObject.activeInHierarchy ||
+                    component.GetType().Name != "DuelZone3D")
+                {
+                    continue;
+                }
+
+                PropertyInfo kindProperty = component.GetType().GetProperty(
+                    "Kind",
+                    BindingFlags.Instance | BindingFlags.Public);
+                MethodInfo findPresentedCard = component.GetType().GetMethod(
+                    "FindPresentedCard",
+                    BindingFlags.Instance | BindingFlags.Public);
+                Assert.That(kindProperty, Is.Not.Null);
+                Assert.That(findPresentedCard, Is.Not.Null);
+                string kind = kindProperty.GetValue(component)?.ToString();
+                if (kind != "Graveyard" && kind != "Banishment")
+                    continue;
+
+                Assert.That(
+                    findPresentedCard.Invoke(component, null),
+                    Is.Null,
+                    $"{kind} must conceal its cards inside the physical well " +
+                    "instead of leaving a card attached to the field.");
+
+                Component well = component.GetComponent(wellType);
+                Assert.That(well, Is.Not.Null);
+                PropertyInfo countProperty = well.GetType().GetProperty(
+                    "CardCount",
+                    BindingFlags.Instance | BindingFlags.Public);
+                Assert.That(countProperty, Is.Not.Null);
+                int count = (int)countProperty.GetValue(well);
+                object browserEntries = buildEntries.Invoke(
+                    arena,
+                    new object[]
+                    {
+                        component,
+                        false,
+                        Array.Empty<DuelChoice>()
+                    });
+                Assert.That(browserEntries, Is.InstanceOf<ICollection>());
+                Assert.That(
+                    ((ICollection)browserEntries).Count,
+                    Is.EqualTo(count),
+                    $"Clicking {kind} must list every stored card.");
+                if (kind == "Graveyard")
+                {
+                    graveyardWellCount++;
+                    presentedGraveyardCards += count;
+                }
+                else
+                {
+                    banishedWellCount++;
+                    presentedBanishedCards += count;
+                }
+            }
+
+            int authoritativeGraveyardCards = 0;
+            int authoritativeBanishedCards = 0;
+            for (int player = 0; player < state.Players.Length; player++)
+            {
+                authoritativeGraveyardCards +=
+                    state.Players[player].Graveyard.Count;
+                authoritativeBanishedCards +=
+                    state.Players[player].Banished.Count;
+            }
+
+            Assert.That(graveyardWellCount, Is.GreaterThanOrEqualTo(2));
+            Assert.That(banishedWellCount, Is.GreaterThanOrEqualTo(2));
+            Assert.That(
+                presentedGraveyardCards,
+                Is.EqualTo(authoritativeGraveyardCards));
+            Assert.That(
+                presentedBanishedCards,
+                Is.EqualTo(authoritativeBanishedCards));
         }
 
         private static T SnapshotField<T>(object snapshot, string name)

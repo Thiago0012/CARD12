@@ -16,18 +16,31 @@ namespace ArcaneArena
             Vector2 destination,
             float duration,
             CanvasGroup target,
-            MonsterSummonArrivalEffect arrivalEffect)
+            MonsterSummonArrivalEffect arrivalEffect,
+            bool sinksIntoSpecialPile,
+            DuelSpecialZoneWellVisual destinationWell)
         {
-            GameObject overlay = CreateTransitionCard(sprite, start);
+            Color transitionAccent = destinationWell != null
+                ? destinationWell.AccentColor
+                : Cyan;
+            GameObject overlay = CreateTransitionCard(
+                sprite,
+                start,
+                transitionAccent);
             RectTransform rect = overlay.GetComponent<RectTransform>();
             CanvasGroup group = overlay.GetComponent<CanvasGroup>();
             Image image = overlay.GetComponent<Image>();
-            GameObject destinationPulse = CreateTransitionPulse(
-                destinationSprite ?? sprite,
-                destination,
-                Cyan);
-            destinationPulse.transform.SetSiblingIndex(
+            RectTransform trail = overlay.transform.Find("Rastro da Carta")
+                ?.GetComponent<RectTransform>();
+            GameObject destinationPulse = sinksIntoSpecialPile
+                ? null
+                : CreateTransitionPulse(
+                    destinationSprite ?? sprite,
+                    destination,
+                    transitionAccent);
+            destinationPulse?.transform.SetSiblingIndex(
                 overlay.transform.GetSiblingIndex());
+            destinationWell?.BeginIngress();
             float distance = Vector2.Distance(start, destination);
             float arc = Mathf.Clamp(distance * 0.075f, 18f, 56f);
             float startTilt = Mathf.Clamp(
@@ -90,19 +103,92 @@ namespace ArcaneArena
                             Mathf.InverseLerp(flipMiddle, flipEnd, t));
                     }
                 }
+                if (sinksIntoSpecialPile)
+                {
+                    const float ingressStart = 0.70f;
+                    Vector2 approach = destination + Vector2.up *
+                        Mathf.Clamp(
+                            ResponsiveTransitionCardSize().y * 0.18f,
+                            28f,
+                            48f);
+                    if (t < ingressStart)
+                    {
+                        float approachT = Mathf.Clamp01(t / ingressStart);
+                        Vector2 tangent = destination - start;
+                        Vector2 normal = tangent.sqrMagnitude > 0.01f
+                            ? new Vector2(-tangent.y, tangent.x).normalized
+                            : Vector2.right;
+                        float handedness = start.x <= destination.x ? 1f : -1f;
+                        Vector2 control = Vector2.Lerp(start, approach, 0.52f) +
+                            Vector2.up * arc +
+                            normal * handedness * Mathf.Min(24f, arc * 0.45f);
+                        rect.anchoredPosition = QuadraticBezier(
+                            start,
+                            control,
+                            approach,
+                            TransitionEaseOutCubic(approachT));
+                        rect.localRotation = Quaternion.Euler(
+                            Mathf.Sin(approachT * Mathf.PI) * -7f,
+                            0f,
+                            Mathf.Lerp(startTilt, 0f, approachT));
+                        scale = Mathf.Lerp(
+                            0.94f,
+                            0.88f,
+                            Mathf.SmoothStep(0f, 1f, approachT));
+                    }
+                    else
+                    {
+                        float ingress = Mathf.Clamp01(
+                            Mathf.InverseLerp(ingressStart, 1f, t));
+                        float suction = TransitionEaseInCubic(ingress);
+                        float swirl = Mathf.Sin(ingress * Mathf.PI * 2f) *
+                                      (1f - ingress) * 10f;
+                        rect.anchoredPosition = Vector2.Lerp(
+                            approach,
+                            destination + Vector2.down * 24f,
+                            suction) + Vector2.right * swirl;
+                        rect.localRotation = Quaternion.Euler(
+                            Mathf.Lerp(0f, 78f, suction),
+                            Mathf.Sin(ingress * Mathf.PI) * 7f,
+                            Mathf.Sin(ingress * Mathf.PI * 1.5f) * 4f);
+                        scale = Mathf.Lerp(0.88f, 0.028f, suction);
+                        destinationWell?.SetIngressProgress(ingress);
+                    }
+                }
                 rect.localScale = new Vector3(
                     scale * horizontalScale,
                     scale,
                     1f);
-                group.alpha = t < 0.92f
+                float fadeStart = sinksIntoSpecialPile ? 0.88f : 0.92f;
+                group.alpha = t < fadeStart
                     ? 1f
-                    : 1f - Mathf.SmoothStep(0.92f, 1f, t);
+                    : 1f - Mathf.SmoothStep(fadeStart, 1f, t);
+                if (trail != null)
+                {
+                    float trailStrength = sinksIntoSpecialPile
+                        ? 1f - Mathf.SmoothStep(0.70f, 1f, t)
+                        : Mathf.Sin(t * Mathf.PI);
+                    trail.anchoredPosition = new Vector2(
+                        Mathf.Lerp(-13f, -5f, t),
+                        Mathf.Lerp(8f, 3f, t));
+                    Image trailImage = trail.GetComponent<Image>();
+                    if (trailImage != null)
+                    {
+                        trailImage.color = new Color(
+                            transitionAccent.r,
+                            transitionAccent.g,
+                            transitionAccent.b,
+                            0.17f * trailStrength);
+                    }
+                }
                 UpdateTransitionPulse(destinationPulse, t, 0.62f);
                 yield return null;
             }
             if (overlay != null && destinationSprite != null)
                 image.sprite = destinationSprite;
-            RevealTransitionTarget(target);
+            if (!sinksIntoSpecialPile)
+                RevealTransitionTarget(target);
+            destinationWell?.PlayArrivalPulse();
             PlayMonsterSummonArrivalEffect(arrivalEffect, destination);
             if (destinationPulse != null)
                 Destroy(destinationPulse);
@@ -113,6 +199,14 @@ namespace ArcaneArena
         private GameObject CreateTransitionCard(
             Sprite sprite,
             Vector2 position)
+        {
+            return CreateTransitionCard(sprite, position, Cyan);
+        }
+
+        private GameObject CreateTransitionCard(
+            Sprite sprite,
+            Vector2 position,
+            Color accent)
         {
             GameObject root = CreateTransitionContainer(
                 "Carta em Movimento",
@@ -127,7 +221,11 @@ namespace ArcaneArena
             image.preserveAspect = true;
             image.raycastTarget = false;
             Outline outline = root.GetComponent<Outline>();
-            outline.effectColor = new Color(Cyan.r, Cyan.g, Cyan.b, 0.72f);
+            outline.effectColor = new Color(
+                accent.r,
+                accent.g,
+                accent.b,
+                0.72f);
             outline.effectDistance = new Vector2(3f, -3f);
 
             Image trail = CreateImage(
@@ -135,7 +233,7 @@ namespace ArcaneArena
                 "Rastro da Carta",
                 Vector2.zero,
                 Vector2.one,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.13f));
+                new Color(accent.r, accent.g, accent.b, 0.13f));
             trail.sprite = sprite;
             trail.preserveAspect = true;
             trail.raycastTarget = false;
@@ -221,6 +319,19 @@ namespace ArcaneArena
         {
             t = Mathf.Clamp01(t);
             return t * t * t;
+        }
+
+        private static Vector2 QuadraticBezier(
+            Vector2 start,
+            Vector2 control,
+            Vector2 end,
+            float t)
+        {
+            t = Mathf.Clamp01(t);
+            float inverse = 1f - t;
+            return inverse * inverse * start +
+                   2f * inverse * t * control +
+                   t * t * end;
         }
 
         private GameObject CreateTransitionContainer(

@@ -29,6 +29,7 @@ namespace ArcaneDuel.Editor.Validation
             "ArcaneDuel.Tests.EditMode.MultiplayerCrossplayEditModeTests",
             "ArcaneDuel.Tests.EditMode.DuelEffectDescriptionResolverEditModeTests",
             "ArcaneDuel.Tests.EditMode.NinjaCardEffectSemanticsEditModeTests",
+            "ArcaneDuel.Tests.EditMode.CardAudit.CardScenarioRunnerEditModeTests",
             "ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests",
             "ArcaneDuel.Tests.EditMode.RankPointServiceEditModeTests",
             "ArcaneDuel.Tests.EditMode.TournamentManagerEditModeTests"

@@ -546,6 +546,96 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void OptionalChainPreservesPrimarySecondaryAndTertiaryEffects()
+        {
+            const ulong primaryEffect = 0x1100000000000001UL;
+            const ulong secondaryEffect = 0x2200000000000002UL;
+            const ulong tertiaryEffect = 0x3300000000000003UL;
+            var payload = new List<byte> { 0, 0, 0 };
+            UInt32(payload, 0);
+            UInt32(payload, 0);
+            UInt32(payload, 3);
+
+            UInt32(payload, 89631139);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.SpellTrapZone,
+                0,
+                8);
+            UInt64(payload, primaryEffect);
+            payload.Add(0);
+
+            UInt32(payload, 92962242);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                2,
+                0x1);
+            UInt64(payload, secondaryEffect);
+            payload.Add(0);
+
+            UInt32(payload, 92962242);
+            Location(
+                payload,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                2,
+                0x1);
+            UInt64(payload, tertiaryEffect);
+            payload.Add(0);
+
+            var framed = new List<byte>();
+            Packet(
+                framed,
+                (byte)CoreMessage.SelectChain,
+                payload.ToArray());
+
+            DuelPrompt prompt =
+                CoreMessageDecoder.Decode(framed.ToArray())[0].Prompt;
+            List<DuelChoice> effects =
+                DuelPromptPresentationRules.ActionableResponseChoices(prompt);
+
+            Assert.That(effects, Has.Count.EqualTo(3));
+            Assert.That(
+                effects.Select(choice => choice.DescriptionId),
+                Is.EquivalentTo(new[]
+                {
+                    primaryEffect,
+                    secondaryEffect,
+                    tertiaryEffect
+                }));
+            Assert.That(
+                effects.Count(choice =>
+                    choice.Location == DuelLocation.SpellTrapZone),
+                Is.EqualTo(1),
+                "The legal back-row response must remain available.");
+            Assert.That(
+                effects.Count(choice =>
+                    choice.Location == DuelLocation.MonsterZone),
+                Is.EqualTo(2),
+                "Separate monster effects must not collapse into one button.");
+            Assert.That(
+                DuelPromptPresentationRules.RequiresVisibleResponseTray(prompt),
+                Is.True);
+            Assert.That(
+                DuelPromptPresentationRules.ShouldUseCompactResponseBar(prompt),
+                Is.False,
+                "Multiple effects require the complete selection tray.");
+            Assert.That(
+                DuelActivationPromptPolicy.TryGetAutomaticPass(
+                    prompt,
+                    ActivationPromptMode.On,
+                    true,
+                    0,
+                    out _,
+                    out _),
+                Is.False,
+                "ON must never hide a legal primary, secondary or tertiary effect.");
+        }
+
+        [Test]
         public void ForcedChainStillOpensTheCompleteResponseTray()
         {
             var payload = new List<byte> { 0, 0, 1 };

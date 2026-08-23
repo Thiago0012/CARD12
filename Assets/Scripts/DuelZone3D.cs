@@ -355,7 +355,8 @@ namespace ArcaneArena
         private void RefreshSpecialZoneOutline(bool enabled)
         {
             if (Kind != DuelZoneKind.ExtraDeck &&
-                Kind != DuelZoneKind.Graveyard)
+                Kind != DuelZoneKind.Graveyard &&
+                Kind != DuelZoneKind.Banishment)
             {
                 return;
             }

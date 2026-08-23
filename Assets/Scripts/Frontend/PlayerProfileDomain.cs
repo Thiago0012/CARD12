@@ -120,6 +120,7 @@ namespace ArcaneArena.Frontend
         public bool IsPurchasable { get; }
         public ProfileIconAssetMode AssetMode { get; }
         public Rect PortraitUv { get; }
+        public ProfileIconAuraTheme AuraTheme { get; }
 
         public ProfileIconDefinition(
             string iconId,
@@ -128,7 +129,8 @@ namespace ArcaneArena.Frontend
             bool isPurchasable,
             ProfileIconAssetMode assetMode =
                 ProfileIconAssetMode.PreframedHex,
-            Rect? portraitUv = null)
+            Rect? portraitUv = null,
+            ProfileIconAuraTheme auraTheme = ProfileIconAuraTheme.None)
         {
             IconId = iconId;
             DisplayName = displayName;
@@ -137,6 +139,7 @@ namespace ArcaneArena.Frontend
             IsPurchasable = isPurchasable;
             AssetMode = assetMode;
             PortraitUv = portraitUv ?? new Rect(0f, 0f, 1f, 1f);
+            AuraTheme = auraTheme;
         }
     }
 
@@ -146,9 +149,22 @@ namespace ArcaneArena.Frontend
         UnframedPortrait
     }
 
+    /// <summary>
+    /// Tema visual opcional aplicado somente à moldura. A arte do retrato
+    /// continua sendo um recurso independente e nunca recebe partículas ou
+    /// brilho diretamente.
+    /// </summary>
+    public enum ProfileIconAuraTheme
+    {
+        None,
+        CrimsonLegendary,
+        AzureArcane,
+        SolarLegendary
+    }
+
     public static class ProfileIconCatalog
     {
-        public const int CatalogVersion = 1;
+        public const int CatalogVersion = 3;
         public const int IconPriceCoins = 35;
         public const string DefaultIconId = "icon-arcane-default";
 
@@ -172,7 +188,50 @@ namespace ArcaneArena.Frontend
             new("icon-oracle-idol", "Ídolo Oráculo", "Profile/Icons/oracle-idol", true,
                 portraitUv: PortraitUv(1254, 1254, 80, 16, 1172, 1236)),
             new("icon-celestial-hydra", "Hidra Celestial", "Profile/Icons/celestial-hydra", true,
-                portraitUv: PortraitUv(1024, 1536, 32, 220, 992, 1308))
+                portraitUv: PortraitUv(1024, 1536, 32, 220, 992, 1308)),
+            new("icon-crimson-cyberblade", "Lâmina Cibernética Rubra",
+                "Profile/Icons/crimson-cyberblade", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-astral-aegis", "Égide Astral",
+                "Profile/Icons/astral-aegis", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-violet-operator", "Operadora Violeta",
+                "Profile/Icons/violet-operator", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-onyx-dragon", "Dragão de Ônix",
+                "Profile/Icons/onyx-dragon", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-glacial-duelist", "Duelista Glacial",
+                "Profile/Icons/glacial-duelist", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-amethyst-knight", "Cavaleiro Ametista",
+                "Profile/Icons/amethyst-knight", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-crystal-dragon", "Dragão de Cristal",
+                "Profile/Icons/crystal-dragon", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-eclipse-empress", "Imperatriz do Eclipse",
+                "Profile/Icons/eclipse-empress", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-crimson-arcanist", "Arcanista Rubro",
+                "Profile/Icons/crimson-arcanist", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-emerald-mage", "Maga Esmeralda",
+                "Profile/Icons/emerald-mage", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-arcane-enigma", "Enigma Arcano",
+                "Profile/Icons/arcane-enigma", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-sapphire-swordsman", "Espadachim Safira",
+                "Profile/Icons/sapphire-swordsman", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-cosmic-imperator", "Imperador Cósmico",
+                "Profile/Icons/cosmic-imperator", true,
+                ProfileIconAssetMode.UnframedPortrait),
+            new("icon-crimson-veil-arcanist", "Arcanista do Véu Rubro",
+                "Profile/Icons/crimson-veil-arcanist", true,
+                ProfileIconAssetMode.UnframedPortrait,
+                auraTheme: ProfileIconAuraTheme.CrimsonLegendary)
         };
 
         private static readonly Dictionary<string, Texture2D> TextureCache =

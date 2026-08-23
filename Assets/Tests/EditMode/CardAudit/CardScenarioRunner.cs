@@ -118,7 +118,7 @@ namespace ArcaneDuel.Tests.EditMode.CardAudit
                     CaptureSubject(engine, cardCode, result);
                     result.FinishedWithWinner = engine.IsFinished;
                     result.NativeFailures = engine.NativeLogs
-                        .Where(IsNativeFailure)
+                        .Where(log => IsNativeFailure(log, database))
                         .ToArray();
                 }
             }
@@ -242,11 +242,36 @@ namespace ArcaneDuel.Tests.EditMode.CardAudit
                        choice.CardCode == subject) ?? false);
         }
 
-        private static bool IsNativeFailure(string log)
+        private static bool IsNativeFailure(string log, CardDatabase database)
         {
-            return !string.IsNullOrEmpty(log) &&
-                   (log.StartsWith("SCRIPT_MISSING", StringComparison.Ordinal) ||
-                    log.StartsWith("[0]", StringComparison.Ordinal));
+            if (string.IsNullOrEmpty(log))
+                return false;
+            if (log.StartsWith("[0]", StringComparison.Ordinal))
+                return true;
+            if (!log.StartsWith("SCRIPT_MISSING", StringComparison.Ordinal))
+                return false;
+
+            // The native loader reports missing c0.lua and scriptless Normal
+            // Monsters while constructing a duel. Neither represents a broken
+            // effect. Keep failing for every published card whose type really
+            // requires an effect script, so this filter cannot hide missing Lua.
+            int codeStart = log.IndexOf('c');
+            if (codeStart < 0)
+                return true;
+            codeStart++;
+            int codeEnd = codeStart;
+            while (codeEnd < log.Length && char.IsDigit(log[codeEnd]))
+                codeEnd++;
+            if (codeEnd == codeStart ||
+                !uint.TryParse(log.Substring(codeStart, codeEnd - codeStart),
+                    out uint code))
+            {
+                return true;
+            }
+            if (code == 0)
+                return false;
+            return !database.TryGet(code, out CardRecord record) ||
+                   DuelContentValidator.RequiresScript(record);
         }
 
         private static void AppendEvent(

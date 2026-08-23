@@ -38,6 +38,8 @@ namespace ArcaneArena
             public Sprite DestinationSprite;
             public bool FlipToDestination;
             public bool EntersField;
+            public bool EntersSpecialPile;
+            public DuelSpecialZoneWellVisual DestinationWell;
             public MonsterSummonArrivalEffect ArrivalEffect;
             public CanvasGroup HiddenTarget;
             public bool Released;
@@ -67,6 +69,11 @@ namespace ArcaneArena
             bool entersField = kind == CardTransitionKind.Travel &&
                                HasLocation(duelEvent.Current) &&
                                IsFieldLocation(duelEvent.Current.Location);
+            bool hasSpecialPileDestination =
+                HasLocation(duelEvent.Current) &&
+                IsSpecialPileLocation(duelEvent.Current.Location);
+            bool entersSpecialPile = kind == CardTransitionKind.Travel &&
+                                     hasSpecialPileDestination;
             bool destinationFaceUp = entersField &&
                                      IsFaceUp(duelEvent.Current.Position);
             Sprite destinationSprite = visibleSprite;
@@ -92,6 +99,11 @@ namespace ArcaneArena
                                     !destinationFaceUp &&
                                     visibleSprite != cardBackSprite,
                 EntersField = entersField,
+                EntersSpecialPile = entersSpecialPile,
+                DestinationWell = hasSpecialPileDestination
+                    ? ZoneFor(duelEvent.Current)
+                        ?.GetComponent<DuelSpecialZoneWellVisual>()
+                    : null,
                 ArrivalEffect = entersField && destinationFaceUp &&
                                 (duelEvent.Current.Location &
                                  DuelLocation.MonsterZone) != 0
@@ -182,7 +194,8 @@ namespace ArcaneArena
                     start,
                     destination,
                     duration,
-                    target));
+                    target,
+                    snapshot.DestinationWell));
                 return;
             }
 
@@ -194,7 +207,9 @@ namespace ArcaneArena
                 destination,
                 duration,
                 target,
-                snapshot.ArrivalEffect));
+                snapshot.ArrivalEffect,
+                snapshot.EntersSpecialPile,
+                snapshot.DestinationWell));
         }
 
         private bool ShouldDeferMonsterArrival(
@@ -354,11 +369,18 @@ namespace ArcaneArena
                                (previous & (DuelLocation.Hand |
                                             DuelLocation.Deck |
                                             DuelLocation.Extra)) != 0U;
-            bool entersGraveyard = IsFieldLocation(previous) &&
-                                   (current & DuelLocation.Graveyard) != 0U;
-            return entersField || entersGraveyard
+            bool entersSpecialPile =
+                IsSpecialPileLocation(current) &&
+                current != previous;
+            return entersField || entersSpecialPile
                 ? CardTransitionKind.Travel
                 : CardTransitionKind.None;
+        }
+
+        private static bool IsSpecialPileLocation(uint location)
+        {
+            return (location & (DuelLocation.Graveyard |
+                                DuelLocation.Banished)) != 0U;
         }
 
         private static bool HasLocation(CardLocation location)
@@ -454,6 +476,12 @@ namespace ArcaneArena
             DuelZone3D zone = ZoneFor(location);
             if (zone == null)
                 return false;
+            if (IsConcealedSpecialPile(zone))
+            {
+                screenPoint = WorldScreenPoint(
+                    zone.CardPresentationAnchor.position);
+                return true;
+            }
             Transform presented = zone.FindPresentedCard();
             if (preferExistingCard && presented != null)
             {

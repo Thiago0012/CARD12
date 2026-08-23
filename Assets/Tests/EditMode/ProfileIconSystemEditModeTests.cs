@@ -12,23 +12,95 @@ namespace ArcaneDuel.Tests.EditMode
     public sealed class ProfileIconSystemEditModeTests
     {
         [Test]
-        public void CatalogHasDefaultAndNineIconsAtExactPrice()
+        public void CatalogHasDefaultAndTwentyThreeIconsAtExactPrice()
         {
             Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
             object[] icons = Values(catalog.GetProperty("All").GetValue(null));
             object[] purchasable = icons.Where(icon =>
                 (bool)Property(icon, "IsPurchasable")).ToArray();
 
-            Assert.That(icons, Has.Length.EqualTo(10));
-            Assert.That(purchasable, Has.Length.EqualTo(9));
+            Assert.That(icons, Has.Length.EqualTo(24));
+            Assert.That(purchasable, Has.Length.EqualTo(23));
             Assert.That(purchasable.All(icon =>
                 (int)Property(icon, "PriceCoins") == 35), Is.True);
             Assert.That(icons.Count(icon =>
                 !(bool)Property(icon, "IsPurchasable")), Is.EqualTo(1));
-            Assert.That(icons.All(icon =>
+            Assert.That(icons.Count(icon =>
                 Property(icon, "AssetMode").ToString() == "PreframedHex"),
-                Is.True,
-                "Os 10 ícones atuais já incluem sua própria borda hexagonal.");
+                Is.EqualTo(10),
+                "O ícone padrão e as nove artes originais preservam o recorte legado.");
+            Assert.That(icons.Count(icon =>
+                Property(icon, "AssetMode").ToString() == "UnframedPortrait"),
+                Is.EqualTo(14),
+                "As novas artes devem receber a máscara e a moldura oficiais em runtime.");
+            Assert.That(icons.Select(icon => Property(icon, "IconId") as string)
+                .Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(icons.Length));
+            Assert.That(purchasable.Select(icon =>
+                    Property(icon, "ResourcePath") as string)
+                .Distinct(StringComparer.Ordinal).Count(),
+                Is.EqualTo(purchasable.Length));
+        }
+
+        [Test]
+        public void CrimsonIconUsesExclusiveAuraWithoutTheBlueFrame()
+        {
+            Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
+            Type viewType = FindType("ArcaneArena.Frontend.HexIconView");
+            object[] icons = Values(catalog.GetProperty("All").GetValue(null));
+            object crimson = icons.Single(icon => string.Equals(
+                Property(icon, "IconId") as string,
+                "icon-crimson-veil-arcanist",
+                StringComparison.Ordinal));
+            Assert.That(Property(crimson, "AuraTheme").ToString(),
+                Is.EqualTo("CrimsonLegendary"));
+            Assert.That(icons.Count(icon =>
+                Property(icon, "AuraTheme").ToString() != "None"),
+                Is.EqualTo(1));
+
+            var parent = new GameObject("Exclusive Aura Bounds",
+                typeof(RectTransform));
+            var root = new GameObject("Exclusive Aura Icon",
+                typeof(RectTransform));
+            root.transform.SetParent(parent.transform, false);
+            try
+            {
+                Component view = root.AddComponent(viewType);
+                MethodInfo setIcon = viewType.GetMethod("SetIcon");
+                setIcon.Invoke(view, new object[]
+                {
+                    "icon-crimson-veil-arcanist"
+                });
+
+                Image standardFrame = root.GetComponent<Image>();
+                Transform aura = root.transform.Find(
+                    "Aura Viva da Moldura");
+                Transform clip = root.transform.Find("Recorte Hexagonal");
+                Assert.That(standardFrame.enabled, Is.False,
+                    "A moldura azul padrão não pode aparecer no ícone especial.");
+                Assert.That(aura, Is.Not.Null);
+                Assert.That(aura.gameObject.activeSelf, Is.True);
+                Assert.That(aura.parent, Is.EqualTo(root.transform));
+                Assert.That(aura.IsChildOf(clip), Is.False,
+                    "A aura deve ficar fora da máscara para não cobrir o retrato.");
+                Assert.That(aura.GetComponent<Graphic>().raycastTarget,
+                    Is.False);
+                RectTransform auraRect = (RectTransform)aura;
+                Assert.That(auraRect.anchorMin.x,
+                    Is.EqualTo(-0.16f).Within(0.0001f));
+                Assert.That(auraRect.anchorMax.x,
+                    Is.EqualTo(1.16f).Within(0.0001f));
+
+                setIcon.Invoke(view, new object[]
+                {
+                    catalog.GetField("DefaultIconId").GetValue(null)
+                });
+                Assert.That(standardFrame.enabled, Is.True);
+                Assert.That(aura.gameObject.activeSelf, Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(parent);
+            }
         }
 
         [Test]
@@ -238,7 +310,7 @@ namespace ArcaneDuel.Tests.EditMode
                 object statistics = Property(repository, "Statistics");
                 object overall = Field(statistics, "overall");
 
-                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(10));
+                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(11));
                 Assert.That(Field(overall, "duelsPlayed"), Is.EqualTo(7L));
                 Assert.That(Field(overall, "wins"), Is.EqualTo(4L));
                 Assert.That(Field(overall, "damageDealt"), Is.EqualTo(12345L));

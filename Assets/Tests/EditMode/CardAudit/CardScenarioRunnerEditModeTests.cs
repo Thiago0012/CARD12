@@ -36,7 +36,9 @@ namespace ArcaneDuel.Tests.EditMode.CardAudit
                 seed,
                 targetTurns: 3);
 
-            Assert.That(result.CardName, Is.EqualTo(cardName));
+            Assert.That(result.CardCode, Is.EqualTo(cardCode));
+            Assert.That(result.CardName, Is.Not.Null.And.Not.Empty,
+                $"The published card {cardCode:00000000} ({cardName}) has no localized name.");
             Assert.That(result.Completed, Is.True, result.Diagnostic);
             Assert.That(result.PlayerOneDecisions, Is.GreaterThan(0),
                 result.Diagnostic);

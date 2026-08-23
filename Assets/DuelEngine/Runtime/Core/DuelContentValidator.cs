@@ -81,8 +81,15 @@ namespace ArcaneDuel.DuelEngine.Core
         {
             if (record == null)
                 throw new ArgumentNullException(nameof(record));
+            const uint MonsterType = 0x1U;
+            const uint NormalType = 0x10U;
             const uint TokenType = 0x4000U;
-            return record.Type != 17U &&
+            const uint PendulumType = 0x1000000U;
+            bool plainNormalMonster =
+                (record.Type & MonsterType) != 0 &&
+                (record.Type & NormalType) != 0 &&
+                (record.Type & PendulumType) == 0;
+            return !plainNormalMonster &&
                    (record.Type & TokenType) == 0;
         }
 

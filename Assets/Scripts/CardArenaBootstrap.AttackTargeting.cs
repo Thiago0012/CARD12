@@ -592,7 +592,8 @@ namespace ArcaneArena
             highlightedAttackTarget = null;
             if (attackLine != null)
                 attackLine.enabled = false;
-            directAttackTargetButton?.SetActive(false);
+            if (directAttackTargetButton != null)
+                directAttackTargetButton.SetActive(false);
             if (attackTargetingActive)
             {
                 attackTargetingActive = false;
@@ -624,7 +625,8 @@ namespace ArcaneArena
             highlightedAttackTarget = null;
             if (attackLine != null)
                 attackLine.enabled = false;
-            directAttackTargetButton?.SetActive(false);
+            if (directAttackTargetButton != null)
+                directAttackTargetButton.SetActive(false);
             draggingAttacker = null;
             capturedAttackPointerId = int.MinValue;
             attackTargetSelectionPointerId = int.MinValue;

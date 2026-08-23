@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneArena.Multiplayer;
 using ArcaneDuel.DuelEngine.Protocol;
 using UnityEngine;
 using UnityEngine.UI;
@@ -126,10 +127,54 @@ namespace ArcaneArena
         }
 
         private List<ZoneBrowserEntry> BuildZoneBrowserEntries(
+            DuelZone3D zone,
             bool browsingExtraDeck,
             IReadOnlyList<DuelChoice> legalChoices)
         {
             var entries = new List<ZoneBrowserEntry>();
+            bool browsingPublicPile = zone != null &&
+                (zone.Kind == DuelZoneKind.Graveyard ||
+                 zone.Kind == DuelZoneKind.Banishment);
+            if (browsingPublicPile)
+            {
+                int player = StatePlayerForZone(zone);
+                IReadOnlyList<uint> cards =
+                    zone.Kind == DuelZoneKind.Graveyard
+                        ? state.Players[player].Graveyard
+                        : state.Players[player].Banished;
+                Dictionary<uint, DuelChoice[]> choicesBySequence =
+                    (legalChoices ?? System.Array.Empty<DuelChoice>())
+                    .Where(choice => choice != null)
+                    .GroupBy(choice => choice.Sequence)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.ToArray());
+
+                // Most recent cards appear first, matching the visible top
+                // card in the physical well. CoreSequence remains untouched
+                // so legal prompt responses still address the authoritative
+                // entry rather than its visual index.
+                for (int index = cards.Count - 1; index >= 0; index--)
+                {
+                    uint sequence = (uint)index;
+                    choicesBySequence.TryGetValue(
+                        sequence,
+                        out DuelChoice[] locatedChoices);
+                    uint code = cards[index];
+                    if (code == 0 && locatedChoices != null)
+                    {
+                        code = locatedChoices
+                            .Select(choice => choice.CardCode)
+                            .FirstOrDefault(value => value != 0);
+                    }
+                    entries.Add(new ZoneBrowserEntry(
+                        code,
+                        sequence,
+                        locatedChoices ?? System.Array.Empty<DuelChoice>()));
+                }
+                return entries;
+            }
+
             if (!browsingExtraDeck)
             {
                 if (legalChoices == null)

@@ -23,7 +23,8 @@ namespace ArcaneArena
             Vector2 start,
             Vector2 destination,
             float duration,
-            CanvasGroup target)
+            CanvasGroup target,
+            DuelSpecialZoneWellVisual destinationWell)
         {
             GameObject container = CreateTransitionContainer(
                 "Fragmentos da Carta");
@@ -36,12 +37,18 @@ namespace ArcaneArena
                 container.transform,
                 sprite,
                 start);
-            GameObject destinationPulse = CreateTransitionPulse(
-                sprite,
-                destination,
-                Gold);
-            destinationPulse.transform.SetSiblingIndex(
+            Color transitionAccent = destinationWell != null
+                ? destinationWell.AccentColor
+                : Gold;
+            GameObject destinationPulse = destinationWell == null
+                ? CreateTransitionPulse(
+                    sprite,
+                    destination,
+                    transitionAccent)
+                : null;
+            destinationPulse?.transform.SetSiblingIndex(
                 container.transform.GetSiblingIndex());
+            destinationWell?.BeginIngress();
             float distance = Vector2.Distance(start, destination);
             float arc = Mathf.Clamp(distance * 0.06f, 16f, 48f);
             float elapsed = 0f;
@@ -60,7 +67,11 @@ namespace ArcaneArena
                     TransitionEaseOutCubic(impactT));
                 impact.color = Color.Lerp(
                     Color.white,
-                    new Color(1f, 0.72f, 0.26f, 1f),
+                    new Color(
+                        transitionAccent.r,
+                        transitionAccent.g,
+                        transitionAccent.b,
+                        1f),
                     Mathf.Sin(impactT * Mathf.PI));
                 foreach (CardFragmentVisual fragment in fragments)
                 {
@@ -96,7 +107,10 @@ namespace ArcaneArena
                     float attraction = TransitionEaseInCubic(travelT);
                     Vector2 burstPosition = fragment.Start + fragment.Burst;
                     Vector2 targetPosition =
-                        destination + fragment.DestinationOffset;
+                        destination + fragment.DestinationOffset +
+                        (destinationWell != null
+                            ? Vector2.down * 18f
+                            : Vector2.zero);
                     fragment.Rect.anchoredPosition = Vector2.Lerp(
                         burstPosition,
                         targetPosition,
@@ -111,17 +125,30 @@ namespace ArcaneArena
                             travelT));
                     fragment.Rect.localScale = Vector3.one * Mathf.Lerp(
                         0.88f,
-                        0.08f,
+                        destinationWell != null ? 0.025f : 0.08f,
                         attraction);
                     fragment.Group.alpha = 1f - Mathf.SmoothStep(
-                        0.64f,
+                        destinationWell != null ? 0.82f : 0.64f,
                         1f,
                         travelT);
+                }
+                if (destinationWell != null)
+                {
+                    destinationWell.SetIngressProgress(
+                        Mathf.Clamp01(Mathf.InverseLerp(
+                            0.52f,
+                            1f,
+                            globalT)));
                 }
                 UpdateTransitionPulse(destinationPulse, globalT, 0.70f);
                 yield return null;
             }
-            RevealTransitionTarget(target);
+            // O destino de destruição é um poço público. O estado mantém a
+            // carta e o navegador a exibe sob demanda; nada fica estacionado
+            // sobre o campo depois que os fragmentos entram no poço.
+            if (destinationWell == null)
+                RevealTransitionTarget(target);
+            destinationWell?.PlayArrivalPulse();
             if (destinationPulse != null)
                 Destroy(destinationPulse);
             if (container != null)

@@ -17,6 +17,9 @@ namespace ArcaneDuel.Game
     /// </summary>
     public static class DuelActivationPreferences
     {
+        private const int CurrentPreferencesSchema = 1;
+        private const string PreferencesSchemaKey =
+            "ArcaneDuel.ActivationPreferencesSchema";
         private const string ModeKey = "ArcaneDuel.ActivationPromptMode";
         private const string SelfChainKey = "ArcaneDuel.SelfChain";
         private const string ManualOrderKey = "ArcaneDuel.ManualChainOrder";
@@ -28,27 +31,40 @@ namespace ArcaneDuel.Game
         {
             get
             {
+                EnsureEffectPromptSafetyMigration();
                 int stored = PlayerPrefs.GetInt(
                     ModeKey,
-                    (int)ActivationPromptMode.Auto);
+                    (int)ActivationPromptMode.On);
                 return stored >= (int)ActivationPromptMode.On &&
                        stored <= (int)ActivationPromptMode.Off
                     ? (ActivationPromptMode)stored
-                    : ActivationPromptMode.Auto;
+                    : ActivationPromptMode.On;
             }
             set
             {
+                EnsureEffectPromptSafetyMigration();
                 PlayerPrefs.SetInt(ModeKey, (int)value);
+                PlayerPrefs.SetInt(
+                    PreferencesSchemaKey,
+                    CurrentPreferencesSchema);
                 PlayerPrefs.Save();
             }
         }
 
         public static bool SelfChainEnabled
         {
-            get => PlayerPrefs.GetInt(SelfChainKey, 1) != 0;
+            get
+            {
+                EnsureEffectPromptSafetyMigration();
+                return PlayerPrefs.GetInt(SelfChainKey, 1) != 0;
+            }
             set
             {
+                EnsureEffectPromptSafetyMigration();
                 PlayerPrefs.SetInt(SelfChainKey, value ? 1 : 0);
+                PlayerPrefs.SetInt(
+                    PreferencesSchemaKey,
+                    CurrentPreferencesSchema);
                 PlayerPrefs.Save();
             }
         }
@@ -105,11 +121,40 @@ namespace ArcaneDuel.Game
         {
             PlayerPrefs.SetInt(
                 ModeKey,
-                (int)ActivationPromptMode.Auto);
+                (int)ActivationPromptMode.On);
             PlayerPrefs.SetInt(SelfChainKey, 1);
             PlayerPrefs.SetInt(ManualOrderKey, 1);
             PlayerPrefs.SetInt(GuidanceMessagesKey, 1);
             PlayerPrefs.SetInt(ChainPanelKey, 1);
+            PlayerPrefs.SetInt(
+                PreferencesSchemaKey,
+                CurrentPreferencesSchema);
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>
+        /// Earlier builds presented OFF next to the visual-message controls,
+        /// which made it easy to disable legal Trap, Quick Effect and monster
+        /// response windows while intending to hide only the large guidance
+        /// panels. Migrate that ambiguous persisted state once. A player can
+        /// still explicitly select OFF afterwards; the schema marker prevents
+        /// a subsequent startup from overriding that deliberate choice.
+        /// </summary>
+        private static void EnsureEffectPromptSafetyMigration()
+        {
+            if (PlayerPrefs.GetInt(PreferencesSchemaKey, 0) >=
+                CurrentPreferencesSchema)
+            {
+                return;
+            }
+
+            PlayerPrefs.SetInt(
+                ModeKey,
+                (int)ActivationPromptMode.On);
+            PlayerPrefs.SetInt(SelfChainKey, 1);
+            PlayerPrefs.SetInt(
+                PreferencesSchemaKey,
+                CurrentPreferencesSchema);
             PlayerPrefs.Save();
         }
     }

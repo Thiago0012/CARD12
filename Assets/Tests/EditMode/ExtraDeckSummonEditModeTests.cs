@@ -6,6 +6,7 @@ using ArcaneDuel.DuelEngine.Core;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
+using ArcaneDuel.Game;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -273,17 +274,42 @@ namespace ArcaneDuel.Tests.EditMode
         public void EveryCompiledCardHasRuntimeDataAndRequiredScripts()
         {
             CardDatabase database = CardDatabase.LoadDefault();
+            CardVisualCatalog visuals = CardVisualCatalog.LoadDefault();
             string root = Path.Combine(Application.streamingAssetsPath, "Ygo");
             string[] problems = DuelContentValidator.FindProblems(
                 database,
                 root,
-                database.Cards.Select(card => card.Code));
+                visuals.Cards.Select(card => card.officialCode));
 
             Assert.That(
                 problems,
                 Is.Empty,
                 "Every compiled card that can enter a duel must have data and its required Core script. " +
                 string.Join(" | ", problems));
+        }
+
+        [Test]
+        public void NormalTunerDoesNotRequireAnEffectScript()
+        {
+            CardRecord galaxySerpent =
+                CardDatabase.LoadDefault().Get(11066358u);
+
+            Assert.That(
+                DuelContentValidator.RequiresScript(galaxySerpent),
+                Is.False,
+                "A plain Normal Tuner has no effect to implement in Lua.");
+        }
+
+        [Test]
+        public void NormalPendulumStillRequiresItsPendulumEffectScript()
+        {
+            CardRecord dragonHornHunter =
+                CardDatabase.LoadDefault().Get(7868571u);
+
+            Assert.That(
+                DuelContentValidator.RequiresScript(dragonHornHunter),
+                Is.True,
+                "A Normal Pendulum can own a Pendulum effect and must keep its Core script.");
         }
 
         private static void AssertExtraSummon(

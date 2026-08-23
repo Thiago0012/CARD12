@@ -97,6 +97,31 @@ namespace ArcaneDuel.Game
             if (choice == null)
                 return null;
 
+            // A legal optional decision that produces no authoritative state
+            // change must not be selected forever. Prefer a legal choice that
+            // has not yet been tried in this exact Core state; this never
+            // invents a response because every candidate still comes from the
+            // current prompt emitted by ygopro-core.
+            if (!prompt.Forced &&
+                noProgressDecisions > 0 &&
+                context.RepetitionCount(prompt, choice) > 0)
+            {
+                DuelChoice untried = prompt.Choices
+                    .Where(candidate =>
+                        context.RepetitionCount(prompt, candidate) == 0)
+                    .OrderByDescending(candidate =>
+                        TacticalOpponentPolicy.ScoreChoice(
+                            candidate,
+                            prompt,
+                            state,
+                            database,
+                            context))
+                    .ThenBy(candidate => candidate.ChoiceIndex)
+                    .FirstOrDefault();
+                if (untried != null)
+                    choice = untried;
+            }
+
             string key = TacticalOpponentPolicy.DecisionKey(
                 prompt,
                 choice,

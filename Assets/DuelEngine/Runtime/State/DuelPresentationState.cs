@@ -174,6 +174,7 @@ namespace ArcaneDuel.DuelEngine.State
     {
         private readonly CardDatabase database;
         private readonly Dictionary<int, ulong> playerHints = new();
+        private readonly List<string> transitionConsistencyProblems = new();
         private ulong nextRuntimeId = 1;
 
         public DuelistState[] Players { get; } = { new DuelistState(), new DuelistState() };
@@ -372,6 +373,7 @@ namespace ArcaneDuel.DuelEngine.State
 
         public void Apply(DuelEvent duelEvent)
         {
+            transitionConsistencyProblems.Clear();
             if (duelEvent.Prompt != null) Prompt = duelEvent.Prompt;
             switch (duelEvent.Message)
             {
@@ -670,6 +672,8 @@ namespace ArcaneDuel.DuelEngine.State
         {
             CardInstanceState moving = null;
             List<CardInstanceState> movingOverlays = null;
+            bool sourceIdentityIsMaterialized =
+                IsIdentityMaterialized(duelEvent.Previous);
             if (IsMonsterZone(duelEvent.Previous) &&
                 IsMonsterZone(duelEvent.Current))
             {
@@ -678,6 +682,12 @@ namespace ArcaneDuel.DuelEngine.State
             if (duelEvent.Previous != null && duelEvent.Previous.Location != 0)
             {
                 moving = Remove(duelEvent.Previous, duelEvent.Code);
+            }
+            if (sourceIdentityIsMaterialized && moving == null)
+            {
+                transitionConsistencyProblems.Add(
+                    $"Move {duelEvent.Code:00000000} could not recover its " +
+                    "physical instance from the authoritative source.");
             }
             if (duelEvent.Current != null && duelEvent.Current.Location != 0)
             {
@@ -690,6 +700,26 @@ namespace ArcaneDuel.DuelEngine.State
                     moving,
                     originalOwner);
                 PlaceOverlayStack(duelEvent.Current, movingOverlays);
+
+                if (IsIdentityMaterialized(duelEvent.Current))
+                {
+                    CardInstanceState arrived =
+                        InstanceFor(duelEvent.Current);
+                    if (arrived == null)
+                    {
+                        transitionConsistencyProblems.Add(
+                            $"Move {duelEvent.Code:00000000} did not " +
+                            "materialize at its authoritative destination.");
+                    }
+                    else if (moving != null &&
+                             arrived.RuntimeId != moving.RuntimeId)
+                    {
+                        transitionConsistencyProblems.Add(
+                            $"Move {duelEvent.Code:00000000} replaced " +
+                            $"physical runtime {moving.RuntimeId} with " +
+                            $"runtime {arrived.RuntimeId} at its destination.");
+                    }
+                }
             }
             if (duelEvent.Previous != null && duelEvent.Current != null &&
                 duelEvent.Previous.Location != duelEvent.Current.Location)
@@ -1880,71 +1910,117 @@ namespace ArcaneDuel.DuelEngine.State
 
         public string[] ValidateInstanceConsistency()
         {
-            var problems = new List<string>();
+            var problems = new List<string>(transitionConsistencyProblems);
+            var locationsByRuntimeId = new Dictionary<ulong, string>();
             for (byte controller = 0; controller < Players.Length; controller++)
             {
                 DuelistState player = Players[controller];
                 ValidateList(
                     problems,
+                    locationsByRuntimeId,
                     controller,
                     "deck",
+                    (byte)DuelLocation.Deck,
                     player.DeckContents,
                     player.DeckInstances);
                 ValidateList(
                     problems,
+                    locationsByRuntimeId,
                     controller,
                     "extra",
+                    (byte)DuelLocation.Extra,
                     player.ExtraDeckContents,
                     player.ExtraDeckInstances);
                 ValidateList(
                     problems,
+                    locationsByRuntimeId,
                     controller,
                     "hand",
+                    (byte)DuelLocation.Hand,
                     player.Hand,
                     player.HandInstances);
                 ValidateList(
                     problems,
+                    locationsByRuntimeId,
                     controller,
                     "graveyard",
+                    (byte)DuelLocation.Graveyard,
                     player.Graveyard,
                     player.GraveyardInstances);
                 ValidateList(
                     problems,
+                    locationsByRuntimeId,
                     controller,
                     "banished",
+                    (byte)DuelLocation.Banished,
                     player.Banished,
                     player.BanishedInstances);
                 ValidateZones(
                     problems,
+                    locationsByRuntimeId,
                     controller,
                     "monster",
+                    (byte)DuelLocation.MonsterZone,
                     player.MonsterZones,
                     player.MonsterInstances);
                 ValidateZones(
                     problems,
+                    locationsByRuntimeId,
                     controller,
                     "spell/trap",
+                    (byte)DuelLocation.SpellTrapZone,
                     player.SpellTrapZones,
                     player.SpellTrapInstances);
                 for (int zone = 0;
                      zone < player.OverlayInstances.Length;
                      zone++)
                 {
-                    foreach (CardInstanceState material in
-                             player.OverlayInstances[zone])
+                    IReadOnlyList<CardInstanceState> materials =
+                        player.OverlayInstances[zone];
+                    for (int materialIndex = 0;
+                         materialIndex < materials.Count;
+                         materialIndex++)
                     {
+                        CardInstanceState material = materials[materialIndex];
                         if (material == null ||
                             (material.Location & DuelLocation.Overlay) == 0 ||
-                            material.Sequence != zone)
+                            material.Controller != controller ||
+                            material.Sequence != zone ||
+                            material.Position != (uint)materialIndex)
                         {
                             problems.Add(
                                 $"P{controller} overlay[{zone}] contains " +
                                 "an invalid material binding.");
                         }
+                        RegisterInstance(
+                            problems,
+                            locationsByRuntimeId,
+                            material,
+                            $"P{controller} overlay[{zone}][{materialIndex}]");
                     }
                 }
             }
             return problems.ToArray();
+        }
+
+        private bool IsIdentityMaterialized(CardLocation location)
+        {
+            if (!IsLocated(location) || location.Controller >= Players.Length)
+                return false;
+            DuelistState player = Players[location.Controller];
+            if ((location.Location & DuelLocation.Deck) != 0)
+            {
+                return HasMaterializedPile(
+                    player.DeckContents,
+                    player.DeckCount);
+            }
+            if ((location.Location & DuelLocation.Extra) != 0)
+            {
+                return HasMaterializedPile(
+                    player.ExtraDeckContents,
+                    player.ExtraDeckCount);
+            }
+            return true;
         }
 
         private CardInstanceState CreateInstance(
@@ -2194,8 +2270,10 @@ namespace ArcaneDuel.DuelEngine.State
 
         private static void ValidateList(
             ICollection<string> problems,
+            IDictionary<ulong, string> locationsByRuntimeId,
             byte controller,
             string label,
+            byte expectedLocation,
             IReadOnlyList<uint> codes,
             IReadOnlyList<CardInstanceState> instances)
         {
@@ -2206,20 +2284,36 @@ namespace ArcaneDuel.DuelEngine.State
             int count = Math.Min(codes.Count, instances.Count);
             for (int index = 0; index < count; index++)
             {
-                if (instances[index] == null ||
-                    instances[index].DefinitionCode != codes[index])
+                CardInstanceState instance = instances[index];
+                string address = $"P{controller} {label}[{index}]";
+                if (instance == null ||
+                    instance.DefinitionCode != codes[index])
                 {
                     problems.Add(
-                        $"P{controller} {label}[{index}] is not bound " +
+                        $"{address} is not bound " +
                         $"to definition {codes[index]:00000000}.");
                 }
+                ValidateAddress(
+                    problems,
+                    instance,
+                    controller,
+                    expectedLocation,
+                    index,
+                    address);
+                RegisterInstance(
+                    problems,
+                    locationsByRuntimeId,
+                    instance,
+                    address);
             }
         }
 
         private static void ValidateZones(
             ICollection<string> problems,
+            IDictionary<ulong, string> locationsByRuntimeId,
             byte controller,
             string label,
+            byte expectedLocation,
             IReadOnlyList<uint> codes,
             IReadOnlyList<CardInstanceState> instances)
         {
@@ -2235,7 +2329,65 @@ namespace ArcaneDuel.DuelEngine.State
                         $"P{controller} {label}[{index}] presentation " +
                         "instance does not match the authoritative code.");
                 }
+                if (instance == null)
+                    continue;
+                string address = $"P{controller} {label}[{index}]";
+                ValidateAddress(
+                    problems,
+                    instance,
+                    controller,
+                    expectedLocation,
+                    index,
+                    address);
+                RegisterInstance(
+                    problems,
+                    locationsByRuntimeId,
+                    instance,
+                    address);
             }
+        }
+
+        private static void ValidateAddress(
+            ICollection<string> problems,
+            CardInstanceState instance,
+            byte controller,
+            byte expectedLocation,
+            int expectedSequence,
+            string address)
+        {
+            if (instance == null)
+                return;
+            if (instance.RuntimeId == 0)
+                problems.Add($"{address} has no physical runtime identity.");
+            if (instance.Controller != controller ||
+                (instance.Location & expectedLocation) == 0 ||
+                instance.Sequence != (uint)expectedSequence)
+            {
+                problems.Add(
+                    $"{address} stores runtime {instance.RuntimeId}, but its " +
+                    $"Core address is P{instance.Controller}/" +
+                    $"0x{instance.Location:X2}/{instance.Sequence}.");
+            }
+        }
+
+        private static void RegisterInstance(
+            ICollection<string> problems,
+            IDictionary<ulong, string> locationsByRuntimeId,
+            CardInstanceState instance,
+            string address)
+        {
+            if (instance == null || instance.RuntimeId == 0)
+                return;
+            if (locationsByRuntimeId.TryGetValue(
+                    instance.RuntimeId,
+                    out string previousAddress))
+            {
+                problems.Add(
+                    $"Physical runtime {instance.RuntimeId} is present in " +
+                    $"both {previousAddress} and {address}.");
+                return;
+            }
+            locationsByRuntimeId[instance.RuntimeId] = address;
         }
 
         private uint CodeAt(CardLocation location)

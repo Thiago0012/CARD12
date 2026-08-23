@@ -64,9 +64,11 @@ namespace ArcaneDuel.Tests.EditMode
 
                 Component playerDeck = Find(zones, 0, "MainDeck");
                 Component playerGrave = Find(zones, 0, "Graveyard");
+                Component playerBanish = Find(zones, 0, "Banishment");
                 Component playerExtra = Find(zones, 0, "ExtraDeck");
                 Component opponentDeck = Find(zones, 1, "MainDeck");
                 Component opponentGrave = Find(zones, 1, "Graveyard");
+                Component opponentBanish = Find(zones, 1, "Banishment");
                 Component opponentExtra = Find(zones, 1, "ExtraDeck");
                 Assert.That(playerDeck.transform.position.x, Is.GreaterThan(0f));
                 Assert.That(playerGrave.transform.position.x, Is.GreaterThan(0f));
@@ -74,6 +76,18 @@ namespace ArcaneDuel.Tests.EditMode
                 Assert.That(opponentDeck.transform.position.x, Is.LessThan(0f));
                 Assert.That(opponentGrave.transform.position.x, Is.LessThan(0f));
                 Assert.That(opponentExtra.transform.position.x, Is.GreaterThan(0f));
+                AssertPhysicalSpecialZone(playerGrave);
+                AssertPhysicalSpecialZone(playerBanish);
+                AssertPhysicalSpecialZone(opponentGrave);
+                AssertPhysicalSpecialZone(opponentBanish);
+                AssertCompactSpecialZonePair(playerGrave, playerBanish);
+                AssertCompactSpecialZonePair(opponentGrave, opponentBanish);
+                Assert.That(
+                    zones.Count(zone =>
+                        PropertyText(zone, "Kind") == "Graveyard" ||
+                        PropertyText(zone, "Kind") == "Banishment"),
+                    Is.EqualTo(4),
+                    "The arena must expose exactly two physical special-zone pairs.");
                 Assert.That(
                     PlanarRotationDistance(
                         playerDeck.transform.position,
@@ -83,6 +97,16 @@ namespace ArcaneDuel.Tests.EditMode
                     PlanarRotationDistance(
                         playerExtra.transform.position,
                         opponentExtra.transform.position),
+                    Is.LessThan(0.001f));
+                Assert.That(
+                    PlanarRotationDistance(
+                        playerGrave.transform.position,
+                        opponentGrave.transform.position),
+                    Is.LessThan(0.001f));
+                Assert.That(
+                    PlanarRotationDistance(
+                        playerBanish.transform.position,
+                        opponentBanish.transform.position),
                     Is.LessThan(0.001f));
             }
             finally
@@ -117,6 +141,54 @@ namespace ArcaneDuel.Tests.EditMode
             return AppDomain.CurrentDomain.GetAssemblies()
                 .Select(assembly => assembly.GetType(fullName, false))
                 .First(type => type != null);
+        }
+
+        private static void AssertPhysicalSpecialZone(Component zone)
+        {
+            Assert.That(zone.gameObject.activeSelf, Is.True);
+            Assert.That(zone.GetComponent<BoxCollider>(), Is.Not.Null);
+            Transform baseTransform = zone.transform.Find("Base de Pedra");
+            Assert.That(baseTransform, Is.Not.Null);
+            Assert.That(
+                baseTransform.localScale.x,
+                Is.LessThan(0.9f),
+                "Unity cylinders are two units wide; a scale near 1.6 would make the two fixtures overlap into one oversized circle.");
+            Assert.That(zone.transform.Find("Aro Esculpido"), Is.Not.Null);
+            Assert.That(zone.transform.Find("Canal de Energia"), Is.Not.Null);
+            Assert.That(
+                zone.GetComponentsInChildren<Renderer>(true),
+                Is.Not.Empty);
+            Assert.That(
+                zone.GetComponentsInChildren<Renderer>(true)
+                    .All(renderer =>
+                        renderer.enabled &&
+                        !renderer.forceRenderingOff),
+                Is.True,
+                "Every physical well renderer must remain visible at runtime.");
+            Assert.That(
+                zone.GetComponents<Component>().Any(component =>
+                    component.GetType().FullName ==
+                    "ArcaneArena.DuelSpecialZoneWellVisual"),
+                Is.True);
+            var anchor = zone.GetType()
+                .GetProperty("CardPresentationAnchor")
+                ?.GetValue(zone) as Transform;
+            Assert.That(anchor, Is.Not.Null);
+            Assert.That(anchor.localPosition.y, Is.GreaterThan(0.1f));
+        }
+
+        private static void AssertCompactSpecialZonePair(
+            Component graveyard,
+            Component banishment)
+        {
+            Assert.That(
+                Mathf.Abs(graveyard.transform.position.x -
+                          banishment.transform.position.x),
+                Is.LessThan(0.001f));
+            float spacing = Mathf.Abs(
+                graveyard.transform.position.z -
+                banishment.transform.position.z);
+            Assert.That(spacing, Is.InRange(1.1f, 1.6f));
         }
 
         private static float PlanarRotationDistance(

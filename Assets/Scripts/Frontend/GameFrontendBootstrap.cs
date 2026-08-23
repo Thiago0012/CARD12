@@ -726,7 +726,7 @@ namespace ArcaneArena.Frontend
             }
 
             if (_duelPresentationVisible)
-                ReturnToMainMenuScene();
+                ToggleDuelMenu();
         }
 
         private void InitializeScenePresentation()
@@ -3888,17 +3888,14 @@ namespace ArcaneArena.Frontend
         {
             SetDuelPresentation(true);
             ClearScreen();
-            var button = CreateButton(
+            CreateArcaneActionButton(
                 _screenRoot,
-                StoryRogueliteRuntime.IsStoryDuel
-                    ? "SAIR (DERROTA)"
-                    : "MENU",
+                "MENU",
                 new Vector2(0.90f, 0.018f),
                 new Vector2(0.985f, 0.078f),
-                Cyan,
-                ExitDuelPresentationToMenu);
-            button.GetComponent<Image>().color =
-                new Color(0.005f, 0.025f, 0.045f, 0.88f);
+                ArcaneCyan,
+                ToggleDuelMenu,
+                17);
         }
 
         private void SetDuelPresentation(bool visible)
@@ -4941,6 +4938,8 @@ namespace ArcaneArena.Frontend
         {
             CancelPackOpeningPresentation();
             StopMainMenuConnectionMonitor();
+            _duelMenuOverlay = null;
+            _duelMenuContent = null;
             _deckEditorSelectedCardId = string.Empty;
             if (_mainMenuSceneView != null)
                 _mainMenuSceneView.SetMainMenuVisible(false);
