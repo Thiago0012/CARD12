@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp-Editor:ArcaneArena.Editor.AutoPacks:AutoPackGenerationManifest
   schemaVersion: 1
   generatorVersion: 1
-  lastSourceCatalogHash: 569013511A9104775B4ABCD559942C8EF0AE4EC30596CD9BB5C26235A4C1634E
+  lastSourceCatalogHash: 10C2215008AA8CBC99A6B9C9C4F18E49EF0223C362750DF1EAE8B6E1E1364938
   nextPackSequence: 8
   pendingCardIds:
   - 15717011

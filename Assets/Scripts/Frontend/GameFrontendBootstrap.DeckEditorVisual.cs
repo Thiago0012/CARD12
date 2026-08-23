@@ -83,17 +83,6 @@ namespace ArcaneArena.Frontend
                     tabLabel.color = Color.white;
             }
 
-            Transform artworkFrame = FindDescendantByName(
-                detailsPanel != null ? detailsPanel.transform : null,
-                "Moldura da Arte");
-            SkinDeckEditorSurface(
-                artworkFrame != null
-                    ? artworkFrame.GetComponent<Image>()
-                    : null,
-                DeckAmber,
-                false,
-                0.74f);
-
             SkinNamedDeckEditorSurface(
                 deckPanel != null ? deckPanel.transform : null,
                 "Cabeçalho do Deck Principal",

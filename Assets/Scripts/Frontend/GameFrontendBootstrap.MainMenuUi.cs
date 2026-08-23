@@ -38,6 +38,7 @@ namespace ArcaneArena.Frontend
 
         public void ShowMainMenu()
         {
+            MainMenuMusicController.SetDeckEditorMode(false);
             _tournamentPage = TournamentPage.None;
             if (_repository != null && _repository.NeedsStarterDeckSelection)
             {

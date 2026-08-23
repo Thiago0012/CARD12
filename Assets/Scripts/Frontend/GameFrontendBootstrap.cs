@@ -20,14 +20,14 @@ namespace ArcaneArena.Frontend
     {
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
-        private const int MainDeckGridColumns = 10;
+        private const int MainDeckGridColumns = 11;
         private const int ExtraDeckMaximum = 15;
         private const int CopyLimit = 3;
         private const string MainMenuSceneName = "MainMenu";
         private const string LoginSceneName = "Login";
         private const string DeckEditorSceneName = "DeckEditor";
         private const string DuelArenaSceneName = "DuelArena";
-        public const int CurrentEditorPreviewVersion = 8;
+        public const int CurrentEditorPreviewVersion = 11;
 
         private static readonly Color Background = Hex("#040812");
         private static readonly Color Panel = Hex("#091426");
@@ -106,10 +106,15 @@ namespace ArcaneArena.Frontend
         private RectTransform _dragGhost;
         private RectTransform _mainDropZone;
         private RectTransform _extraDropZone;
+        private RectTransform _catalogDropZone;
+        private RectTransform _mainDeckContent;
+        private RectTransform _extraDeckContent;
         private RectTransform _catalogContent;
+        private Text _mainDeckCountText;
+        private Text _mainDeckLimitText;
+        private Text _extraDeckCountText;
         private Text _editorStatus;
         private Text _duelRoomStatus;
-        private Text _catalogResults;
         private InputField _catalogSearchInput;
         private Image _deckEditorDetailArtwork;
         private Image _deckEditorCardHeader;
@@ -119,7 +124,6 @@ namespace ArcaneArena.Frontend
         private ArcaneArena.CardZoomViewer _deckEditorZoomViewer;
         private Text _deckEditorDetailName;
         private Text _deckEditorDetailType;
-        private Text _deckEditorDetailStats;
         private Text _deckEditorDetailEffect;
         private CardCatalog _catalog;
         private CardArenaBootstrap _duelArena;
@@ -135,9 +139,6 @@ namespace ArcaneArena.Frontend
         private bool _shopFeedbackIsError;
         private CardCategory _catalogFilter = CardCategory.Unknown;
         private bool _catalogSortDescending;
-        private int _catalogPage;
-        private int _catalogMatchCount;
-        private const int CatalogPageSize = 120;
         private string _deckEditorSelectedCardId = string.Empty;
         private readonly Dictionary<CardCategory, Image>
             _catalogFilterButtons = new();
@@ -610,7 +611,25 @@ namespace ArcaneArena.Frontend
                     _deckEditorDetailName.transform) ||
                    (_editorStatus != null &&
                     current ==
-                    _editorStatus.transform);
+                    _editorStatus.transform) ||
+                   IsTransformInside(
+                       current,
+                       _catalogAdvancedFilterButton != null
+                           ? _catalogAdvancedFilterButton.transform
+                           : null) ||
+                   IsTransformInside(
+                       current,
+                       _deckEditorRelatedCardsButton != null
+                           ? _deckEditorRelatedCardsButton.transform
+                           : null);
+        }
+
+        private static bool IsTransformInside(
+            Transform current,
+            Transform root)
+        {
+            return current != null && root != null &&
+                   (current == root || current.IsChildOf(root));
         }
 
         private static Transform FindDescendantByName(
@@ -1892,6 +1911,7 @@ namespace ArcaneArena.Frontend
 
         private void ShowDeckGallery()
         {
+            MainMenuMusicController.SetDeckEditorMode(true);
             SetDuelPresentation(false);
             _selectedDeck = null;
             _editingDeck = null;
@@ -2225,6 +2245,7 @@ namespace ArcaneArena.Frontend
             if (deck == null)
                 return;
 
+            MainMenuMusicController.SetDeckEditorMode(true);
             SetDuelPresentation(false);
             _selectedDeck = deck;
             ClearScreen();
@@ -2236,6 +2257,7 @@ namespace ArcaneArena.Frontend
             if (deck == null)
                 return;
 
+            MainMenuMusicController.SetDeckEditorMode(true);
             SetDuelPresentation(false);
             _editingDeck = deck;
             ClearScreen();
@@ -2324,7 +2346,7 @@ namespace ArcaneArena.Frontend
                 mainDeckHeader.gameObject,
                 new Color(DeckEmerald.r, DeckEmerald.g, DeckEmerald.b, 0.55f),
                 new Vector2(1f, -1f));
-            CreateText(
+            _mainDeckCountText = CreateText(
                 mainDeckHeader.transform,
                 $"DECK PRINCIPAL   {deck.mainDeckCardIds.Count}",
                 19,
@@ -2333,7 +2355,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.025f, 0.04f),
                 new Vector2(0.67f, 0.96f),
                 TextAnchor.MiddleLeft);
-            CreateText(
+            _mainDeckLimitText = CreateText(
                 mainDeckHeader.transform,
                 $"{MainDeckMinimum}–{MainDeckMaximum} CARTAS" +
                 (deckIsSelected
@@ -2357,7 +2379,7 @@ namespace ArcaneArena.Frontend
                 493f,
                 new Vector2(72f, 105f),
                 new Vector2(4f, 4f));
-            var mainContent = CreateFixedGrid(
+            _mainDeckContent = CreateFixedGrid(
                 deckPanel.transform,
                 "Cartas do Deck Principal",
                 new Vector2(0.02f, 0.345f),
@@ -2367,7 +2389,7 @@ namespace ArcaneArena.Frontend
                 MainDeckGridColumns,
                 out _mainDropZone);
             PopulateDeckSection(
-                mainContent,
+                _mainDeckContent,
                 deck.mainDeckCardIds,
                 false);
 
@@ -2381,7 +2403,7 @@ namespace ArcaneArena.Frontend
                 extraDeckHeader.gameObject,
                 new Color(DeckMint.r, DeckMint.g, DeckMint.b, 0.48f),
                 new Vector2(1f, -1f));
-            CreateText(
+            _extraDeckCountText = CreateText(
                 extraDeckHeader.transform,
                 $"DECK ADICIONAL   {deck.extraDeckCardIds.Count} / {ExtraDeckMaximum}",
                 17,
@@ -2397,7 +2419,7 @@ namespace ArcaneArena.Frontend
                 212f,
                 new Vector2(64f, 93f),
                 new Vector2(4f, 4f));
-            var extraContent = CreateFixedGrid(
+            _extraDeckContent = CreateFixedGrid(
                 deckPanel.transform,
                 "Cartas do Deck Adicional",
                 new Vector2(0.02f, 0.035f),
@@ -2407,7 +2429,7 @@ namespace ArcaneArena.Frontend
                 10,
                 out _extraDropZone);
             PopulateDeckSection(
-                extraContent,
+                _extraDeckContent,
                 deck.extraDeckCardIds,
                 true);
 
@@ -2419,33 +2441,25 @@ namespace ArcaneArena.Frontend
                 new Color(0.01f, 0.03f, 0.055f, 0.98f));
             AddOutline(collectionPanel.gameObject, new Color(Lime.r, Lime.g, Lime.b, 0.65f), new Vector2(2f, -2f));
 
-            var listTab = CreatePanel(
+            _catalogAdvancedFilterButton = CreateCatalogControlButton(
                 collectionPanel.transform,
-                "Aba Lista de Cartas",
+                "FILTROS",
                 new Vector2(0.03f, 0.925f),
-                new Vector2(0.40f, 0.99f),
-                new Color(Lime.r, Lime.g, Lime.b, 0.96f));
-            CreateText(
-                listTab.transform,
-                "▣  COLEÇÃO",
-                15,
-                FontStyle.Bold,
-                Ink,
-                new Vector2(0.04f, 0.03f),
-                new Vector2(0.96f, 0.97f),
-                TextAnchor.MiddleCenter);
+                new Vector2(0.34f, 0.99f),
+                Lime,
+                ShowAdvancedCatalogFilters);
 
             CreateCatalogControlButton(
                 collectionPanel.transform,
                 "A–Z",
-                new Vector2(0.43f, 0.925f),
-                new Vector2(0.63f, 0.99f),
+                new Vector2(0.37f, 0.925f),
+                new Vector2(0.58f, 0.99f),
                 Cyan,
                 ToggleCatalogSort);
             CreateCatalogControlButton(
                 collectionPanel.transform,
                 "LIMPAR",
-                new Vector2(0.66f, 0.925f),
+                new Vector2(0.61f, 0.925f),
                 new Vector2(0.97f, 0.99f),
                 Gold,
                 ResetCatalogFilters);
@@ -2459,7 +2473,6 @@ namespace ArcaneArena.Frontend
             _catalogSearchInput.onValueChanged.AddListener(value =>
             {
                 _catalogSearch = value ?? string.Empty;
-                _catalogPage = 0;
                 RebuildCatalog();
             });
 
@@ -2496,37 +2509,25 @@ namespace ArcaneArena.Frontend
             _catalogContent = CreateScrollGrid(
                 collectionPanel.transform,
                 "Catálogo",
-                new Vector2(0.03f, 0.09f),
+                new Vector2(0.03f, 0.065f),
                 new Vector2(0.97f, 0.75f),
                 new Vector2(76f, 111f),
                 new Vector2(6f, 8f),
-                6);
-
-            CreateCatalogControlButton(
-                collectionPanel.transform,
-                "‹",
-                new Vector2(0.03f, 0.015f),
-                new Vector2(0.18f, 0.082f),
-                Cyan,
-                PreviousCatalogPage);
-            CreateCatalogControlButton(
-                collectionPanel.transform,
-                "›",
-                new Vector2(0.82f, 0.015f),
-                new Vector2(0.97f, 0.082f),
-                Cyan,
-                NextCatalogPage);
+                7,
+                out _catalogDropZone);
+            _catalogContent.localScale = Vector3.one;
+            ApplyDeckEditorCatalogScrollbarStyle(_catalogDropZone);
+            ConfigureVirtualCatalog();
 
             _editorStatus = CreateText(
                 collectionPanel.transform,
                 string.Empty,
-                14,
+                11,
                 FontStyle.Bold,
                 Muted,
-                new Vector2(0.20f, 0.015f),
-                new Vector2(0.80f, 0.082f),
+                new Vector2(0.04f, 0.012f),
+                new Vector2(0.96f, 0.058f),
                 TextAnchor.MiddleCenter);
-            _catalogResults = _editorStatus;
             UpdateCatalogFilterVisuals();
             RebuildCatalog();
             ShowInitialDeckEditorCard(deck);
@@ -2538,6 +2539,7 @@ namespace ArcaneArena.Frontend
                 collectionPanel,
                 deckIsSelected,
                 deckIsDuelLegal);
+            FinalizeDeckEditorRequestedLayout();
         }
 
         private Image BuildDeckEditorDetailsPanel()
@@ -2568,7 +2570,7 @@ namespace ArcaneArena.Frontend
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.045f, 0.915f),
-                new Vector2(0.84f, 0.985f),
+                new Vector2(0.82f, 0.985f),
                 TextAnchor.MiddleCenter);
             _deckEditorDetailName.gameObject.name =
                 "NOMECARD";
@@ -2578,11 +2580,8 @@ namespace ArcaneArena.Frontend
                 "Moldura da Arte",
                 new Vector2(0.055f, 0.56f),
                 new Vector2(0.58f, 0.875f),
-                new Color(0.025f, 0.105f, 0.15f, 0.98f));
-            AddOutline(
-                artworkFrame.gameObject,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.95f),
-                new Vector2(4f, -4f));
+                Color.clear);
+            artworkFrame.raycastTarget = false;
             _deckEditorDetailArtwork = CreatePanel(
                 artworkFrame.transform,
                 "Carta Selecionada",
@@ -2613,17 +2612,8 @@ namespace ArcaneArena.Frontend
                 OpenDeckEditorZoom();
             });
 
-            CreateText(
-                panel.transform,
-                "CLIQUE / TOQUE PARA AMPLIAR",
-                10,
-                FontStyle.Bold,
-                Cyan,
-                new Vector2(0.05f, 0.525f),
-                new Vector2(0.95f, 0.558f),
-                TextAnchor.MiddleCenter);
-
             BuildDeckEditorCombatInformation(panel.transform);
+            BuildDeckEditorRelatedCardsButton(panel.transform);
 
             var effectHeader = CreatePanel(
                 panel.transform,
@@ -2781,7 +2771,8 @@ namespace ArcaneArena.Frontend
                     entry.Artwork != null ? Color.white : Color.clear;
                 RefreshBanlistBadge(
                     _deckEditorDetailArtwork.transform,
-                    cardId);
+                    cardId,
+                    true);
             }
             if (_deckEditorDetailName != null)
                 _deckEditorDetailName.text = entry.DisplayName;
@@ -2839,164 +2830,14 @@ namespace ArcaneArena.Frontend
                 AddBanlistBadge(card.transform, cardId);
                 AddCardRarityBadge(slot.transform, entry);
                 var removeIndex = i;
-                var trigger = card.gameObject.AddComponent<EventTrigger>();
-                AddTrigger(
-                    trigger,
-                    EventTriggerType.PointerEnter,
-                    _ => ShowDeckEditorCardDetails(cardId));
-                AddTrigger(
-                    trigger,
-                    EventTriggerType.PointerClick,
-                    eventData =>
-                    {
-                        ShowDeckEditorCardDetails(cardId);
-                        if (eventData is PointerEventData pointer &&
-                            pointer.clickCount >= 2)
-                        {
-                            RemoveCardFromDeck(extraDeck, removeIndex);
-                        }
-                    });
-            }
-        }
-
-        private int PopulateCatalog(Transform parent)
-        {
-            var uniqueIds = new HashSet<string>(StringComparer.Ordinal);
-            var entries = ReadyCatalogEntries();
-            if (_catalogSortDescending)
-                entries.Reverse();
-
-            var filtered = new List<CardCatalogEntry>();
-            foreach (var entry in entries)
-            {
-                if (_catalogFilter != CardCategory.Unknown &&
-                    entry.Category != _catalogFilter)
-                {
-                    continue;
-                }
-
-                var cardId = DeckRepository.StableCardId(entry);
-                var search = _catalogSearch.Trim();
-                if (search.Length > 0 &&
-                    entry.DisplayName.IndexOf(
-                        search,
-                        StringComparison.CurrentCultureIgnoreCase) < 0 &&
-                    entry.TypeName.IndexOf(
-                        search,
-                        StringComparison.CurrentCultureIgnoreCase) < 0 &&
-                    entry.RaceName.IndexOf(
-                        search,
-                        StringComparison.CurrentCultureIgnoreCase) < 0 &&
-                    cardId.IndexOf(
-                        search,
-                        StringComparison.OrdinalIgnoreCase) < 0)
-                {
-                    continue;
-                }
-
-                if (!uniqueIds.Add(cardId))
-                    continue;
-
-                filtered.Add(entry);
-            }
-
-            _catalogMatchCount = filtered.Count;
-            int pageCount = Mathf.Max(
-                1,
-                Mathf.CeilToInt(_catalogMatchCount / (float)CatalogPageSize));
-            _catalogPage = Mathf.Clamp(_catalogPage, 0, pageCount - 1);
-            int first = _catalogPage * CatalogPageSize;
-            int last = Mathf.Min(first + CatalogPageSize, filtered.Count);
-            var visibleCount = 0;
-            for (int index = first; index < last; index++)
-            {
-                CardCatalogEntry entry = filtered[index];
-                string cardId = DeckRepository.StableCardId(entry);
-                Sprite artwork = entry.Artwork;
-                if (artwork == null)
-                    continue;
-
-                Image slot = CreatePanel(
-                    parent,
-                    $"Célula da coleção {cardId}",
-                    Vector2.zero,
-                    Vector2.one,
-                    Color.clear);
-                slot.raycastTarget = false;
-                var card = CreateCardArtwork(
-                    slot.transform,
-                    artwork,
-                    Vector2.zero,
-                    Vector2.one,
-                    0f,
-                    false);
-                AddBanlistBadge(card.transform, cardId);
-                AddCardRarityBadge(slot.transform, entry);
-                var outlineColor = entry.Category == CardCategory.Spell
-                    ? new Color(0.1f, 0.86f, 0.74f, 0.8f)
-                    : entry.Category == CardCategory.Trap
-                        ? new Color(0.9f, 0.24f, 0.64f, 0.8f)
-                        : new Color(Gold.r, Gold.g, Gold.b, 0.75f);
-                AddOutline(
-                    card.gameObject,
-                    outlineColor,
-                    new Vector2(2f, -2f));
-                var ownedCopies = DeckShopCatalog.OwnedCopies(
-                    _repository.State,
-                    cardId);
-                if (ownedCopies == 0)
-                {
-                    var lockOverlay = CreatePanel(
-                        card.transform,
-                        "Carta não adquirida",
-                        Vector2.zero,
-                        Vector2.one,
-                        new Color(0.005f, 0.015f, 0.025f, 0.48f));
-                    lockOverlay.raycastTarget = false;
-                    var lockText = CreateText(
-                        lockOverlay.transform,
-                        "NÃO OBTIDA",
-                        8,
-                        FontStyle.Bold,
-                        new Color(0.78f, 0.84f, 0.88f, 0.92f),
-                        new Vector2(0.05f, 0.04f),
-                        new Vector2(0.63f, 0.18f),
-                        TextAnchor.MiddleLeft);
-                    lockText.raycastTarget = false;
-                }
-                var quantityBadge = CreatePanel(
-                    card.transform,
-                    "Quantidade possuída",
-                    new Vector2(0.72f, 0.02f),
-                    new Vector2(0.98f, 0.18f),
-                    new Color(0.005f, 0.012f, 0.02f, 0.92f));
-                quantityBadge.raycastTarget = false;
-                AddOutline(
-                    quantityBadge.gameObject,
-                    ownedCopies > 0
-                        ? new Color(DeckMint.r, DeckMint.g, DeckMint.b, 0.78f)
-                        : new Color(Muted.r, Muted.g, Muted.b, 0.52f),
-                    new Vector2(1f, -1f));
-                var quantityText = CreateText(
-                    quantityBadge.transform,
-                    $"×{ownedCopies}",
-                    10,
-                    FontStyle.Bold,
-                    ownedCopies > 0 ? Color.white : Muted,
-                    Vector2.zero,
-                    Vector2.one,
-                    TextAnchor.MiddleCenter);
-                quantityText.raycastTarget = false;
-                card.gameObject.AddComponent<DeckEditorCardDrag>()
+                card.gameObject.AddComponent<DeckEditorDeckCardDrag>()
                     .Setup(
                         this,
                         cardId,
-                        artwork,
-                        ownedCopies > 0);
-                visibleCount++;
+                        entry.Artwork,
+                        extraDeck,
+                        removeIndex);
             }
-
-            return visibleCount;
         }
 
         private void ApplyDeckEditorCardTheme(
@@ -3063,37 +2904,12 @@ namespace ArcaneArena.Frontend
 
         private void RebuildCatalog()
         {
-            if (_catalogContent == null)
-                return;
-
-            for (var i = _catalogContent.childCount - 1; i >= 0; i--)
-            {
-                var previous =
-                    _catalogContent.GetChild(i);
-                previous.SetParent(null, false);
-                previous.gameObject.SetActive(false);
-                Destroy(previous.gameObject);
-            }
-            _catalogContent.anchoredPosition = Vector2.zero;
-
-            var visible = PopulateCatalog(_catalogContent);
-            if (_catalogResults != null)
-            {
-                int pageCount = Mathf.Max(
-                    1,
-                    Mathf.CeilToInt(_catalogMatchCount / (float)CatalogPageSize));
-                _catalogResults.text =
-                    $"{_catalogMatchCount} CARTAS  •  PÁGINA {_catalogPage + 1}/{pageCount}  •  " +
-                    $"{visible} EXIBIDAS\n" +
-                    "CLIQUE: DETALHES  •  DUPLO CLIQUE: ADICIONAR";
-                _catalogResults.color = _catalogMatchCount > 0 ? Muted : Gold;
-            }
+            RebuildVirtualCatalog();
         }
 
         private void SetCatalogFilter(CardCategory category)
         {
             _catalogFilter = category;
-            _catalogPage = 0;
             UpdateCatalogFilterVisuals();
             RebuildCatalog();
         }
@@ -3101,7 +2917,6 @@ namespace ArcaneArena.Frontend
         private void ToggleCatalogSort()
         {
             _catalogSortDescending = !_catalogSortDescending;
-            _catalogPage = 0;
             RebuildCatalog();
         }
 
@@ -3110,29 +2925,10 @@ namespace ArcaneArena.Frontend
             _catalogSearch = string.Empty;
             _catalogFilter = CardCategory.Unknown;
             _catalogSortDescending = false;
-            _catalogPage = 0;
+            ClearAdvancedCatalogFilterState();
             if (_catalogSearchInput != null)
                 _catalogSearchInput.SetTextWithoutNotify(string.Empty);
             UpdateCatalogFilterVisuals();
-            RebuildCatalog();
-        }
-
-        private void PreviousCatalogPage()
-        {
-            if (_catalogPage <= 0)
-                return;
-            _catalogPage--;
-            RebuildCatalog();
-        }
-
-        private void NextCatalogPage()
-        {
-            int pageCount = Mathf.Max(
-                1,
-                Mathf.CeilToInt(_catalogMatchCount / (float)CatalogPageSize));
-            if (_catalogPage + 1 >= pageCount)
-                return;
-            _catalogPage++;
             RebuildCatalog();
         }
 
@@ -3192,15 +2988,22 @@ namespace ArcaneArena.Frontend
                 typeof(CanvasGroup));
             ghost.transform.SetParent(_canvas.transform, false);
             _dragGhost = ghost.GetComponent<RectTransform>();
-            _dragGhost.sizeDelta = new Vector2(155f, 225f);
+            _dragGhost.sizeDelta = new Vector2(96f, 140f);
             _dragGhost.pivot = new Vector2(0.5f, 0.5f);
             var image = ghost.GetComponent<Image>();
             image.sprite = sprite;
             image.preserveAspect = true;
             image.raycastTarget = false;
-            ghost.GetComponent<CanvasGroup>().alpha = 0.88f;
+            ghost.GetComponent<CanvasGroup>().alpha = 0.93f;
             AddOutline(ghost, Cyan, new Vector2(4f, -4f));
             MoveCatalogCardDrag(screenPosition);
+        }
+
+        public void BeginDeckCardDrag(
+            Sprite sprite,
+            Vector2 screenPosition)
+        {
+            BeginCatalogCardDrag(string.Empty, sprite, screenPosition);
         }
 
         public void MoveCatalogCardDrag(Vector2 screenPosition)
@@ -3231,14 +3034,32 @@ namespace ArcaneArena.Frontend
                     _mainDropZone,
                     screenPosition))
             {
-                TryAddCardToDeck(cardId, false);
+                Vector2 destination = RectScreenCenter(_mainDropZone);
+                var entry = DeckRepository.ResolveCard(_catalog, cardId);
+                if (TryAddCardToDeck(cardId, false))
+                {
+                    PlayDeckEditorCardTransfer(
+                        entry != null ? entry.Artwork : null,
+                        screenPosition,
+                        destination,
+                        false);
+                }
             }
             else if (_extraDropZone != null &&
                      RectTransformUtility.RectangleContainsScreenPoint(
                          _extraDropZone,
                          screenPosition))
             {
-                TryAddCardToDeck(cardId, true);
+                Vector2 destination = RectScreenCenter(_extraDropZone);
+                var entry = DeckRepository.ResolveCard(_catalog, cardId);
+                if (TryAddCardToDeck(cardId, true))
+                {
+                    PlayDeckEditorCardTransfer(
+                        entry != null ? entry.Artwork : null,
+                        screenPosition,
+                        destination,
+                        false);
+                }
             }
             else if (_editorStatus != null)
             {
@@ -3248,12 +3069,25 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        public void QuickAddCatalogCard(string cardId)
+        public void QuickAddCatalogCard(
+            string cardId,
+            RectTransform sourceRect)
         {
             var entry = DeckRepository.ResolveCard(_catalog, cardId);
-            TryAddCardToDeck(
-                cardId,
-                DeckRepository.BelongsToExtraDeck(entry));
+            bool extraDeck = DeckRepository.BelongsToExtraDeck(entry);
+            RectTransform destination = extraDeck
+                ? _extraDropZone
+                : _mainDropZone;
+            Vector2 start = RectScreenCenter(sourceRect);
+            Vector2 end = RectScreenCenter(destination);
+            if (TryAddCardToDeck(cardId, extraDeck))
+            {
+                PlayDeckEditorCardTransfer(
+                    entry != null ? entry.Artwork : null,
+                    start,
+                    end,
+                    false);
+            }
         }
 
         public void NotifyLockedCatalogCard(string cardId)
@@ -3262,20 +3096,20 @@ namespace ArcaneArena.Frontend
                 _catalog,
                 cardId);
             SetEditorStatus(
-                $"{(entry != null ? entry.DisplayName : "Esta carta")} aparece no catálogo, mas precisa ser adquirida na Loja de Decks.",
+                $"{(entry != null ? entry.DisplayName : "Esta carta")} não foi obtida. Selecione-a e use GERAR para criá-la.",
                 Danger);
         }
 
-        private void TryAddCardToDeck(string cardId, bool targetExtraDeck)
+        private bool TryAddCardToDeck(string cardId, bool targetExtraDeck)
         {
             if (_editingDeck == null)
-                return;
+                return false;
 
             var entry = DeckRepository.ResolveCard(_catalog, cardId);
             if (entry == null)
             {
                 SetEditorStatus("Carta não encontrada no catálogo.", Danger);
-                return;
+                return false;
             }
 
             var belongsToExtra = DeckRepository.BelongsToExtraDeck(entry);
@@ -3286,15 +3120,13 @@ namespace ArcaneArena.Frontend
                         ? "Esta carta pertence ao Deck Adicional."
                         : "Esta carta pertence ao Deck Principal.",
                     Gold);
-                return;
+                return false;
             }
 
             var totalCopies =
                 CountCopies(_editingDeck.mainDeckCardIds, cardId) +
                 CountCopies(_editingDeck.extraDeckCardIds, cardId);
-            var ownedCopies = DeckShopCatalog.OwnedCopies(
-                _repository.State,
-                cardId);
+            var ownedCopies = DeckEditorOwnedCopies(entry, cardId);
             if (totalCopies >= ownedCopies)
             {
                 SetEditorStatus(
@@ -3302,14 +3134,14 @@ namespace ArcaneArena.Frontend
                         ? $"{entry.DisplayName} ainda não foi adquirida na Loja de Decks."
                         : $"Você possui {ownedCopies} cópia(s) de {entry.DisplayName}.",
                     Danger);
-                return;
+                return false;
             }
             if (totalCopies >= CopyLimit)
             {
                 SetEditorStatus(
                     $"Limite de {CopyLimit} cópias atingido.",
                     Danger);
-                return;
+                return false;
             }
 
             var target = targetExtraDeck
@@ -3325,7 +3157,7 @@ namespace ArcaneArena.Frontend
                         ? "O Deck Adicional já possui 15 cartas."
                         : "O Deck Principal já possui 60 cartas.",
                     Danger);
-                return;
+                return false;
             }
 
             var lastMatchingCopy =
@@ -3346,24 +3178,173 @@ namespace ArcaneArena.Frontend
             }
             _editingDeck.RefreshFeaturedCards();
             _repository.Save();
+            SetEditorStatus(
+                $"{entry.DisplayName} foi adicionada ao " +
+                (targetExtraDeck ? "Deck Adicional." : "Deck Principal."),
+                Lime);
             QueueEditorRefresh();
+            return true;
         }
 
-        private void RemoveCardFromDeck(bool extraDeck, int index)
+        public void EndDeckCardDrag(
+            bool extraDeck,
+            int index,
+            Sprite sprite,
+            Vector2 screenPosition)
+        {
+            if (_dragGhost != null)
+                Destroy(_dragGhost.gameObject);
+            _dragGhost = null;
+
+            if (_catalogDropZone == null ||
+                !RectTransformUtility.RectangleContainsScreenPoint(
+                    _catalogDropZone,
+                    screenPosition))
+            {
+                SetEditorStatus(
+                    "Arraste a carta até o catálogo para removê-la do deck.",
+                    Gold);
+                return;
+            }
+
+            Vector2 destination = RectScreenCenter(_catalogDropZone);
+            if (RemoveCardFromDeck(extraDeck, index))
+            {
+                PlayDeckEditorCardTransfer(
+                    sprite,
+                    screenPosition,
+                    destination,
+                    true);
+            }
+        }
+
+        public void QuickRemoveDeckCard(
+            bool extraDeck,
+            int index,
+            Sprite sprite,
+            RectTransform sourceRect)
+        {
+            Vector2 start = RectScreenCenter(sourceRect);
+            Vector2 end = RectScreenCenter(_catalogDropZone);
+            if (RemoveCardFromDeck(extraDeck, index))
+            {
+                PlayDeckEditorCardTransfer(
+                    sprite,
+                    start,
+                    end,
+                    true);
+            }
+        }
+
+        private bool RemoveCardFromDeck(bool extraDeck, int index)
         {
             if (_editingDeck == null)
-                return;
+                return false;
 
             var source = extraDeck
                 ? _editingDeck.extraDeckCardIds
                 : _editingDeck.mainDeckCardIds;
             if (index < 0 || index >= source.Count)
-                return;
+                return false;
 
+            string removedCardId = source[index];
+            CardCatalogEntry removedEntry = DeckRepository.ResolveCard(
+                _catalog,
+                removedCardId);
             source.RemoveAt(index);
             _editingDeck.RefreshFeaturedCards();
             _repository.Save();
+            SetEditorStatus(
+                $"{(removedEntry != null ? removedEntry.DisplayName : "Carta")} foi removida do deck.",
+                Lime);
             QueueEditorRefresh();
+            return true;
+        }
+
+        private static Vector2 RectScreenCenter(RectTransform rect)
+        {
+            if (rect == null)
+                return Vector2.zero;
+            return RectTransformUtility.WorldToScreenPoint(
+                null,
+                rect.TransformPoint(rect.rect.center));
+        }
+
+        private void PlayDeckEditorCardTransfer(
+            Sprite sprite,
+            Vector2 startScreen,
+            Vector2 endScreen,
+            bool removing)
+        {
+            if (sprite == null || _canvasRect == null)
+                return;
+            StartCoroutine(
+                AnimateDeckEditorCardTransfer(
+                    sprite,
+                    startScreen,
+                    endScreen,
+                    removing));
+        }
+
+        private IEnumerator AnimateDeckEditorCardTransfer(
+            Sprite sprite,
+            Vector2 startScreen,
+            Vector2 endScreen,
+            bool removing)
+        {
+            var transfer = new GameObject(
+                removing ? "Carta Removida" : "Carta Adicionada",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(CanvasGroup));
+            transfer.transform.SetParent(_canvas.transform, false);
+            transfer.transform.SetAsLastSibling();
+            RectTransform rect = transfer.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(110f, 160f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            Image image = transfer.GetComponent<Image>();
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            CanvasGroup group = transfer.GetComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            AddOutline(
+                transfer,
+                removing ? Gold : Cyan,
+                new Vector2(3f, -3f));
+
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                _canvasRect,
+                startScreen,
+                null,
+                out Vector2 start);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                _canvasRect,
+                endScreen,
+                null,
+                out Vector2 end);
+
+            const float duration = 0.20f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float linear = Mathf.Clamp01(elapsed / duration);
+                float eased = linear * linear * (3f - 2f * linear);
+                rect.anchoredPosition = Vector2.LerpUnclamped(
+                    start,
+                    end,
+                    eased);
+                float pulse = Mathf.Sin(linear * Mathf.PI) * 0.12f;
+                float finalScale = removing ? 0.58f : 0.72f;
+                float scale = Mathf.Lerp(1f, finalScale, eased) + pulse;
+                rect.localScale = Vector3.one * scale;
+                group.alpha = 1f - Mathf.Clamp01((linear - 0.62f) / 0.38f);
+                yield return null;
+            }
+
+            Destroy(transfer);
         }
 
         private void QueueEditorRefresh()
@@ -3378,8 +3359,84 @@ namespace ArcaneArena.Frontend
         {
             yield return null;
             _editorRefreshQueued = false;
-            if (_editingDeck != null)
-                ShowDeckEditor(_editingDeck);
+            RefreshDeckEditorComposition();
+        }
+
+        private void RefreshDeckEditorComposition()
+        {
+            if (_editingDeck == null ||
+                _mainDeckContent == null ||
+                _extraDeckContent == null)
+            {
+                return;
+            }
+
+            RebuildDeckEditorSection(
+                _mainDeckContent,
+                _editingDeck.mainDeckCardIds,
+                false);
+            RebuildDeckEditorSection(
+                _extraDeckContent,
+                _editingDeck.extraDeckCardIds,
+                true);
+
+            if (_mainDeckCountText != null)
+            {
+                _mainDeckCountText.text =
+                    $"DECK PRINCIPAL   {_editingDeck.mainDeckCardIds.Count}";
+            }
+            if (_mainDeckLimitText != null)
+            {
+                _mainDeckLimitText.text =
+                    $"{MainDeckMinimum}–{MainDeckMaximum} CARTAS";
+                _mainDeckLimitText.color =
+                    _editingDeck.mainDeckCardIds.Count >= MainDeckMinimum
+                        ? Lime
+                        : Gold;
+            }
+            if (_extraDeckCountText != null)
+            {
+                _extraDeckCountText.text =
+                    $"DECK ADICIONAL   {_editingDeck.extraDeckCardIds.Count} / " +
+                    ExtraDeckMaximum;
+            }
+        }
+
+        private void RebuildDeckEditorSection(
+            RectTransform content,
+            List<string> cardIds,
+            bool extraDeck)
+        {
+            for (int index = content.childCount - 1; index >= 0; index--)
+            {
+                Transform child = content.GetChild(index);
+                child.SetParent(null, false);
+                child.gameObject.SetActive(false);
+                Destroy(child.gameObject);
+            }
+
+            GridLayoutGroup grid = content.GetComponent<GridLayoutGroup>();
+            if (grid != null)
+            {
+                grid.cellSize = extraDeck
+                    ? CalculateResponsiveDeckCellSize(
+                        cardIds.Count,
+                        10,
+                        740f,
+                        212f,
+                        new Vector2(64f, 93f),
+                        new Vector2(4f, 4f))
+                    : CalculateResponsiveDeckCellSize(
+                        MainDeckMaximum,
+                        MainDeckGridColumns,
+                        740f,
+                        493f,
+                        new Vector2(72f, 105f),
+                        new Vector2(4f, 4f));
+            }
+
+            PopulateDeckSection(content, cardIds, extraDeck);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
         }
 
         private void SetEditorStatus(string message, Color color)
@@ -4528,7 +4585,6 @@ namespace ArcaneArena.Frontend
             content.pivot = new Vector2(0.5f, 1f);
             content.offsetMin = new Vector2(12f, 0f);
             content.offsetMax = new Vector2(-30f, 0f);
-
             var grid = contentObject.GetComponent<GridLayoutGroup>();
             grid.cellSize = cellSize;
             grid.spacing = spacing;
@@ -4536,6 +4592,8 @@ namespace ArcaneArena.Frontend
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = Mathf.Max(1, columns);
             grid.childAlignment = TextAnchor.UpperCenter;
+            grid.startAxis = GridLayoutGroup.Axis.Horizontal;
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
 
             var fitter = contentObject.GetComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -4578,6 +4636,44 @@ namespace ArcaneArena.Frontend
             scroll.verticalScrollbarVisibility =
                 ScrollRect.ScrollbarVisibility.Permanent;
             return content;
+        }
+
+        private static void ApplyDeckEditorCatalogScrollbarStyle(
+            RectTransform viewport)
+        {
+            Transform trackTransform = FindDescendantByName(
+                viewport,
+                "Barra de Rolagem");
+            Image track = trackTransform != null
+                ? trackTransform.GetComponent<Image>()
+                : null;
+            if (track != null)
+                track.color = Hex("#001820");
+
+            Transform handleTransform = FindDescendantByName(
+                trackTransform,
+                "Alça");
+            Image handle = handleTransform != null
+                ? handleTransform.GetComponent<Image>()
+                : null;
+            if (handle == null)
+                return;
+
+            handle.color = Hex("#21DDEF");
+            AddOutline(
+                handle.gameObject,
+                new Color(0.82f, 0.98f, 1f, 0.88f),
+                new Vector2(1f, -1f));
+            Scrollbar scrollbar = trackTransform.GetComponent<Scrollbar>();
+            if (scrollbar == null)
+                return;
+            ColorBlock colors = scrollbar.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = Hex("#A5F6FF");
+            colors.pressedColor = Hex("#00AFC7");
+            colors.selectedColor = Hex("#6CEBFA");
+            colors.fadeDuration = 0.08f;
+            scrollbar.colors = colors;
         }
 
         private static Image CreateCatalogControlButton(
@@ -4940,6 +5036,7 @@ namespace ArcaneArena.Frontend
             StopMainMenuConnectionMonitor();
             _duelMenuOverlay = null;
             _duelMenuContent = null;
+            ReleaseVirtualCatalogView();
             _deckEditorSelectedCardId = string.Empty;
             if (_mainMenuSceneView != null)
                 _mainMenuSceneView.SetMainMenuVisible(false);
@@ -4950,9 +5047,14 @@ namespace ArcaneArena.Frontend
             }
             _mainDropZone = null;
             _extraDropZone = null;
+            _catalogDropZone = null;
+            _mainDeckContent = null;
+            _extraDeckContent = null;
             _catalogContent = null;
+            _mainDeckCountText = null;
+            _mainDeckLimitText = null;
+            _extraDeckCountText = null;
             _editorStatus = null;
-            _catalogResults = null;
             _catalogSearchInput = null;
             _deckEditorDetailArtwork = null;
             _deckEditorCardHeader = null;
@@ -4962,7 +5064,6 @@ namespace ArcaneArena.Frontend
             _deckEditorZoomViewer = null;
             _deckEditorDetailName = null;
             _deckEditorDetailType = null;
-            _deckEditorDetailStats = null;
             _deckEditorDetailEffect = null;
             _starterClaimModal = null;
             _deckDeleteModal = null;
@@ -5004,6 +5105,15 @@ namespace ArcaneArena.Frontend
                     right.DisplayName,
                     StringComparison.CurrentCultureIgnoreCase));
             return entries;
+        }
+
+        private int DeckEditorOwnedCopies(
+            CardCatalogEntry entry,
+            string cardId)
+        {
+            return entry != null && _repository != null
+                ? _repository.OwnedCardQuantity(cardId)
+                : 0;
         }
 
         private static int CountCopies(

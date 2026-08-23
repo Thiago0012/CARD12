@@ -50,7 +50,13 @@ namespace ArcaneArena.StoryRoguelite
         public List<string> enemyExtraDeck = new();
         public int playerLifePoints;
         public int opponentLifePoints;
+        public int playerOpeningHandSize = 5;
         public string dialogueLine;
+        public bool nestedRandomEventDuel;
+        public string sourceEventOperationId;
+        public int eventVictoryFragments;
+        public bool suppressAccountCoins;
+        public bool suppressRelicDrop;
         public bool resultCommitted;
         public byte winner = byte.MaxValue;
 
@@ -71,6 +77,8 @@ namespace ArcaneArena.StoryRoguelite
         public int rerollCount;
         public int fragmentsAwarded;
         public int accountCoinsAwarded;
+        public int maximumClaims = 1;
+        public bool completeRandomEventOnClaim;
         public bool claimed;
     }
 
@@ -107,7 +115,7 @@ namespace ArcaneArena.StoryRoguelite
     [Serializable]
     public sealed class StoryRunSave
     {
-        public int schemaVersion = 2;
+        public int schemaVersion = 3;
         public int generatorVersion = StoryProceduralMapGenerator.GeneratorVersion;
         public string runId;
         public long seed;
@@ -124,6 +132,8 @@ namespace ArcaneArena.StoryRoguelite
         public List<string> extraDeck = new();
         public List<string> reserveCards = new();
         public List<string> artifacts = new();
+        public List<StoryRelicRuntimeState> relicStates = new();
+        public int relicSchemaVersion = 1;
         public List<string> defeatedNpcIds = new();
         public List<string> storyFlags = new();
         public List<string> resolvedOperationIds = new();
@@ -135,6 +145,12 @@ namespace ArcaneArena.StoryRoguelite
         public StoryEncounterDefinition pendingEncounter;
         public StoryPendingReward pendingReward;
         public StoryPendingChoice pendingChoice;
+        public StoryPendingRelicReward pendingRelicReward;
+        public StoryPendingRelicReplacement pendingRelicReplacement;
+        public StoryPendingRandomEvent pendingRandomEvent;
+        public List<StoryRandomEventHistoryEntry> randomEventHistory = new();
+        public StoryNextDuelModifiers nextDuelModifiers = new();
+        public List<string> revealedNodeIds = new();
         public string activeDuelEncounterId;
         public long activeDuelStartedUtcTicks;
         public string profileId;
@@ -255,11 +271,17 @@ namespace ArcaneArena.StoryRoguelite
             save.extraDeck ??= new List<string>();
             save.reserveCards ??= new List<string>();
             save.artifacts ??= new List<string>();
+            save.relicStates ??= new List<StoryRelicRuntimeState>();
             save.defeatedNpcIds ??= new List<string>();
             save.storyFlags ??= new List<string>();
             save.resolvedOperationIds ??= new List<string>();
             save.pendingAccountCoinRewards ??=
                 new List<StoryAccountCoinReward>();
+            save.randomEventHistory ??=
+                new List<StoryRandomEventHistoryEntry>();
+            save.nextDuelModifiers ??= new StoryNextDuelModifiers();
+            save.nextDuelModifiers.sourceOperationIds ??= new List<string>();
+            save.revealedNodeIds ??= new List<string>();
             save.pendingAccountCoinRewards.RemoveAll(reward =>
                 reward == null || string.IsNullOrWhiteSpace(
                     reward.operationId) || reward.amount <= 0);
@@ -289,6 +311,36 @@ namespace ArcaneArena.StoryRoguelite
                 if (string.IsNullOrWhiteSpace(save.pendingChoice.choiceId))
                     save.pendingChoice = null;
             }
+            if (save.pendingRelicReward != null)
+            {
+                save.pendingRelicReward.relicIds ??= new List<string>();
+                if (string.IsNullOrWhiteSpace(
+                        save.pendingRelicReward.operationId))
+                    save.pendingRelicReward = null;
+            }
+            if (save.pendingRelicReplacement != null)
+            {
+                save.pendingRelicReplacement.eligibleRelicIds ??=
+                    new List<string>();
+                if (string.IsNullOrWhiteSpace(
+                        save.pendingRelicReplacement.operationId))
+                    save.pendingRelicReplacement = null;
+            }
+            if (save.pendingRandomEvent != null)
+            {
+                save.pendingRandomEvent.generatedCardIds ??=
+                    new List<string>();
+                save.pendingRandomEvent.generatedNpcIds ??=
+                    new List<string>();
+                save.pendingRandomEvent.preRolledValues ??=
+                    new List<double>();
+                save.pendingRandomEvent.options ??=
+                    new List<StoryRandomEventOption>();
+                if (string.IsNullOrWhiteSpace(
+                        save.pendingRandomEvent.operationId))
+                    save.pendingRandomEvent = null;
+            }
+            StoryRelicService.MigrateLegacyArtifacts(save);
             if (string.IsNullOrWhiteSpace(save.activeDuelEncounterId))
             {
                 save.activeDuelEncounterId = string.Empty;
@@ -403,25 +455,54 @@ namespace ArcaneArena.StoryRoguelite
 
     public static class StoryRewardService
     {
+        public static IReadOnlyList<CardCatalogEntry> EligibleEntries(
+            CardCatalog catalog,
+            bool spellTrapOnly = false,
+            CardCategory? requiredCategory = null)
+        {
+            IEnumerable<CardCatalogEntry> entries = catalog?.Entries ??
+                Array.Empty<CardCatalogEntry>();
+            return entries
+                .Where(entry => entry != null &&
+                    entry.IsReadyForGameplay && entry.IsCollectible)
+                .Where(entry => !spellTrapOnly ||
+                    entry.Category == CardCategory.Spell ||
+                    entry.Category == CardCategory.Trap)
+                .Where(entry => !requiredCategory.HasValue ||
+                    entry.Category == requiredCategory.Value)
+                .Where(entry => !string.IsNullOrWhiteSpace(
+                    entry.OfficialCardId))
+                .Where(entry => BanlistService.Active.MaximumCopies(
+                    entry.OfficialCardId) > 0)
+                .GroupBy(entry => entry.OfficialCardId,
+                    StringComparer.Ordinal)
+                .Select(group => group.First())
+                .OrderBy(entry => entry.OfficialCardId,
+                    StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        public static bool HasEligibleCards(
+            CardCatalog catalog,
+            params CardCategory[] categories)
+        {
+            IReadOnlyList<CardCatalogEntry> entries = EligibleEntries(catalog);
+            return categories == null || categories.Length == 0
+                ? entries.Count > 0
+                : entries.Any(entry => categories.Contains(entry.Category));
+        }
+
         public static List<string> PickCardChoices(
             long seed,
             string rewardId,
             CardCatalog catalog,
             int count = 3,
-            bool spellTrapOnly = false)
+            bool spellTrapOnly = false,
+            CardCategory? requiredCategory = null)
         {
-            IEnumerable<CardCatalogEntry> ready = catalog?.Entries ??
-                Array.Empty<CardCatalogEntry>();
-            List<CardCatalogEntry> candidates = ready
-                .Where(entry => entry != null && entry.IsReadyForGameplay)
-                .Where(entry => !spellTrapOnly ||
-                    entry.Category == CardCategory.Spell ||
-                    entry.Category == CardCategory.Trap)
-                .Where(entry => !string.IsNullOrWhiteSpace(entry.OfficialCardId))
-                .Where(entry => BanlistService.Active.MaximumCopies(
-                    entry.OfficialCardId) > 0)
-                .GroupBy(entry => entry.OfficialCardId, StringComparer.Ordinal)
-                .Select(group => group.First())
+            count = Math.Max(0, count);
+            List<CardCatalogEntry> candidates = EligibleEntries(
+                    catalog, spellTrapOnly, requiredCategory)
                 .ToList();
             if (candidates.Count == 0)
             {
@@ -464,7 +545,7 @@ namespace ArcaneArena.StoryRoguelite
         }
     }
 
-    public sealed class StoryRunManager
+    public sealed partial class StoryRunManager
     {
         public static readonly StoryRuleProfile Rules = new();
         private readonly StoryRunPersistence persistence;
@@ -502,21 +583,28 @@ namespace ArcaneArena.StoryRoguelite
         public StoryMapNodeRecord CurrentNode => CurrentMap?.Node(
             Save?.currentNodeId);
         public bool HasActiveRun => Save?.status == StoryRunStatus.Active;
-        public int MaxSeals => Rules.sealsAtRunStart +
-            (HasArtifact("reinforced-seal") ? 1 : 0);
+        public int MaxSeals => StoryRelicService.MaxSeals(Save);
         public IReadOnlyList<StoryAccountCoinReward> PendingAccountCoinRewards =>
             Save?.pendingAccountCoinRewards?.ToArray() ??
             Array.Empty<StoryAccountCoinReward>();
         public string SelectedNodeId { get; private set; }
-        public int PlayerStartingLifePoints => lifePoints != null
-            ? lifePoints.playerLifePoints
-            : Rules.playerStartingLifePoints;
+        public int PlayerStartingLifePoints => StoryRelicService
+            .PlayerStartingLifePoints(
+                Save,
+                lifePoints != null
+                    ? lifePoints.playerLifePoints
+                    : Rules.playerStartingLifePoints,
+                0);
 
-        public int ResolveEnemyLifePoints(RogueliteNodeType type, int act) =>
-            lifePoints != null
+        public int ResolveEnemyLifePoints(RogueliteNodeType type, int act)
+        {
+            int baseLifePoints = lifePoints != null
                 ? lifePoints.ResolveEnemyLifePoints(type, act)
                 : StoryEncounterLpProfile.ResolveOfficialEnemyLifePoints(
                     type, act);
+            return StoryRelicService.OpponentStartingLifePoints(
+                Save, type, baseLifePoints, 0);
+        }
 
         public StoryRunSave StartNew(
             long seed,
@@ -668,29 +756,37 @@ namespace ArcaneArena.StoryRoguelite
 
             RogueliteNodeType type = runtime.NodeType;
             if (IsCombat(type)) return EnsureEncounter(type);
-            if (Save.pendingReward != null || Save.pendingChoice != null)
+            if (Save.pendingReward != null || Save.pendingChoice != null ||
+                Save.pendingRelicReward != null ||
+                Save.pendingRelicReplacement != null ||
+                Save.pendingRandomEvent != null)
                 return null;
 
             switch (type)
             {
                 case RogueliteNodeType.CardPack:
-                    CreateReward("PACOTE DE CARTAS", 5);
+                    CreateReward("PACOTE DE CARTAS",
+                        StoryRelicService.CardPackChoiceCount(Save));
                     break;
                 case RogueliteNodeType.SpellRuins:
                     CreateReward(
                         "RUÍNAS DE MAGIAS E ARMADILHAS",
-                        3,
+                        StoryRelicService.SpellRuinsChoiceCount(Save),
                         false,
                         true);
                     break;
                 case RogueliteNodeType.TreasureVault:
                     CreateReward("COFRE DO TESOURO", 3);
+                    Save.fragments += StoryRelicService.VaultFragmentBonus(
+                        Save);
                     break;
                 case RogueliteNodeType.CardMerchant:
-                    CreateReward("MERCADOR DE CARTAS", 5, true);
+                    CreateReward("MERCADOR DE CARTAS",
+                        StoryRelicService.MerchantChoiceCount(Save), true);
                     break;
                 case RogueliteNodeType.RelicShrine:
-                    CreateRelicChoice();
+                    Save.pendingRelicReward =
+                        StoryRelicRewardResolver.ResolveShrine(Save);
                     break;
                 case RogueliteNodeType.DeckWorkshop:
                 case RogueliteNodeType.DeckForge:
@@ -713,23 +809,41 @@ namespace ArcaneArena.StoryRoguelite
                     break;
                 case RogueliteNodeType.HealingSpring:
                 case RogueliteNodeType.RestCamp:
-                    CreateChoice(
-                        "PAUSA SEGURA",
-                        "A rota oferece um breve momento de recuperação.",
-                        new StoryChoiceOption
-                        {
-                            optionId = "rest-seal",
-                            label = "RESTAURAR SELO",
-                            description = "Recupere 1 selo.",
-                            sealDelta = 1
-                        },
-                        new StoryChoiceOption
-                        {
-                            optionId = "rest-fragments",
-                            label = "PROCURAR FRAGMENTOS",
-                            description = "Receba 2 fragmentos.",
-                            fragmentDelta = 2
-                        });
+                    if (type == RogueliteNodeType.HealingSpring &&
+                        StoryRelicService.HealingSpringBlocked(Save))
+                    {
+                        CreateChoice(
+                            "PAUSA SEGURA",
+                            "A Armadura do Soldado do Lustro Negro impede " +
+                            "a Fonte de restaurar Selos.",
+                            new StoryChoiceOption
+                            {
+                                optionId = "rest-fragments",
+                                label = "PROCURAR FRAGMENTOS",
+                                description = "Receba 2 fragmentos.",
+                                fragmentDelta = 2
+                            });
+                    }
+                    else
+                    {
+                        CreateChoice(
+                            "PAUSA SEGURA",
+                            "A rota oferece um breve momento de recuperação.",
+                            new StoryChoiceOption
+                            {
+                                optionId = "rest-seal",
+                                label = "RESTAURAR SELO",
+                                description = "Recupere 1 selo.",
+                                sealDelta = 1
+                            },
+                            new StoryChoiceOption
+                            {
+                                optionId = "rest-fragments",
+                                label = "PROCURAR FRAGMENTOS",
+                                description = "Receba 2 fragmentos.",
+                                fragmentDelta = 2
+                            });
+                    }
                     break;
                 case RogueliteNodeType.ForbiddenAltar:
                     CreateChoice(
@@ -751,23 +865,18 @@ namespace ArcaneArena.StoryRoguelite
                             description = "Preserve seus recursos."
                         });
                     break;
+                case RogueliteNodeType.MysteryEvent:
+                    Save.pendingRandomEvent = StoryRandomEventService.Resolve(
+                        Save, CurrentMap, catalog);
+                    break;
                 default:
-                    CreateChoice(
-                        "EVENTO MISTERIOSO",
-                        "Uma presença observa seu caminho entre as ruínas.",
-                        new StoryChoiceOption
-                        {
-                            optionId = "mystery-search",
-                            label = "INVESTIGAR",
-                            description = "Receba 3 fragmentos.",
-                            fragmentDelta = 3,
-                            storyFlag = "mystery:investigated"
-                        },
+                    CreateChoice("EVENTO MISTERIOSO",
+                        "A passagem se fecha sem produzir efeito.",
                         new StoryChoiceOption
                         {
                             optionId = "mystery-leave",
-                            label = "NÃO ARRISCAR",
-                            description = "Continue em segurança."
+                            label = "CONTINUAR",
+                            description = "Retorne ao mapa."
                         });
                     break;
             }
@@ -881,14 +990,19 @@ namespace ArcaneArena.StoryRoguelite
             Save.reserveCards.Add(cardId);
             MarkResolved(operationId);
             reward.claimedCardIds.Add(cardId);
-            if (reward.allowMultiple)
+            int maximumClaims = Math.Max(1, reward.maximumClaims);
+            if (reward.allowMultiple ||
+                reward.claimedCardIds.Count < maximumClaims)
             {
                 Persist();
                 return;
             }
             reward.claimed = true;
             Save.pendingReward = null;
-            CompleteCurrentNode();
+            if (reward.completeRandomEventOnClaim)
+                CompletePendingRandomEvent("Carta recebida após o duelo.");
+            else
+                CompleteCurrentNode();
         }
 
         public void FinishPendingReward()
@@ -954,57 +1068,8 @@ namespace ArcaneArena.StoryRoguelite
             encounter.resultCommitted = true;
             encounter.winner = winner;
             MarkResolved(operationId);
-            if (winner == 0)
-            {
-                AddUnique(Save.defeatedNpcIds, encounter.npcId);
-                int fragmentsAwarded = encounter.NodeType switch
-                {
-                    RogueliteNodeType.Boss => 10,
-                    RogueliteNodeType.FinalDuelArena => 8,
-                    RogueliteNodeType.EliteDuel => 5,
-                    _ => 2
-                };
-                if (HasArtifact("duelist-compass") &&
-                    IsHardEncounter(encounter.NodeType))
-                    fragmentsAwarded += 2;
-                Save.fragments += fragmentsAwarded;
-                int accountCoins = AccountCoinReward(encounter);
-                QueueAccountCoinReward(encounter, accountCoins);
-                Save.pendingEncounter = null;
-                if (encounter.NodeType == RogueliteNodeType.Boss)
-                {
-                    CompleteCurrentNode(false);
-                    AdvanceActOrComplete();
-                }
-                else
-                {
-                    CreateReward("RECOMPENSA DE DUELO",
-                        HasArtifact("arcane-archive") ? 4 : 3,
-                        false,
-                        false,
-                        fragmentsAwarded,
-                        accountCoins);
-                    Persist();
-                }
-                return;
-            }
-
-            Save.seals = Math.Max(0, Save.seals - 1);
-            Save.pendingEncounter = null;
-            if (Save.seals <= 0)
-                Save.status = StoryRunStatus.Failed;
-            else if (encounter.NodeType == RogueliteNodeType.Boss)
-            {
-                StoryRuntimeNode boss = RuntimeNode(Save.currentNodeId);
-                if (boss != null)
-                {
-                    boss.resolved = false;
-                    boss.state = RogueliteNodeState.Current;
-                }
-            }
-            else
-                CompleteCurrentNode();
-            Persist();
+            if (winner == 0) HandleExpandedEncounterVictory(encounter);
+            else HandleExpandedEncounterDefeat(encounter);
         }
 
         public bool MarkDuelStarted(
@@ -1053,7 +1118,7 @@ namespace ArcaneArena.StoryRoguelite
         }
 
         public bool HasArtifact(string artifactId) =>
-            Save?.artifacts?.Contains(artifactId, StringComparer.Ordinal) == true;
+            StoryRelicService.Has(Save, artifactId);
 
         public int MerchantRerollCost(StoryPendingReward reward)
         {
@@ -1170,7 +1235,6 @@ namespace ArcaneArena.StoryRoguelite
                 RogueliteNodeType.CardMerchant,
                 RogueliteNodeType.TreasureVault,
                 RogueliteNodeType.RelicShrine,
-                RogueliteNodeType.MysteryEvent,
                 RogueliteNodeType.ForbiddenAltar
             };
             return choices[StoryDeterminism.Index(
@@ -1243,6 +1307,25 @@ namespace ArcaneArena.StoryRoguelite
                     StringComparison.Ordinal));
             deck ??= decks[StoryDeterminism.Index(
                 decks.Count, Save.seed, encounterId, "deck")];
+            bool consumeNextDuelModifiers = type != RogueliteNodeType.Boss &&
+                Save.nextDuelModifiers != null &&
+                Save.nextDuelModifiers.HasAny;
+            int playerDelta = consumeNextDuelModifiers
+                ? Save.nextDuelModifiers.playerStartingLpDelta
+                : 0;
+            int opponentDelta = consumeNextDuelModifiers
+                ? Save.nextDuelModifiers.opponentStartingLpDelta
+                : 0;
+            int openingHandDelta = consumeNextDuelModifiers
+                ? Save.nextDuelModifiers.openingHandDelta
+                : 0;
+            int playerBaseLifePoints = lifePoints != null
+                ? lifePoints.playerLifePoints
+                : Rules.playerStartingLifePoints;
+            int opponentBaseLifePoints = lifePoints != null
+                ? lifePoints.ResolveEnemyLifePoints(type, Save.actIndex)
+                : StoryEncounterLpProfile.ResolveOfficialEnemyLifePoints(
+                    type, Save.actIndex);
             Save.pendingEncounter = new StoryEncounterDefinition
             {
                 encounterId = encounterId,
@@ -1260,12 +1343,18 @@ namespace ArcaneArena.StoryRoguelite
                     deck.mainDeckCardIds, 30),
                 enemyExtraDeck = StoryStarterDeckService.TakeLegalCards(
                     deck.extraDeckCardIds, 15),
-                playerLifePoints = PlayerStartingLifePoints,
-                opponentLifePoints = ResolveEnemyLifePoints(
-                    type, Save.actIndex),
+                playerLifePoints = StoryRelicService.PlayerStartingLifePoints(
+                    Save, playerBaseLifePoints, playerDelta),
+                opponentLifePoints = StoryRelicService
+                    .OpponentStartingLifePoints(
+                        Save, type, opponentBaseLifePoints, opponentDelta),
+                playerOpeningHandSize = Mathf.Clamp(
+                    5 + openingHandDelta, 1, 10),
                 dialogueLine = StoryDialogueService.Create(
                     Save.seed, encounterId, npc, type)
             };
+            if (consumeNextDuelModifiers)
+                Save.nextDuelModifiers.Clear();
             Persist();
             return Save.pendingEncounter;
         }
@@ -1532,6 +1621,9 @@ namespace ArcaneArena.StoryRoguelite
             Save.pendingEncounter = null;
             Save.pendingReward = null;
             Save.pendingChoice = null;
+            Save.pendingRelicReward = null;
+            Save.pendingRelicReplacement = null;
+            Save.pendingRandomEvent = null;
             Save.seals = 0;
             Save.status = StoryRunStatus.Failed;
             Persist();
@@ -1557,7 +1649,7 @@ namespace ArcaneArena.StoryRoguelite
                 0,
                 StoryProceduralMapGenerator.ActCount - 1);
             Save.generatorVersion = StoryProceduralMapGenerator.GeneratorVersion;
-            Save.schemaVersion = Math.Max(2, Save.schemaVersion);
+            Save.schemaVersion = Math.Max(3, Save.schemaVersion);
             Save.generatedMaps = StoryProceduralMapGenerator.GenerateRun(
                 Save.seed);
             Save.mapSequence = Save.generatedMaps.Select(map => map.mapId)
@@ -1567,6 +1659,9 @@ namespace ArcaneArena.StoryRoguelite
             Save.pendingEncounter = null;
             Save.pendingReward = null;
             Save.pendingChoice = null;
+            Save.pendingRelicReward = null;
+            Save.pendingRelicReplacement = null;
+            Save.pendingRandomEvent = null;
             ClearActiveDuelMarker();
             InitializeMap(index);
             Persist();
@@ -1589,6 +1684,9 @@ namespace ArcaneArena.StoryRoguelite
             Save.pendingEncounter = null;
             Save.pendingReward = null;
             Save.pendingChoice = null;
+            Save.pendingRelicReward = null;
+            Save.pendingRelicReplacement = null;
+            Save.pendingRandomEvent = null;
             ClearActiveDuelMarker();
             InitializeMap(Save.mapSequenceIndex);
             Persist();

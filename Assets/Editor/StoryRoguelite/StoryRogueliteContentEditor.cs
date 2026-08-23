@@ -13,6 +13,8 @@ namespace ArcaneArena.EditorTools
         private const string Root = "Assets/Resources/StoryRoguelite";
         private const string Generated = Root + "/Generated";
         private const string NpcFolder = Generated + "/NPCs";
+        private const string RelicFolder = Generated + "/Relics";
+        private const string EventFolder = Generated + "/RandomEvents";
 
         [MenuItem("Tools/Arcane Duel/Story Roguelite/Sincronizar Conteúdo")]
         public static void Synchronize()
@@ -20,6 +22,8 @@ namespace ArcaneArena.EditorTools
             EnsureFolder("Assets/Resources", "StoryRoguelite");
             EnsureFolder(Root, "Generated");
             EnsureFolder(Generated, "NPCs");
+            EnsureFolder(Generated, "Relics");
+            EnsureFolder(Generated, "RandomEvents");
             ConfigureImagesAsSprites(Root + "/NPCs");
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -55,6 +59,9 @@ namespace ArcaneArena.EditorTools
             }
             npcCatalog.Initialize(npcAssets);
             EditorUtility.SetDirty(npcCatalog);
+
+            SynchronizeRelics();
+            SynchronizeRandomEvents();
 
             string lpPath = Generated + "/StoryEncounterLpProfile.asset";
             if (AssetDatabase.LoadAssetAtPath<StoryEncounterLpProfile>(lpPath) ==
@@ -97,6 +104,18 @@ namespace ArcaneArena.EditorTools
                     errors.Add($"{map.mapId} não deve usar imagem de fundo.");
                 ValidateMap(map, errors);
             }
+            AddDuplicateErrors(errors,
+                StoryRelicLibrary.All.Select(relic => relic.relicId),
+                "relíquia");
+            if (StoryRelicLibrary.All.Count != 50)
+                errors.Add($"São esperadas 50 relíquias; encontradas " +
+                    $"{StoryRelicLibrary.All.Count}.");
+            AddDuplicateErrors(errors,
+                StoryRandomEventLibrary.All.Select(entry => entry.eventId),
+                "evento aleatório");
+            if (StoryRandomEventLibrary.All.Count != 15)
+                errors.Add($"São esperados 15 eventos; encontrados " +
+                    $"{StoryRandomEventLibrary.All.Count}.");
 
             if (errors.Count > 0)
                 throw new InvalidDataException(
@@ -104,7 +123,100 @@ namespace ArcaneArena.EditorTools
                     string.Join("\n- ", errors));
             Debug.Log($"[Story Roguelite] Conteúdo válido: " +
                       $"{content.npcs.Count} NPCs e " +
-                      $"{proceduralMaps.Count} atos procedurais sem imagens.");
+                      $"{proceduralMaps.Count} atos procedurais, " +
+                      $"50 relíquias e 15 eventos aleatórios.");
+        }
+
+        private static void SynchronizeRelics()
+        {
+            var assets = new List<StoryRelicDefinition>();
+            foreach (StoryRelicDefinition source in
+                     StoryRelicSpecification.All)
+            {
+                string path = $"{RelicFolder}/{source.relicId}.asset";
+                StoryRelicDefinition asset = AssetDatabase.LoadAssetAtPath<
+                    StoryRelicDefinition>(path);
+                if (asset == null)
+                {
+                    asset = ScriptableObject.CreateInstance<
+                        StoryRelicDefinition>();
+                    AssetDatabase.CreateAsset(asset, path);
+                }
+                EditorUtility.CopySerialized(source, asset);
+                asset.hideFlags = HideFlags.None;
+                asset.name = source.relicId;
+                EditorUtility.SetDirty(asset);
+                assets.Add(asset);
+            }
+
+            string catalogPath = Generated + "/StoryRelicCatalog.asset";
+            StoryRelicCatalog catalog = AssetDatabase.LoadAssetAtPath<
+                StoryRelicCatalog>(catalogPath);
+            if (catalog == null)
+            {
+                catalog = ScriptableObject.CreateInstance<StoryRelicCatalog>();
+                AssetDatabase.CreateAsset(catalog, catalogPath);
+            }
+            catalog.definitions = assets;
+            EditorUtility.SetDirty(catalog);
+
+            string profilePath = Generated + "/StoryRelicDropProfile.asset";
+            if (AssetDatabase.LoadAssetAtPath<StoryRelicDropProfile>(
+                    profilePath) == null)
+            {
+                StoryRelicDropProfile profile = ScriptableObject
+                    .CreateInstance<StoryRelicDropProfile>();
+                AssetDatabase.CreateAsset(profile, profilePath);
+            }
+            StoryRelicLibrary.ClearCache();
+        }
+
+        private static void SynchronizeRandomEvents()
+        {
+            var assets = new List<StoryRandomEventDefinition>();
+            foreach (StoryRandomEventDefinition source in
+                     StoryRandomEventSpecification.All)
+            {
+                string path = $"{EventFolder}/{source.eventId}.asset";
+                StoryRandomEventDefinition asset =
+                    AssetDatabase.LoadAssetAtPath<
+                        StoryRandomEventDefinition>(path);
+                if (asset == null)
+                {
+                    asset = ScriptableObject.CreateInstance<
+                        StoryRandomEventDefinition>();
+                    AssetDatabase.CreateAsset(asset, path);
+                }
+                EditorUtility.CopySerialized(source, asset);
+                asset.hideFlags = HideFlags.None;
+                asset.name = source.eventId;
+                EditorUtility.SetDirty(asset);
+                assets.Add(asset);
+            }
+
+            string catalogPath = Generated +
+                "/StoryRandomEventCatalog.asset";
+            StoryRandomEventCatalog catalog = AssetDatabase.LoadAssetAtPath<
+                StoryRandomEventCatalog>(catalogPath);
+            if (catalog == null)
+            {
+                catalog = ScriptableObject.CreateInstance<
+                    StoryRandomEventCatalog>();
+                AssetDatabase.CreateAsset(catalog, catalogPath);
+            }
+            catalog.definitions = assets;
+            EditorUtility.SetDirty(catalog);
+
+            string profilePath = Generated +
+                "/StoryRandomEventProfile.asset";
+            if (AssetDatabase.LoadAssetAtPath<StoryRandomEventProfile>(
+                    profilePath) == null)
+            {
+                StoryRandomEventProfile profile = ScriptableObject
+                    .CreateInstance<StoryRandomEventProfile>();
+                AssetDatabase.CreateAsset(profile, profilePath);
+            }
+            StoryRandomEventLibrary.ClearCache();
         }
 
         private static void ValidateMap(

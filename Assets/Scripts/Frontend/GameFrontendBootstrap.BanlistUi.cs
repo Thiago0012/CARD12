@@ -7,7 +7,10 @@ namespace ArcaneArena.Frontend
 {
     public sealed partial class GameFrontendBootstrap
     {
-        private static void AddBanlistBadge(Transform cardRoot, string cardId)
+        private static void AddBanlistBadge(
+            Transform cardRoot,
+            string cardId,
+            bool deckEditorDetail = false)
         {
             if (cardRoot == null || IsDuelPresentationScene())
                 return;
@@ -25,6 +28,17 @@ namespace ArcaneArena.Frontend
             badge.sprite = sprite;
             badge.preserveAspect = true;
             badge.raycastTarget = true;
+            if (deckEditorDetail)
+            {
+                ApplyCapturedRectTransform(
+                    badge.rectTransform,
+                    new Vector2(0.02f, 0.72f),
+                    new Vector2(0.39f, 0.98f),
+                    34.86965f,
+                    -6.214104f,
+                    34.86965f,
+                    45.6319f);
+            }
             int maximum = BanlistService.Active.MaximumCopies(cardId);
             badge.gameObject.AddComponent<CardRestrictionBadgeTooltip>()
                 .Initialize(maximum);
@@ -33,7 +47,8 @@ namespace ArcaneArena.Frontend
 
         private static void RefreshBanlistBadge(
             Transform cardRoot,
-            string cardId)
+            string cardId,
+            bool deckEditorDetail = false)
         {
             if (cardRoot == null)
                 return;
@@ -44,7 +59,7 @@ namespace ArcaneArena.Frontend
                 if (item != null)
                     Destroy(item.gameObject);
             }
-            AddBanlistBadge(cardRoot, cardId);
+            AddBanlistBadge(cardRoot, cardId, deckEditorDetail);
         }
 
         private static bool IsDuelPresentationScene()

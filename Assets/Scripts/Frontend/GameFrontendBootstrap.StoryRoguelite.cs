@@ -50,9 +50,19 @@ namespace ArcaneArena.Frontend
                 ShowStoryNpcEncounter(save.pendingEncounter);
                 return;
             }
+            if (save.pendingRelicReward != null)
+            {
+                ShowStoryRelicReward(save.pendingRelicReward);
+                return;
+            }
             if (save.pendingReward != null)
             {
                 ShowStoryReward(save.pendingReward);
+                return;
+            }
+            if (save.pendingRandomEvent != null)
+            {
+                ShowStoryRandomEvent(save.pendingRandomEvent);
                 return;
             }
             if (save.pendingChoice != null)
@@ -350,9 +360,12 @@ namespace ArcaneArena.Frontend
                 StoryRuntimeNode runtime = _storyManager.RuntimeNode(
                     node.nodeId);
                 if (runtime == null) continue;
+                bool mysteryRevealed = _storyManager.HasArtifact(
+                        "marked-map") ||
+                    save.revealedNodeIds.Contains(
+                        node.nodeId, StringComparer.Ordinal);
                 RogueliteNodeType visibleType = node.NodeType ==
-                        RogueliteNodeType.Mystery &&
-                    !_storyManager.HasArtifact("marked-map")
+                        RogueliteNodeType.Mystery && !mysteryRevealed
                         ? RogueliteNodeType.Mystery
                         : runtime.NodeType;
                 Vector2 half = StoryRogueliteUiLayout.NodeHalfSize(
@@ -593,11 +606,19 @@ namespace ArcaneArena.Frontend
                 return;
             }
             StoryMapNodeRecord node = _storyManager.CurrentMap.Node(nodeId);
-            string destinationLabel = node?.publicLabel ?? nodeId;
-            if (node?.NodeType == RogueliteNodeType.Mystery &&
-                _storyManager.HasArtifact("marked-map") && runtime != null)
-                destinationLabel = StoryContentCatalog.PublicNodeLabel(
-                    runtime.NodeType);
+            bool mysteryRevealed = node?.NodeType !=
+                    RogueliteNodeType.Mystery ||
+                _storyManager.HasArtifact("marked-map") ||
+                _storyManager.Save.revealedNodeIds.Contains(
+                    nodeId, StringComparer.Ordinal);
+            RogueliteNodeType displayType = mysteryRevealed && runtime != null
+                ? runtime.NodeType
+                : node?.NodeType ?? RogueliteNodeType.Mystery;
+            string destinationLabel = displayType ==
+                    RogueliteNodeType.Mystery
+                ? StoryContentCatalog.PublicNodeLabel(
+                    RogueliteNodeType.Mystery)
+                : StoryContentCatalog.PublicNodeLabel(displayType);
             string encounterRisk = string.Empty;
             if (runtime != null && StoryRunManager.IsCombat(runtime.NodeType))
             {
@@ -624,8 +645,7 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleCenter);
             CreateText(modal.transform,
                 $"Destino: {destinationLabel}\n\n" +
-                StoryNodeDescription(runtime?.NodeType ??
-                    node?.NodeType ?? RogueliteNodeType.Mystery) +
+                StoryNodeDescription(displayType) +
                 "\n\nA escolha será salva antes do deslocamento." +
                 encounterRisk,
                 17, FontStyle.Normal, Color.white,
@@ -757,7 +777,10 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleLeft);
             CreateText(dialogue.transform,
                 $"LP  {encounter.playerLifePoints:N0}  ×  {encounter.opponentLifePoints:N0}\n" +
-                $"IA  NÍVEL {encounter.aiTier}",
+                $"IA  NÍVEL {encounter.aiTier}" +
+                (_storyManager.HasArtifact("duelist-lens")
+                    ? "\nESTILO  " + encounter.enemyDeckId
+                    : string.Empty),
                 18, FontStyle.Bold, Cyan,
                 new Vector2(0.72f, 0.46f), new Vector2(0.96f, 0.90f),
                 TextAnchor.MiddleCenter);
@@ -847,7 +870,10 @@ namespace ArcaneArena.Frontend
             CreateText(_screenRoot,
                 reward.allowMultiple
                     ? "LOJA TEMPORÁRIA · COMPRE COM FRAGMENTOS ARCANOS"
-                    : "ESCOLHA UMA CARTA · VAI PARA A RESERVA" +
+                    : (Math.Max(1, reward.maximumClaims) > 1
+                        ? $"ESCOLHA {Math.Max(1, reward.maximumClaims)} CARTAS"
+                        : "ESCOLHA UMA CARTA") +
+                      " · VAI PARA A RESERVA" +
                       (reward.fragmentsAwarded > 0 ||
                        reward.accountCoinsAwarded > 0
                           ? $"   ·   +{reward.fragmentsAwarded} FRAGMENTOS" +
@@ -1486,15 +1512,24 @@ namespace ArcaneArena.Frontend
 
         private static string StoryRelicSummary(StoryRunSave save)
         {
-            if (save?.artifacts == null || save.artifacts.Count == 0)
+            IReadOnlyList<StoryRelicRuntimeState> active =
+                StoryRelicService.Active(save);
+            if (active.Count == 0)
                 return "Nenhuma relíquia. Relíquias são melhorias passivas " +
                        "que duram até o fim da run e não ocupam o deck.";
-            return string.Join("\n\n", save.artifacts.Select(artifactId =>
+            return string.Join("\n\n", active.Select(state =>
             {
-                StoryArtifactDefinition definition =
-                    StoryArtifactCatalog.Resolve(artifactId);
+                StoryRelicDefinition definition =
+                    StoryRelicLibrary.Resolve(state.relicId);
+                string charges = definition.initialCharges > 0
+                    ? $" · CARGAS {state.chargesRemaining}/{definition.initialCharges}"
+                    : string.Empty;
+                string unavailable = definition.IsAvailable
+                    ? string.Empty
+                    : "\nINDISPONÍVEL NESTA VERSÃO: " +
+                      definition.disabledReason;
                 return definition.displayName.ToUpperInvariant() + "\n" +
-                       definition.shortEffect;
+                       definition.shortEffect + charges + unavailable;
             }));
         }
 
