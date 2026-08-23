@@ -19,6 +19,10 @@ namespace ArcaneDuel.Tests.EditMode
             @"(?m)^\s*local\s+(TOKEN_[A-Z0-9_]+)\s*=\s*id\s*\+\s*1\s*$",
             RegexOptions.CultureInvariant);
 
+        private static readonly Regex ScriptLiteralToken = new Regex(
+            @"(?m)^\s*(?:local\s+)?(TOKEN_[A-Z0-9_]+)\s*=\s*(\d+)\s*$",
+            RegexOptions.CultureInvariant);
+
         private static readonly Regex CreateToken = new Regex(
             @"Duel\.CreateToken\s*\(\s*[^,]+,\s*" +
             @"(?<dependency>id\s*\+\s*1|\d+|TOKEN_[A-Z0-9_]+)\s*\)",
@@ -70,6 +74,11 @@ namespace ArcaneDuel.Tests.EditMode
                         match => match.Groups[1].Value,
                         _ => checked(scriptCode + 1),
                         StringComparer.Ordinal);
+                foreach (Match literal in ScriptLiteralToken.Matches(script))
+                {
+                    locals[literal.Groups[1].Value] =
+                        uint.Parse(literal.Groups[2].Value);
+                }
                 foreach (Match call in CreateToken.Matches(script))
                 {
                     string expression = call.Groups["dependency"].Value;

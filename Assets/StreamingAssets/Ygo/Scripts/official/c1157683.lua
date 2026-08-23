@@ -53,7 +53,7 @@ function s.select(e,tp,b1,b2)
 	end
 end
 function s.eqfilter1(c)
-	return c:IsFaceup() and c:IsSetCard(SET_CYBERDARK) and c:IsType(TYPE_EFFECT) 
+	return c:IsFaceup() and c:IsSetCard(SET_CYBERDARK) and c:IsType(TYPE_EFFECT)
 		and Duel.IsExistingMatchingCard(s.eqfilter2,0,LOCATION_GRAVE,LOCATION_GRAVE,1,nil)
 end
 function s.eqfilter2(c)
@@ -61,7 +61,7 @@ function s.eqfilter2(c)
 end
 function s.eqtg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return chkc:IsLocation(LOCATION_MZONE) and chkc:IsControler(tp) and s.eqfilter1(chkc) end
-	if chk==0 then return Duel.GetFlagEffect(tp,id)==0 and Duel.GetLocationCount(tp,LOCATION_SZONE)>0 
+	if chk==0 then return Duel.GetFlagEffect(tp,id)==0 and Duel.GetLocationCount(tp,LOCATION_SZONE)>0
 		and Duel.IsExistingTarget(s.eqfilter1,tp,LOCATION_MZONE,0,1,nil) end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)
 	local g=Duel.SelectTarget(tp,s.eqfilter1,tp,LOCATION_MZONE,0,1,1,nil)

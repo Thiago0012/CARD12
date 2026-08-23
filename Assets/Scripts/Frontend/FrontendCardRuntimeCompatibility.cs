@@ -21,7 +21,7 @@ namespace ArcaneArena.Frontend
             bool available =
                 entry != null &&
                 entry.IsReadyForGameplay &&
-                entry.Artwork != null;
+                entry.HasArtwork;
             return new FrontendCardRuntimeProfile
             {
                 CanEnterDuel = available,

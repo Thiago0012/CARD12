@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using ArcaneDuel.DuelEngine.Content;
 using ArcaneDuel.DuelEngine.Data;
 using UnityEngine;
 
@@ -33,6 +35,7 @@ namespace ArcaneArena.Cards
     {
         [SerializeField] private string stableId;
         [SerializeField] private Sprite artwork;
+        [SerializeField] private bool runtimeArtworkAvailable;
         [SerializeField] private string displayName;
         [SerializeField, HideInInspector] private string englishName;
         [SerializeField] private CardArtVariant rarityVariant;
@@ -58,7 +61,14 @@ namespace ArcaneArena.Cards
         [SerializeField, TextArea(2, 6)] private string reviewNotes;
 
         public string StableId => stableId;
-        public Sprite Artwork => artwork;
+        public Sprite Artwork => artwork != null
+            ? artwork
+            : runtimeArtworkAvailable
+                ? RuntimeCardArtworkCache.Load(officialCardId)
+                : null;
+        public Sprite AuthoredArtwork => artwork;
+        public bool HasAuthoredArtwork => artwork != null;
+        public bool HasArtwork => artwork != null || runtimeArtworkAvailable;
         public string DisplayName => displayName;
         public string EnglishName => englishName;
         public CardArtVariant RarityVariant => rarityVariant;
@@ -87,11 +97,13 @@ namespace ArcaneArena.Cards
         public string EffectText => effectText;
         public string ReviewNotes => reviewNotes;
         public bool IsReadyForGameplay => category != CardCategory.Unknown && !needsManualReview;
+        public bool IsCollectible => monsterFrame != MonsterFrameKind.Token;
 
         public CardCatalogEntry(string id, Sprite sprite)
         {
             stableId = id;
             artwork = sprite;
+            runtimeArtworkAvailable = false;
             displayName = FriendlyName(sprite != null ? sprite.name : id);
             englishName = string.Empty;
             rarityVariant = CardArtVariant.Auto;
@@ -122,6 +134,30 @@ namespace ArcaneArena.Cards
             artwork = sprite;
             if (string.IsNullOrWhiteSpace(displayName) && sprite != null)
                 displayName = FriendlyName(sprite.name);
+        }
+
+        public void SetRuntimeArtworkAvailable(bool available)
+        {
+            runtimeArtworkAvailable = available;
+        }
+
+        public void SetRarityVariant(CardArtVariant variant)
+        {
+            rarityVariant = variant;
+            RefreshRarity(variant);
+        }
+
+        public bool MatchesArtwork(Sprite sprite)
+        {
+            if (sprite == null)
+                return false;
+            if (artwork != null)
+                return artwork == sprite;
+            return runtimeArtworkAvailable &&
+                   RuntimeCardArtworkCache.TryGetLoaded(
+                       officialCardId,
+                       out Sprite loaded) &&
+                   loaded == sprite;
         }
 
         public void RefreshGeneratedDisplayName(string assetName)
@@ -299,6 +335,7 @@ namespace ArcaneArena.Cards
 
         private static MonsterFrameKind FrameFrom(uint type)
         {
+            if ((type & 0x4000U) != 0) return MonsterFrameKind.Token;
             if ((type & 0x4000000U) != 0) return MonsterFrameKind.Link;
             if ((type & 0x800000U) != 0) return MonsterFrameKind.Xyz;
             if ((type & 0x2000U) != 0) return MonsterFrameKind.Synchro;
@@ -315,6 +352,7 @@ namespace ArcaneArena.Cards
         {
             if ((type & 0x2U) != 0) return "Carta de Magia";
             if ((type & 0x4U) != 0) return "Carta de Armadilha";
+            if ((type & 0x4000U) != 0) return "Ficha";
             if ((type & 0x200000U) != 0)
                 return "Monstro de Efeito de Virar";
             return frame switch
@@ -395,7 +433,7 @@ namespace ArcaneArena.Cards
         {
             return sprite == null
                 ? null
-                : entries.Find(entry => entry != null && entry.Artwork == sprite);
+                : entries.Find(entry => entry != null && entry.MatchesArtwork(sprite));
         }
 
         public CardCatalogEntry FindByOfficialId(string officialCardId)
@@ -445,6 +483,136 @@ namespace ArcaneArena.Cards
             entries.RemoveAll(entry =>
                 entry == null ||
                 !existingIds.Contains(entry.StableId));
+        }
+    }
+
+    internal static class RuntimeCardArtworkCache
+    {
+        private const int Capacity = 192;
+
+        private sealed class CacheEntry
+        {
+            public Texture2D Texture;
+            public Sprite Sprite;
+            public long Access;
+        }
+
+        private static readonly Dictionary<uint, CacheEntry> Entries = new();
+        private static long accessSequence;
+
+        public static bool TryGetLoaded(
+            string officialCardId,
+            out Sprite sprite)
+        {
+            sprite = null;
+            if (!TryCode(officialCardId, out uint code) ||
+                !Entries.TryGetValue(code, out CacheEntry entry) ||
+                entry?.Sprite == null)
+            {
+                return false;
+            }
+            entry.Access = ++accessSequence;
+            sprite = entry.Sprite;
+            return true;
+        }
+
+        public static Sprite Load(string officialCardId)
+        {
+            if (!TryCode(officialCardId, out uint code))
+                return null;
+            if (Entries.TryGetValue(code, out CacheEntry cached) &&
+                cached?.Sprite != null)
+            {
+                cached.Access = ++accessSequence;
+                return cached.Sprite;
+            }
+
+            string path;
+            try
+            {
+                path = YgoContentLocator.Resolve(
+                    "Art",
+                    code.ToString() + ".jpg");
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"Arte runtime {code:00000000} indisponível: " +
+                    exception.GetBaseException().Message);
+                return null;
+            }
+            if (!File.Exists(path))
+                return null;
+
+            var texture = new Texture2D(
+                2,
+                2,
+                TextureFormat.RGBA32,
+                false)
+            {
+                name = code.ToString("00000000"),
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            if (!ImageConversion.LoadImage(
+                    texture,
+                    File.ReadAllBytes(path),
+                    true))
+            {
+                Destroy(texture);
+                return null;
+            }
+            var sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            sprite.name = code.ToString("00000000");
+            Entries[code] = new CacheEntry
+            {
+                Texture = texture,
+                Sprite = sprite,
+                Access = ++accessSequence
+            };
+            Trim();
+            return sprite;
+        }
+
+        private static bool TryCode(string value, out uint code)
+        {
+            return uint.TryParse(value, out code) && code != 0;
+        }
+
+        private static void Trim()
+        {
+            while (Entries.Count > Capacity)
+            {
+                uint oldestCode = 0;
+                CacheEntry oldest = null;
+                foreach (KeyValuePair<uint, CacheEntry> pair in Entries)
+                {
+                    if (oldest == null || pair.Value.Access < oldest.Access)
+                    {
+                        oldestCode = pair.Key;
+                        oldest = pair.Value;
+                    }
+                }
+                if (oldest == null)
+                    return;
+                Entries.Remove(oldestCode);
+                Destroy(oldest.Sprite);
+                Destroy(oldest.Texture);
+            }
+        }
+
+        private static void Destroy(UnityEngine.Object value)
+        {
+            if (value == null)
+                return;
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(value);
+            else
+                UnityEngine.Object.DestroyImmediate(value);
         }
     }
 }

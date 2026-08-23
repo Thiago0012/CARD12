@@ -75,8 +75,8 @@ namespace ArcaneArena.Editor.AutoPacks
                 }
 
                 snapshot.KnownCardIds.Add(cardId);
-                string artPath = entry.Artwork != null
-                    ? AssetDatabase.GetAssetPath(entry.Artwork)
+                string artPath = entry.AuthoredArtwork != null
+                    ? AssetDatabase.GetAssetPath(entry.AuthoredArtwork)
                     : string.Empty;
                 bool excludedPath = settings.ExcludedPathTokens.Any(token =>
                     !string.IsNullOrWhiteSpace(token) &&
@@ -87,11 +87,17 @@ namespace ArcaneArena.Editor.AutoPacks
                 bool token = coreExists && (card.Type & TokenType) != 0;
                 bool eligible = entry.OfficiallyRegistered &&
                     entry.IsReadyForGameplay && coreExists && !token &&
-                    !excludedPath && entry.Artwork != null;
+                    !excludedPath && entry.HasAuthoredArtwork;
 
                 string state = eligible ? "eligible" : "excluded";
                 if (entry.OfficiallyRegistered && entry.IsReadyForGameplay &&
-                    coreExists && !token && !excludedPath && entry.Artwork == null)
+                    coreExists && !token && !excludedPath &&
+                    entry.HasArtwork && !entry.HasAuthoredArtwork)
+                {
+                    state = "excluded-streaming-art";
+                }
+                else if (entry.OfficiallyRegistered && entry.IsReadyForGameplay &&
+                    coreExists && !token && !excludedPath && !entry.HasArtwork)
                 {
                     snapshot.DeferredCardIds.Add(cardId);
                     state = "deferred-art";

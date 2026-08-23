@@ -272,8 +272,8 @@ namespace ArcaneArena.Editor.CardAudit
             bool scriptRequired = inDatabase &&
                 DuelContentValidator.RequiresScript(record);
             ScriptResolution script = ResolveCardScript(code, scriptRequired);
-            string assetArtwork = entry.Artwork != null
-                ? AssetDatabase.GetAssetPath(entry.Artwork)
+            string assetArtwork = entry.AuthoredArtwork != null
+                ? AssetDatabase.GetAssetPath(entry.AuthoredArtwork)
                 : string.Empty;
             string streamingArtwork = inVisuals && visual != null
                 ? CombineProjectPath("Assets/StreamingAssets/Ygo/Art", visual.artFile)

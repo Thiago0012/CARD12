@@ -23,7 +23,34 @@ namespace ArcaneDuel.DuelEngine.Core
 
     public sealed class DuelConfiguration
     {
-        public uint StartingLifePoints { get; set; } = 8000;
+        private uint playerStartingLifePoints = 8000;
+        private uint opponentStartingLifePoints = 8000;
+
+        /// <summary>
+        /// Legacy symmetric LP setting. Setting it preserves the standard
+        /// duel behavior by updating both logical duelists.
+        /// </summary>
+        public uint StartingLifePoints
+        {
+            get => playerStartingLifePoints;
+            set
+            {
+                playerStartingLifePoints = value;
+                opponentStartingLifePoints = value;
+            }
+        }
+
+        public uint PlayerStartingLifePoints
+        {
+            get => playerStartingLifePoints;
+            set => playerStartingLifePoints = value;
+        }
+
+        public uint OpponentStartingLifePoints
+        {
+            get => opponentStartingLifePoints;
+            set => opponentStartingLifePoints = value;
+        }
         public uint StartingHand { get; set; } = 5;
         public uint DrawPerTurn { get; set; } = 1;
         /// <summary>
@@ -237,8 +264,16 @@ namespace ArcaneDuel.DuelEngine.Core
                     Seed3 = SplitMix64(ref seedState),
                     Flags = RuleFlagsFor(configuration.RuleProfile) |
                             (configuration.SimpleOpponentAi ? SimpleAi : 0),
-                    Team1 = Player(configuration),
-                    Team2 = Player(configuration),
+                    Team1 = Player(
+                        configuration,
+                        configuration.StartingPlayer == 1
+                            ? configuration.OpponentStartingLifePoints
+                            : configuration.PlayerStartingLifePoints),
+                    Team2 = Player(
+                        configuration,
+                        configuration.StartingPlayer == 1
+                            ? configuration.PlayerStartingLifePoints
+                            : configuration.OpponentStartingLifePoints),
                     CardReader = cardReader,
                     CardReaderPayload = payload,
                     ScriptReader = scriptReader,
@@ -734,7 +769,8 @@ namespace ArcaneDuel.DuelEngine.Core
                 Message = CoreMessage.Start,
                 RawMessage = (byte)CoreMessage.Start,
                 Player = configuration.StartingPlayer,
-                Value = configuration.StartingLifePoints,
+                Value = configuration.PlayerStartingLifePoints,
+                OpponentValue = configuration.OpponentStartingLifePoints,
                 Detail = "Duelo iniciado pelo ocgcore"
             });
             Process();
@@ -910,11 +946,13 @@ namespace ArcaneDuel.DuelEngine.Core
             EventReceived?.Invoke(duelEvent);
         }
 
-        private static OcgPlayer Player(DuelConfiguration configuration)
+        private static OcgPlayer Player(
+            DuelConfiguration configuration,
+            uint startingLifePoints)
         {
             return new OcgPlayer
             {
-                StartingLifePoints = configuration.StartingLifePoints,
+                StartingLifePoints = startingLifePoints,
                 StartingDrawCount = configuration.StartingHand,
                 DrawCountPerTurn = configuration.DrawPerTurn
             };

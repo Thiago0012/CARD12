@@ -376,7 +376,10 @@ namespace ArcaneDuel.DuelEngine.State
             switch (duelEvent.Message)
             {
                 case CoreMessage.Start:
-                    Players[0].LifePoints = Players[1].LifePoints = (int)duelEvent.Value;
+                    Players[0].LifePoints = (int)duelEvent.Value;
+                    Players[1].LifePoints = (int)(duelEvent.OpponentValue > 0
+                        ? duelEvent.OpponentValue
+                        : duelEvent.Value);
                     AddLog("O duelo começou. Regras Mestre 5 ativas.");
                     break;
                 case CoreMessage.NewTurn:

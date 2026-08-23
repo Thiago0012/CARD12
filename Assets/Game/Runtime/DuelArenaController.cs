@@ -1894,7 +1894,10 @@ namespace ArcaneDuel.Game
             uint[] playerExtra,
             uint[] opponentMain,
             uint[] opponentExtra,
-            byte startingPlayer = 0)
+            byte startingPlayer = 0,
+            int minimumMainDeckSize = 40,
+            uint playerStartingLifePoints = 8000,
+            uint opponentStartingLifePoints = 8000)
         {
             completionNotified = false;
             presentationDecisionLocked = false;
@@ -1912,13 +1915,14 @@ namespace ArcaneDuel.Game
                         ? "O banco de cartas ainda não foi inicializado."
                         : $"O banco de cartas não pôde ser inicializado: {InitializationFailure}");
             }
-            if (playerMain == null || playerMain.Length < 40)
+            int requiredMain = Math.Max(1, minimumMainDeckSize);
+            if (playerMain == null || playerMain.Length < requiredMain)
                 throw new ArgumentException(
-                    "O Deck Principal do jogador precisa ter ao menos 40 cartas.",
+                    $"O Deck Principal do jogador precisa ter ao menos {requiredMain} cartas.",
                     nameof(playerMain));
-            if (opponentMain == null || opponentMain.Length < 40)
+            if (opponentMain == null || opponentMain.Length < requiredMain)
                 throw new ArgumentException(
-                    "O Deck Principal do oponente precisa ter ao menos 40 cartas.",
+                    $"O Deck Principal do oponente precisa ter ao menos {requiredMain} cartas.",
                     nameof(opponentMain));
 
             if (engine != null)
@@ -1957,6 +1961,10 @@ namespace ArcaneDuel.Game
             configuration.StartingPlayer = startingPlayer > 0
                 ? (byte)1
                 : (byte)0;
+            configuration.PlayerStartingLifePoints =
+                Math.Max(1u, playerStartingLifePoints);
+            configuration.OpponentStartingLifePoints =
+                Math.Max(1u, opponentStartingLifePoints);
             configuration.SimpleOpponentAi = false;
             tacticalOpponent.Configure(
                 BotRuntimeSelection.CurrentProfile,

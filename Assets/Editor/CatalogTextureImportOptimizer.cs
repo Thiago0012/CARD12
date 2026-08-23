@@ -22,9 +22,9 @@ namespace ArcaneArena.Editor
             var paths = new HashSet<string>();
             foreach (CardCatalogEntry entry in catalog.Entries)
             {
-                if (entry?.Artwork == null)
+                if (entry?.AuthoredArtwork == null)
                     continue;
-                string path = AssetDatabase.GetAssetPath(entry.Artwork);
+                string path = AssetDatabase.GetAssetPath(entry.AuthoredArtwork);
                 if (!string.IsNullOrWhiteSpace(path))
                     paths.Add(path);
             }

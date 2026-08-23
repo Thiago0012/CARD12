@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using ArcaneArena.Cards;
 using ArcaneArena.Frontend;
 using ArcaneArena.Presentation;
@@ -1003,10 +1004,21 @@ namespace ArcaneArena.Multiplayer
                 {
                     if (catalog == null)
                         continue;
-                    foreach (CardCatalogEntry entry in catalog.Entries)
+                    CardCatalogEntry[] candidates = catalog.Entries
+                        .Where(entry => entry != null &&
+                                        entry.IsCollectible &&
+                                        entry.HasArtwork)
+                        .OrderBy(entry => entry.OfficialCardId,
+                            StringComparer.Ordinal)
+                        .ToArray();
+                    int stride = Mathf.Max(1, candidates.Length / 48);
+                    for (int index = 0;
+                         index < candidates.Length && cachedCardArtwork.Count < 48;
+                         index += stride)
                     {
-                        if (entry?.Artwork != null)
-                            cachedCardArtwork.Add(entry.Artwork);
+                        Sprite artwork = candidates[index].Artwork;
+                        if (artwork != null)
+                            cachedCardArtwork.Add(artwork);
                     }
                     if (cachedCardArtwork.Count > 0)
                         break;

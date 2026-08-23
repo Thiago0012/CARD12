@@ -59,7 +59,7 @@ function s.negcon(e,tp,eg,ep,ev,re,r,rp)
 	return Duel.IsTurnPlayer(1-tp) and Duel.IsChainNegatable(ev) and not e:GetHandler():IsStatus(STATUS_BATTLE_DESTROYED)
 end
 function s.negtg(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then 
+	if chk==0 then
 		local rt=re:GetActiveType()&(TYPE_SPELL|TYPE_MONSTER|TYPE_TRAP)
 		return e:GetHandler():GetOverlayGroup():IsExists(Card.IsType,1,nil,rt)
 	end
