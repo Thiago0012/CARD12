@@ -91,7 +91,7 @@ namespace ArcaneArena.StoryRoguelite
     /// </summary>
     public static class StoryProceduralMapGenerator
     {
-        public const int GeneratorVersion = 3;
+        public const int GeneratorVersion = 4;
         public const int ActCount = 3;
         public const int MinimumDuelsBeforeBoss = 2;
         public const int MinimumMerchantLayer = 6;
@@ -172,6 +172,8 @@ namespace ArcaneArena.StoryRoguelite
                 map.nodes.AddRange(row);
             }
 
+            EnforceRandomEventCount(map, seed, safeAct);
+
             var incoming = new HashSet<string>(StringComparer.Ordinal);
             for (int layer = 0; layer + 1 < layers.Count; layer++)
             {
@@ -201,6 +203,88 @@ namespace ArcaneArena.StoryRoguelite
                 }
             }
             return map;
+        }
+
+        private static void EnforceRandomEventCount(
+            StoryMapRecord map,
+            long seed,
+            int act)
+        {
+            StoryRandomEventProfile profile = StoryRandomEventLibrary.Profile;
+            if (profile == null || !profile.enabled) return;
+            int minimum = Mathf.Max(0, profile.MinimumForAct(act));
+            int maximum = Mathf.Max(minimum, profile.MaximumForAct(act));
+            int target = minimum + StoryDeterminism.Index(
+                maximum - minimum + 1, seed, act, "event-node-count-v1");
+
+            List<StoryMapNodeRecord> eventNodes = map.nodes
+                .Where(node => node.NodeType ==
+                    RogueliteNodeType.MysteryEvent)
+                .OrderBy(node => StoryDeterminism.Hash(
+                    seed, act, node.nodeId, "event-keep-v1"))
+                .ToList();
+            foreach (StoryMapNodeRecord excess in eventNodes.Skip(target))
+                SetNodeType(excess, ResolveFallbackType(map, excess));
+
+            int missing = Math.Max(0, target - eventNodes.Count);
+            if (missing == 0) return;
+            HashSet<RogueliteNodeType> replaceable = new()
+            {
+                RogueliteNodeType.CardPack,
+                RogueliteNodeType.SpellRuins,
+                RogueliteNodeType.TreasureVault,
+                RogueliteNodeType.DeckWorkshop,
+                RogueliteNodeType.DeckForge,
+                RogueliteNodeType.HealingSpring,
+                RogueliteNodeType.RestCamp,
+                RogueliteNodeType.Mystery,
+                RogueliteNodeType.ForbiddenAltar
+            };
+            HashSet<float> occupiedLayers = map.nodes
+                .Where(node => node.NodeType ==
+                    RogueliteNodeType.MysteryEvent)
+                .Select(node => node.y)
+                .ToHashSet();
+            foreach (StoryMapNodeRecord candidate in map.nodes
+                         .Where(node => replaceable.Contains(node.NodeType))
+                         .Where(node => !occupiedLayers.Contains(node.y))
+                         .GroupBy(node => node.y)
+                         .Select(group => group.OrderBy(node =>
+                             StoryDeterminism.Hash(seed, act, node.nodeId,
+                                 "event-add-lane-v1")).First())
+                         .OrderBy(node => StoryDeterminism.Hash(
+                             seed, act, node.nodeId, "event-add-v1"))
+                         .Take(missing))
+                SetNodeType(candidate, RogueliteNodeType.MysteryEvent);
+        }
+
+        private static RogueliteNodeType ResolveFallbackType(
+            StoryMapRecord map,
+            StoryMapNodeRecord node)
+        {
+            RogueliteNodeType[] candidates =
+            {
+                RogueliteNodeType.TreasureVault,
+                RogueliteNodeType.CardPack,
+                RogueliteNodeType.SpellRuins,
+                RogueliteNodeType.DeckWorkshop,
+                RogueliteNodeType.RestCamp
+            };
+            HashSet<RogueliteNodeType> used = map.nodes
+                .Where(other => other != node &&
+                    Mathf.Approximately(other.y, node.y))
+                .Select(other => other.NodeType)
+                .ToHashSet();
+            return candidates.FirstOrDefault(type => !used.Contains(type));
+        }
+
+        private static void SetNodeType(
+            StoryMapNodeRecord node,
+            RogueliteNodeType type)
+        {
+            node.type = type.ToString();
+            node.publicLabel = StoryContentCatalog.PublicNodeLabel(type);
+            node.configId = "procedural-v4";
         }
 
         private static List<StoryMapNodeRecord> BuildLayer(
@@ -333,7 +417,7 @@ namespace ArcaneArena.StoryRoguelite
                     : 0.050f,
                 encounterPoolId = "procedural",
                 rewardTableId = "story-default",
-                configId = "procedural-v3"
+                configId = "procedural-v4"
             };
         }
 

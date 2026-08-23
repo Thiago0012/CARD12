@@ -2,12 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ArcaneArena.Cards;
 using ArcaneArena.Frontend;
 using ArcaneArena.StoryRoguelite;
 using ArcaneDuel.DuelEngine.Core;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using BanlistService = ArcaneDuel.Game.BanlistService;
 
 namespace ArcaneDuel.Tests.EditMode
 {
@@ -554,6 +557,133 @@ namespace ArcaneDuel.Tests.EditMode
                 if (Directory.Exists(directory))
                     Directory.Delete(directory, true);
             }
+        }
+
+        [Test]
+        public void RelicSpecification_HasFiftyUniqueDefinitionsAndTierLimits()
+        {
+            IReadOnlyList<StoryRelicDefinition> definitions =
+                StoryRelicSpecification.All;
+            Assert.That(definitions.Count, Is.EqualTo(50));
+            Assert.That(definitions.Select(definition => definition.relicId)
+                    .Distinct(StringComparer.Ordinal).Count(),
+                Is.EqualTo(50));
+            Assert.That(StoryRelicSpecification.TierLimit(
+                StoryRelicRarity.Common), Is.EqualTo(5));
+            Assert.That(StoryRelicSpecification.TierLimit(
+                StoryRelicRarity.Magic), Is.EqualTo(4));
+            Assert.That(StoryRelicSpecification.TierLimit(
+                StoryRelicRarity.Rare), Is.EqualTo(3));
+            Assert.That(StoryRelicSpecification.TierLimit(
+                StoryRelicRarity.Unique), Is.EqualTo(1));
+            Assert.That(definitions.Count(definition =>
+                    definition.IsAvailable),
+                Is.GreaterThan(20));
+        }
+
+        [Test]
+        public void RelicCapacity_RequiresExplicitReplacementAtTierLimit()
+        {
+            var save = new StoryRunSave { actIndex = 1 };
+            List<StoryRelicDefinition> commons = StoryRelicSpecification.All
+                .Where(definition => definition.IsAvailable &&
+                    definition.rarity == StoryRelicRarity.Common)
+                .Take(6)
+                .ToList();
+            Assert.That(commons, Has.Count.EqualTo(6));
+            foreach (StoryRelicDefinition definition in commons.Take(5))
+                Assert.That(StoryRelicService.Acquire(save, definition),
+                    Is.True);
+            Assert.That(StoryRelicService.CheckCapacity(save, commons[5]),
+                Is.EqualTo(
+                    StoryRelicCapacityResult.MustReplaceSameTier));
+            Assert.That(StoryRelicService.ReplacementCandidates(
+                save, commons[5]).Count, Is.EqualTo(5));
+            Assert.That(StoryRelicService.Replace(
+                save, commons[0].relicId, commons[5]), Is.True);
+            Assert.That(StoryRelicService.Active(save).Count, Is.EqualTo(5));
+            Assert.That(StoryRelicService.Has(save, commons[0].relicId),
+                Is.False);
+            Assert.That(StoryRelicService.Has(save, commons[5].relicId),
+                Is.True);
+        }
+
+        [Test]
+        public void LegacyArtifacts_MigrateOnceWithoutReplayingAcquireEffects()
+        {
+            var save = new StoryRunSave
+            {
+                schemaVersion = 2,
+                actIndex = 1,
+                seals = 3,
+                artifacts = new List<string> { "reinforced-seal" }
+            };
+            StoryRunPersistence.Normalize(save);
+            StoryRunPersistence.Normalize(save);
+            Assert.That(save.schemaVersion, Is.EqualTo(3));
+            Assert.That(save.relicStates.Count(state =>
+                    state.relicId == "reinforced-seal"),
+                Is.EqualTo(1));
+            Assert.That(save.seals, Is.EqualTo(3),
+                "A migração não deve repetir o efeito OnAcquire.");
+            Assert.That(StoryRelicService.MaxSeals(save), Is.EqualTo(4));
+        }
+
+        [Test]
+        public void RandomEventSpecification_HasFifteenUniqueEvents()
+        {
+            IReadOnlyList<StoryRandomEventDefinition> events =
+                StoryRandomEventSpecification.All;
+            Assert.That(events.Count, Is.EqualTo(15));
+            Assert.That(events.Select(definition => definition.eventId)
+                    .Distinct(StringComparer.Ordinal).Count(),
+                Is.EqualTo(15));
+            Assert.That(events.All(definition =>
+                    !string.IsNullOrWhiteSpace(definition.handlerId)),
+                Is.True);
+        }
+
+        [Test]
+        public void ProceduralMaps_RespectRandomEventMinimumAndMaximumPerAct()
+        {
+            StoryRandomEventProfile profile = StoryRandomEventLibrary.Profile;
+            for (long seed = 1; seed <= 64; seed++)
+            {
+                List<StoryMapRecord> maps =
+                    StoryProceduralMapGenerator.GenerateRun(seed);
+                for (int index = 0; index < maps.Count; index++)
+                {
+                    int act = index + 1;
+                    int count = maps[index].nodes.Count(node =>
+                        node.NodeType == RogueliteNodeType.MysteryEvent);
+                    Assert.That(count, Is.InRange(
+                        profile.MinimumForAct(act),
+                        profile.MaximumForAct(act)),
+                        $"seed {seed}, ato {act}");
+                }
+            }
+        }
+
+        [Test]
+        public void StoryCardPool_TracksEveryEligibleCatalogEntry()
+        {
+            CardCatalog catalog = AssetDatabase.LoadAssetAtPath<CardCatalog>(
+                "Assets/Cards/CardCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+            int expected = catalog.Entries
+                .Where(entry => entry != null &&
+                    entry.IsReadyForGameplay && entry.IsCollectible)
+                .Where(entry => !string.IsNullOrWhiteSpace(
+                    entry.OfficialCardId))
+                .Where(entry => BanlistService.Active.MaximumCopies(
+                    entry.OfficialCardId) > 0)
+                .Select(entry => entry.OfficialCardId)
+                .Distinct(StringComparer.Ordinal)
+                .Count();
+            IReadOnlyList<CardCatalogEntry> actual =
+                StoryRewardService.EligibleEntries(catalog);
+            Assert.That(actual.Count, Is.EqualTo(expected));
+            Assert.That(actual.Count, Is.GreaterThan(3000));
         }
 
         [Serializable]
