@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using ArcaneArena.Cards;
 using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
+using ArcaneArena.StoryRoguelite;
 using ArcaneDuel.Game;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
@@ -54,7 +55,8 @@ namespace ArcaneArena.Frontend
         {
             None,
             LocalTest,
-            Bot
+            Bot,
+            StoryRoguelite
         }
 
         private sealed class FrontendLayoutOverride
@@ -764,6 +766,13 @@ namespace ArcaneArena.Frontend
             if (_repository != null && _repository.NeedsStarterDeckSelection)
             {
                 ShowStarterDeckSelection();
+                return;
+            }
+
+            if (StoryRogueliteRuntime.ReturnToStoryRequested)
+            {
+                StoryRogueliteRuntime.ConsumeReturnRequest();
+                ShowStoryRoguelite();
                 return;
             }
 
@@ -3917,8 +3926,17 @@ namespace ArcaneArena.Frontend
             RunMainMenuTransition(ReturnToMainMenuSceneImmediate);
         }
 
+        private void ExitDuelPresentationToMenu()
+        {
+            if (StoryRogueliteRuntime.IsStoryDuel)
+                StoryRogueliteRuntime.ForfeitActiveDuel();
+            ReturnToMainMenuScene();
+        }
+
         public void ReturnToMenuAfterOfflineDuel()
         {
+            if (StoryRogueliteRuntime.IsStoryDuel)
+                StoryRogueliteRuntime.RequestReturnToStory();
             ReturnToMainMenuScene();
         }
 
@@ -4053,7 +4071,8 @@ namespace ArcaneArena.Frontend
             _pendingStartingPlayer = 0;
             online?.TransitionPresenter?.Hide();
 
-            if (mode == PendingDuelMode.Bot)
+            if (mode == PendingDuelMode.Bot ||
+                mode == PendingDuelMode.StoryRoguelite)
             {
                 var botLoadout = _pendingBotLoadout;
                 _pendingBotLoadout = null;
@@ -4077,11 +4096,13 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             var button = CreateButton(
                 _screenRoot,
-                "MENU",
+                StoryRogueliteRuntime.IsStoryDuel
+                    ? "SAIR (DERROTA)"
+                    : "MENU",
                 new Vector2(0.90f, 0.018f),
                 new Vector2(0.985f, 0.078f),
                 Cyan,
-                ReturnToMainMenuScene);
+                ExitDuelPresentationToMenu);
             button.GetComponent<Image>().color =
                 new Color(0.005f, 0.025f, 0.045f, 0.88f);
         }

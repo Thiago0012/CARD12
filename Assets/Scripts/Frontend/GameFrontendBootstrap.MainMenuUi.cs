@@ -337,6 +337,15 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.570f, 0.463f),
                 OpenDeckEditorScene);
 
+            Image storyButton = CreateButton(
+                _screenRoot,
+                "CRÔNICAS DO DUELO",
+                new Vector2(0.405f, 0.018f),
+                new Vector2(0.595f, 0.078f),
+                Gold,
+                ShowStoryRoguelite);
+            DecorateRuntimeShopButton(storyButton, Gold, true, 8f);
+
             BuildDuelHubDeckPresentation();
             BuildDuelHubRankPresentation();
         }

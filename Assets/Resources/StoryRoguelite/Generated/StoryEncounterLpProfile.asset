@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9be7c924382b31f4094a4245a623d2a6, type: 3}
+  m_Name: StoryEncounterLpProfile
+  m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.StoryRoguelite.StoryEncounterLpProfile
+  playerLifePoints: 6000
+  normalEnemyLifePoints: 6000
+  eliteEnemyLifePoints: 12000
+  finalDuelEnemyLifePoints: 14000
+  bossActOneLifePoints: 20000
+  bossActTwoLifePoints: 35000
+  bossActThreeLifePoints: 50000

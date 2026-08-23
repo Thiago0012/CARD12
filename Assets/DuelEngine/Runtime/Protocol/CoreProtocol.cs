@@ -186,6 +186,8 @@ namespace ArcaneDuel.DuelEngine.Protocol
         // snapshot may already have advanced beyond the event being replayed.
         public uint PresentationPhase { get; internal set; }
         public uint Value { get; internal set; }
+        // Used by managed start events when logical duelists have different LP.
+        public uint OpponentValue { get; internal set; }
         public uint Code { get; internal set; }
         public ushort CounterType { get; internal set; }
         public ulong HintValue { get; internal set; }

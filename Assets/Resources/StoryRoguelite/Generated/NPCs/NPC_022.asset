@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6debe92c69b4f884eac72d612e586577, type: 3}
+  m_Name: NPC_022
+  m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.StoryRoguelite.StoryNpcDefinition
+  npcId: NPC_022
+  displayName: Duelista 22
+  portraitSprite: {fileID: 21300000, guid: 0c211fc616bb5e94bba67349b4204732, type: 3}
+  portraitResourcePath: StoryRoguelite/NPCs/NPC_022
+  presentation: 2
+  role: 33
+  firstAct: 2
+  lastAct: 3
+  aiTierMin: 3
+  aiTierMax: 4
+  deckSelectionMode: 1
+  fixedDeckId: 
+  preferredDeckFamilies: []
+  explicitDeckPool: []
+  personalityProfileId: story-personality-22
+  dialogueSetId: duel-boss
+  recurring: 1
+  enabled: 1

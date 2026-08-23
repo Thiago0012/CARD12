@@ -9,6 +9,7 @@ using ArcaneArena.Cards;
 using ArcaneArena.Frontend;
 using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
+using ArcaneArena.StoryRoguelite;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
@@ -265,11 +266,14 @@ namespace ArcaneArena
 
         private void OnDuelCompleted(byte winner)
         {
-            RankChangeReceipt rankReceipt =
-                GameFrontendBootstrap.Instance?.CompleteActiveBotDuel(
-                winner,
-                localDamageDealtInDuel,
-                localDamageReceivedInDuel);
+            bool storyResult = StoryRogueliteRuntime
+                .CommitAuthoritativeResult(winner);
+            RankChangeReceipt rankReceipt = storyResult
+                ? null
+                : GameFrontendBootstrap.Instance?.CompleteActiveBotDuel(
+                    winner,
+                    localDamageDealtInDuel,
+                    localDamageReceivedInDuel);
             if (DuelOnlineSession.Instance?.IsOnlineDuelActive == true)
                 return;
 
@@ -284,11 +288,17 @@ namespace ArcaneArena
                 GetComponent<OnlineDuelResultPresenter>();
             if (presenter == null)
                 presenter = gameObject.AddComponent<OnlineDuelResultPresenter>();
-            string detail = winner > 1
-                ? "O duelo contra o bot terminou empatado."
-                : winner == 0
-                    ? "Vitória confirmada contra o bot."
-                    : "Derrota confirmada contra o bot.";
+            string detail = storyResult
+                ? winner == 0
+                    ? "Vitória confirmada. A jornada foi atualizada."
+                    : winner > 1
+                        ? "Empate confirmado. Um selo foi consumido."
+                        : "Derrota confirmada. Um selo foi consumido."
+                : winner > 1
+                    ? "O duelo contra o bot terminou empatado."
+                    : winner == 0
+                        ? "Vitória confirmada contra o bot."
+                        : "Derrota confirmada contra o bot.";
             if (OnlineDuelResultPresenter.CanPresentRankTransition(
                     rankReceipt))
             {
@@ -486,14 +496,18 @@ namespace ArcaneArena
             uint[] playerExtra = ParseCodes(player.extraDeckCardIds);
             uint[] opponentMain = ParseCodes(opponent.mainDeckCardIds);
             uint[] opponentExtra = ParseCodes(opponent.extraDeckCardIds);
-            if (playerMain.Length < 40 || opponentMain.Length < 40)
+            StoryDuelLaunchContext storyContext =
+                StoryRogueliteRuntime.DuelContext;
+            int minimumMain = storyContext?.minimumMainDeckSize ?? 40;
+            if (playerMain.Length < minimumMain ||
+                opponentMain.Length < minimumMain)
             {
                 Debug.LogWarning(
                     $"[Arcane legacy bridge] Resolved deck is incomplete: " +
                     $"player={playerMain.Length}/{player.mainDeckCardIds.Count}, " +
                     $"opponent={opponentMain.Length}/{opponent.mainDeckCardIds.Count}.");
                 SetStatus(
-                    "O catálogo não resolveu 40 cartas válidas para um dos duelistas.",
+                    $"O catálogo não resolveu {minimumMain} cartas válidas para um dos duelistas.",
                     Gold);
                 return false;
             }
@@ -515,7 +529,10 @@ namespace ArcaneArena
                         playerExtra,
                         opponentMain,
                         opponentExtra,
-                        startingPlayer))
+                        startingPlayer,
+                        minimumMain,
+                        (uint)(storyContext?.playerLifePoints ?? 8000),
+                        (uint)(storyContext?.opponentLifePoints ?? 8000)))
                 {
                     throw new InvalidOperationException(
                         "O ygopro-core não confirmou o início do duelo.");
@@ -761,7 +778,9 @@ namespace ArcaneArena
 
         private void RecordConfirmedStatistics(DuelEvent duelEvent)
         {
-            if (duelEvent == null || string.IsNullOrWhiteSpace(statisticsSessionId))
+            if (duelEvent == null ||
+                StoryRogueliteRuntime.IsStoryDuel ||
+                string.IsNullOrWhiteSpace(statisticsSessionId))
                 return;
 
             if (duelEvent.Message == CoreMessage.Damage && duelEvent.Player == 1)

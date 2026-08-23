@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6debe92c69b4f884eac72d612e586577, type: 3}
+  m_Name: NPC_009
+  m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.StoryRoguelite.StoryNpcDefinition
+  npcId: NPC_009
+  displayName: Darius
+  portraitSprite: {fileID: 21300000, guid: 7b58e36514c300f4e81e75e404fe8da5, type: 3}
+  portraitResourcePath: StoryRoguelite/NPCs/NPC_009
+  presentation: 0
+  role: 1
+  firstAct: 1
+  lastAct: 2
+  aiTierMin: 2
+  aiTierMax: 3
+  deckSelectionMode: 1
+  fixedDeckId: 
+  preferredDeckFamilies: []
+  explicitDeckPool: []
+  personalityProfileId: story-personality-09
+  dialogueSetId: duel-default
+  recurring: 0
+  enabled: 1

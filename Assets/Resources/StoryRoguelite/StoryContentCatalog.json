@@ -1,0 +1,2330 @@
+{
+  "schemaVersion": 1,
+  "generatorVersion": 1,
+  "seasonId": "story-roguelite-v1",
+  "npcs": [
+    {
+      "npcId": "NPC_001",
+      "displayName": "Kael",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_001",
+      "presentation": "Masculine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 1,
+      "aiTierMax": 2,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-01",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_002",
+      "displayName": "Rina",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_002",
+      "presentation": "Feminine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 1,
+      "aiTierMax": 2,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-02",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_003",
+      "displayName": "Helena",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_003",
+      "presentation": "Feminine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 1,
+      "aiTierMax": 2,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-03",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_004",
+      "displayName": "Selene",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_004",
+      "presentation": "Feminine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 1,
+      "aiTierMax": 2,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-04",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_005",
+      "displayName": "Mika",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_005",
+      "presentation": "Feminine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 1,
+      "aiTierMax": 2,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-05",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_006",
+      "displayName": "Amara",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_006",
+      "presentation": "Feminine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 1,
+      "aiTierMax": 2,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-06",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_007",
+      "displayName": "Ren",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_007",
+      "presentation": "Masculine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 1,
+      "aiTierMax": 2,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-07",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_008",
+      "displayName": "Yumi",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_008",
+      "presentation": "Feminine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 1,
+      "aiTierMax": 2,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-08",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_009",
+      "displayName": "Darius",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_009",
+      "presentation": "Masculine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 2,
+      "aiTierMax": 3,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-09",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_010",
+      "displayName": "Axel",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_010",
+      "presentation": "Masculine",
+      "role": "Normal",
+      "firstAct": 1,
+      "lastAct": 2,
+      "aiTierMin": 2,
+      "aiTierMax": 3,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-10",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_011",
+      "displayName": "Zahir",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_011",
+      "presentation": "Masculine",
+      "role": "Normal|Elite",
+      "firstAct": 1,
+      "lastAct": 3,
+      "aiTierMin": 2,
+      "aiTierMax": 3,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-11",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_012",
+      "displayName": "Nyra",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_012",
+      "presentation": "Feminine",
+      "role": "Normal|Elite",
+      "firstAct": 1,
+      "lastAct": 3,
+      "aiTierMin": 2,
+      "aiTierMax": 3,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-12",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_013",
+      "displayName": "Dante",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_013",
+      "presentation": "Masculine",
+      "role": "Normal|Elite",
+      "firstAct": 1,
+      "lastAct": 3,
+      "aiTierMin": 2,
+      "aiTierMax": 3,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-13",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_014",
+      "displayName": "Lucien",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_014",
+      "presentation": "Masculine",
+      "role": "Normal|Elite",
+      "firstAct": 1,
+      "lastAct": 3,
+      "aiTierMin": 2,
+      "aiTierMax": 3,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-14",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_015",
+      "displayName": "Valeria",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_015",
+      "presentation": "Feminine",
+      "role": "Normal|Elite",
+      "firstAct": 1,
+      "lastAct": 3,
+      "aiTierMin": 2,
+      "aiTierMax": 3,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-15",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_016",
+      "displayName": "Skye",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_016",
+      "presentation": "Feminine",
+      "role": "Normal|Elite",
+      "firstAct": 1,
+      "lastAct": 3,
+      "aiTierMin": 2,
+      "aiTierMax": 3,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-16",
+      "dialogueSetId": "duel-default",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_017",
+      "displayName": "Akane",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_017",
+      "presentation": "Feminine",
+      "role": "Elite|Boss",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 3,
+      "aiTierMax": 4,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-17",
+      "dialogueSetId": "duel-boss",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_018",
+      "displayName": "Aureon",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_018",
+      "presentation": "Masculine",
+      "role": "Boss",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 3,
+      "aiTierMax": 4,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-18",
+      "dialogueSetId": "duel-boss",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_019",
+      "displayName": "Vespera",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_019",
+      "presentation": "Feminine",
+      "role": "Boss",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 3,
+      "aiTierMax": 4,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-19",
+      "dialogueSetId": "duel-boss",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_020",
+      "displayName": "Amon",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_020",
+      "presentation": "Masculine",
+      "role": "Boss",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 3,
+      "aiTierMax": 4,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-20",
+      "dialogueSetId": "duel-boss",
+      "recurring": false,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_021",
+      "displayName": "Duelista 21",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_021",
+      "presentation": "Neutral",
+      "role": "Normal|Event",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 3,
+      "aiTierMax": 4,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-21",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_022",
+      "displayName": "Duelista 22",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_022",
+      "presentation": "Neutral",
+      "role": "Normal|Event",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 3,
+      "aiTierMax": 4,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-22",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_023",
+      "displayName": "Duelista 23",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_023",
+      "presentation": "Neutral",
+      "role": "Normal|Event",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 3,
+      "aiTierMax": 4,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-23",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_024",
+      "displayName": "Duelista 24",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_024",
+      "presentation": "Neutral",
+      "role": "Normal|Event",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 3,
+      "aiTierMax": 4,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-24",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_025",
+      "displayName": "Duelista 25",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_025",
+      "presentation": "Neutral",
+      "role": "Merchant|Event",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 4,
+      "aiTierMax": 5,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-25",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_026",
+      "displayName": "Duelista 26",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_026",
+      "presentation": "Neutral",
+      "role": "Merchant|Event",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 4,
+      "aiTierMax": 5,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-26",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_027",
+      "displayName": "Duelista 27",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_027",
+      "presentation": "Neutral",
+      "role": "Elite|Rival",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 4,
+      "aiTierMax": 5,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-27",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_028",
+      "displayName": "Duelista 28",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_028",
+      "presentation": "Neutral",
+      "role": "Elite|Rival",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 4,
+      "aiTierMax": 5,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-28",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_029",
+      "displayName": "Duelista 29",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_029",
+      "presentation": "Neutral",
+      "role": "Boss|Rival",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 4,
+      "aiTierMax": 5,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-29",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    },
+    {
+      "npcId": "NPC_030",
+      "displayName": "Duelista 30",
+      "portraitResourcePath": "StoryRoguelite/NPCs/NPC_030",
+      "presentation": "Neutral",
+      "role": "Boss|Rival",
+      "firstAct": 2,
+      "lastAct": 3,
+      "aiTierMin": 4,
+      "aiTierMax": 5,
+      "fixedDeckId": "",
+      "personalityProfileId": "story-personality-30",
+      "dialogueSetId": "duel-boss",
+      "recurring": true,
+      "enabled": true
+    }
+  ],
+  "maps": [
+    {
+      "mapId": "map-01",
+      "displayName": "Rota Arcana 01",
+      "backgroundResourcePath": "",
+      "startNodeId": "start",
+      "bossNodeId": "boss",
+      "nodes": [
+        {
+          "nodeId": "start",
+          "type": "Start",
+          "publicLabel": "INÍCIO",
+          "x": 0.5,
+          "y": 0.08,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "a",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.2,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "b",
+          "type": "CardPack",
+          "publicLabel": "CARD PACK",
+          "x": 0.5,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "c",
+          "type": "Mystery",
+          "publicLabel": "MYSTERY",
+          "x": 0.8,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "d",
+          "type": "CardMerchant",
+          "publicLabel": "CARD MERCHANT",
+          "x": 0.2,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "e",
+          "type": "EliteDuel",
+          "publicLabel": "ELITE DUEL",
+          "x": 0.5,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "f",
+          "type": "RestCamp",
+          "publicLabel": "REST CAMP",
+          "x": 0.8,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "g",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.2,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "h",
+          "type": "RelicShrine",
+          "publicLabel": "RELIC SHRINE",
+          "x": 0.5,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "i",
+          "type": "FinalDuelArena",
+          "publicLabel": "FINAL DUEL ARENA",
+          "x": 0.8,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "boss",
+          "type": "Boss",
+          "publicLabel": "CHEFE",
+          "x": 0.5,
+          "y": 0.93,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-1",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        }
+      ],
+      "edges": [
+        {
+          "edgeId": "e01",
+          "fromNodeId": "start",
+          "toNodeId": "a",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e02",
+          "fromNodeId": "start",
+          "toNodeId": "b",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e03",
+          "fromNodeId": "start",
+          "toNodeId": "c",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e04",
+          "fromNodeId": "a",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e05",
+          "fromNodeId": "a",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e06",
+          "fromNodeId": "b",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e07",
+          "fromNodeId": "b",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e08",
+          "fromNodeId": "b",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e09",
+          "fromNodeId": "c",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e10",
+          "fromNodeId": "c",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e11",
+          "fromNodeId": "d",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e12",
+          "fromNodeId": "d",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e13",
+          "fromNodeId": "e",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e14",
+          "fromNodeId": "e",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e15",
+          "fromNodeId": "e",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e16",
+          "fromNodeId": "f",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e17",
+          "fromNodeId": "f",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e18",
+          "fromNodeId": "g",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e19",
+          "fromNodeId": "h",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e20",
+          "fromNodeId": "i",
+          "toNodeId": "boss",
+          "controlPoints": []
+        }
+      ]
+    },
+    {
+      "mapId": "map-02",
+      "displayName": "Rota Arcana 02",
+      "backgroundResourcePath": "",
+      "startNodeId": "start",
+      "bossNodeId": "boss",
+      "nodes": [
+        {
+          "nodeId": "start",
+          "type": "Start",
+          "publicLabel": "INÍCIO",
+          "x": 0.5,
+          "y": 0.08,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "a",
+          "type": "SpellRuins",
+          "publicLabel": "SPELL RUINS",
+          "x": 0.2,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "b",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.5,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "c",
+          "type": "TreasureVault",
+          "publicLabel": "TREASURE VAULT",
+          "x": 0.8,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "d",
+          "type": "DeckWorkshop",
+          "publicLabel": "DECK WORKSHOP",
+          "x": 0.2,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "e",
+          "type": "EliteDuel",
+          "publicLabel": "ELITE DUEL",
+          "x": 0.5,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "f",
+          "type": "MysteryEvent",
+          "publicLabel": "MYSTERY EVENT",
+          "x": 0.8,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "g",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.2,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "h",
+          "type": "HealingSpring",
+          "publicLabel": "HEALING SPRING",
+          "x": 0.5,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "i",
+          "type": "FinalDuelArena",
+          "publicLabel": "FINAL DUEL ARENA",
+          "x": 0.8,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "boss",
+          "type": "Boss",
+          "publicLabel": "CHEFE",
+          "x": 0.5,
+          "y": 0.93,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-2",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        }
+      ],
+      "edges": [
+        {
+          "edgeId": "e01",
+          "fromNodeId": "start",
+          "toNodeId": "a",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e02",
+          "fromNodeId": "start",
+          "toNodeId": "b",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e03",
+          "fromNodeId": "start",
+          "toNodeId": "c",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e04",
+          "fromNodeId": "a",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e05",
+          "fromNodeId": "a",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e06",
+          "fromNodeId": "b",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e07",
+          "fromNodeId": "b",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e08",
+          "fromNodeId": "b",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e09",
+          "fromNodeId": "c",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e10",
+          "fromNodeId": "c",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e11",
+          "fromNodeId": "d",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e12",
+          "fromNodeId": "d",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e13",
+          "fromNodeId": "e",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e14",
+          "fromNodeId": "e",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e15",
+          "fromNodeId": "e",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e16",
+          "fromNodeId": "f",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e17",
+          "fromNodeId": "f",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e18",
+          "fromNodeId": "g",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e19",
+          "fromNodeId": "h",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e20",
+          "fromNodeId": "i",
+          "toNodeId": "boss",
+          "controlPoints": []
+        }
+      ]
+    },
+    {
+      "mapId": "map-03",
+      "displayName": "Rota Arcana 03",
+      "backgroundResourcePath": "",
+      "startNodeId": "start",
+      "bossNodeId": "boss",
+      "nodes": [
+        {
+          "nodeId": "start",
+          "type": "Start",
+          "publicLabel": "INÍCIO",
+          "x": 0.5,
+          "y": 0.08,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "a",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.2,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "b",
+          "type": "CardPack",
+          "publicLabel": "CARD PACK",
+          "x": 0.5,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "c",
+          "type": "ForbiddenAltar",
+          "publicLabel": "FORBIDDEN ALTAR",
+          "x": 0.8,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "d",
+          "type": "DeckForge",
+          "publicLabel": "DECK FORGE",
+          "x": 0.2,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "e",
+          "type": "EliteDuel",
+          "publicLabel": "ELITE DUEL",
+          "x": 0.5,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "f",
+          "type": "CardMerchant",
+          "publicLabel": "CARD MERCHANT",
+          "x": 0.8,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "g",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.2,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "h",
+          "type": "Mystery",
+          "publicLabel": "MYSTERY",
+          "x": 0.5,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "i",
+          "type": "FinalDuelArena",
+          "publicLabel": "FINAL DUEL ARENA",
+          "x": 0.8,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "boss",
+          "type": "Boss",
+          "publicLabel": "CHEFE",
+          "x": 0.5,
+          "y": 0.93,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        }
+      ],
+      "edges": [
+        {
+          "edgeId": "e01",
+          "fromNodeId": "start",
+          "toNodeId": "a",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e02",
+          "fromNodeId": "start",
+          "toNodeId": "b",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e03",
+          "fromNodeId": "start",
+          "toNodeId": "c",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e04",
+          "fromNodeId": "a",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e05",
+          "fromNodeId": "a",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e06",
+          "fromNodeId": "b",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e07",
+          "fromNodeId": "b",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e08",
+          "fromNodeId": "b",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e09",
+          "fromNodeId": "c",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e10",
+          "fromNodeId": "c",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e11",
+          "fromNodeId": "d",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e12",
+          "fromNodeId": "d",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e13",
+          "fromNodeId": "e",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e14",
+          "fromNodeId": "e",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e15",
+          "fromNodeId": "e",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e16",
+          "fromNodeId": "f",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e17",
+          "fromNodeId": "f",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e18",
+          "fromNodeId": "g",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e19",
+          "fromNodeId": "h",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e20",
+          "fromNodeId": "i",
+          "toNodeId": "boss",
+          "controlPoints": []
+        }
+      ]
+    },
+    {
+      "mapId": "map-04",
+      "displayName": "Rota Arcana 04",
+      "backgroundResourcePath": "",
+      "startNodeId": "start",
+      "bossNodeId": "boss",
+      "nodes": [
+        {
+          "nodeId": "start",
+          "type": "Start",
+          "publicLabel": "INÍCIO",
+          "x": 0.5,
+          "y": 0.08,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "a",
+          "type": "TreasureVault",
+          "publicLabel": "TREASURE VAULT",
+          "x": 0.2,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "b",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.5,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "c",
+          "type": "SpellRuins",
+          "publicLabel": "SPELL RUINS",
+          "x": 0.8,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "d",
+          "type": "RestCamp",
+          "publicLabel": "REST CAMP",
+          "x": 0.2,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "e",
+          "type": "EliteDuel",
+          "publicLabel": "ELITE DUEL",
+          "x": 0.5,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "f",
+          "type": "DeckWorkshop",
+          "publicLabel": "DECK WORKSHOP",
+          "x": 0.8,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "g",
+          "type": "MysteryEvent",
+          "publicLabel": "MYSTERY EVENT",
+          "x": 0.2,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "h",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.5,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "i",
+          "type": "FinalDuelArena",
+          "publicLabel": "FINAL DUEL ARENA",
+          "x": 0.8,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "boss",
+          "type": "Boss",
+          "publicLabel": "CHEFE",
+          "x": 0.5,
+          "y": 0.93,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        }
+      ],
+      "edges": [
+        {
+          "edgeId": "e01",
+          "fromNodeId": "start",
+          "toNodeId": "a",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e02",
+          "fromNodeId": "start",
+          "toNodeId": "b",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e03",
+          "fromNodeId": "start",
+          "toNodeId": "c",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e04",
+          "fromNodeId": "a",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e05",
+          "fromNodeId": "a",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e06",
+          "fromNodeId": "b",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e07",
+          "fromNodeId": "b",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e08",
+          "fromNodeId": "b",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e09",
+          "fromNodeId": "c",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e10",
+          "fromNodeId": "c",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e11",
+          "fromNodeId": "d",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e12",
+          "fromNodeId": "d",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e13",
+          "fromNodeId": "e",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e14",
+          "fromNodeId": "e",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e15",
+          "fromNodeId": "e",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e16",
+          "fromNodeId": "f",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e17",
+          "fromNodeId": "f",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e18",
+          "fromNodeId": "g",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e19",
+          "fromNodeId": "h",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e20",
+          "fromNodeId": "i",
+          "toNodeId": "boss",
+          "controlPoints": []
+        }
+      ]
+    },
+    {
+      "mapId": "map-05",
+      "displayName": "Rota Arcana 05",
+      "backgroundResourcePath": "",
+      "startNodeId": "start",
+      "bossNodeId": "boss",
+      "nodes": [
+        {
+          "nodeId": "start",
+          "type": "Start",
+          "publicLabel": "INÍCIO",
+          "x": 0.5,
+          "y": 0.08,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "a",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.2,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "b",
+          "type": "RelicShrine",
+          "publicLabel": "RELIC SHRINE",
+          "x": 0.5,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "c",
+          "type": "CardPack",
+          "publicLabel": "CARD PACK",
+          "x": 0.8,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "d",
+          "type": "CardMerchant",
+          "publicLabel": "CARD MERCHANT",
+          "x": 0.2,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "e",
+          "type": "EliteDuel",
+          "publicLabel": "ELITE DUEL",
+          "x": 0.5,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "f",
+          "type": "ForbiddenAltar",
+          "publicLabel": "FORBIDDEN ALTAR",
+          "x": 0.8,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "g",
+          "type": "HealingSpring",
+          "publicLabel": "HEALING SPRING",
+          "x": 0.2,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "h",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.5,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "i",
+          "type": "FinalDuelArena",
+          "publicLabel": "FINAL DUEL ARENA",
+          "x": 0.8,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "boss",
+          "type": "Boss",
+          "publicLabel": "CHEFE",
+          "x": 0.5,
+          "y": 0.93,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        }
+      ],
+      "edges": [
+        {
+          "edgeId": "e01",
+          "fromNodeId": "start",
+          "toNodeId": "a",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e02",
+          "fromNodeId": "start",
+          "toNodeId": "b",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e03",
+          "fromNodeId": "start",
+          "toNodeId": "c",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e04",
+          "fromNodeId": "a",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e05",
+          "fromNodeId": "a",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e06",
+          "fromNodeId": "b",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e07",
+          "fromNodeId": "b",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e08",
+          "fromNodeId": "b",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e09",
+          "fromNodeId": "c",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e10",
+          "fromNodeId": "c",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e11",
+          "fromNodeId": "d",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e12",
+          "fromNodeId": "d",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e13",
+          "fromNodeId": "e",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e14",
+          "fromNodeId": "e",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e15",
+          "fromNodeId": "e",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e16",
+          "fromNodeId": "f",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e17",
+          "fromNodeId": "f",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e18",
+          "fromNodeId": "g",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e19",
+          "fromNodeId": "h",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e20",
+          "fromNodeId": "i",
+          "toNodeId": "boss",
+          "controlPoints": []
+        }
+      ]
+    },
+    {
+      "mapId": "map-06",
+      "displayName": "Rota Arcana 06",
+      "backgroundResourcePath": "",
+      "startNodeId": "start",
+      "bossNodeId": "boss",
+      "nodes": [
+        {
+          "nodeId": "start",
+          "type": "Start",
+          "publicLabel": "INÍCIO",
+          "x": 0.5,
+          "y": 0.08,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "a",
+          "type": "Mystery",
+          "publicLabel": "MYSTERY",
+          "x": 0.2,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "b",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.5,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "c",
+          "type": "TreasureVault",
+          "publicLabel": "TREASURE VAULT",
+          "x": 0.8,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "d",
+          "type": "DeckForge",
+          "publicLabel": "DECK FORGE",
+          "x": 0.2,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "e",
+          "type": "EliteDuel",
+          "publicLabel": "ELITE DUEL",
+          "x": 0.5,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "f",
+          "type": "SpellRuins",
+          "publicLabel": "SPELL RUINS",
+          "x": 0.8,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "g",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.2,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "h",
+          "type": "RestCamp",
+          "publicLabel": "REST CAMP",
+          "x": 0.5,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "i",
+          "type": "FinalDuelArena",
+          "publicLabel": "FINAL DUEL ARENA",
+          "x": 0.8,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "boss",
+          "type": "Boss",
+          "publicLabel": "CHEFE",
+          "x": 0.5,
+          "y": 0.93,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        }
+      ],
+      "edges": [
+        {
+          "edgeId": "e01",
+          "fromNodeId": "start",
+          "toNodeId": "a",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e02",
+          "fromNodeId": "start",
+          "toNodeId": "b",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e03",
+          "fromNodeId": "start",
+          "toNodeId": "c",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e04",
+          "fromNodeId": "a",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e05",
+          "fromNodeId": "a",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e06",
+          "fromNodeId": "b",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e07",
+          "fromNodeId": "b",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e08",
+          "fromNodeId": "b",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e09",
+          "fromNodeId": "c",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e10",
+          "fromNodeId": "c",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e11",
+          "fromNodeId": "d",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e12",
+          "fromNodeId": "d",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e13",
+          "fromNodeId": "e",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e14",
+          "fromNodeId": "e",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e15",
+          "fromNodeId": "e",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e16",
+          "fromNodeId": "f",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e17",
+          "fromNodeId": "f",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e18",
+          "fromNodeId": "g",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e19",
+          "fromNodeId": "h",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e20",
+          "fromNodeId": "i",
+          "toNodeId": "boss",
+          "controlPoints": []
+        }
+      ]
+    },
+    {
+      "mapId": "map-07",
+      "displayName": "Rota Arcana 07",
+      "backgroundResourcePath": "",
+      "startNodeId": "start",
+      "bossNodeId": "boss",
+      "nodes": [
+        {
+          "nodeId": "start",
+          "type": "Start",
+          "publicLabel": "INÍCIO",
+          "x": 0.5,
+          "y": 0.08,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "a",
+          "type": "CardPack",
+          "publicLabel": "CARD PACK",
+          "x": 0.2,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "b",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.5,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "c",
+          "type": "RelicShrine",
+          "publicLabel": "RELIC SHRINE",
+          "x": 0.8,
+          "y": 0.27,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "d",
+          "type": "MysteryEvent",
+          "publicLabel": "MYSTERY EVENT",
+          "x": 0.2,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "e",
+          "type": "EliteDuel",
+          "publicLabel": "ELITE DUEL",
+          "x": 0.5,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "f",
+          "type": "CardMerchant",
+          "publicLabel": "CARD MERCHANT",
+          "x": 0.8,
+          "y": 0.5,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "g",
+          "type": "ForbiddenAltar",
+          "publicLabel": "FORBIDDEN ALTAR",
+          "x": 0.2,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "h",
+          "type": "NormalDuel",
+          "publicLabel": "NORMAL DUEL",
+          "x": 0.5,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "i",
+          "type": "FinalDuelArena",
+          "publicLabel": "FINAL DUEL ARENA",
+          "x": 0.8,
+          "y": 0.72,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        },
+        {
+          "nodeId": "boss",
+          "type": "Boss",
+          "publicLabel": "CHEFE",
+          "x": 0.5,
+          "y": 0.93,
+          "markerOffsetX": 0,
+          "markerOffsetY": 0.025,
+          "encounterPoolId": "act-3",
+          "rewardTableId": "story-default",
+          "configId": "default"
+        }
+      ],
+      "edges": [
+        {
+          "edgeId": "e01",
+          "fromNodeId": "start",
+          "toNodeId": "a",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e02",
+          "fromNodeId": "start",
+          "toNodeId": "b",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e03",
+          "fromNodeId": "start",
+          "toNodeId": "c",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e04",
+          "fromNodeId": "a",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e05",
+          "fromNodeId": "a",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e06",
+          "fromNodeId": "b",
+          "toNodeId": "d",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e07",
+          "fromNodeId": "b",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e08",
+          "fromNodeId": "b",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e09",
+          "fromNodeId": "c",
+          "toNodeId": "e",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e10",
+          "fromNodeId": "c",
+          "toNodeId": "f",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e11",
+          "fromNodeId": "d",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e12",
+          "fromNodeId": "d",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e13",
+          "fromNodeId": "e",
+          "toNodeId": "g",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e14",
+          "fromNodeId": "e",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e15",
+          "fromNodeId": "e",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e16",
+          "fromNodeId": "f",
+          "toNodeId": "h",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e17",
+          "fromNodeId": "f",
+          "toNodeId": "i",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e18",
+          "fromNodeId": "g",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e19",
+          "fromNodeId": "h",
+          "toNodeId": "boss",
+          "controlPoints": []
+        },
+        {
+          "edgeId": "e20",
+          "fromNodeId": "i",
+          "toNodeId": "boss",
+          "controlPoints": []
+        }
+      ]
+    }
+  ]
+}
