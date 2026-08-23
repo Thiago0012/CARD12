@@ -78,7 +78,7 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             ClearStoryRuntimeSprites();
             _shopBackAction = ShowDuelHub;
-            BuildShopBackground("CRÔNICAS DO DUELO");
+            BuildStoryBackground("CRÔNICAS DO DUELO");
             BuildProfessionalShopHeader(
                 "CRÔNICAS DO DUELO · ESCOLHA SEU DECK",
                 ShowDuelHub);
@@ -152,7 +152,7 @@ namespace ArcaneArena.Frontend
         {
             ClearScreen();
             _shopBackAction = ShowStoryStarterSelection;
-            BuildShopBackground("DECK INICIAL PERSONALIZADO");
+            BuildStoryBackground("DECK INICIAL PERSONALIZADO");
             BuildProfessionalShopHeader(
                 "MONTE SEU DECK INICIAL",
                 ShowStoryStarterSelection);
@@ -297,7 +297,7 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             ClearStoryRuntimeSprites();
             _shopBackAction = ShowDuelHub;
-            BuildShopBackground("MAPA DA JORNADA");
+            BuildStoryBackground("MAPA DA JORNADA");
             BuildProfessionalShopHeader(
                 $"ATO {save.actIndex} · {map.displayName.ToUpperInvariant()}",
                 ExitStoryRunToHub);
@@ -715,7 +715,7 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             ClearStoryRuntimeSprites();
             _shopBackAction = ShowStoryMap;
-            BuildShopBackground("ENCONTRO");
+            BuildStoryBackground("ENCONTRO");
             BuildProfessionalShopHeader(
                 $"ATO {encounter.act} · ENCONTRO",
                 ShowStoryMap);
@@ -865,7 +865,7 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             ClearStoryRuntimeSprites();
             _shopBackAction = ShowStoryMap;
-            BuildShopBackground("RECOMPENSA DA JORNADA");
+            BuildStoryBackground("RECOMPENSA DA JORNADA");
             BuildProfessionalShopHeader(reward.title, ShowStoryMap);
             CreateText(_screenRoot,
                 reward.allowMultiple
@@ -995,7 +995,7 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             _deckEditorSelectedCardId = cardId;
             _shopBackAction = safeReturn;
-            BuildShopBackground("DETALHES DA CARTA");
+            BuildStoryBackground("DETALHES DA CARTA");
             BuildProfessionalShopHeader(entry.DisplayName, safeReturn);
 
             Image panel = CreatePanel(
@@ -1106,7 +1106,7 @@ namespace ArcaneArena.Frontend
         {
             ClearScreen();
             _shopBackAction = ShowStoryMap;
-            BuildShopBackground("EVENTO DA JORNADA");
+            BuildStoryBackground("EVENTO DA JORNADA");
             BuildProfessionalShopHeader(choice.title, ShowStoryMap);
             Image panel = CreatePanel(_screenRoot,
                 "Evento persistido",
@@ -1149,7 +1149,7 @@ namespace ArcaneArena.Frontend
             StoryRunSave save = _storyManager.Save;
             ClearScreen();
             _shopBackAction = ShowStoryMap;
-            BuildShopBackground("DECK DA JORNADA");
+            BuildStoryBackground("DECK DA JORNADA");
             BuildProfessionalShopHeader("DECK DA JORNADA", ShowStoryMap);
             _storyDeckStatus = CreateText(_screenRoot,
                 $"PRINCIPAL  {save.mainDeck.Count} / 20–30    ·    " +
@@ -1248,7 +1248,7 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             ClearStoryRuntimeSprites();
             StoryRunSave save = _storyManager?.Save;
-            BuildShopBackground("FIM DA JORNADA");
+            BuildStoryBackground("FIM DA JORNADA");
             BuildProfessionalShopHeader("CRÔNICAS DO DUELO", ShowDuelHub);
             string title = save?.status == StoryRunStatus.Completed
                 ? "JORNADA CONCLUÍDA"
@@ -1280,7 +1280,7 @@ namespace ArcaneArena.Frontend
         private void ShowStoryError(string message, Action back)
         {
             ClearScreen();
-            BuildShopBackground("CRÔNICAS DO DUELO");
+            BuildStoryBackground("CRÔNICAS DO DUELO");
             BuildProfessionalShopHeader("JORNADA INDISPONÍVEL", back);
             CreateText(_screenRoot, message,
                 23, FontStyle.Bold, Danger,
@@ -1375,6 +1375,48 @@ namespace ArcaneArena.Frontend
                     Debug.LogWarning("[Story Roguelite] " + rejection);
                 }
             }
+        }
+
+        private void BuildStoryBackground(string section)
+        {
+            BuildShopBackground(section);
+            Transform background = _screenRoot?.Find("Fundo");
+            if (background == null)
+                return;
+
+            int act = Mathf.Clamp(_storyManager?.Save?.actIndex ?? 1, 1, 3);
+            Sprite atmosphere = StoryLoadSprite(
+                $"StoryRoguelite/Backgrounds/ChroniclesTowerAct{act}");
+            Image artwork = background.Find("Arte de Fundo da Loja")
+                ?.GetComponent<Image>();
+            if (artwork != null && atmosphere != null)
+            {
+                artwork.sprite = atmosphere;
+                artwork.preserveAspect = true;
+                RectTransform artRect = artwork.rectTransform;
+                artRect.anchorMin = Vector2.zero;
+                artRect.anchorMax = Vector2.one;
+                artRect.offsetMin = new Vector2(-113.2444f, 0f);
+                artRect.offsetMax = new Vector2(113.2456f, 0f);
+                AspectRatioFitter fitter =
+                    artwork.GetComponent<AspectRatioFitter>();
+                if (fitter != null)
+                    fitter.aspectRatio =
+                        atmosphere.rect.width / atmosphere.rect.height;
+            }
+
+            Image veil = background.Find("Contraste da Arte da Loja")
+                ?.GetComponent<Image>();
+            if (veil == null)
+                return;
+            RectTransform veilRect = veil.rectTransform;
+            veilRect.anchorMin = Vector2.zero;
+            veilRect.anchorMax = Vector2.one;
+            veilRect.pivot = new Vector2(0.5f, 0.5f);
+            veilRect.offsetMin = new Vector2(-113.2444f, 0f);
+            veilRect.offsetMax = new Vector2(113.2456f, 0f);
+            veilRect.localScale = Vector3.one;
+            veil.color = new Color32(3, 2, 3, 219);
         }
 
         private Sprite StoryLoadSprite(string resourcePath)

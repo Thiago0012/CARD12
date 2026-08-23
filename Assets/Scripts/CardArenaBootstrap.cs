@@ -1189,7 +1189,7 @@ namespace ArcaneArena
                 CloseDetailZoom);
             CreateText(
                 detailZoomOverlay.transform,
-                "SCROLL PARA AMPLIAR  |  ARRASTE PARA MOVER  |  DUPLO CLIQUE PARA RESETAR",
+                "CLIQUE PARA ALTERNAR O ZOOM  |  SCROLL PARA AJUSTAR  |  ARRASTE PARA MOVER",
                 14,
                 FontStyle.Bold,
                 new Color(0.68f, 0.90f, 0.96f, 0.90f),
@@ -1555,8 +1555,21 @@ namespace ArcaneArena
 
         public void NotifyHandHoverChanged(CardView card, bool hovered)
         {
-            if (hovered) hoveredCard = card;
-            else if (hoveredCard == card) hoveredCard = null;
+            if (hovered)
+            {
+                hoveredCard = card;
+                foreach (CardView handCard in handViews)
+                {
+                    if (handCard != null)
+                        handCard.SetHoveredFromArena(handCard == card);
+                }
+            }
+            else
+            {
+                card?.SetHoveredFromArena(false);
+                if (hoveredCard == card)
+                    hoveredCard = null;
+            }
             RelayoutHand();
         }
 
@@ -1580,6 +1593,12 @@ namespace ArcaneArena
                 IsDirectSelectionPrompt(prompt))
             {
                 SubmitSelectionChoice(direct);
+                return;
+            }
+
+            if (selectedCard == card && detailPanel?.activeSelf == true)
+            {
+                OpenDetailZoom();
                 return;
             }
 
@@ -1640,17 +1659,24 @@ namespace ArcaneArena
                     132f);
             for (int index = 0; index < count; index++)
             {
+                CardView handCard = handViews[index];
+                if (handCard == null)
+                    continue;
                 Vector2 position = HandPosition(index, count);
                 if (focusIndex >= 0 && index != focusIndex)
                     position.x += index < focusIndex
                         ? -separation
                         : separation;
-                handViews[index].SetHandOrder(index);
-                handViews[index].SetRestPose(
+                handCard.transform.SetSiblingIndex(index);
+                handCard.SetHandOrder(index);
+                handCard.SetRestPose(
                     position,
                     HandAngle(index, count));
             }
-            selectedCard?.transform.SetAsLastSibling();
+            CardView focused = selectedCard != null
+                ? selectedCard
+                : hoveredCard;
+            focused?.transform.SetAsLastSibling();
         }
 
         private Vector2 HandPosition(int index, int count)

@@ -25,6 +25,13 @@ namespace ArcaneArena.Frontend
                 new List<StructureDeckPurchaseRecord>();
             State.pendingPackOpenings ??=
                 new List<PendingPackOpeningRecord>();
+            State.pendingDeckEditorNewCardIds ??= new List<string>();
+            State.pendingDeckEditorNewCardIds =
+                State.pendingDeckEditorNewCardIds
+                    .Select(FrontendCardIdentity.NormalizeOfficialId)
+                    .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
+                    .Distinct(StringComparer.Ordinal)
+                    .ToList();
             State.processedShopTransactions ??=
                 new List<ShopTransactionRecord>();
             State.craftPoints ??= new PlayerCraftWallet();
@@ -327,12 +334,29 @@ namespace ArcaneArena.Frontend
             for (int index = 0; index < ShopPackCatalog.CardsPerOpening; index++)
                 draws.Add(DrawPackCard(pack.CardIds, rarityPools));
 
+            var newlyAcquired = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string cardId in draws)
+            {
+                string normalized =
+                    FrontendCardIdentity.NormalizeOfficialId(cardId);
+                if (!string.IsNullOrWhiteSpace(normalized) &&
+                    OwnedCardQuantity(normalized) <= 0)
+                {
+                    newlyAcquired.Add(normalized);
+                }
+            }
+
             string snapshot = JsonUtility.ToJson(State);
             try
             {
                 State.coinBalance -= pack.PriceCoins;
                 foreach (string cardId in draws)
                     AddCardQuantity(cardId, 1);
+                foreach (string cardId in newlyAcquired)
+                {
+                    if (!State.pendingDeckEditorNewCardIds.Contains(cardId))
+                        State.pendingDeckEditorNewCardIds.Add(cardId);
+                }
 
                 opening = new PendingPackOpeningRecord
                 {
@@ -426,6 +450,18 @@ namespace ArcaneArena.Frontend
                 rejection = exception.GetBaseException().Message;
                 return false;
             }
+        }
+
+        public void ClearPendingDeckEditorNewCards()
+        {
+            if (State?.pendingDeckEditorNewCardIds == null ||
+                State.pendingDeckEditorNewCardIds.Count == 0)
+            {
+                return;
+            }
+
+            State.pendingDeckEditorNewCardIds.Clear();
+            Save();
         }
 
         private bool TryPrepareTransaction(

@@ -1,3 +1,4 @@
+using System.Collections;
 using ArcaneDuel.Game;
 using UnityEngine;
 
@@ -16,6 +17,13 @@ namespace ArcaneArena.Frontend
         private AudioSource source;
         private AudioClip craftedClip;
         private AudioClip reversedClip;
+        private Coroutine prepareRoutine;
+
+        public static void Preload()
+        {
+            DeckEditorCraftAudio player = EnsureInstance();
+            player?.BeginPrepareReversedClip();
+        }
 
         public static void Play(bool dismantling)
         {
@@ -62,6 +70,8 @@ namespace ArcaneArena.Frontend
         {
             if (instance == this)
                 instance = null;
+            if (prepareRoutine != null)
+                StopCoroutine(prepareRoutine);
             if (reversedClip != null)
                 Destroy(reversedClip);
         }
@@ -74,7 +84,7 @@ namespace ArcaneArena.Frontend
             source.Stop();
             source.pitch = 1f;
             AudioClip clip = dismantling
-                ? reversedClip ??= CreateReversedClip(craftedClip)
+                ? reversedClip
                 : craftedClip;
             if (clip != null)
             {
@@ -92,31 +102,56 @@ namespace ArcaneArena.Frontend
             source.Play();
         }
 
-        private static AudioClip CreateReversedClip(AudioClip original)
+        private void BeginPrepareReversedClip()
         {
+            if (craftedClip == null || reversedClip != null ||
+                prepareRoutine != null)
+            {
+                return;
+            }
+            prepareRoutine = StartCoroutine(PrepareReversedClip());
+        }
+
+        private IEnumerator PrepareReversedClip()
+        {
+            // Deixa a Oficina terminar seu primeiro frame antes de decodificar
+            // o MP3. A inversão também é dividida entre frames para não travar
+            // o clique de desmanche.
+            yield return null;
+            AudioClip original = craftedClip;
             if (original == null || original.samples <= 0 ||
                 original.channels <= 0)
             {
-                return null;
+                prepareRoutine = null;
+                yield break;
             }
 
             int channels = original.channels;
             int frames = original.samples;
             float[] samples = new float[frames * channels];
             if (!original.GetData(samples, 0))
-                return null;
-
-            for (int left = 0, right = frames - 1;
-                 left < right;
-                 left++, right--)
             {
-                for (int channel = 0; channel < channels; channel++)
+                prepareRoutine = null;
+                yield break;
+            }
+
+            const int SwapsPerFrame = 12000;
+            int left = 0;
+            int right = frames - 1;
+            while (left < right)
+            {
+                int limit = Mathf.Min(left + SwapsPerFrame, right);
+                for (; left < limit && left < right; left++, right--)
                 {
-                    int leftIndex = left * channels + channel;
-                    int rightIndex = right * channels + channel;
-                    (samples[leftIndex], samples[rightIndex]) =
-                        (samples[rightIndex], samples[leftIndex]);
+                    for (int channel = 0; channel < channels; channel++)
+                    {
+                        int leftIndex = left * channels + channel;
+                        int rightIndex = right * channels + channel;
+                        (samples[leftIndex], samples[rightIndex]) =
+                            (samples[rightIndex], samples[leftIndex]);
+                    }
                 }
+                yield return null;
             }
 
             AudioClip reversed = AudioClip.Create(
@@ -125,7 +160,11 @@ namespace ArcaneArena.Frontend
                 channels,
                 original.frequency,
                 false);
-            return reversed.SetData(samples, 0) ? reversed : null;
+            if (reversed.SetData(samples, 0))
+                reversedClip = reversed;
+            else
+                Destroy(reversed);
+            prepareRoutine = null;
         }
 
         private void ApplyPreferences()

@@ -2938,15 +2938,17 @@ namespace ArcaneArena.Frontend
             {
                 if (pair.Value == null)
                     continue;
-                pair.Value.color = pair.Key == _catalogFilter
-                    ? new Color(Lime.r, Lime.g, Lime.b, 0.94f)
-                    : new Color(0.015f, 0.055f, 0.085f, 0.98f);
-
-                var label = pair.Value.GetComponentInChildren<Text>();
-                if (label != null)
-                    label.color = pair.Key == _catalogFilter
-                        ? Ink
-                        : Color.white;
+                Color accent = pair.Key == CardCategory.Monster
+                    ? Gold
+                    : pair.Key == CardCategory.Spell
+                        ? Cyan
+                        : pair.Key == CardCategory.Trap
+                            ? new Color(0.95f, 0.28f, 0.7f)
+                            : Lime;
+                StyleCatalogControlButton(
+                    pair.Value,
+                    accent,
+                    pair.Key == _catalogFilter);
             }
         }
 
@@ -3793,6 +3795,8 @@ namespace ArcaneArena.Frontend
 
         private void ReturnToMainMenuSceneImmediate()
         {
+            if (IsActiveScene(DeckEditorSceneName))
+                _repository?.ClearPendingDeckEditorNewCards();
             if (_duelPresentationVisible &&
                 DuelOnlineSession.Instance?.IsOnlineDuelActive == true)
             {
@@ -4692,17 +4696,17 @@ namespace ArcaneArena.Frontend
                 $"Controle {label}",
                 min,
                 max,
-                new Color(0.015f, 0.055f, 0.085f, 0.98f));
-            AddOutline(
-                image.gameObject,
-                new Color(accent.r, accent.g, accent.b, 0.9f),
-                new Vector2(1.5f, -1.5f));
+                Color.clear);
+            SkinDeckEditorSurface(image, accent, true, 0.82f);
             var button = image.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
+            ArcanePanelSheenGraphic sheen =
+                image.GetComponentInChildren<ArcanePanelSheenGraphic>(true);
+            button.targetGraphic = sheen != null ? sheen : image;
             var colors = button.colors;
-            colors.highlightedColor =
-                Color.Lerp(Color.white, accent, 0.45f);
-            colors.pressedColor = accent;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = Color.Lerp(Color.white, accent, 0.18f);
+            colors.pressedColor = Color.Lerp(Color.white, accent, 0.42f);
+            colors.selectedColor = Color.Lerp(Color.white, accent, 0.24f);
             colors.fadeDuration = 0.08f;
             button.colors = colors;
             button.onClick.AddListener(() =>
@@ -4710,7 +4714,7 @@ namespace ArcaneArena.Frontend
                 FrontendClickAudio.Play();
                 action?.Invoke();
             });
-            CreateText(
+            Text text = CreateText(
                 image.transform,
                 label,
                 13,
@@ -4719,7 +4723,82 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.03f, 0.04f),
                 new Vector2(0.97f, 0.96f),
                 TextAnchor.MiddleCenter);
+            text.gameObject.name = "Legenda do controle";
+            Image energy = CreatePanel(
+                image.transform,
+                "Energia do controle",
+                new Vector2(0.18f, 0.025f),
+                new Vector2(0.82f, 0.055f),
+                new Color(accent.r, accent.g, accent.b, 0.72f));
+            energy.raycastTarget = false;
+            Image core = CreatePanel(
+                image.transform,
+                "Núcleo do controle",
+                new Vector2(0.035f, 0.38f),
+                new Vector2(0.055f, 0.62f),
+                new Color(accent.r, accent.g, accent.b, 0.94f));
+            core.raycastTarget = false;
+            core.rectTransform.localEulerAngles = new Vector3(0f, 0f, 45f);
+            StyleCatalogControlButton(image, accent, false);
             return image;
+        }
+
+        private static void StyleCatalogControlButton(
+            Image image,
+            Color accent,
+            bool selected)
+        {
+            if (image == null)
+                return;
+            image.color = Color.clear;
+            ArcanePanelSheenGraphic sheen =
+                image.GetComponentInChildren<ArcanePanelSheenGraphic>(true);
+            if (sheen == null)
+            {
+                SkinDeckEditorSurface(
+                    image,
+                    accent,
+                    selected,
+                    selected ? 0.96f : 0.78f);
+                sheen = image.GetComponentInChildren<
+                    ArcanePanelSheenGraphic>(true);
+            }
+            sheen?.SetStyle(
+                accent,
+                selected,
+                selected ? 0.96f : 0.78f);
+            Button button = image.GetComponent<Button>();
+            if (button != null && sheen != null)
+                button.targetGraphic = sheen;
+            Text label = image.GetComponentInChildren<Text>(true);
+            if (label != null)
+            {
+                label.color = selected
+                    ? new Color(0.97f, 0.92f, 0.78f, 1f)
+                    : Color.white;
+            }
+            Transform energy = image.transform.Find("Energia do controle");
+            Image energyImage = energy != null
+                ? energy.GetComponent<Image>()
+                : null;
+            if (energyImage != null)
+            {
+                energyImage.color = new Color(
+                    accent.r,
+                    accent.g,
+                    accent.b,
+                    selected ? 0.96f : 0.50f);
+            }
+            Transform core = image.transform.Find("Núcleo do controle");
+            Image coreImage = core != null ? core.GetComponent<Image>() : null;
+            if (coreImage != null)
+            {
+                coreImage.color = new Color(
+                    accent.r,
+                    accent.g,
+                    accent.b,
+                    selected ? 1f : 0.72f);
+            }
         }
 
         private static InputField CreateSearchField(
@@ -4733,11 +4812,8 @@ namespace ArcaneArena.Frontend
                 "Busca de Cartas",
                 min,
                 max,
-                new Color(0.12f, 0.16f, 0.19f, 0.98f));
-            AddOutline(
-                background.gameObject,
-                new Color(0.72f, 0.8f, 0.84f, 0.9f),
-                new Vector2(1.5f, -1.5f));
+                Color.clear);
+            SkinDeckEditorSurface(background, DeckMint, false, 0.86f);
 
             CreateText(
                 background.transform,
@@ -4768,7 +4844,9 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleLeft);
 
             var input = background.gameObject.AddComponent<InputField>();
-            input.targetGraphic = background;
+            ArcanePanelSheenGraphic sheen =
+                background.GetComponentInChildren<ArcanePanelSheenGraphic>(true);
+            input.targetGraphic = sheen != null ? sheen : background;
             input.textComponent = inputText;
             input.placeholder = placeholderText;
             input.lineType = InputField.LineType.SingleLine;
@@ -5229,6 +5307,8 @@ namespace ArcaneArena.Frontend
 
         private void OnDestroy()
         {
+            if (Application.isPlaying && IsActiveScene(DeckEditorSceneName))
+                _repository?.ClearPendingDeckEditorNewCards();
             CancelPackOpeningPresentation();
             ReleasePackOpeningAnimationResources();
             ReleaseShopMysteryCardSprite();
