@@ -335,7 +335,13 @@ def make_snapshot() -> dict[str, object]:
         valid = bool(card_id)
         registered = str(item["officiallyRegistered"]) == "1"
         ready = str(item["category"]) != "0" and str(item["needsManualReview"]) != "1"
-        required = bool(record) and record["type"] != 17 and not (record["type"] & 0x4000)
+        card_type = int(record["type"]) if record else 0
+        plain_normal = (
+            bool(card_type & 0x10)
+            and not bool(card_type & 0x20)
+            and not bool(card_type & 0x1000000)
+        )
+        required = bool(record) and not plain_normal and not (card_type & 0x4000)
         script = resolve_script(card_id, required) if valid else resolve_script("", False)
         documented_art = ROOT / doc.get("art_asset", "")
         guid_art = artwork_by_guid.get(str(item.get("artworkGuid") or ""))

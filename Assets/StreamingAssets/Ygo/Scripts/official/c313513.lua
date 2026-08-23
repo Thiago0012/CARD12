@@ -112,7 +112,7 @@ function s.activate(e,tp,eg,ep,ev,re,r,rp)
 	if ft<=0 then return end
 	if ft>2 then ft=2 end
 	local g=Duel.GetMatchingGroup(s.filter,tp,LOCATION_HAND|LOCATION_DECK,0,nil,e,tp)
-	if Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT) or g:FilterCount(Card.IsLocation,nil,LOCATION_HAND)<=0 
+	if Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT) or g:FilterCount(Card.IsLocation,nil,LOCATION_HAND)<=0
 		or g:FilterCount(Card.IsLocation,nil,LOCATION_DECK)<=0 then ft=1 end
 	local sg=aux.SelectUnselectGroup(g,e,tp,ft,ft,s.spcheck,1,tp,HINTMSG_SPSUMMON)
 	if Duel.SpecialSummon(sg,0,tp,tp,true,false,POS_FACEUP)>0 then

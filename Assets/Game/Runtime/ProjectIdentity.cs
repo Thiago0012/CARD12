@@ -9,11 +9,12 @@ namespace ArcaneDuel.Game
         public const string CoreCommit = "0764db0c75b3d1d574880d365aa3695ab1f13b43";
         public const string CardScriptsCommit = "55607ee511d9697b6eac5dbb689deaa5be712826";
         public const string BabelCdbCommit = "8d60901db521eb4183ca72560c01a70a6386c98c";
+        public const string CardContentVersion = "allcards-0001-2500-v1";
         public const string BanlistId = BanlistService.ActiveBanlistId;
         public const string MultiplayerCompatibility =
             ProjectVersion + "|" + CoreApiVersion + "|" + CoreCommit +
             "|" + CardScriptsCommit + "|" + BabelCdbCommit + "|" +
-            BanlistId;
+            CardContentVersion + "|" + BanlistId;
         public const string MainMenuScene = "MainMenu";
         // Compatibility alias used by the core-only presentation.  All exits
         // now return to the authored classic frontend; the newer portal is

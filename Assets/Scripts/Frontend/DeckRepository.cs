@@ -710,11 +710,11 @@ namespace ArcaneArena.Frontend
 
             foreach (var entry in catalog.Entries)
             {
-                if (entry?.Artwork == null)
+                if (entry?.AuthoredArtwork == null)
                     continue;
                 if (string.Equals(
                         NormalizeNumericCardId(
-                            entry.Artwork.name),
+                            entry.AuthoredArtwork.name),
                         normalizedRequestedId,
                         StringComparison.Ordinal))
                 {
@@ -761,7 +761,7 @@ namespace ArcaneArena.Frontend
                 return false;
             }
 
-            if (entry.Artwork == null)
+            if (!entry.HasArtwork)
             {
                 rejection =
                     $"A entrada do card {cardId} existe, mas está sem imagem vinculada.";

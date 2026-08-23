@@ -61,8 +61,8 @@ function s.valcheck(e,c)
 		and g:IsExists(Card.IsAttribute,1,nil,ATTRIBUTE_WIND)
 		and g:IsExists(Card.IsAttribute,1,nil,ATTRIBUTE_FIRE)
 		and g:IsExists(Card.IsAttribute,1,nil,ATTRIBUTE_WATER)
-		and g:IsExists(Card.IsAttribute,1,nil,ATTRIBUTE_DARK) then 
-		e:GetLabelObject():SetLabel(1) 
+		and g:IsExists(Card.IsAttribute,1,nil,ATTRIBUTE_DARK) then
+		e:GetLabelObject():SetLabel(1)
 	end
 end
 function s.descon(e,tp,eg,ep,ev,re,r,rp)

@@ -135,6 +135,9 @@ namespace ArcaneArena.Frontend
         private bool _shopFeedbackIsError;
         private CardCategory _catalogFilter = CardCategory.Unknown;
         private bool _catalogSortDescending;
+        private int _catalogPage;
+        private int _catalogMatchCount;
+        private const int CatalogPageSize = 120;
         private string _deckEditorSelectedCardId = string.Empty;
         private readonly Dictionary<CardCategory, Image>
             _catalogFilterButtons = new();
@@ -2726,6 +2729,7 @@ namespace ArcaneArena.Frontend
             _catalogSearchInput.onValueChanged.AddListener(value =>
             {
                 _catalogSearch = value ?? string.Empty;
+                _catalogPage = 0;
                 RebuildCatalog();
             });
 
@@ -2768,14 +2772,29 @@ namespace ArcaneArena.Frontend
                 new Vector2(6f, 8f),
                 6);
 
+            CreateCatalogControlButton(
+                collectionPanel.transform,
+                "‹",
+                new Vector2(0.03f, 0.015f),
+                new Vector2(0.18f, 0.082f),
+                Cyan,
+                PreviousCatalogPage);
+            CreateCatalogControlButton(
+                collectionPanel.transform,
+                "›",
+                new Vector2(0.82f, 0.015f),
+                new Vector2(0.97f, 0.082f),
+                Cyan,
+                NextCatalogPage);
+
             _editorStatus = CreateText(
                 collectionPanel.transform,
                 string.Empty,
                 14,
                 FontStyle.Bold,
                 Muted,
-                new Vector2(0.04f, 0.015f),
-                new Vector2(0.96f, 0.082f),
+                new Vector2(0.20f, 0.015f),
+                new Vector2(0.80f, 0.082f),
                 TextAnchor.MiddleCenter);
             _catalogResults = _editorStatus;
             UpdateCatalogFilterVisuals();
@@ -3117,7 +3136,7 @@ namespace ArcaneArena.Frontend
             if (_catalogSortDescending)
                 entries.Reverse();
 
-            var visibleCount = 0;
+            var filtered = new List<CardCatalogEntry>();
             foreach (var entry in entries)
             {
                 if (_catalogFilter != CardCategory.Unknown &&
@@ -3148,6 +3167,25 @@ namespace ArcaneArena.Frontend
                 if (!uniqueIds.Add(cardId))
                     continue;
 
+                filtered.Add(entry);
+            }
+
+            _catalogMatchCount = filtered.Count;
+            int pageCount = Mathf.Max(
+                1,
+                Mathf.CeilToInt(_catalogMatchCount / (float)CatalogPageSize));
+            _catalogPage = Mathf.Clamp(_catalogPage, 0, pageCount - 1);
+            int first = _catalogPage * CatalogPageSize;
+            int last = Mathf.Min(first + CatalogPageSize, filtered.Count);
+            var visibleCount = 0;
+            for (int index = first; index < last; index++)
+            {
+                CardCatalogEntry entry = filtered[index];
+                string cardId = DeckRepository.StableCardId(entry);
+                Sprite artwork = entry.Artwork;
+                if (artwork == null)
+                    continue;
+
                 Image slot = CreatePanel(
                     parent,
                     $"Célula da coleção {cardId}",
@@ -3157,7 +3195,7 @@ namespace ArcaneArena.Frontend
                 slot.raycastTarget = false;
                 var card = CreateCardArtwork(
                     slot.transform,
-                    entry.Artwork,
+                    artwork,
                     Vector2.zero,
                     Vector2.one,
                     0f,
@@ -3223,7 +3261,7 @@ namespace ArcaneArena.Frontend
                     .Setup(
                         this,
                         cardId,
-                        entry.Artwork,
+                        artwork,
                         ownedCopies > 0);
                 visibleCount++;
             }
@@ -3311,16 +3349,21 @@ namespace ArcaneArena.Frontend
             var visible = PopulateCatalog(_catalogContent);
             if (_catalogResults != null)
             {
+                int pageCount = Mathf.Max(
+                    1,
+                    Mathf.CeilToInt(_catalogMatchCount / (float)CatalogPageSize));
                 _catalogResults.text =
-                    $"{visible} CARTAS  •  COLEÇÃO E LOJA ATIVAS\n" +
+                    $"{_catalogMatchCount} CARTAS  •  PÁGINA {_catalogPage + 1}/{pageCount}  •  " +
+                    $"{visible} EXIBIDAS\n" +
                     "CLIQUE: DETALHES  •  DUPLO CLIQUE: ADICIONAR";
-                _catalogResults.color = visible > 0 ? Muted : Gold;
+                _catalogResults.color = _catalogMatchCount > 0 ? Muted : Gold;
             }
         }
 
         private void SetCatalogFilter(CardCategory category)
         {
             _catalogFilter = category;
+            _catalogPage = 0;
             UpdateCatalogFilterVisuals();
             RebuildCatalog();
         }
@@ -3328,6 +3371,7 @@ namespace ArcaneArena.Frontend
         private void ToggleCatalogSort()
         {
             _catalogSortDescending = !_catalogSortDescending;
+            _catalogPage = 0;
             RebuildCatalog();
         }
 
@@ -3336,9 +3380,29 @@ namespace ArcaneArena.Frontend
             _catalogSearch = string.Empty;
             _catalogFilter = CardCategory.Unknown;
             _catalogSortDescending = false;
+            _catalogPage = 0;
             if (_catalogSearchInput != null)
                 _catalogSearchInput.SetTextWithoutNotify(string.Empty);
             UpdateCatalogFilterVisuals();
+            RebuildCatalog();
+        }
+
+        private void PreviousCatalogPage()
+        {
+            if (_catalogPage <= 0)
+                return;
+            _catalogPage--;
+            RebuildCatalog();
+        }
+
+        private void NextCatalogPage()
+        {
+            int pageCount = Mathf.Max(
+                1,
+                Mathf.CeilToInt(_catalogMatchCount / (float)CatalogPageSize));
+            if (_catalogPage + 1 >= pageCount)
+                return;
+            _catalogPage++;
             RebuildCatalog();
         }
 
@@ -5198,7 +5262,8 @@ namespace ArcaneArena.Frontend
             {
                 if (entry != null &&
                     entry.IsReadyForGameplay &&
-                    entry.Artwork != null)
+                    entry.IsCollectible &&
+                    entry.HasArtwork)
                 {
                     entries.Add(entry);
                 }
