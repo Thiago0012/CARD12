@@ -156,23 +156,23 @@ namespace ArcaneArena.Frontend
         {
             new(DefaultIconId, "Brasão Arcano", string.Empty, false),
             new("icon-astral-paladin", "Paladino Astral", "Profile/Icons/astral-paladin", true,
-                portraitUv: VisibleUv(1536, 1024, 340, 20, 1196, 996)),
+                portraitUv: PortraitUv(1536, 1024, 340, 20, 1196, 996)),
             new("icon-prismatic-dragon", "Dragão Prismático", "Profile/Icons/prismatic-dragon", true,
-                portraitUv: VisibleUv(1536, 1024, 344, 16, 1192, 992)),
+                portraitUv: PortraitUv(1536, 1024, 344, 16, 1192, 992)),
             new("icon-sun-hawk", "Falcão Solar", "Profile/Icons/sun-hawk", true,
-                portraitUv: VisibleUv(1536, 1024, 316, 4, 1216, 1016)),
+                portraitUv: PortraitUv(1536, 1024, 316, 4, 1216, 1016)),
             new("icon-abyssal-sorceress", "Feiticeira Abissal", "Profile/Icons/abyssal-sorceress", true,
-                portraitUv: VisibleUv(1254, 1254, 84, 20, 1168, 1228)),
+                portraitUv: PortraitUv(1254, 1254, 84, 20, 1168, 1228)),
             new("icon-golden-dragon", "Dragão Dourado", "Profile/Icons/golden-dragon", true,
-                portraitUv: VisibleUv(1024, 1536, 28, 192, 992, 1292)),
+                portraitUv: PortraitUv(1024, 1536, 28, 192, 992, 1292)),
             new("icon-void-elf", "Elfa do Vazio", "Profile/Icons/void-elf", true,
-                portraitUv: VisibleUv(1536, 1024, 324, 12, 1212, 1008)),
+                portraitUv: PortraitUv(1536, 1024, 324, 12, 1212, 1008)),
             new("icon-crimson-knight", "Cavaleiro Carmesim", "Profile/Icons/crimson-knight", true,
-                portraitUv: VisibleUv(1536, 1024, 332, 12, 1204, 1004)),
+                portraitUv: PortraitUv(1536, 1024, 332, 12, 1204, 1004)),
             new("icon-oracle-idol", "Ídolo Oráculo", "Profile/Icons/oracle-idol", true,
-                portraitUv: VisibleUv(1254, 1254, 80, 16, 1172, 1236)),
+                portraitUv: PortraitUv(1254, 1254, 80, 16, 1172, 1236)),
             new("icon-celestial-hydra", "Hidra Celestial", "Profile/Icons/celestial-hydra", true,
-                portraitUv: VisibleUv(1024, 1536, 32, 220, 992, 1308))
+                portraitUv: PortraitUv(1024, 1536, 32, 220, 992, 1308))
         };
 
         private static readonly Dictionary<string, Texture2D> TextureCache =
@@ -209,7 +209,7 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        private static Rect VisibleUv(
+        private static Rect PortraitUv(
             int width,
             int height,
             int minX,
@@ -217,16 +217,22 @@ namespace ArcaneArena.Frontend
             int maxX,
             int maxYFromTop)
         {
+            // Os arquivos originais possuem uma moldura ciano e quantidades
+            // diferentes de área vazia. A caixa informada acima delimita o
+            // hexágono visível em cada textura. Um único recuo proporcional
+            // remove a moldura pré-renderizada e entrega somente o retrato ao
+            // HexIconView, que então aplica a moldura oficial do jogo.
+            const float uniformInnerInset = 0.0425f;
             float visibleWidth = maxX - minX + 1f;
             float visibleHeight = maxYFromTop - minYFromTop + 1f;
-            float paddingX = visibleWidth * 0.025f;
-            float paddingY = visibleHeight * 0.02f;
-            float xMin = Mathf.Clamp01((minX - paddingX) / width);
-            float xMax = Mathf.Clamp01((maxX + 1f + paddingX) / width);
+            float insetX = visibleWidth * uniformInnerInset;
+            float insetY = visibleHeight * uniformInnerInset;
+            float xMin = Mathf.Clamp01((minX + insetX) / width);
+            float xMax = Mathf.Clamp01((maxX + 1f - insetX) / width);
             float yMin = Mathf.Clamp01(
-                1f - (maxYFromTop + 1f + paddingY) / height);
+                1f - (maxYFromTop + 1f - insetY) / height);
             float yMax = Mathf.Clamp01(
-                1f - (minYFromTop - paddingY) / height);
+                1f - (minYFromTop + insetY) / height);
             return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
         }
 

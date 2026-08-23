@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneArena.Frontend;
 using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Protocol;
@@ -31,6 +32,7 @@ namespace ArcaneArena
         private Text decisionRibbonKicker;
         private Text decisionRibbonText;
         private Outline decisionRibbonOutline;
+        private DuelHudSurfaceGraphic decisionRibbonSurface;
         private GameObject opponentHandFan;
         private RectTransform opponentHandContent;
         private Text opponentHandCount;
@@ -44,6 +46,7 @@ namespace ArcaneArena
         private CanvasGroup chainIndicatorGroup;
         private Text chainIndicatorCount;
         private Text chainIndicatorDetails;
+        private DuelHudSurfaceGraphic chainIndicatorSurface;
         private int activeChainLinks;
         private float experiencePulse;
         private bool experienceObscured;
@@ -62,14 +65,20 @@ namespace ArcaneArena
         {
             decisionRibbon = CreatePanel(frame, "Orientação do Duelo",
                 new Vector2(0.305f, 0.790f), new Vector2(0.695f, 0.875f),
-                new Color(0.004f, 0.025f, 0.045f, 0.96f));
+                Color.clear);
             decisionRibbon.transform.SetAsLastSibling();
             decisionRibbonGroup = decisionRibbon.AddComponent<CanvasGroup>();
             decisionRibbonGroup.interactable = false;
             decisionRibbonGroup.blocksRaycasts = false;
-            decisionRibbonOutline = decisionRibbon.AddComponent<Outline>();
-            decisionRibbonOutline.effectColor = Cyan;
-            decisionRibbonOutline.effectDistance = new Vector2(2f, -2f);
+            decisionRibbonSurface = AttachDuelSurface(
+                decisionRibbon,
+                "Superfície da Orientação",
+                Cyan,
+                true,
+                0.90f,
+                false,
+                12f);
+            decisionRibbonOutline = decisionRibbon.GetComponent<Outline>();
             decisionRibbonAccent = CreateImage(decisionRibbon.transform,
                 "Acento de Prioridade", Vector2.zero,
                 new Vector2(0.018f, 1f), Cyan);
@@ -211,26 +220,33 @@ namespace ArcaneArena
         private void BuildChainIndicator()
         {
             chainIndicator = CreatePanel(frame, "Indicador de Corrente",
-                new Vector2(0.700f, 0.390f), new Vector2(0.985f, 0.555f),
-                new Color(0.07f, 0.01f, 0.10f, 0.95f));
-            AddOutline(chainIndicator, Red);
+                new Vector2(0.745f, 0.405f), new Vector2(0.975f, 0.525f),
+                Color.clear);
+            chainIndicatorSurface = AttachDuelSurface(
+                chainIndicator,
+                "Superfície da Corrente",
+                OpponentTurnRed,
+                false,
+                0.91f,
+                false,
+                12f);
             chainIndicatorGroup = chainIndicator.AddComponent<CanvasGroup>();
             chainIndicatorGroup.interactable = false;
             chainIndicatorGroup.blocksRaycasts = false;
             CreateText(chainIndicator.transform, "CORRENTE", 9,
                 FontStyle.Bold, Red, new Vector2(0.02f, 0.63f),
-                new Vector2(0.24f, 1f),
+                new Vector2(0.21f, 1f),
                 TextAnchor.MiddleCenter);
             chainIndicatorCount = CreateText(chainIndicator.transform, "1", 28,
                 FontStyle.Bold, Color.white, new Vector2(0.02f, 0f),
-                new Vector2(0.24f, 0.70f), TextAnchor.MiddleCenter);
+                new Vector2(0.21f, 0.70f), TextAnchor.MiddleCenter);
             chainIndicatorDetails = CreateText(
                 chainIndicator.transform,
                 string.Empty,
                 10,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.27f, 0.08f),
+                new Vector2(0.23f, 0.08f),
                 new Vector2(0.97f, 0.92f),
                 TextAnchor.MiddleLeft);
             chainIndicatorDetails.supportRichText = true;
@@ -379,10 +395,21 @@ namespace ArcaneArena
         private void UpdateDecisionRibbon(string value, Color color)
         {
             if (decisionRibbon == null || decisionRibbonText == null) return;
+            if (!DuelActivationPreferences.GuidanceMessagesEnabled)
+            {
+                HideDecisionRibbon();
+                return;
+            }
             decisionRibbon.SetActive(true);
             decisionRibbonText.text = value ?? string.Empty;
             decisionRibbonAccent.color = color;
             decisionRibbonKicker.color = color;
+            decisionRibbonSurface?.SetStyle(
+                color,
+                true,
+                0.90f,
+                false,
+                12f);
             if (decisionRibbonOutline != null)
                 decisionRibbonOutline.effectColor = color;
         }
@@ -404,9 +431,9 @@ namespace ArcaneArena
             if (chainIndicator != null && chainIndicator.activeSelf)
             {
                 chainIndicatorGroup.alpha =
-                    0.82f + Mathf.Sin(experiencePulse * 5f) * 0.18f;
+                    0.90f + Mathf.Sin(experiencePulse * 4f) * 0.10f;
                 chainIndicator.transform.localScale = Vector3.one *
-                    (1f + Mathf.Sin(experiencePulse * 5f) * 0.035f);
+                    (1f + Mathf.Sin(experiencePulse * 4f) * 0.008f);
             }
         }
 
@@ -419,7 +446,9 @@ namespace ArcaneArena
                 case CoreMessage.NewTurn:
                     entry = duelEvent.Player == 0
                         ? "Seu turno começou" : "Turno do oponente";
-                    accent = duelEvent.Player == 0 ? Cyan : Gold;
+                    accent = duelEvent.Player == 0
+                        ? LocalTurnBlue
+                        : OpponentTurnRed;
                     break;
                 case CoreMessage.NewPhase:
                     entry = CoreMessageDecoder.PhaseName(duelEvent.Value);
@@ -564,7 +593,9 @@ namespace ArcaneArena
             if (chainIndicator == null) return;
             if (state != null)
                 activeChainLinks = state.ChainLinks.Count;
-            chainIndicator.SetActive(activeChainLinks > 0);
+            chainIndicator.SetActive(
+                DuelActivationPreferences.ChainPanelEnabled &&
+                activeChainLinks > 0);
             if (chainIndicatorCount != null)
                 chainIndicatorCount.text =
                     Mathf.Max(1, activeChainLinks).ToString();
@@ -579,6 +610,25 @@ namespace ArcaneArena
                             .Select(ChainLinkPresentation));
             }
             if (activeChainLinks > 0) chainIndicator.transform.SetAsLastSibling();
+            if (activeChainLinks > 0)
+            {
+                Color accent = state?.ChainLinks
+                    .OrderBy(link => link.ChainIndex)
+                    .LastOrDefault()?.Status switch
+                {
+                    DuelChainLinkStatus.Solving => Gold,
+                    DuelChainLinkStatus.Solved => Lime,
+                    DuelChainLinkStatus.Negated => OpponentTurnRed,
+                    DuelChainLinkStatus.Disabled => Muted,
+                    _ => OpponentTurnRed
+                };
+                chainIndicatorSurface?.SetStyle(
+                    accent,
+                    false,
+                    0.91f,
+                    false,
+                    12f);
+            }
         }
 
         private string ChainLinkPresentation(DuelChainLinkSnapshot link)

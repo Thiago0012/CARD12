@@ -130,6 +130,7 @@ namespace ArcaneArena
         private long localDamageReceivedInDuel;
         private ulong confirmedStatisticEventSequence;
         private Text status;
+        private GameObject phaseControlPanel;
         private Button phaseButton;
         private Text phaseLabel;
         private GameObject choiceModal;
@@ -1290,27 +1291,34 @@ namespace ArcaneArena
                 BindLocalPlayerName(localLifePanel);
             RefreshDuelPlayerPlates();
 
-            GameObject phasePanel = FindObject(frame, "Controle de Fases");
-            if (phasePanel != null)
+            phaseControlPanel = FindObject(frame, "Controle de Fases");
+            if (phaseControlPanel != null)
             {
+                // Preserve o Button autorado da cena. Colocar outro Button na
+                // raiz cria Selectables aninhados e o EventSystem pode entregar
+                // o clique ao componente errado depois da modernização visual.
                 Button[] buttons =
-                    phasePanel.GetComponentsInChildren<Button>(true);
+                    phaseControlPanel.GetComponentsInChildren<Button>(true);
                 phaseButton = buttons.FirstOrDefault(button =>
                                   Contains(button.name, "Avan")) ??
                               buttons.FirstOrDefault() ??
-                              phasePanel.GetComponent<Button>() ??
-                              phasePanel.AddComponent<Button>();
+                              phaseControlPanel.GetComponent<Button>() ??
+                              phaseControlPanel.AddComponent<Button>();
                 if (phaseButton != null)
                 {
                     phaseButton.targetGraphic =
                         phaseButton.GetComponent<Graphic>() ??
-                        phasePanel.GetComponent<Graphic>();
+                        phaseControlPanel.GetComponent<Graphic>();
                     phaseButton.interactable = true;
                     phaseButton.onClick.RemoveAllListeners();
                     phaseButton.onClick.AddListener(OpenPhaseChoices);
-                    phaseLabel =
-                        phaseButton.GetComponentInChildren<Text>(true);
                 }
+                phaseLabel = phaseButton
+                                 ?.GetComponentInChildren<Text>(true) ??
+                             phaseControlPanel
+                                 .GetComponentsInChildren<Text>(true)
+                                 .FirstOrDefault(text =>
+                                     Contains(text.text, "TURNO"));
             }
 
             Text[] allTexts = frame.GetComponentsInChildren<Text>(true);
@@ -2956,12 +2964,19 @@ namespace ArcaneArena
                     (phaseTransitions > 0
                         ? "\nCLIQUE PARA AVANÇAR"
                         : string.Empty);
-                if (phaseButton != null)
-                    phaseButton.interactable =
-                        !phasePresentationLocked &&
-                        core?.CurrentPrompt?.Player == 0 &&
-                        phaseTransitions > 0;
             }
+            if (phaseButton != null)
+            {
+                int legalPhaseTransitions = phasePresentationLocked
+                    ? 0
+                    : DuelPromptPresentationRules.PhaseChoices(
+                        core?.CurrentPrompt).Count;
+                phaseButton.interactable =
+                    !phasePresentationLocked &&
+                    core?.CurrentPrompt?.Player == 0 &&
+                    legalPhaseTransitions > 0;
+            }
+            RefreshTurnOwnershipVisuals();
         }
 
         private void ShowInspector(uint code)

@@ -97,6 +97,96 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void PackRarityTableIsExactlyFiftyFiveTwentyFiveTwelveEight()
+        {
+            Type distribution = FindType(
+                "ArcaneArena.Frontend.PackRarityDistribution");
+            MethodInfo resolve = distribution.GetMethod(
+                "ResolveRoll",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(resolve, Is.Not.Null);
+
+            var counts = new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["N"] = 0,
+                ["R"] = 0,
+                ["SR"] = 0,
+                ["UR"] = 0
+            };
+            for (int roll = 0; roll < 100; roll++)
+            {
+                string rarity = resolve.Invoke(null, new object[] { roll })
+                    .ToString();
+                counts[rarity]++;
+            }
+
+            Assert.That(counts["N"], Is.EqualTo(55));
+            Assert.That(counts["R"], Is.EqualTo(25));
+            Assert.That(counts["SR"], Is.EqualTo(12));
+            Assert.That(counts["UR"], Is.EqualTo(8));
+            Assert.That(resolve.Invoke(null, new object[] { 54 }).ToString(),
+                Is.EqualTo("N"));
+            Assert.That(resolve.Invoke(null, new object[] { 55 }).ToString(),
+                Is.EqualTo("R"));
+            Assert.That(resolve.Invoke(null, new object[] { 80 }).ToString(),
+                Is.EqualTo("SR"));
+            Assert.That(resolve.Invoke(null, new object[] { 92 }).ToString(),
+                Is.EqualTo("UR"));
+        }
+
+        [Test]
+        public void EveryPackCardResolvesToAVisibleRarityBadge()
+        {
+            UnityEngine.Object catalog =
+                AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                    "Assets/Cards/CardCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+
+            Type packCatalog = FindType("ArcaneArena.Frontend.ShopPackCatalog");
+            Type repository = FindType("ArcaneArena.Frontend.DeckRepository");
+            Type distribution = FindType(
+                "ArcaneArena.Frontend.PackRarityDistribution");
+            MethodInfo resolveCard = repository.GetMethod(
+                "ResolveCard", BindingFlags.Public | BindingFlags.Static);
+            MethodInfo resolveRarity = distribution.GetMethod(
+                "ResolveCardRarity", BindingFlags.Public | BindingFlags.Static);
+            Assert.That(resolveCard, Is.Not.Null);
+            Assert.That(resolveRarity, Is.Not.Null);
+
+            string[] cardIds = Values(
+                    packCatalog.GetProperty("Packs").GetValue(null))
+                .SelectMany(pack => Values(Property(pack, "CardIds")))
+                .Select(value => value.ToString())
+                .ToArray();
+            var missing = new List<string>();
+            var invalid = new List<string>();
+            var visible = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "N", "R", "SR", "UR"
+            };
+            foreach (string cardId in cardIds)
+            {
+                object entry = resolveCard.Invoke(
+                    null, new object[] { catalog, cardId });
+                if (entry == null)
+                {
+                    missing.Add(cardId);
+                    continue;
+                }
+                string rarity = resolveRarity.Invoke(
+                    null, new[] { entry }).ToString();
+                if (!visible.Contains(rarity))
+                    invalid.Add($"{cardId}:{rarity}");
+            }
+
+            Assert.That(cardIds, Has.Length.GreaterThan(900));
+            Assert.That(missing, Is.Empty,
+                "Toda carta referenciada por pacote deve existir no catálogo.");
+            Assert.That(invalid, Is.Empty,
+                "Toda carta de pacote deve produzir um selo N/R/SR/UR visível.");
+        }
+
+        [Test]
         public void OnlineRewardRequestCannotCreditTwice()
         {
             string path = TemporarySave("reward");

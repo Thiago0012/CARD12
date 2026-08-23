@@ -473,11 +473,14 @@ namespace ArcaneDuel.Tests.PlayMode
             {
                 "packOpeningFadeDuration",
                 "packOpeningEnterDuration",
+                "packOpeningRarityChargeDuration",
+                "packOpeningEnergyCurtainDuration",
                 "packOpeningAnticipationDuration",
                 "packOpeningTearDuration",
                 "packOpeningFlapDuration",
                 "packOpeningBurstDuration",
                 "packOpeningStackRiseDuration",
+                "packOpeningCardEjectDuration",
                 "packOpeningFanDuration",
                 "packOpeningSettleDuration"
             };
@@ -491,6 +494,10 @@ namespace ArcaneDuel.Tests.PlayMode
             }
             frontend.GetType().GetField(
                     "packOpeningCardStagger",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.SetValue(frontend, 0.002f);
+            frontend.GetType().GetField(
+                    "packOpeningEjectStagger",
                     BindingFlags.Instance | BindingFlags.NonPublic)
                 ?.SetValue(frontend, 0.002f);
             frontend.GetType().GetField(
@@ -551,6 +558,36 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(revealedState.Any(value => value), Is.False,
                 "A apresentação não pode revelar nem alterar o resultado salvo.");
 
+            string[] visibleEffectLayers =
+            {
+                "Aura Exterior do Pacote",
+                "Feixe de Liberação das Cartas",
+                "Horizonte Luminoso da Abertura",
+                "Cone de Luz sobre o Pacote",
+                "Faixa de Energia 1",
+                "Clarão Traseiro do Pacote"
+            };
+            foreach (string layerName in visibleEffectLayers)
+            {
+                GameObject layer = GameObject.Find(layerName);
+                Assert.That(layer, Is.Not.Null,
+                    $"A camada cinematográfica '{layerName}' deve existir.");
+                Image layerImage = layer.GetComponent<Image>();
+                Assert.That(layerImage, Is.Not.Null, layerName);
+                Assert.That(layerImage.color.a,
+                    Is.GreaterThan(0.99f),
+                    $"'{layerName}' não pode nascer transparente; " +
+                    "a intensidade é animada pelo CanvasGroup.");
+                Assert.That(layer.GetComponent<CanvasGroup>(), Is.Not.Null,
+                    $"'{layerName}' deve ser animada por CanvasGroup.");
+            }
+            Assert.That(GameObject.Find("Presságio N da Abertura") != null ||
+                        GameObject.Find("Presságio R da Abertura") != null ||
+                        GameObject.Find("Presságio SR da Abertura") != null ||
+                        GameObject.Find("Presságio UR da Abertura") != null,
+                Is.True,
+                "A abertura deve criar a aura correspondente à maior raridade.");
+
             Image[] movingCards = Object.FindObjectsByType<Image>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None)
@@ -604,6 +641,78 @@ namespace ArcaneDuel.Tests.PlayMode
                     "O bloqueador temporário da animação não pode permanecer " +
                     "sobre a carta revelável.");
                 Assert.That(rect.GetComponent<Image>().raycastTarget, Is.True);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator PremiumRarityShowcaseRunsForSrAndUrCards()
+        {
+            SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour frontend = Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(candidate =>
+                    candidate.GetType().Name == "GameFrontendBootstrap");
+            Assert.That(frontend, Is.Not.Null);
+
+            object catalog = frontend.GetType().GetField(
+                    "_catalog",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(frontend);
+            Assert.That(catalog, Is.Not.Null);
+            IEnumerable entries = catalog.GetType().GetProperty("Entries")
+                ?.GetValue(catalog) as IEnumerable;
+            Assert.That(entries, Is.Not.Null);
+
+            MethodInfo showcase = frontend.GetType().GetMethod(
+                "PlayPremiumRarityRevealShowcase",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(showcase, Is.Not.Null);
+            PropertyInfo activeProperty = frontend.GetType().GetProperty(
+                "IsPremiumRarityShowcaseActive",
+                BindingFlags.Instance | BindingFlags.Public);
+            Assert.That(activeProperty, Is.Not.Null);
+
+            foreach (string expectedRarity in new[] { "SR", "UR" })
+            {
+                object entry = entries.Cast<object>().FirstOrDefault(candidate =>
+                    candidate.GetType().GetProperty("Artwork")
+                        ?.GetValue(candidate) is Sprite &&
+                    string.Equals(
+                        candidate.GetType().GetProperty("Rarity")
+                            ?.GetValue(candidate)?.ToString(),
+                        expectedRarity,
+                        System.StringComparison.Ordinal));
+                Assert.That(entry, Is.Not.Null,
+                    $"O catálogo precisa conter ao menos uma carta {expectedRarity} com arte.");
+
+                Sprite artwork = entry.GetType().GetProperty("Artwork")
+                    ?.GetValue(entry) as Sprite;
+                object rarity = entry.GetType().GetProperty("Rarity")
+                    ?.GetValue(entry);
+                string displayName = entry.GetType().GetProperty("DisplayName")
+                    ?.GetValue(entry)?.ToString();
+                IEnumerator routine = showcase.Invoke(
+                    frontend,
+                    new[] { artwork, displayName, rarity }) as IEnumerator;
+                Assert.That(routine, Is.Not.Null);
+                frontend.StartCoroutine(routine);
+                yield return null;
+
+                Assert.That(activeProperty.GetValue(frontend), Is.True);
+                Assert.That(GameObject.Find(
+                        expectedRarity == "UR"
+                            ? "Apresentacao Ultra Rara"
+                            : "Apresentacao Super Rara"),
+                    Is.Not.Null);
+
+                yield return new WaitForSecondsRealtime(
+                    expectedRarity == "UR" ? 2.35f : 1.75f);
+                yield return null;
+                Assert.That(activeProperty.GetValue(frontend), Is.False);
             }
         }
     }

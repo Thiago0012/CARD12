@@ -940,7 +940,8 @@ namespace ArcaneArena.Frontend
                 "CONFIRMAR PACOTE",
                 pack.DisplayName,
                 $"Você receberá exatamente 5 cartas. Cada posição é sorteada " +
-                $"independentemente e pode conter duplicatas.",
+                $"independentemente e pode conter duplicatas. " +
+                $"Chances: N 55% • R 25% • SR 12% • UR 8%.",
                 pack.PriceCoins,
                 "PACOTE PREMIUM",
                 $"5 CARTAS  •  {pack.CardIds.Count} POSSÍVEIS",
@@ -1108,9 +1109,20 @@ namespace ArcaneArena.Frontend
             Color accent = ResolveShopProductAccent(
                 pack?.PackId ?? opening.packId,
                 false);
+            CardRarity peakRarity = ResolvePackOpeningPeakRarity(opening);
 
             if (!_packOpeningStarted)
             {
+                if (peakRarity >= CardRarity.SR)
+                {
+                    CreatePackRarityAura(
+                            _screenRoot,
+                            $"Presságio do Pacote {peakRarity}",
+                            new Vector2(0.275f, 0.15f),
+                            new Vector2(0.725f, 0.82f),
+                            peakRarity,
+                            true);
+                }
                 Image ambientGlow = CreatePanel(_screenRoot,
                     "Luz Ambiente do Pacote", new Vector2(0.265f, 0.18f),
                     new Vector2(0.735f, 0.81f),
@@ -1156,7 +1168,7 @@ namespace ArcaneArena.Frontend
                 opening.revealed != null &&
                 opening.revealed.All(value => !value);
             PackOpeningAnimationView animationView = animateEntry
-                ? CreatePackOpeningAnimationView(pack)
+                ? CreatePackOpeningAnimationView(pack, opening)
                 : null;
             Text revealInstruction = CreateText(_screenRoot,
                 "REVELE AS CINCO CARTAS • O RESULTADO JÁ ESTÁ SALVO",
@@ -1276,12 +1288,23 @@ namespace ArcaneArena.Frontend
 
             CardCatalogEntry entry = DeckRepository.ResolveCard(
                 _catalog, opening.cardIds[index]);
+            CardRarity revealedRarity =
+                PackRarityDistribution.ResolveCardRarity(entry);
             Image revealGlow = CreatePackCardRevealGlow(card, entry, index);
+            ArcaneRarityRevealGraphic rarityAura =
+                CreatePackCardRarityAura(card, revealedRarity, index);
             if (card != null)
             {
                 card.sprite = entry?.Artwork;
                 card.color = Color.white;
                 card.preserveAspect = true;
+                // O selo e a moldura nascem no exato quadro em que a carta
+                // está de perfil. Como são filhos do RectTransform da carta,
+                // concluem a segunda metade do giro junto com a arte.
+                EnsurePackCardRarityDecoration(
+                    card,
+                    revealedRarity,
+                    index);
             }
             elapsed = 0f;
             while (elapsed < halfDuration && card != null)
@@ -1303,7 +1326,24 @@ namespace ArcaneArena.Frontend
                     revealGlow.rectTransform.localScale = Vector3.one *
                         Mathf.Lerp(0.76f, 1.26f, EaseOutQuint(progress));
                 }
+                rarityAura?.SetState(
+                    Mathf.Lerp(0.08f, 0.46f, EaseOutQuint(progress)),
+                    Mathf.Sin(progress * Mathf.PI));
                 yield return null;
+            }
+            if (card != null)
+            {
+                if (revealedRarity >= CardRarity.SR)
+                {
+                    yield return PlayPremiumRarityRevealShowcase(
+                        entry?.Artwork,
+                        entry?.DisplayName ?? opening.cardIds[index],
+                        revealedRarity);
+                }
+                yield return PlayPackCardRarityCelebration(
+                    card,
+                    rarityAura,
+                    revealedRarity);
             }
             if (card != null)
             {
@@ -1318,12 +1358,100 @@ namespace ArcaneArena.Frontend
             }
             if (revealGlow != null)
                 Destroy(revealGlow.gameObject);
+            if (rarityAura != null)
+                Destroy(rarityAura.gameObject);
             _packRevealBusy = false;
             if (opening.revealed != null &&
                 opening.revealed.All(value => value))
             {
                 CreatePackOpeningFinishButton(opening);
             }
+        }
+
+        private ArcaneRarityRevealGraphic CreatePackCardRarityAura(
+            Image card,
+            CardRarity rarity,
+            int index)
+        {
+            if (card == null || rarity == CardRarity.N)
+                return null;
+
+            Vector2 padding = rarity == CardRarity.UR
+                ? new Vector2(0.34f, 0.22f)
+                : rarity == CardRarity.SR
+                    ? new Vector2(0.27f, 0.18f)
+                    : new Vector2(0.20f, 0.14f);
+            ArcaneRarityRevealGraphic aura = CreatePackRarityAura(
+                card.transform,
+                $"Energia {rarity} da Carta {index + 1}",
+                -padding,
+                Vector2.one + padding,
+                rarity,
+                false);
+            aura?.transform.SetAsFirstSibling();
+            return aura;
+        }
+
+        private IEnumerator PlayPackCardRarityCelebration(
+            Image card,
+            ArcaneRarityRevealGraphic rarityAura,
+            CardRarity rarity)
+        {
+            if (card == null)
+                yield break;
+
+            float duration = rarity switch
+            {
+                CardRarity.UR => 0.86f,
+                CardRarity.SR => 0.58f,
+                CardRarity.R => 0.28f,
+                _ => 0.12f
+            };
+            float amplitude = rarity switch
+            {
+                CardRarity.UR => 4.2f,
+                CardRarity.SR => 3.1f,
+                CardRarity.R => 1.8f,
+                _ => 0.8f
+            };
+            RectTransform rect = card.rectTransform;
+            Vector2 basePosition = rect.anchoredPosition;
+            float elapsed = 0f;
+            while (elapsed < duration && card != null)
+            {
+                elapsed += Mathf.Min(
+                    Mathf.Max(0f, Time.unscaledDeltaTime),
+                    1f / 20f);
+                float progress = Mathf.Clamp01(elapsed / duration);
+                float decay = (1f - progress) * (1f - progress);
+                float impact = Mathf.Sin(progress * Mathf.PI * 7f) * decay;
+                float vertical = Mathf.Abs(
+                    Mathf.Sin(progress * Mathf.PI * 3.5f)) * decay;
+                rect.anchoredPosition = basePosition + new Vector2(
+                    impact * amplitude,
+                    vertical * amplitude * 0.62f);
+                rect.localRotation = Quaternion.Euler(
+                    0f,
+                    0f,
+                    -impact * amplitude * 0.32f);
+                rect.localScale = Vector3.one *
+                    (1f + vertical * (rarity >= CardRarity.SR ? 0.045f : 0.018f));
+
+                float auraEnvelope = Mathf.Sin(progress * Mathf.PI);
+                rarityAura?.SetState(
+                    Mathf.Lerp(0.46f, 1f, EaseOutQuint(
+                        Mathf.Clamp01(progress * 1.6f))),
+                    auraEnvelope);
+                yield return null;
+            }
+
+            if (card != null)
+            {
+                rect.anchoredPosition = basePosition;
+                rect.localRotation = Quaternion.identity;
+                rect.localScale = Vector3.one;
+            }
+            rarityAura?.SetState(0f, 0f);
         }
 
         private void DecorateRevealedPackCard(
@@ -1351,15 +1479,9 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleCenter);
             name.gameObject.name = $"Nome da Carta Revelada {index + 1}";
 
-            if (entry != null && CardRarityCatalog.IsValid(entry.Rarity))
-            {
-                CreateRarityBadge(
-                    card.transform,
-                    entry.Rarity,
-                    new Vector2(0.66f, 0.895f),
-                    new Vector2(0.985f, 0.995f),
-                    12);
-            }
+            CardRarity rarity =
+                PackRarityDistribution.ResolveCardRarity(entry);
+            EnsurePackCardRarityDecoration(card, rarity, index);
 
             if (!replaceRevealInteraction)
                 return;
@@ -1376,6 +1498,52 @@ namespace ArcaneArena.Frontend
             });
         }
 
+        private void EnsurePackCardRarityDecoration(
+            Image card,
+            CardRarity rarity,
+            int index)
+        {
+            if (card == null || !CardRarityCatalog.IsValid(rarity))
+                return;
+
+            string badgeName = $"Raridade {rarity}";
+            if (card.transform.Find(badgeName) == null)
+            {
+                CreateRarityBadge(
+                    card.transform,
+                    rarity,
+                    new Vector2(0.66f, 0.895f),
+                    new Vector2(0.985f, 0.995f),
+                    12);
+            }
+            EnsureRevealedPackCardRarityFrame(card, rarity, index);
+        }
+
+        private void EnsureRevealedPackCardRarityFrame(
+            Image card,
+            CardRarity rarity,
+            int index)
+        {
+            if (card == null || rarity < CardRarity.SR)
+                return;
+
+            string objectName = $"Moldura Persistente {rarity} da Carta {index + 1}";
+            if (card.transform.Find(objectName) != null)
+                return;
+
+            Vector2 padding = rarity == CardRarity.UR
+                ? new Vector2(0.045f, 0.026f)
+                : new Vector2(0.034f, 0.020f);
+            ArcaneRarityCardFrameGraphic frame = CreateRarityCardFrame(
+                card.transform,
+                objectName,
+                -padding,
+                Vector2.one + padding,
+                rarity,
+                true);
+            frame?.transform.SetAsFirstSibling();
+        }
+
         private Image CreatePackCardRevealGlow(
             Image card,
             CardCatalogEntry entry,
@@ -1385,10 +1553,9 @@ namespace ArcaneArena.Frontend
                 return null;
             RectTransform cardRect = card.rectTransform;
             Vector2 padding = new(0.025f, 0.045f);
-            Color tint = entry != null &&
-                CardRarityCatalog.IsValid(entry.Rarity)
-                    ? RarityColor(entry.Rarity)
-                    : Gold;
+            CardRarity rarity =
+                PackRarityDistribution.ResolveCardRarity(entry);
+            Color tint = RarityColor(rarity);
             Image glow = CreatePanel(
                 _screenRoot,
                 $"Clarão da Carta Revelada {index + 1}",
