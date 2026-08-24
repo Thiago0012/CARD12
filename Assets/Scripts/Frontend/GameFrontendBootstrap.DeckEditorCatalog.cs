@@ -138,13 +138,21 @@ namespace ArcaneArena.Frontend
             Text ownedCount = CreateText(
                 artwork.transform,
                 "0",
-                10,
+                67,
                 FontStyle.Bold,
                 Color.white,
                 new Vector2(0.68f, 0.01f),
                 new Vector2(0.97f, 0.17f),
                 TextAnchor.LowerRight);
             ownedCount.gameObject.name = "Quantidade possuída";
+            RectTransform ownedCountRect = ownedCount.rectTransform;
+            ownedCountRect.pivot = new Vector2(0.5f, 0.5f);
+            ownedCountRect.offsetMin = new Vector2(1.20643f, -4.35295f);
+            ownedCountRect.offsetMax = new Vector2(0.00003f, 7.95295f);
+            ownedCountRect.localScale = Vector3.one;
+            ownedCount.resizeTextForBestFit = true;
+            ownedCount.resizeTextMinSize = 11;
+            ownedCount.resizeTextMaxSize = 67;
             AddOutline(
                 ownedCount.gameObject,
                 new Color(0f, 0f, 0f, 0.96f),
@@ -190,6 +198,10 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.75f, 0.985f),
                 new Color(0.015f, 0.12f, 0.18f, 0.96f));
             newBadgePanel.raycastTarget = false;
+            RectTransform newBadgeRect = newBadgePanel.rectTransform;
+            newBadgeRect.pivot = new Vector2(0.5f, 0.5f);
+            newBadgeRect.offsetMin = new Vector2(-13.042f, 0f);
+            newBadgeRect.offsetMax = new Vector2(-13.042f, 0f);
             AddOutline(
                 newBadgePanel.gameObject,
                 new Color(Cyan.r, Cyan.g, Cyan.b, 0.96f),
