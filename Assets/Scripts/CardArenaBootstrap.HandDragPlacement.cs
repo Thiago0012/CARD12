@@ -28,6 +28,8 @@ namespace ArcaneArena
         private readonly List<Image> handDragTrajectorySegments = new();
         private CardView handDragCard;
         private DuelZone3D handDragHoveredZone;
+        private DuelZone3D handDragHoverCandidate;
+        private float handDragHoverCandidateSince;
         private RectTransform handDragTrajectory;
         private Vector2 handDragOriginScreen;
         private PendingHandDrop pendingHandDrop;
@@ -38,7 +40,8 @@ namespace ArcaneArena
             if (card == null || InteractionLocked || core?.CurrentPrompt == null)
                 return;
 
-            SelectCard(card);
+            if (selectedCard != card)
+                SelectCard(card);
             DuelPrompt prompt = core.CurrentPrompt;
             DuelChoice monsterAction = HandDropMonsterAction(prompt, card);
             DuelChoice spellTrapAction = HandDropSpellTrapAction(prompt, card);
@@ -81,7 +84,14 @@ namespace ArcaneArena
             {
                 nextHovered = raycastZone;
             }
-            if (nextHovered != handDragHoveredZone)
+            if (nextHovered != handDragHoverCandidate)
+            {
+                handDragHoverCandidate = nextHovered;
+                handDragHoverCandidateSince = Time.unscaledTime;
+            }
+            float hoverDelay = nextHovered == null ? 0.075f : 0.035f;
+            if (nextHovered != handDragHoveredZone &&
+                Time.unscaledTime - handDragHoverCandidateSince >= hoverDelay)
             {
                 if (handDragHoveredZone != null)
                     handDragHoveredZone.SetDropHighlight(true, SummonBlue);
@@ -113,6 +123,7 @@ namespace ArcaneArena
             ClearHandDragVisuals();
             handDragCard = null;
             handDragHoveredZone = null;
+            handDragHoverCandidate = null;
 
             if (draggedCard == null || destination == null ||
                 InteractionLocked || core?.CurrentPrompt == null)
@@ -336,6 +347,8 @@ namespace ArcaneArena
             ClearHandDragVisuals();
             handDragCard = null;
             handDragHoveredZone = null;
+            handDragHoverCandidate = null;
+            handDragHoverCandidateSince = 0f;
             pendingHandDrop = null;
             if (handDragTrajectory != null)
                 Destroy(handDragTrajectory.gameObject);

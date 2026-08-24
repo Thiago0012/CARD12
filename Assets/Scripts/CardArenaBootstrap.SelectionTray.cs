@@ -40,6 +40,54 @@ namespace ArcaneArena
         private Button compactResponseActivateButton;
         private DuelPrompt compactResponsePrompt;
         private DuelChoice compactResponseChoice;
+        private readonly DuelResponseWindowLimiter responseWindowLimiter =
+            new();
+
+        private bool TryGetRepeatedPhaseResponsePass(
+            DuelPrompt prompt,
+            out DuelChoice passChoice)
+        {
+            passChoice = null;
+            if (DuelActivationPreferences.ClassicResponseWindows ||
+                !IsOptionalLocalResponseWindow(prompt) ||
+                state == null ||
+                !responseWindowLimiter.IsConsumed(
+                    state.TurnNumber,
+                    state.Phase))
+            {
+                return false;
+            }
+
+            passChoice = DuelPromptPresentationRules.DeclineChoice(prompt);
+            return passChoice?.Response != null &&
+                   passChoice.Response.Length > 0;
+        }
+
+        private void MarkOptionalResponseDecision(
+            DuelPrompt prompt,
+            DuelChoice choice)
+        {
+            if (choice == null ||
+                DuelActivationPreferences.ClassicResponseWindows ||
+                !IsOptionalLocalResponseWindow(prompt) ||
+                state == null)
+            {
+                return;
+            }
+
+            responseWindowLimiter.Consume(state.TurnNumber, state.Phase);
+        }
+
+        private static bool IsOptionalLocalResponseWindow(DuelPrompt prompt)
+        {
+            return prompt != null &&
+                   prompt.Player == 0 &&
+                   !prompt.Forced &&
+                   prompt.Message == CoreMessage.SelectChain &&
+                   DuelPromptPresentationRules.DeclineChoice(prompt) != null &&
+                   DuelPromptPresentationRules
+                       .ActionableResponseChoices(prompt).Count > 0;
+        }
 
         private void BuildChoiceModal()
         {
@@ -382,6 +430,7 @@ namespace ArcaneArena
             if (responses.Count == 1)
             {
                 CloseCardDetails();
+                MarkOptionalResponseDecision(prompt, responses[0]);
                 core.SubmitChoice(responses[0]);
                 RefreshEverything(true);
                 return;
@@ -405,6 +454,7 @@ namespace ArcaneArena
                 return;
             HideCompactResponseBar();
             CloseCardDetails();
+            MarkOptionalResponseDecision(prompt, decline);
             core.SubmitChoice(decline);
             RefreshEverything(true);
         }
@@ -591,6 +641,9 @@ namespace ArcaneArena
             {
                 if (stagedSingleChoice != null)
                 {
+                    MarkOptionalResponseDecision(
+                        prompt,
+                        stagedSingleChoice);
                     core.SubmitChoice(stagedSingleChoice);
                 }
                 else if (!IsStructuredSelectionValid(prompt))
@@ -664,6 +717,7 @@ namespace ArcaneArena
             {
                 if (stagedSingleChoice == null)
                     return;
+                MarkOptionalResponseDecision(prompt, stagedSingleChoice);
                 core.SubmitChoice(stagedSingleChoice);
             }
             CloseChoiceModal();

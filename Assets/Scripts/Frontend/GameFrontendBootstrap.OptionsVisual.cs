@@ -686,7 +686,8 @@ namespace ArcaneArena.Frontend
                 rail.transform,
                 "JANELAS OPCIONAIS",
                 DuelActivationPreferences.DisplayName(
-                    DuelActivationPreferences.Mode),
+                    DuelActivationPreferences.Mode) + " • " +
+                DuelActivationPreferences.ResponseWindowRhythmName,
                 OptionsViolet,
                 0.605f);
             BuildOptionsStatusCard(
@@ -844,13 +845,28 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleLeft);
             CreateText(
                 card.transform,
-                "ON pergunta sempre  •  AUTO recomendado  •  OFF passa respostas opcionais",
-                12,
+                "ON exibe • AUTO padrão • OFF passa\n1×/FASE evita repetição",
+                11,
                 FontStyle.Normal,
                 OptionsSoftText,
                 new Vector2(0.025f, 0.13f),
-                new Vector2(0.49f, 0.52f),
+                new Vector2(0.32f, 0.52f),
                 TextAnchor.MiddleLeft);
+
+            CreateOptionsChoiceButton(
+                card.transform,
+                DuelActivationPreferences.ResponseWindowRhythmName,
+                new Vector2(0.34f, 0.20f),
+                new Vector2(0.50f, 0.80f),
+                true,
+                OptionsMint,
+                () =>
+                {
+                    DuelActivationPreferences.ClassicResponseWindows =
+                        !DuelActivationPreferences.ClassicResponseWindows;
+                    ShowDuelResponseOptions();
+                },
+                12);
 
             ActivationPromptMode[] modes =
             {

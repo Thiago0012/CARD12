@@ -329,19 +329,13 @@ namespace ArcaneArena
                 return;
             if (dropHighlighted)
             {
-                float pulse =
-                    0.5f + 0.5f *
-                    Mathf.Sin(Time.unscaledTime * 5.8f);
-                Color low = Color.Lerp(
-                    Color.black,
-                    dropHighlightColor,
-                    0.58f);
-                Color high = Color.Lerp(
+                // A legal target must remain visually stable while the
+                // pointer or a dragged card crosses neighbouring colliders.
+                // Continuous sine pulsing looked like the slot was flickering.
+                dropSurfaceMaterial.color = Color.Lerp(
                     dropHighlightColor,
                     Color.white,
-                    0.34f);
-                dropSurfaceMaterial.color =
-                    Color.Lerp(low, high, pulse);
+                    0.14f);
                 return;
             }
             dropSurfaceMaterial.color = disabledByCore
@@ -436,20 +430,14 @@ namespace ArcaneArena
         {
             if (specialZoneOutline == null || !dropHighlighted)
                 return;
-            float pulse = 0.5f + 0.5f *
-                          Mathf.Sin(Time.unscaledTime * 5.8f);
-            Color color = Color.Lerp(
-                new Color(
-                    dropHighlightColor.r,
-                    dropHighlightColor.g,
-                    dropHighlightColor.b,
-                    0.72f),
-                Color.white,
-                pulse * 0.38f);
+            Color color = new Color(
+                dropHighlightColor.r,
+                dropHighlightColor.g,
+                dropHighlightColor.b,
+                0.86f);
             specialZoneOutline.startColor = color;
             specialZoneOutline.endColor = color;
-            specialZoneOutline.widthMultiplier =
-                Mathf.Lerp(0.035f, 0.065f, pulse);
+            specialZoneOutline.widthMultiplier = 0.05f;
         }
 
         private void OnDestroy()

@@ -680,6 +680,26 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void OptionalResponseLimiterResetsOnlyWhenTurnOrPhaseChanges()
+        {
+            var limiter = new DuelResponseWindowLimiter();
+
+            Assert.That(limiter.IsConsumed(3, 0x08), Is.False);
+            limiter.Consume(3, 0x08);
+            Assert.That(limiter.IsConsumed(3, 0x08), Is.True);
+            Assert.That(
+                limiter.IsConsumed(3, 0x20),
+                Is.False,
+                "A new phase must restore the single response allowance.");
+
+            limiter.Consume(3, 0x20);
+            Assert.That(
+                limiter.IsConsumed(4, 0x20),
+                Is.False,
+                "The same phase value on a new turn is a new allowance.");
+        }
+
+        [Test]
         public void ActivationModesOnlyUseTheExistingOptionalPassChoice()
         {
             var payload = new List<byte> { 0, 0, 0 };

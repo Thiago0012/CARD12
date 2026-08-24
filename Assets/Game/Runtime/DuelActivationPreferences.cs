@@ -17,7 +17,7 @@ namespace ArcaneDuel.Game
     /// </summary>
     public static class DuelActivationPreferences
     {
-        private const int CurrentPreferencesSchema = 1;
+        private const int CurrentPreferencesSchema = 2;
         private const string PreferencesSchemaKey =
             "ArcaneDuel.ActivationPreferencesSchema";
         private const string ModeKey = "ArcaneDuel.ActivationPromptMode";
@@ -26,6 +26,8 @@ namespace ArcaneDuel.Game
         private const string GuidanceMessagesKey =
             "ArcaneDuel.GuidanceMessages";
         private const string ChainPanelKey = "ArcaneDuel.ChainPanel";
+        private const string ClassicResponseWindowsKey =
+            "ArcaneDuel.ClassicResponseWindows";
 
         public static ActivationPromptMode Mode
         {
@@ -107,6 +109,35 @@ namespace ArcaneDuel.Game
             }
         }
 
+        /// <summary>
+        /// Classic mode presents every optional Chain window emitted by the
+        /// Core. The default streamlined mode presents at most one optional
+        /// response window per turn phase; later windows are answered only
+        /// with the decline choice already supplied by the Core.
+        /// </summary>
+        public static bool ClassicResponseWindows
+        {
+            get
+            {
+                EnsureEffectPromptSafetyMigration();
+                return PlayerPrefs.GetInt(ClassicResponseWindowsKey, 0) != 0;
+            }
+            set
+            {
+                EnsureEffectPromptSafetyMigration();
+                PlayerPrefs.SetInt(
+                    ClassicResponseWindowsKey,
+                    value ? 1 : 0);
+                PlayerPrefs.SetInt(
+                    PreferencesSchemaKey,
+                    CurrentPreferencesSchema);
+                PlayerPrefs.Save();
+            }
+        }
+
+        public static string ResponseWindowRhythmName =>
+            ClassicResponseWindows ? "CLÁSSICO" : "1×/FASE";
+
         public static string DisplayName(ActivationPromptMode mode)
         {
             return mode switch
@@ -126,6 +157,7 @@ namespace ArcaneDuel.Game
             PlayerPrefs.SetInt(ManualOrderKey, 1);
             PlayerPrefs.SetInt(GuidanceMessagesKey, 1);
             PlayerPrefs.SetInt(ChainPanelKey, 1);
+            PlayerPrefs.SetInt(ClassicResponseWindowsKey, 0);
             PlayerPrefs.SetInt(
                 PreferencesSchemaKey,
                 CurrentPreferencesSchema);
@@ -142,20 +174,65 @@ namespace ArcaneDuel.Game
         /// </summary>
         private static void EnsureEffectPromptSafetyMigration()
         {
-            if (PlayerPrefs.GetInt(PreferencesSchemaKey, 0) >=
-                CurrentPreferencesSchema)
+            int storedSchema = PlayerPrefs.GetInt(PreferencesSchemaKey, 0);
+            if (storedSchema >= CurrentPreferencesSchema)
             {
                 return;
             }
 
-            PlayerPrefs.SetInt(
-                ModeKey,
-                (int)ActivationPromptMode.On);
-            PlayerPrefs.SetInt(SelfChainKey, 1);
+            if (storedSchema < 1)
+            {
+                PlayerPrefs.SetInt(
+                    ModeKey,
+                    (int)ActivationPromptMode.On);
+                PlayerPrefs.SetInt(SelfChainKey, 1);
+            }
+            if (storedSchema < 2)
+                PlayerPrefs.SetInt(ClassicResponseWindowsKey, 0);
             PlayerPrefs.SetInt(
                 PreferencesSchemaKey,
                 CurrentPreferencesSchema);
             PlayerPrefs.Save();
+        }
+    }
+
+    /// <summary>
+    /// Tracks whether the player has already answered the optional response
+    /// window for an authoritative turn/phase pair. A turn or phase change
+    /// resets the allowance without relying on presentation object identity.
+    /// </summary>
+    public sealed class DuelResponseWindowLimiter
+    {
+        private int observedTurn = int.MinValue;
+        private uint observedPhase = uint.MaxValue;
+        private bool consumed;
+
+        public bool IsConsumed(int turn, uint phase)
+        {
+            Synchronize(turn, phase);
+            return consumed;
+        }
+
+        public void Consume(int turn, uint phase)
+        {
+            Synchronize(turn, phase);
+            consumed = true;
+        }
+
+        public void Reset()
+        {
+            observedTurn = int.MinValue;
+            observedPhase = uint.MaxValue;
+            consumed = false;
+        }
+
+        private void Synchronize(int turn, uint phase)
+        {
+            if (turn == observedTurn && phase == observedPhase)
+                return;
+            observedTurn = turn;
+            observedPhase = phase;
+            consumed = false;
         }
     }
 

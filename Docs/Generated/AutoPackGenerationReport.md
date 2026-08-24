@@ -1,13 +1,13 @@
 # Auto Pack Generation Report
 
-- UTC: `2026-08-23T11:43:45.4262206Z`
+- UTC: `2026-08-24T20:29:59.3477133Z`
 - Trigger: `AssetImport`
-- Previous source hash: `569013511A9104775B4ABCD559942C8EF0AE4EC30596CD9BB5C26235A4C1634E`
-- Current source hash: `10C2215008AA8CBC99A6B9C9C4F18E49EF0223C362750DF1EAE8B6E1E1364938`
-- Published packs before generation: `27`
+- Previous source hash: `10C2215008AA8CBC99A6B9C9C4F18E49EF0223C362750DF1EAE8B6E1E1364938`
+- Current source hash: `A750AF39190E0A2185FE001B9CDA5553D347EDD26F381432AE92EBA6D45EF157`
+- Published packs before generation: `40`
 - New cardIds detected: `0`
 - Packs created: `0`
-- Pending cardIds: `12`
+- Pending cardIds: `0`
 
 ## Created packs
 
@@ -15,7 +15,7 @@
 
 ## Pending pool
 
-- `15717011`, `42940404`, `50913601`, `56132807`, `64163367`, `67922702`, `7572887`, `79323590`, `83225447`, `88000953`, `88975532`, `94773007`
+- Empty.
 
 ## Warnings and errors
 

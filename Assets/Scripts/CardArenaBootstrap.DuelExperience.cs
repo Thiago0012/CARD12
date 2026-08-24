@@ -426,8 +426,7 @@ namespace ArcaneArena
         {
             if (decisionRibbon == null) return;
             experiencePulse += Time.unscaledDeltaTime;
-            decisionRibbonGroup.alpha = experienceObscured ? 0.18f
-                : 0.90f + Mathf.Sin(experiencePulse * 3.2f) * 0.08f;
+            decisionRibbonGroup.alpha = experienceObscured ? 0.18f : 0.96f;
             if (chainIndicator != null && chainIndicator.activeSelf)
             {
                 chainIndicatorGroup.alpha =

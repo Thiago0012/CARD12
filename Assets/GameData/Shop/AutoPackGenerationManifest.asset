@@ -13,22 +13,10 @@ MonoBehaviour:
   m_Name: AutoPackGenerationManifest
   m_EditorClassIdentifier: Assembly-CSharp-Editor:ArcaneArena.Editor.AutoPacks:AutoPackGenerationManifest
   schemaVersion: 1
-  generatorVersion: 1
-  lastSourceCatalogHash: 10C2215008AA8CBC99A6B9C9C4F18E49EF0223C362750DF1EAE8B6E1E1364938
+  generatorVersion: 2
+  lastSourceCatalogHash: A750AF39190E0A2185FE001B9CDA5553D347EDD26F381432AE92EBA6D45EF157
   nextPackSequence: 8
-  pendingCardIds:
-  - 15717011
-  - 42940404
-  - 50913601
-  - 56132807
-  - 64163367
-  - 67922702
-  - 7572887
-  - 79323590
-  - 83225447
-  - 88000953
-  - 88975532
-  - 94773007
+  pendingCardIds: []
   generatedPacks:
   - packId: auto-pack-0001
     assetGuid: 9d12b308baf7f97418473143ab17c4ae

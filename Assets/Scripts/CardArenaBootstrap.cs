@@ -438,6 +438,7 @@ namespace ArcaneArena
         {
             localDamageDealtInDuel = 0;
             localDamageReceivedInDuel = 0;
+            responseWindowLimiter.Reset();
             confirmedStatisticEventSequence = 0;
             statisticsOnline = false;
             statisticsRanked = GameFrontendBootstrap.ActiveDuelStatisticsRanked;
@@ -919,6 +920,7 @@ namespace ArcaneArena
                 if (RefreshPrompt(prompt))
                     MarkPromptPresented(prompt);
             }
+            RefreshSpecialZoneActionHighlights(prompt);
             RefreshDuelExperienceState();
         }
 
@@ -2053,6 +2055,16 @@ namespace ArcaneArena
                     "Abertura concluída · avançando para o fluxo normal das fases.");
                 return true;
             }
+            if (TryGetRepeatedPhaseResponsePass(
+                    prompt,
+                    out DuelChoice repeatedPhasePass))
+            {
+                ScheduleAutomaticPromptChoice(
+                    prompt,
+                    repeatedPhasePass,
+                    "Resposta opcional já oferecida nesta fase · continuando automaticamente.");
+                return true;
+            }
             if (DuelActivationPromptPolicy.TryGetAutomaticPass(
                     prompt,
                     lastChainPlayer,
@@ -2311,7 +2323,10 @@ namespace ArcaneArena
                     }
                 }
                 else
+                {
+                    MarkOptionalResponseDecision(prompt, direct);
                     core.SubmitChoice(direct);
+                }
                 if (!IsMultiPlacePrompt(prompt))
                     RefreshEverything(true);
                 return;
@@ -2371,6 +2386,15 @@ namespace ArcaneArena
             foreach (DuelChoice choice in prompt.Choices)
             {
                 if (!choice.HasLocation) continue;
+                bool graveyardOrBanishment =
+                    (choice.Location &
+                     (DuelLocation.Graveyard | DuelLocation.Banished)) != 0;
+                bool effectCandidate =
+                    DuelPromptPresentationRules.IsEffectCandidate(
+                        prompt,
+                        choice);
+                if (graveyardOrBanishment && !effectCandidate)
+                    continue;
                 DuelZone3D zone = FindZone(
                     choice.Controller,
                     choice.Location,
@@ -2379,8 +2403,8 @@ namespace ArcaneArena
                     continue;
                 bool effectAccent =
                     (IsMultiPlacePrompt(prompt) &&
-                     selectedPromptIndexes.Contains(choice.ChoiceIndex)) ||
-                    (choice.Location & DuelLocation.Graveyard) != 0 ||
+                    selectedPromptIndexes.Contains(choice.ChoiceIndex)) ||
+                    graveyardOrBanishment ||
                     (choice.Location & DuelLocation.Extra) != 0 ||
                     IsEffectActivationChoice(prompt, choice);
                 if (!highlighted.TryGetValue(zone, out bool existing) ||
@@ -2394,6 +2418,46 @@ namespace ArcaneArena
                 item.Key.SetDropHighlight(
                     true,
                     item.Value ? EffectGlow : SummonBlue);
+            }
+        }
+
+        private void RefreshSpecialZoneActionHighlights(DuelPrompt prompt)
+        {
+            foreach (DuelZone3D zone in AllZones())
+            {
+                if (zone != null &&
+                    (zone.Kind == DuelZoneKind.Graveyard ||
+                     zone.Kind == DuelZoneKind.Banishment))
+                {
+                    zone.SetDropHighlight(false);
+                }
+            }
+
+            if (prompt == null || prompt.Player != 0)
+                return;
+
+            foreach (DuelChoice choice in prompt.Choices)
+            {
+                if (choice == null || !choice.HasLocation ||
+                    !DuelPromptPresentationRules.IsEffectCandidate(
+                        prompt,
+                        choice))
+                {
+                    continue;
+                }
+
+                bool fromGraveyard =
+                    (choice.Location & DuelLocation.Graveyard) != 0;
+                bool fromBanishment =
+                    (choice.Location & DuelLocation.Banished) != 0;
+                if (!fromGraveyard && !fromBanishment)
+                    continue;
+
+                DuelZone3D zone = FindZone(
+                    choice.Controller,
+                    choice.Location,
+                    (int)choice.Sequence);
+                zone?.SetDropHighlight(true, EffectGlow);
             }
         }
 
@@ -3784,6 +3848,7 @@ namespace ArcaneArena
                 choice.ChoiceIndex >= 0;
             if (!multi)
             {
+                MarkOptionalResponseDecision(prompt, choice);
                 core.SubmitChoice(choice);
                 RefreshEverything(true);
                 return;
@@ -4414,26 +4479,38 @@ namespace ArcaneArena
             if (player < 0 || player >= state.Players.Length)
                 return 0;
             int sequence = SequenceFor(zone);
+            uint code = 0;
             if (zone.Kind == DuelZoneKind.Monster)
             {
-                return sequence >= 0 &&
+                code = sequence >= 0 &&
                        sequence < state.Players[player].MonsterZones.Length
                     ? state.Players[player].MonsterZones[sequence]
                     : 0;
             }
-            if (zone.Kind == DuelZoneKind.SpellTrap ||
-                zone.Kind == DuelZoneKind.Field)
+            else if (zone.Kind == DuelZoneKind.SpellTrap ||
+                     zone.Kind == DuelZoneKind.Field)
             {
-                return sequence >= 0 &&
+                code = sequence >= 0 &&
                        sequence < state.Players[player].SpellTrapZones.Length
                     ? state.Players[player].SpellTrapZones[sequence]
                     : 0;
             }
-            if (zone.Kind == DuelZoneKind.Graveyard)
-                return state.Players[player].Graveyard.LastOrDefault();
-            if (zone.Kind == DuelZoneKind.Banishment)
-                return state.Players[player].Banished.LastOrDefault();
-            return 0;
+            else if (zone.Kind == DuelZoneKind.Graveyard)
+                code = state.Players[player].Graveyard.LastOrDefault();
+            else if (zone.Kind == DuelZoneKind.Banishment)
+                code = state.Players[player].Banished.LastOrDefault();
+
+            if (code == 0 && IsLocalZone(zone))
+            {
+                code = InstanceAt(zone)?.DefinitionCode ?? 0;
+                if (code == 0)
+                {
+                    WorldCardInstanceView view = zone.FindPresentedCard()
+                        ?.GetComponent<WorldCardInstanceView>();
+                    code = view?.InstanceKey.DefinitionCode ?? 0;
+                }
+            }
+            return code;
         }
 
         private uint PositionAt(DuelZone3D zone)

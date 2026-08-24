@@ -657,7 +657,7 @@ namespace ArcaneDuel.Game
             Fill(rect, new Color(0.03f, 0.22f, 0.25f, 0.95f));
             Stroke(rect, new Color(0.12f, 0.72f, 0.82f), 1);
             GUI.Label(
-                new Rect(rect.x + 22, rect.y + 10, 235, 52),
+                new Rect(rect.x + 18, rect.y + 10, 160, 52),
                 "RESPOSTAS",
                 subtitleStyle);
 
@@ -674,7 +674,7 @@ namespace ArcaneDuel.Game
                 if (DuelActivationPreferences.Mode == mode)
                     GUI.backgroundColor = new Color(0.68f, 1f, 0.04f);
                 if (GUI.Button(
-                    new Rect(rect.x + 250 + index * 112, rect.y + 12, 98, 48),
+                    new Rect(rect.x + 170 + index * 90, rect.y + 12, 78, 48),
                     DuelActivationPreferences.DisplayName(mode),
                     menuButtonStyle))
                 {
@@ -684,7 +684,15 @@ namespace ArcaneDuel.Game
             }
 
             if (GUI.Button(
-                new Rect(rect.x + 610, rect.y + 12, 245, 48),
+                new Rect(rect.x + 450, rect.y + 12, 210, 48),
+                DuelActivationPreferences.ResponseWindowRhythmName,
+                menuButtonStyle))
+            {
+                DuelActivationPreferences.ClassicResponseWindows =
+                    !DuelActivationPreferences.ClassicResponseWindows;
+            }
+            if (GUI.Button(
+                new Rect(rect.x + 670, rect.y + 12, 205, 48),
                 DuelActivationPreferences.SelfChainEnabled
                     ? "SELF CHAIN: ON" : "SELF CHAIN: OFF",
                 menuButtonStyle))
@@ -693,7 +701,7 @@ namespace ArcaneDuel.Game
                     !DuelActivationPreferences.SelfChainEnabled;
             }
             if (GUI.Button(
-                new Rect(rect.x + 875, rect.y + 12, 260, 48),
+                new Rect(rect.x + 885, rect.y + 12, 250, 48),
                 DuelActivationPreferences.ManualChainOrder
                     ? "ORDEM: MANUAL" : "ORDEM: CORE",
                 menuButtonStyle))

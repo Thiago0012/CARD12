@@ -219,6 +219,7 @@ namespace ArcaneArena
                 CancelAttackTargeting();
             CloseChoiceModal();
             HideCompactResponseBar();
+            MarkOptionalResponseDecision(prompt, cancel);
             core.SubmitChoice(cancel);
             RefreshEverything(true);
         }

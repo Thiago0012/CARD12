@@ -409,11 +409,11 @@ namespace ArcaneArena.Frontend
             BuildDuelMenuSettingRow(
                 parent,
                 "JANELAS OPCIONAIS",
-                "ON pergunta sempre • AUTO usa o padrão • OFF passa opções.",
+                "ON exibe • AUTO aplica o padrão • OFF passa opções.",
                 DuelActivationPreferences.DisplayName(
                     DuelActivationPreferences.Mode),
                 OptionsViolet,
-                0.70f,
+                0.64f,
                 () =>
                 {
                     DuelActivationPreferences.Mode =
@@ -424,7 +424,22 @@ namespace ArcaneArena.Frontend
                             _ => ActivationPromptMode.On
                         };
                     ShowDuelMenuPage(_duelMenuPage);
-                });
+                },
+                0.13f);
+            BuildDuelMenuSettingRow(
+                parent,
+                "RITMO DAS RESPOSTAS",
+                "1×/FASE evita repetição; CLÁSSICO mantém cada janela.",
+                DuelActivationPreferences.ResponseWindowRhythmName,
+                ArcaneCyan,
+                0.49f,
+                () =>
+                {
+                    DuelActivationPreferences.ClassicResponseWindows =
+                        !DuelActivationPreferences.ClassicResponseWindows;
+                    ShowDuelMenuPage(_duelMenuPage);
+                },
+                0.13f);
             BuildDuelMenuSettingRow(
                 parent,
                 "ORIENTAÇÕES EM CAMPO",
@@ -432,13 +447,14 @@ namespace ArcaneArena.Frontend
                 DuelActivationPreferences.GuidanceMessagesEnabled
                     ? "VISÍVEIS" : "OCULTAS",
                 OptionsMint,
-                0.52f,
+                0.34f,
                 () =>
                 {
                     DuelActivationPreferences.GuidanceMessagesEnabled =
                         !DuelActivationPreferences.GuidanceMessagesEnabled;
                     ShowDuelMenuPage(_duelMenuPage);
-                });
+                },
+                0.13f);
             BuildDuelMenuSettingRow(
                 parent,
                 "PAINEL DE CORRENTE",
@@ -446,13 +462,14 @@ namespace ArcaneArena.Frontend
                 DuelActivationPreferences.ChainPanelEnabled
                     ? "VISÍVEL" : "OCULTO",
                 OptionsAmber,
-                0.34f,
+                0.19f,
                 () =>
                 {
                     DuelActivationPreferences.ChainPanelEnabled =
                         !DuelActivationPreferences.ChainPanelEnabled;
                     ShowDuelMenuPage(_duelMenuPage);
-                });
+                },
+                0.13f);
             BuildDuelMenuSettingRow(
                 parent,
                 "SELF CHAIN / ORDEM",
@@ -461,7 +478,7 @@ namespace ArcaneArena.Frontend
                 DuelActivationPreferences.ManualChainOrder
                     ? "MANUAL" : "SIMPLIFICADO",
                 ArcaneCyan,
-                0.16f,
+                0.04f,
                 () =>
                 {
                     bool enable =
@@ -470,7 +487,8 @@ namespace ArcaneArena.Frontend
                     DuelActivationPreferences.SelfChainEnabled = enable;
                     DuelActivationPreferences.ManualChainOrder = enable;
                     ShowDuelMenuPage(_duelMenuPage);
-                });
+                },
+                0.13f);
         }
 
         private void BuildDuelMenuHelp(Transform parent)
@@ -623,13 +641,14 @@ namespace ArcaneArena.Frontend
             string value,
             Color accent,
             float yMin,
-            Action action)
+            Action action,
+            float height = 0.145f)
         {
             Image row = CreateArcaneSurface(
                 parent,
                 label,
                 new Vector2(0.045f, yMin),
-                new Vector2(0.955f, yMin + 0.145f),
+                new Vector2(0.955f, yMin + height),
                 accent,
                 false,
                 0.68f);
