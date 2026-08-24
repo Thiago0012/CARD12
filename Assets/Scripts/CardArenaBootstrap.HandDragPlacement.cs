@@ -97,7 +97,9 @@ namespace ArcaneArena
                     handDragHoveredZone.SetDropHighlight(true, SummonBlue);
                 handDragHoveredZone = nextHovered;
                 if (handDragHoveredZone != null)
-                    handDragHoveredZone.SetDropHighlight(true, Lime);
+                    handDragHoveredZone.SetDropHighlight(
+                        true,
+                        new Color(0.28f, 0.88f, 1f, 1f));
             }
 
             Vector2 destinationScreen = handDragHoveredZone != null

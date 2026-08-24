@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneArena.Frontend;
 using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
@@ -293,21 +294,55 @@ namespace ArcaneArena
             compactResponseBar = CreatePanel(
                 frame,
                 "Ativação de Efeito",
-                new Vector2(0.285f, 0.235f),
-                new Vector2(0.715f, 0.765f),
-                new Color(0.006f, 0.025f, 0.045f, 0.985f));
-            AddOutline(compactResponseBar, EffectGlow);
+                new Vector2(0.275f, 0.205f),
+                new Vector2(0.725f, 0.795f),
+                Color.white);
+            Image responseBackground = compactResponseBar.GetComponent<Image>();
+            if (choiceSelectionTemplate != null)
+            {
+                responseBackground.sprite = choiceSelectionTemplate;
+                responseBackground.type = Image.Type.Simple;
+                responseBackground.color = new Color(0.82f, 0.94f, 1f, 1f);
+            }
+            else
+            {
+                responseBackground.color =
+                    new Color(0.003f, 0.018f, 0.038f, 0.985f);
+            }
+            AddOutline(compactResponseBar, Cyan);
             CreateImage(
                 compactResponseBar.transform,
-                "Linha de Ativação",
-                new Vector2(0.02f, 0.975f),
-                new Vector2(0.98f, 0.992f),
-                EffectGlow).raycastTarget = false;
+                "Energia superior da seleção",
+                new Vector2(0.075f, 0.952f),
+                new Vector2(0.925f, 0.967f),
+                Cyan).raycastTarget = false;
+            CreateImage(
+                compactResponseBar.transform,
+                "Energia inferior da seleção",
+                new Vector2(0.18f, 0.185f),
+                new Vector2(0.82f, 0.191f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.62f))
+                .raycastTarget = false;
+
+            GameObject heading = CreatePanel(
+                compactResponseBar.transform,
+                "Cabeçalho da janela de efeito",
+                new Vector2(0.07f, 0.78f),
+                new Vector2(0.93f, 0.945f),
+                Color.clear);
+            AttachDuelSurface(
+                heading,
+                "Superfície do cabeçalho",
+                Cyan,
+                true,
+                0.94f,
+                true,
+                9f);
             compactResponseArtwork = CreateImage(
                 compactResponseBar.transform,
                 "Carta do efeito",
-                new Vector2(0.355f, 0.235f),
-                new Vector2(0.645f, 0.735f),
+                new Vector2(0.365f, 0.255f),
+                new Vector2(0.635f, 0.755f),
                 Color.white);
             compactResponseArtwork.preserveAspect = true;
             compactResponseArtwork.raycastTarget = true;
@@ -319,13 +354,13 @@ namespace ArcaneArena
             artworkButton.targetGraphic = compactResponseArtwork;
             artworkButton.onClick.AddListener(InspectCompactResponseCard);
             compactResponseText = CreateText(
-                compactResponseBar.transform,
+                heading.transform,
                 "VOCÊ PODE RESPONDER",
                 17,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.055f, 0.785f),
-                new Vector2(0.945f, 0.955f),
+                new Vector2(0.04f, 0.08f),
+                new Vector2(0.96f, 0.92f),
                 TextAnchor.MiddleCenter);
             compactResponseHint = CreateText(
                 compactResponseBar.transform,
@@ -333,26 +368,64 @@ namespace ArcaneArena
                 11,
                 FontStyle.Bold,
                 Muted,
-                new Vector2(0.16f, 0.185f),
-                new Vector2(0.84f, 0.235f),
+                new Vector2(0.16f, 0.195f),
+                new Vector2(0.84f, 0.245f),
                 TextAnchor.MiddleCenter);
             compactResponseActivateButton = CreateButton(
                 compactResponseBar.transform,
                 "Ativar Efeito",
                 "ATIVAR EFEITO",
-                new Vector2(0.52f, 0.035f),
-                new Vector2(0.94f, 0.16f),
-                EffectGlow,
+                new Vector2(0.52f, 0.045f),
+                new Vector2(0.92f, 0.155f),
+                Cyan,
                 OpenCompactResponseChoices);
-            CreateButton(
+            PolishPromptButton(compactResponseActivateButton, Cyan, false);
+            Button cancelButton = CreateButton(
                 compactResponseBar.transform,
                 "Cancelar Ativação",
                 "CANCELAR",
-                new Vector2(0.06f, 0.035f),
-                new Vector2(0.48f, 0.16f),
-                Muted,
+                new Vector2(0.08f, 0.045f),
+                new Vector2(0.48f, 0.155f),
+                Gold,
                 PassCompactResponse);
+            PolishPromptButton(cancelButton, Gold, true);
             compactResponseBar.SetActive(false);
+        }
+
+        private static void PolishPromptButton(
+            Button button,
+            Color accent,
+            bool strongOnLeft)
+        {
+            if (button == null)
+                return;
+            DuelHudSurfaceGraphic surface = AttachDuelSurface(
+                button.gameObject,
+                "Superfície moderna",
+                accent,
+                strongOnLeft,
+                0.96f,
+                true,
+                8f);
+            if (surface != null)
+            {
+                surface.raycastTarget = true;
+                button.targetGraphic = surface;
+            }
+            button.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.08f, 1.08f, 1.08f, 1f);
+            colors.pressedColor = new Color(0.72f, 0.88f, 1f, 1f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.fadeDuration = 0.08f;
+            button.colors = colors;
+            foreach (Text label in button.GetComponentsInChildren<Text>(true))
+            {
+                label.raycastTarget = false;
+                label.color = Color.white;
+                label.fontStyle = FontStyle.Bold;
+            }
         }
 
         private void ShowCompactResponseBar(DuelPrompt prompt)

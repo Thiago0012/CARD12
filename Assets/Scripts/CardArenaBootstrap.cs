@@ -1259,6 +1259,9 @@ namespace ArcaneArena
             RebindButton(activateAction, SubmitActivateAction);
             RebindButton(summonAction, SubmitSummonAction);
             RebindButton(setAction, SubmitSetAction);
+            PolishCardActionButton(activateAction, SummonBlue, true);
+            PolishCardActionButton(summonAction, Cyan, true);
+            PolishCardActionButton(setAction, Gold, false);
             actionPanel.SetActive(false);
         }
 
@@ -1282,6 +1285,62 @@ namespace ArcaneArena
                 Vector2.one,
                 TextAnchor.MiddleCenter);
             return panel;
+        }
+
+        private static void PolishCardActionButton(
+            GameObject root,
+            Color accent,
+            bool strongOnLeft)
+        {
+            if (root == null)
+                return;
+
+            foreach (Image legacy in root.GetComponentsInChildren<Image>(true))
+            {
+                legacy.color = Color.clear;
+                legacy.raycastTarget = false;
+            }
+            Outline legacyOutline = root.GetComponent<Outline>();
+            if (legacyOutline != null)
+            {
+                legacyOutline.effectColor = Color.clear;
+                legacyOutline.effectDistance = Vector2.zero;
+            }
+
+            DuelHudSurfaceGraphic surface = AttachDuelSurface(
+                root,
+                "Superfície moderna da ação",
+                accent,
+                strongOnLeft,
+                0.96f,
+                true,
+                9f);
+            Button button = root.GetComponent<Button>() ??
+                            root.AddComponent<Button>();
+            if (surface != null)
+            {
+                surface.raycastTarget = true;
+                button.targetGraphic = surface;
+            }
+            button.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.08f, 1.08f, 1.08f, 1f);
+            colors.pressedColor = new Color(0.70f, 0.86f, 1f, 1f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.fadeDuration = 0.075f;
+            button.colors = colors;
+
+            foreach (Text label in root.GetComponentsInChildren<Text>(true))
+            {
+                label.raycastTarget = false;
+                label.color = Color.white;
+                label.font = MasterDuelTypography.Resolve(
+                    FontStyle.Bold,
+                    14);
+                label.fontSize = 14;
+                label.fontStyle = FontStyle.Normal;
+            }
         }
 
         private void BindLifeAndPhase()
@@ -4876,9 +4935,9 @@ namespace ArcaneArena
             panelRect.anchorMin = panelRect.anchorMax =
                 new Vector2(0.5f, 0.405f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            const float width = 92f;
-            const float height = 92f;
-            const float gap = 14f;
+            const float width = 126f;
+            const float height = 64f;
+            const float gap = 10f;
             panelRect.sizeDelta = new Vector2(
                 width * visible.Count + gap * (visible.Count - 1),
                 height);

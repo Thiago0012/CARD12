@@ -38,6 +38,8 @@ namespace ArcaneArena
         private bool pointerFocused;
         private LineRenderer specialZoneOutline;
         private Material specialZoneOutlineMaterial;
+        private ParticleSystem placementDust;
+        private Material placementDustMaterial;
 
         public Sprite PlacedCard => placedCard;
         public string StableId => address.StableId;
@@ -262,7 +264,12 @@ namespace ArcaneArena
             if (dropSurfaceMaterial != null)
             {
                 dropSurfaceMaterial.color = enabled
-                    ? dropHighlightColor
+                    ? UsesPlacementPulse()
+                        ? Color.Lerp(
+                            dropSurfaceColor,
+                            dropHighlightColor,
+                            0.08f)
+                        : dropHighlightColor
                     : disabledByCore
                         ? DisabledByCoreColor
                         : dropSurfaceColor;
@@ -329,13 +336,18 @@ namespace ArcaneArena
                 return;
             if (dropHighlighted)
             {
-                // A legal target must remain visually stable while the
-                // pointer or a dragged card crosses neighbouring colliders.
-                // Continuous sine pulsing looked like the slot was flickering.
-                dropSurfaceMaterial.color = Color.Lerp(
-                    dropHighlightColor,
-                    Color.white,
-                    0.14f);
+                // Zonas principais usam o anel de energia; a pedra do campo
+                // recebe apenas uma leve reflexão azul, sem o antigo bloco
+                // opaco que escondia a posição real do slot.
+                dropSurfaceMaterial.color = UsesPlacementPulse()
+                    ? Color.Lerp(
+                        dropSurfaceColor,
+                        dropHighlightColor,
+                        0.08f)
+                    : Color.Lerp(
+                        dropHighlightColor,
+                        Color.white,
+                        0.14f);
                 return;
             }
             dropSurfaceMaterial.color = disabledByCore
@@ -348,9 +360,7 @@ namespace ArcaneArena
 
         private void RefreshSpecialZoneOutline(bool enabled)
         {
-            if (Kind != DuelZoneKind.ExtraDeck &&
-                Kind != DuelZoneKind.Graveyard &&
-                Kind != DuelZoneKind.Banishment)
+            if (!SupportsActionOutline())
             {
                 return;
             }
@@ -358,6 +368,32 @@ namespace ArcaneArena
                 EnsureSpecialZoneOutline();
             if (specialZoneOutline != null)
                 specialZoneOutline.enabled = enabled;
+            if (placementDust != null)
+            {
+                if (enabled && UsesPlacementPulse())
+                    placementDust.Play(true);
+                else
+                    placementDust.Stop(
+                        true,
+                        ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+        }
+
+        private bool SupportsActionOutline()
+        {
+            return Kind == DuelZoneKind.Monster ||
+                   Kind == DuelZoneKind.SpellTrap ||
+                   Kind == DuelZoneKind.Field ||
+                   Kind == DuelZoneKind.ExtraDeck ||
+                   Kind == DuelZoneKind.Graveyard ||
+                   Kind == DuelZoneKind.Banishment;
+        }
+
+        private bool UsesPlacementPulse()
+        {
+            return Kind == DuelZoneKind.Monster ||
+                   Kind == DuelZoneKind.SpellTrap ||
+                   Kind == DuelZoneKind.Field;
         }
 
         private void EnsureSpecialZoneOutline()
@@ -410,8 +446,9 @@ namespace ArcaneArena
             }
             else
             {
-                const int segments = 40;
-                const float specialWellRadius = 0.52f;
+                const int segments = 48;
+                float radius = UsesPlacementPulse() ? 0.73f : 0.52f;
+                float height = UsesPlacementPulse() ? 0.205f : 0.18f;
                 specialZoneOutline.positionCount = segments;
                 for (int index = 0; index < segments; index++)
                 {
@@ -419,11 +456,65 @@ namespace ArcaneArena
                     specialZoneOutline.SetPosition(
                         index,
                         new Vector3(
-                            Mathf.Cos(angle) * specialWellRadius,
-                            0.18f,
-                            Mathf.Sin(angle) * specialWellRadius));
+                            Mathf.Cos(angle) * radius,
+                            height,
+                            Mathf.Sin(angle) * radius));
                 }
+                if (UsesPlacementPulse())
+                    EnsurePlacementDust(outlineParent);
             }
+        }
+
+        private void EnsurePlacementDust(Transform parent)
+        {
+            if (placementDust != null || parent == null)
+                return;
+
+            var dustObject = new GameObject("Poeira azul da zona legal");
+            dustObject.transform.SetParent(parent, false);
+            dustObject.transform.localPosition = new Vector3(0f, 0.22f, 0f);
+            dustObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            placementDust = dustObject.AddComponent<ParticleSystem>();
+
+            ParticleSystem.MainModule main = placementDust.main;
+            main.playOnAwake = false;
+            main.loop = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.42f, 0.82f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.015f, 0.075f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.025f, 0.065f);
+            main.startColor = new ParticleSystem.MinMaxGradient(
+                new Color(0.18f, 0.68f, 1f, 0.25f),
+                new Color(0.42f, 0.92f, 1f, 0.78f));
+            main.maxParticles = 22;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+
+            ParticleSystem.EmissionModule emission = placementDust.emission;
+            emission.rateOverTime = 14f;
+            ParticleSystem.ShapeModule shape = placementDust.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 0.73f;
+            shape.radiusThickness = 0.10f;
+
+            ParticleSystemRenderer dustRenderer =
+                dustObject.GetComponent<ParticleSystemRenderer>();
+            dustRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+            dustRenderer.sortingOrder = 4;
+            Shader shader = Shader.Find("Sprites/Default") ??
+                            Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader != null)
+            {
+                placementDustMaterial = new Material(shader)
+                {
+                    name = "Material da poeira azul de invocação"
+                };
+                placementDustMaterial.color = Color.white;
+                dustRenderer.material = placementDustMaterial;
+            }
+            placementDust.Stop(
+                true,
+                ParticleSystemStopBehavior.StopEmittingAndClear);
         }
 
         private void UpdateSpecialZoneOutline()
@@ -434,10 +525,20 @@ namespace ArcaneArena
                 dropHighlightColor.r,
                 dropHighlightColor.g,
                 dropHighlightColor.b,
-                0.86f);
+                UsesPlacementPulse()
+                    ? Mathf.Lerp(
+                        0.38f,
+                        0.94f,
+                        (Mathf.Sin(Time.unscaledTime * 4.8f) + 1f) * 0.5f)
+                    : 0.86f);
             specialZoneOutline.startColor = color;
             specialZoneOutline.endColor = color;
-            specialZoneOutline.widthMultiplier = 0.05f;
+            specialZoneOutline.widthMultiplier = UsesPlacementPulse()
+                ? Mathf.Lerp(
+                    0.035f,
+                    0.075f,
+                    (Mathf.Sin(Time.unscaledTime * 4.8f) + 1f) * 0.5f)
+                : 0.05f;
         }
 
         private void OnDestroy()
@@ -445,6 +546,8 @@ namespace ArcaneArena
             CancelPendingAttackDrag();
             if (specialZoneOutlineMaterial != null)
                 Destroy(specialZoneOutlineMaterial);
+            if (placementDustMaterial != null)
+                Destroy(placementDustMaterial);
             if (dropSurfaceMaterial != null)
                 Destroy(dropSurfaceMaterial);
         }
@@ -524,6 +627,12 @@ namespace ArcaneArena
         private void OnDisable()
         {
             CancelPendingAttackDrag();
+            if (specialZoneOutline != null)
+                specialZoneOutline.enabled = false;
+            if (placementDust != null)
+                placementDust.Stop(
+                    true,
+                    ParticleSystemStopBehavior.StopEmittingAndClear);
         }
 
         private void CancelPendingAttackDrag()
