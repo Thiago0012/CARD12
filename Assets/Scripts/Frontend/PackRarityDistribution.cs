@@ -6,16 +6,20 @@ using ArcaneArena.Cards;
 namespace ArcaneArena.Frontend
 {
     /// <summary>
-    /// Regra única de obtenção de raridade dos boosters.
-    /// O intervalo inteiro [0, 99] evita arredondamento e permite validar
-    /// exatamente os 55/25/12/8 pontos percentuais solicitados.
+    /// Regra única de obtenção de raridade dos boosters. Os quatro primeiros
+    /// slots usam 70/25/4/1 e o quinto garante R ou superior em 85/13/2.
+    /// A distribuição efetiva de uma abertura é 56/37/5,8/1,2.
     /// </summary>
     public static class PackRarityDistribution
     {
-        public const int NormalPercent = 55;
+        public const int NormalPercent = 70;
         public const int RarePercent = 25;
-        public const int SuperRarePercent = 12;
-        public const int UltraRarePercent = 8;
+        public const int SuperRarePercent = 4;
+        public const int UltraRarePercent = 1;
+        public const int GuaranteedRarePercent = 85;
+        public const int GuaranteedSuperRarePercent = 13;
+        public const int GuaranteedUltraRarePercent = 2;
+        public const int GuaranteedSlotIndex = 4;
         public const int TotalPercent = 100;
 
         public static CardRarity ResolveRoll(int roll)
@@ -43,6 +47,34 @@ namespace ArcaneArena.Frontend
                 CardRarity.UR => UltraRarePercent,
                 _ => 0
             };
+        }
+
+        public static int WeightForSlot(CardRarity rarity, int slotIndex)
+        {
+            if (slotIndex != GuaranteedSlotIndex)
+                return Weight(rarity);
+            return rarity switch
+            {
+                CardRarity.N => 0,
+                CardRarity.R => GuaranteedRarePercent,
+                CardRarity.SR => GuaranteedSuperRarePercent,
+                CardRarity.UR => GuaranteedUltraRarePercent,
+                _ => 0
+            };
+        }
+
+        public static CardRarity ResolveRollForSlot(int slotIndex, int roll)
+        {
+            if (slotIndex != GuaranteedSlotIndex)
+                return ResolveRoll(roll);
+            int normalized = ((roll % TotalPercent) + TotalPercent) %
+                TotalPercent;
+            if (normalized < GuaranteedRarePercent)
+                return CardRarity.R;
+            normalized -= GuaranteedRarePercent;
+            return normalized < GuaranteedSuperRarePercent
+                ? CardRarity.SR
+                : CardRarity.UR;
         }
 
         /// <summary>
@@ -85,6 +117,35 @@ namespace ArcaneArena.Frontend
                 if (!available.Contains(rarity))
                     continue;
                 int weight = Weight(rarity);
+                if (normalized < weight)
+                    return rarity;
+                normalized -= weight;
+            }
+            return CardRarity.Unknown;
+        }
+
+        public static CardRarity ResolveAvailableRollForSlot(
+            int roll,
+            IReadOnlyCollection<CardRarity> available,
+            int slotIndex)
+        {
+            if (available == null || available.Count == 0)
+                return CardRarity.Unknown;
+
+            int total = OrderedRarities
+                .Where(available.Contains)
+                .Sum(rarity => WeightForSlot(rarity, slotIndex));
+            // Um pool sem R/SR/UR não pode travar a compra: nesse caso o
+            // quinto slot recua de forma explícita para a tabela normal.
+            if (total <= 0)
+                return ResolveAvailableRoll(roll, available);
+
+            int normalized = ((roll % total) + total) % total;
+            foreach (CardRarity rarity in OrderedRarities)
+            {
+                if (!available.Contains(rarity))
+                    continue;
+                int weight = WeightForSlot(rarity, slotIndex);
                 if (normalized < weight)
                     return rarity;
                 normalized -= weight;

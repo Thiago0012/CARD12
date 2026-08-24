@@ -12,15 +12,15 @@ namespace ArcaneDuel.Tests.EditMode
     public sealed class ProfileIconSystemEditModeTests
     {
         [Test]
-        public void CatalogHasDefaultAndTwentyThreeIconsAtExactPrice()
+        public void CatalogHasDefaultAndTwentyFiveIconsAtExactPrice()
         {
             Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
             object[] icons = Values(catalog.GetProperty("All").GetValue(null));
             object[] purchasable = icons.Where(icon =>
                 (bool)Property(icon, "IsPurchasable")).ToArray();
 
-            Assert.That(icons, Has.Length.EqualTo(24));
-            Assert.That(purchasable, Has.Length.EqualTo(23));
+            Assert.That(icons, Has.Length.EqualTo(26));
+            Assert.That(purchasable, Has.Length.EqualTo(25));
             Assert.That(purchasable.All(icon =>
                 (int)Property(icon, "PriceCoins") == 35), Is.True);
             Assert.That(icons.Count(icon =>
@@ -31,7 +31,7 @@ namespace ArcaneDuel.Tests.EditMode
                 "O ícone padrão e as nove artes originais preservam o recorte legado.");
             Assert.That(icons.Count(icon =>
                 Property(icon, "AssetMode").ToString() == "UnframedPortrait"),
-                Is.EqualTo(14),
+                Is.EqualTo(16),
                 "As novas artes devem receber a máscara e a moldura oficiais em runtime.");
             Assert.That(icons.Select(icon => Property(icon, "IconId") as string)
                 .Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(icons.Length));
@@ -55,7 +55,7 @@ namespace ArcaneDuel.Tests.EditMode
                 Is.EqualTo("CrimsonLegendary"));
             Assert.That(icons.Count(icon =>
                 Property(icon, "AuraTheme").ToString() != "None"),
-                Is.EqualTo(1));
+                Is.EqualTo(3));
 
             var parent = new GameObject("Exclusive Aura Bounds",
                 typeof(RectTransform));
@@ -100,6 +100,92 @@ namespace ArcaneDuel.Tests.EditMode
             finally
             {
                 UnityEngine.Object.DestroyImmediate(parent);
+            }
+        }
+
+        [Test]
+        public void AzureTempestDragonUsesItsExclusiveAnimatedAura()
+        {
+            Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
+            Type viewType = FindType("ArcaneArena.Frontend.HexIconView");
+            object[] icons = Values(catalog.GetProperty("All").GetValue(null));
+            object dragon = icons.Single(icon => string.Equals(
+                Property(icon, "IconId") as string,
+                "icon-azure-tempest-dragon",
+                StringComparison.Ordinal));
+            Assert.That(Property(dragon, "AuraTheme").ToString(),
+                Is.EqualTo("AzureTempest"));
+            Assert.That(Property(dragon, "AssetMode").ToString(),
+                Is.EqualTo("UnframedPortrait"));
+
+            var root = new GameObject("Azure Tempest Icon",
+                typeof(RectTransform));
+            try
+            {
+                Component view = root.AddComponent(viewType);
+                viewType.GetMethod("SetIcon").Invoke(view, new object[]
+                {
+                    "icon-azure-tempest-dragon"
+                });
+
+                Image standardFrame = root.GetComponent<Image>();
+                Transform aura = root.transform.Find(
+                    "Aura Viva da Moldura");
+                Assert.That(standardFrame.enabled, Is.False,
+                    "A aura elétrica deve substituir integralmente a moldura azul comum.");
+                Assert.That(aura, Is.Not.Null);
+                Assert.That(aura.gameObject.activeSelf, Is.True);
+                Component auraView = aura.GetComponent(
+                    FindType("ArcaneArena.Frontend.HexIconAuraView"));
+                Assert.That(Property(auraView, "Theme").ToString(),
+                    Is.EqualTo("AzureTempest"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void VioletEclipseSorceressUsesItsExclusiveAnimatedAura()
+        {
+            Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
+            Type viewType = FindType("ArcaneArena.Frontend.HexIconView");
+            object[] icons = Values(catalog.GetProperty("All").GetValue(null));
+            object sorceress = icons.Single(icon => string.Equals(
+                Property(icon, "IconId") as string,
+                "icon-violet-eclipse-sorceress",
+                StringComparison.Ordinal));
+            Assert.That(Property(sorceress, "AuraTheme").ToString(),
+                Is.EqualTo("VioletEclipse"));
+            Assert.That(Property(sorceress, "AssetMode").ToString(),
+                Is.EqualTo("UnframedPortrait"));
+
+            var root = new GameObject("Violet Eclipse Icon",
+                typeof(RectTransform));
+            try
+            {
+                Component view = root.AddComponent(viewType);
+                viewType.GetMethod("SetIcon").Invoke(view, new object[]
+                {
+                    "icon-violet-eclipse-sorceress"
+                });
+
+                Image standardFrame = root.GetComponent<Image>();
+                Transform aura = root.transform.Find(
+                    "Aura Viva da Moldura");
+                Assert.That(standardFrame.enabled, Is.False,
+                    "A aura violeta deve substituir integralmente a moldura azul comum.");
+                Assert.That(aura, Is.Not.Null);
+                Assert.That(aura.gameObject.activeSelf, Is.True);
+                Component auraView = aura.GetComponent(
+                    FindType("ArcaneArena.Frontend.HexIconAuraView"));
+                Assert.That(Property(auraView, "Theme").ToString(),
+                    Is.EqualTo("VioletEclipse"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
             }
         }
 

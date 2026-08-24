@@ -7,6 +7,8 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.Compilation;
 using UnityEngine;
+using Newtonsoft.Json.Linq;
+using ArcaneArena.Frontend;
 
 namespace ArcaneArena.Editor.AutoPacks
 {
@@ -66,7 +68,7 @@ namespace ArcaneArena.Editor.AutoPacks
             if (settings == null || manifest == null)
                 return result;
             if (!settings.HasNormativeValues)
-                result.Errors.Add("Settings alterado: valores obrigatorios sao 35/38/25.");
+                result.Errors.Add("Settings alterado: valores obrigatorios sao 40/85/25.");
             if (settings.DefaultPackSprite == null)
                 result.Errors.Add("defaultPackSprite nao foi configurado.");
 
@@ -74,20 +76,14 @@ namespace ArcaneArena.Editor.AutoPacks
                 CardCatalogSnapshotBuilder.Build(settings);
             result.Errors.AddRange(snapshot.Errors);
             result.Warnings.AddRange(snapshot.Warnings);
-            if (!string.Equals(
-                    manifest.LastSourceCatalogHash,
-                    snapshot.Hash,
-                    StringComparison.Ordinal))
-            {
-                result.Errors.Add(
-                    "Catalogo obsoleto: execute Tools/Game/Shop/Auto Packs/Rebuild Now.");
-            }
 
             IReadOnlyList<CatalogPackRecord> packs;
+            int catalogVersion;
             try
             {
-                packs = AutoPackCatalogDocument.ReadPacks(
-                    AutoPackCatalogDocument.LoadRoot());
+                JObject root = AutoPackCatalogDocument.LoadRoot();
+                catalogVersion = root.Value<int?>("version") ?? 1;
+                packs = AutoPackCatalogDocument.ReadPacks(root);
             }
             catch (Exception exception)
             {
@@ -96,8 +92,24 @@ namespace ArcaneArena.Editor.AutoPacks
                 return result;
             }
 
-            ValidateBaselineManualPacks(result, packs);
-            ValidatePackInvariants(result, packs, snapshot, manifest);
+            bool thematicCatalog = catalogVersion >= 2;
+            if (!thematicCatalog && !string.Equals(
+                    manifest.LastSourceCatalogHash,
+                    snapshot.Hash,
+                    StringComparison.Ordinal))
+            {
+                result.Errors.Add(
+                    "Catalogo obsoleto: execute Tools/Game/Shop/Auto Packs/Rebuild Now.");
+            }
+
+            if (!thematicCatalog)
+                ValidateBaselineManualPacks(result, packs);
+            ValidatePackInvariants(
+                result,
+                packs,
+                snapshot,
+                manifest,
+                thematicCatalog);
             ValidatePlayerAssemblySafety(result);
             int autoCount = packs.Count(pack => pack.Origin == 1);
             result.Summary = "packs=" + packs.Count +
@@ -136,7 +148,8 @@ namespace ArcaneArena.Editor.AutoPacks
             AutoPackValidationResult result,
             IReadOnlyList<CatalogPackRecord> packs,
             CardCatalogSnapshot snapshot,
-            AutoPackGenerationManifest manifest)
+            AutoPackGenerationManifest manifest,
+            bool thematicCatalog)
         {
             string[] duplicatePackIds = packs
                 .GroupBy(pack => pack.PackId, StringComparer.Ordinal)
@@ -149,6 +162,9 @@ namespace ArcaneArena.Editor.AutoPacks
             var coverage = new HashSet<string>(StringComparer.Ordinal);
             var known = new HashSet<string>(
                 snapshot.KnownCardIds,
+                StringComparer.Ordinal);
+            var eligible = new HashSet<string>(
+                snapshot.EligibleCardIds,
                 StringComparer.Ordinal);
             var metadataByPack = AssetDatabase.FindAssets(
                     "t:AutoPackMetadata",
@@ -165,7 +181,11 @@ namespace ArcaneArena.Editor.AutoPacks
                     result.Errors.Add("Pack sem ID.");
                 if (pack.PriceCoins != AutoPackGenerationSettings.RequiredPrice)
                     result.Errors.Add(pack.PackId + " deve custar 25 moedas.");
-                if (pack.CardIds.Count == 0 || pack.CardIds.Count > 38)
+                bool invalidSize = thematicCatalog
+                    ? pack.CardIds.Count < ShopPackCatalog.MinimumCardsPerPack ||
+                      pack.CardIds.Count > ShopPackCatalog.MaximumCardsPerPack
+                    : pack.CardIds.Count == 0 || pack.CardIds.Count > 38;
+                if (invalidSize)
                     result.Errors.Add(pack.PackId + " possui tamanho invalido.");
                 if (pack.CardIds.Distinct(StringComparer.Ordinal).Count() !=
                     pack.CardIds.Count)
@@ -175,9 +195,41 @@ namespace ArcaneArena.Editor.AutoPacks
                     if (!known.Contains(cardId))
                         result.Errors.Add(pack.PackId +
                             " referencia carta inexistente " + cardId + ".");
+                    if (thematicCatalog && !eligible.Contains(cardId))
+                        result.Errors.Add(pack.PackId +
+                            " contem carta nao colecionavel " + cardId + ".");
                     if (pack.Published && pack.CountsForAutoCoverage &&
                         !coverage.Add(cardId))
                         result.Errors.Add("Cobertura duplicada para " + cardId + ".");
+                }
+
+                if (thematicCatalog)
+                {
+                    if (pack.Origin != 1)
+                        result.Errors.Add(pack.PackId +
+                            " deve ser um pacote automatico tematico.");
+                    if (!pack.Published || !pack.ContentLockedAfterPublish ||
+                        !pack.CountsForAutoCoverage)
+                        result.Errors.Add(pack.PackId +
+                            " nao esta publicado/bloqueado para cobertura.");
+                    if (pack.PreviewCardIds.Count != 3 ||
+                        pack.PreviewCardIds.Any(id =>
+                            !pack.CardIds.Contains(id)))
+                        result.Errors.Add(pack.PackId +
+                            " deve possuir 3 previews validos.");
+                    if (pack.GeneratorVersion !=
+                        ShopPackCatalog.CatalogVersion)
+                        result.Errors.Add(pack.PackId +
+                            " possui generatorVersion incompatível.");
+                    string thematicHash =
+                        AutoPackCatalogDocument.PackContentHash(
+                            pack.PackId,
+                            pack.CardIds);
+                    if (!string.Equals(thematicHash, pack.ContentHash,
+                            StringComparison.OrdinalIgnoreCase))
+                        result.Errors.Add(pack.PackId +
+                            " possui contentHash invalido.");
+                    continue;
                 }
 
                 if (pack.Origin != 1)
@@ -217,19 +269,28 @@ namespace ArcaneArena.Editor.AutoPacks
                 }
             }
 
-            var pending = new HashSet<string>(
-                manifest.PendingCardIds,
-                StringComparer.Ordinal);
+            var pending = thematicCatalog
+                ? new HashSet<string>(StringComparer.Ordinal)
+                : new HashSet<string>(
+                    manifest.PendingCardIds,
+                    StringComparer.Ordinal);
             string[] uncovered = snapshot.EligibleCardIds
                 .Where(id => !coverage.Contains(id) && !pending.Contains(id))
                 .ToArray();
             if (uncovered.Length > 0)
                 result.Errors.Add("IDs elegiveis nao processados: " +
                     string.Join(",", uncovered) + ".");
-            int eligiblePending = manifest.PendingCardIds.Count(id =>
-                snapshot.EligibleCardIds.Contains(id));
-            if (eligiblePending >= AutoPackGenerationSettings.RequiredMinimum)
-                result.Errors.Add("Pending contem cartas suficientes para novo pack.");
+            if (!thematicCatalog)
+            {
+                int eligiblePending = manifest.PendingCardIds.Count(id =>
+                    snapshot.EligibleCardIds.Contains(id));
+                if (eligiblePending >= AutoPackGenerationSettings.RequiredMinimum)
+                    result.Errors.Add(
+                        "Pending contem cartas suficientes para novo pack.");
+            }
+
+            if (thematicCatalog)
+                return;
 
             foreach (GeneratedPackRecord record in manifest.GeneratedPacks)
             {

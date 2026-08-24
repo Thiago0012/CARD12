@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: AutoPackGenerationSettings
   m_EditorClassIdentifier: Assembly-CSharp-Editor:ArcaneArena.Editor.AutoPacks:AutoPackGenerationSettings
   enabled: 1
-  minCardsPerPack: 35
-  maxCardsPerPack: 38
+  minCardsPerPack: 40
+  maxCardsPerPack: 85
   priceCoins: 25
-  generatorVersion: 1
+  generatorVersion: 2
   watchedFolders:
   - Assets/Cards/CardCatalog.asset
   - Assets/Cards/Cards

@@ -5,7 +5,7 @@ using ArcaneDuel.Game;
 
 namespace ArcaneArena.Frontend
 {
-    internal static class FrontendCardIdentity
+    public static class FrontendCardIdentity
     {
         public static string NormalizeOfficialId(string value)
         {

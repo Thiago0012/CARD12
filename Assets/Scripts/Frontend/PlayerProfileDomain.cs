@@ -159,12 +159,14 @@ namespace ArcaneArena.Frontend
         None,
         CrimsonLegendary,
         AzureArcane,
-        SolarLegendary
+        SolarLegendary,
+        AzureTempest,
+        VioletEclipse
     }
 
     public static class ProfileIconCatalog
     {
-        public const int CatalogVersion = 3;
+        public const int CatalogVersion = 5;
         public const int IconPriceCoins = 35;
         public const string DefaultIconId = "icon-arcane-default";
 
@@ -231,7 +233,15 @@ namespace ArcaneArena.Frontend
             new("icon-crimson-veil-arcanist", "Arcanista do Véu Rubro",
                 "Profile/Icons/crimson-veil-arcanist", true,
                 ProfileIconAssetMode.UnframedPortrait,
-                auraTheme: ProfileIconAuraTheme.CrimsonLegendary)
+                auraTheme: ProfileIconAuraTheme.CrimsonLegendary),
+            new("icon-azure-tempest-dragon", "Dragão da Tempestade Azul",
+                "Profile/Icons/azure-tempest-dragon", true,
+                ProfileIconAssetMode.UnframedPortrait,
+                auraTheme: ProfileIconAuraTheme.AzureTempest),
+            new("icon-violet-eclipse-sorceress", "Maga do Eclipse Violeta",
+                "Profile/Icons/violet-eclipse-sorceress", true,
+                ProfileIconAssetMode.UnframedPortrait,
+                auraTheme: ProfileIconAuraTheme.VioletEclipse)
         };
 
         private static readonly Dictionary<string, Texture2D> TextureCache =

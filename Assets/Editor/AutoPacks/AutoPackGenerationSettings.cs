@@ -9,8 +9,8 @@ namespace ArcaneArena.Editor.AutoPacks
         menuName = "Game/Shop/Auto Pack Generation Settings")]
     public sealed class AutoPackGenerationSettings : ScriptableObject
     {
-        public const int RequiredMinimum = 35;
-        public const int RequiredMaximum = 38;
+        public const int RequiredMinimum = 40;
+        public const int RequiredMaximum = 85;
         public const int RequiredPrice = 25;
 
         [SerializeField] private bool enabled = true;

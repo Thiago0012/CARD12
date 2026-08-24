@@ -119,44 +119,18 @@ namespace ArcaneArena.Frontend
     }
 
     /// <summary>
-    /// Catálogo imutável e versionado. A distribuição das 106 cartas reais
-    /// não é regenerada ao iniciar o jogo e cada ID aparece uma única vez.
+    /// Catálogo imutável e versionado. Todas as cartas colecionáveis aparecem
+    /// exatamente uma vez e os pools são mantidos em tamanho comercial.
     /// </summary>
     public static class ShopPackCatalog
     {
-        public const int CatalogVersion = 1;
-        public const int CatalogSeed = 12062026;
+        public const int CatalogVersion = 2;
+        public const int CatalogSeed = 23082026;
         public const int PackPriceCoins = 25;
         public const int CardsPerOpening = 5;
-
-        private static readonly IReadOnlyList<ShopPackDefinition> LegacyExamples =
-            new[]
-            {
-                new ShopPackDefinition(
-                    "pack-nexo-arcano-v1",
-                    "Pacote Nexo Arcano",
-                    "Monstros e suportes para abrir novas linhas de jogada.",
-                    new[]
-                    {
-                        "02129638","02314238","02857636","03078380","04335645","05318639","07084129","07198399","07922915","08240199","09287078","10045474","10515412","11443677","12266229","13756293","14315573","14558127","15960641","16699558","17725109","17947697","19613556","20747792","23020408","24382602","24508238","26202165","30576089","30603688","33698022","34318086","34755994","36262024","38033121","38120068"
-                    }),
-                new ShopPackDefinition(
-                    "pack-lendas-do-duelo-v1",
-                    "Pacote Lendas do Duelo",
-                    "Cartas clássicas, respostas e peças de Deck Adicional.",
-                    new[]
-                    {
-                        "38342335","38517737","39030163","40908371","41721210","43219114","43321985","43892408","44095762","45986603","46411259","46986414","47222536","47963370","48680970","50237654","51632798","52684508","54332792","54693926","55144522","56120475","56132807","56532353","56920308","59438930","59514116","59822133","60948488","62089826","63391643","63519819","65741786","66961194","68462976"
-                    }),
-                new ShopPackDefinition(
-                    "pack-eclipse-cibernetico-v1",
-                    "Pacote Eclipse Cibernético",
-                    "Ameaças modernas e ferramentas para completar sua coleção.",
-                    new[]
-                    {
-                        "69015963","70828912","71039903","71044499","71143015","71413901","72989439","73628505","74677422","75190122","77754944","79571449","80088625","80326401","82732705","83011278","83555666","83764719","84013237","85442146","86331741","88177324","88240808","89604813","89631139","93437091","94259633","95477924","96471335","96561011","96729612","97077563","97268402","97631303","98502113"
-                    })
-            };
+        public const int MinimumCardsPerPack = 40;
+        public const int MaximumCardsPerPack = 85;
+        public const int PreferredCardsPerPack = 82;
 
         private static readonly IReadOnlyList<ShopPackDefinition> Definitions =
             LoadDefinitions();

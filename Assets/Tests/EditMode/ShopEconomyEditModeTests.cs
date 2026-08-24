@@ -40,25 +40,44 @@ namespace ArcaneDuel.Tests.EditMode
         public void VersionedPackCatalogCoversEveryCollectibleExactlyOnce()
         {
             Type packCatalog = FindType("ArcaneArena.Frontend.ShopPackCatalog");
-            Type deckCatalog = FindType("ArcaneArena.Frontend.DeckShopCatalog");
             object[] packs = Values(packCatalog.GetProperty("Packs").GetValue(null));
-            string[] collectible = Values(
-                    deckCatalog.GetProperty("CollectibleCardIds").GetValue(null))
-                .Select(value => value.ToString()).ToArray();
+            Type cardIdentity = FindType(
+                "ArcaneArena.Frontend.FrontendCardIdentity");
+            MethodInfo normalizeOfficialId = cardIdentity.GetMethod(
+                "NormalizeOfficialId",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(normalizeOfficialId, Is.Not.Null);
+            UnityEngine.Object catalog =
+                AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                    "Assets/Cards/CardCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+            string[] collectible = Values(Property(catalog, "Entries"))
+                .Where(entry => entry != null &&
+                                (bool)Property(entry, "IsCollectible") &&
+                                (bool)Property(entry, "IsReadyForGameplay") &&
+                                (bool)Property(entry, "OfficiallyRegistered"))
+                .Select(entry => normalizeOfficialId.Invoke(
+                    null,
+                    new[] { Property(entry, "OfficialCardId") }) as string)
+                .ToArray();
             string[] distributed = packs
                 .SelectMany(pack => Values(Property(pack, "CardIds")))
                 .Select(value => value.ToString())
                 .ToArray();
 
-            Assert.That(packs, Has.Length.GreaterThanOrEqualTo(19));
+            Assert.That(packs, Has.Length.EqualTo(40));
             Assert.That(packs.All(pack =>
-                Values(Property(pack, "CardIds")).Length is >= 1 and <= 38),
+                Values(Property(pack, "CardIds")).Length is >= 40 and <= 85),
                 Is.True);
+            Assert.That(distributed, Has.Length.EqualTo(3252));
             Assert.That(distributed.Distinct(StringComparer.Ordinal).Count(),
                 Is.EqualTo(distributed.Length));
             Assert.That(collectible.Except(distributed, StringComparer.Ordinal),
                 Is.Empty,
-                "Todo card colecionavel dos Decks Estruturais deve continuar coberto.");
+                "Toda carta colecionavel e pronta deve estar em um pacote.");
+            Assert.That(distributed.Except(collectible, StringComparer.Ordinal),
+                Is.Empty,
+                "Pacotes nao podem conter fichas ou cartas fora do catalogo elegivel.");
         }
 
         [Test]
@@ -97,16 +116,20 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
-        public void PackRarityTableIsExactlyFiftyFiveTwentyFiveTwelveEight()
+        public void PackRarityTablesProduceTheBalancedFiveCardOpening()
         {
             Type distribution = FindType(
                 "ArcaneArena.Frontend.PackRarityDistribution");
             MethodInfo resolve = distribution.GetMethod(
                 "ResolveRoll",
                 BindingFlags.Public | BindingFlags.Static);
+            MethodInfo resolveForSlot = distribution.GetMethod(
+                "ResolveRollForSlot",
+                BindingFlags.Public | BindingFlags.Static);
             Assert.That(resolve, Is.Not.Null);
+            Assert.That(resolveForSlot, Is.Not.Null);
 
-            var counts = new Dictionary<string, int>(StringComparer.Ordinal)
+            var regular = new Dictionary<string, int>(StringComparer.Ordinal)
             {
                 ["N"] = 0,
                 ["R"] = 0,
@@ -117,21 +140,47 @@ namespace ArcaneDuel.Tests.EditMode
             {
                 string rarity = resolve.Invoke(null, new object[] { roll })
                     .ToString();
-                counts[rarity]++;
+                regular[rarity]++;
             }
 
-            Assert.That(counts["N"], Is.EqualTo(55));
-            Assert.That(counts["R"], Is.EqualTo(25));
-            Assert.That(counts["SR"], Is.EqualTo(12));
-            Assert.That(counts["UR"], Is.EqualTo(8));
-            Assert.That(resolve.Invoke(null, new object[] { 54 }).ToString(),
+            Assert.That(regular["N"], Is.EqualTo(70));
+            Assert.That(regular["R"], Is.EqualTo(25));
+            Assert.That(regular["SR"], Is.EqualTo(4));
+            Assert.That(regular["UR"], Is.EqualTo(1));
+            Assert.That(resolve.Invoke(null, new object[] { 69 }).ToString(),
                 Is.EqualTo("N"));
-            Assert.That(resolve.Invoke(null, new object[] { 55 }).ToString(),
+            Assert.That(resolve.Invoke(null, new object[] { 70 }).ToString(),
                 Is.EqualTo("R"));
-            Assert.That(resolve.Invoke(null, new object[] { 80 }).ToString(),
+            Assert.That(resolve.Invoke(null, new object[] { 95 }).ToString(),
                 Is.EqualTo("SR"));
-            Assert.That(resolve.Invoke(null, new object[] { 92 }).ToString(),
+            Assert.That(resolve.Invoke(null, new object[] { 99 }).ToString(),
                 Is.EqualTo("UR"));
+
+            var guaranteed = new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["N"] = 0,
+                ["R"] = 0,
+                ["SR"] = 0,
+                ["UR"] = 0
+            };
+            for (int roll = 0; roll < 100; roll++)
+            {
+                string rarity = resolveForSlot.Invoke(
+                    null, new object[] { 4, roll }).ToString();
+                guaranteed[rarity]++;
+            }
+
+            Assert.That(guaranteed["N"], Is.Zero);
+            Assert.That(guaranteed["R"], Is.EqualTo(85));
+            Assert.That(guaranteed["SR"], Is.EqualTo(13));
+            Assert.That(guaranteed["UR"], Is.EqualTo(2));
+
+            // Em 100 aberturas (500 cartas): 56% N, 37% R,
+            // 5,8% SR e 1,2% UR.
+            Assert.That(regular["N"] * 4 + guaranteed["N"], Is.EqualTo(280));
+            Assert.That(regular["R"] * 4 + guaranteed["R"], Is.EqualTo(185));
+            Assert.That(regular["SR"] * 4 + guaranteed["SR"], Is.EqualTo(29));
+            Assert.That(regular["UR"] * 4 + guaranteed["UR"], Is.EqualTo(6));
         }
 
         [Test]
@@ -179,7 +228,7 @@ namespace ArcaneDuel.Tests.EditMode
                     invalid.Add($"{cardId}:{rarity}");
             }
 
-            Assert.That(cardIds, Has.Length.GreaterThan(900));
+            Assert.That(cardIds, Has.Length.EqualTo(3252));
             Assert.That(missing, Is.Empty,
                 "Toda carta referenciada por pacote deve existir no catálogo.");
             Assert.That(invalid, Is.Empty,

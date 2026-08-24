@@ -16,17 +16,13 @@ namespace ArcaneDuel.Tests.EditMode
     {
         [TestCase(0, new int[0], 0)]
         [TestCase(1, new int[0], 1)]
-        [TestCase(34, new int[0], 34)]
-        [TestCase(35, new[] { 35 }, 0)]
-        [TestCase(38, new[] { 38 }, 0)]
-        [TestCase(39, new[] { 38 }, 1)]
-        [TestCase(70, new[] { 35, 35 }, 0)]
-        [TestCase(71, new[] { 36, 35 }, 0)]
-        [TestCase(76, new[] { 38, 38 }, 0)]
-        [TestCase(77, new[] { 38, 38 }, 1)]
-        [TestCase(104, new[] { 38, 38 }, 28)]
-        [TestCase(105, new[] { 35, 35, 35 }, 0)]
-        [TestCase(114, new[] { 38, 38, 38 }, 0)]
+        [TestCase(39, new int[0], 39)]
+        [TestCase(40, new[] { 40 }, 0)]
+        [TestCase(85, new[] { 85 }, 0)]
+        [TestCase(86, new[] { 43, 43 }, 0)]
+        [TestCase(169, new[] { 85, 84 }, 0)]
+        [TestCase(170, new[] { 85, 85 }, 0)]
+        [TestCase(171, new[] { 57, 57, 57 }, 0)]
         public void PartitionerMatchesEveryNormativeBoundary(
             int count,
             int[] expectedSizes,
@@ -69,23 +65,27 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
-        public void GeneratedCatalogIsAppendOnlyAndNormative()
+        public void GeneratedCatalogV2IsCompleteAndNormative()
         {
             TextAsset json = AssetDatabase.LoadAssetAtPath<TextAsset>(
                 "Assets/Resources/Shop/PackCatalog.json");
             Assert.That(json, Is.Not.Null);
             PackCatalogFile file = JsonUtility.FromJson<PackCatalogFile>(json.text);
             Assert.That(file?.packs, Is.Not.Null);
-            Assert.That(file.packs.Take(19).Select(pack => pack.packId),
-                Is.EqualTo(Enumerable.Range(1, 19)
-                    .Select(index => $"pack-{index:00}-v1")));
+            Assert.That(file.version, Is.EqualTo(2));
+            Assert.That(file.seed, Is.EqualTo(23082026));
+            Assert.That(file.packs, Has.Length.EqualTo(40));
+            Assert.That(file.packs.Select(pack => pack.packId),
+                Is.EqualTo(Enumerable.Range(1, 40)
+                    .Select(index => $"thematic-pack-{index:000}-v2")));
 
             PackRecord[] automatic = file.packs
                 .Where(pack => pack.origin == 1)
                 .ToArray();
-            Assert.That(automatic, Has.Length.EqualTo(7));
+            Assert.That(automatic, Has.Length.EqualTo(40));
             Assert.That(automatic.All(pack =>
-                    pack.cardIds.Length is >= 35 and <= 38 &&
+                    pack.cardIds.Length >= 40 &&
+                    pack.cardIds.Length <= 85 &&
                     pack.cardIds.Distinct(StringComparer.Ordinal).Count() ==
                     pack.cardIds.Length &&
                     pack.priceCoins == 25 &&
@@ -93,33 +93,32 @@ namespace ArcaneDuel.Tests.EditMode
                     pack.contentLockedAfterPublish &&
                     pack.countsForAutoCoverage &&
                     pack.published &&
+                    pack.generatorVersion == 2 &&
                     !string.IsNullOrWhiteSpace(pack.contentHash)),
                 Is.True);
 
-            UnityEngine.Object manifest = AssetDatabase.LoadAssetAtPath<
-                UnityEngine.Object>(
-                "Assets/GameData/Shop/AutoPackGenerationManifest.asset");
-            Assert.That(manifest, Is.Not.Null);
-            Assert.That(Values(Property(manifest, "PendingCardIds")),
-                Has.Length.EqualTo(12));
-        }
+            string[] actual = automatic
+                .SelectMany(pack => pack.cardIds)
+                .ToArray();
+            Assert.That(actual, Has.Length.EqualTo(3252));
+            Assert.That(actual.Distinct(StringComparer.Ordinal).Count(),
+                Is.EqualTo(actual.Length));
 
-        [Test]
-        public void CurrentSnapshotIsIdempotentAndCreatesNoAdditionalPack()
-        {
-            Type coordinator = FindType(
-                "ArcaneArena.Editor.AutoPacks.AutoPackGenerationCoordinator");
-            MethodInfo run = coordinator.GetMethod(
-                "Run",
-                BindingFlags.Static | BindingFlags.NonPublic);
-            object preview = run.Invoke(null, new object[] { false, "EditMode" });
-
-            Assert.That(Values(Property(preview, "Errors")), Is.Empty);
-            Assert.That(Values(Property(preview, "CreatedPacks")), Is.Empty);
-            Assert.That(Values(Property(preview, "NewCardIds")), Is.Empty);
-            Assert.That(Values(Property(preview, "PendingCardIds")),
-                Has.Length.EqualTo(12));
-            Assert.That(Property(preview, "Saved"), Is.False);
+            UnityEngine.Object catalog =
+                AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                    "Assets/Cards/CardCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+            string[] expected = Values(Property(catalog, "Entries"))
+                .Where(entry => entry != null &&
+                    (bool)Property(entry, "IsCollectible") &&
+                    (bool)Property(entry, "IsReadyForGameplay") &&
+                    (bool)Property(entry, "OfficiallyRegistered"))
+                .Select(entry => Property(entry, "OfficialCardId") as string)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToArray();
+            Assert.That(actual.OrderBy(id => id, StringComparer.Ordinal),
+                Is.EqualTo(expected));
         }
 
         [Test]
@@ -148,7 +147,7 @@ namespace ArcaneDuel.Tests.EditMode
             MethodInfo method = type.GetMethod(
                 "Partition",
                 BindingFlags.Public | BindingFlags.Static);
-            return method.Invoke(null, new object[] { ids, 35, 38 });
+            return method.Invoke(null, new object[] { ids, 40, 85 });
         }
 
         private static string[] Ids(int count)
@@ -180,6 +179,8 @@ namespace ArcaneDuel.Tests.EditMode
         [Serializable]
         private sealed class PackCatalogFile
         {
+            public int version;
+            public int seed;
             public PackRecord[] packs;
         }
 
@@ -191,6 +192,7 @@ namespace ArcaneDuel.Tests.EditMode
             public int origin;
             public bool contentLockedAfterPublish;
             public string contentHash;
+            public int generatorVersion;
             public bool countsForAutoCoverage;
             public bool published;
             public string[] previewCardIds;

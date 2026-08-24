@@ -494,7 +494,7 @@ namespace ArcaneArena.Editor.AutoPacks
                 if (!settings.HasNormativeValues)
                 {
                     report.Errors.Add(
-                        "Settings deve manter min=35, max=38 e price=25.");
+                        "Settings deve manter min=40, max=85 e price=25.");
                     return report;
                 }
 
@@ -668,7 +668,7 @@ namespace ArcaneArena.Editor.AutoPacks
                     pack.cardIds.Count > AutoPackGenerationSettings.RequiredMaximum)
                 {
                     report.Errors.Add(pack.packId +
-                        " possui quantidade fora de 35-38.");
+                        " possui quantidade fora de 40-85.");
                 }
                 if (pack.cardIds.Distinct(StringComparer.Ordinal).Count() !=
                     pack.cardIds.Count)
