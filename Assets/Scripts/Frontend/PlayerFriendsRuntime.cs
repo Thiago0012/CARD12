@@ -23,11 +23,15 @@ namespace ArcaneArena.Frontend
         private readonly List<FriendProfileView> _friends = new();
         private readonly List<FriendProfileView> _incoming = new();
         private readonly List<FriendProfileView> _outgoing = new();
+        private readonly Dictionary<string, FriendProfileView>
+            _catalogProfiles = new(StringComparer.Ordinal);
         private string _localDisplayName = string.Empty;
         private bool _friendsSdkInitialized;
         private bool _eventsSubscribed;
         private bool _initialized;
         private bool _busy;
+        private bool _profileRefreshInProgress;
+        private bool _profileRefreshQueued;
         private string _status = "Preparando conexões sociais...";
 
         public static event Action Changed;
@@ -97,8 +101,12 @@ namespace ArcaneArena.Frontend
             }
 
             FriendProfileView known = FindKnownProfile(normalized, numeric);
-            if (known != null)
+            if (known != null &&
+                (known.publicProfileSchemaVersion > 0 ||
+                 !PlayerIdAccessRuntime.IsCatalogConfigured))
+            {
                 return known;
+            }
 
             if (!IsReady)
             {
@@ -259,8 +267,9 @@ namespace ArcaneArena.Frontend
                 await Service.SetPresenceAvailabilityAsync(
                     Availability.Online);
                 _initialized = true;
-                _status = "Conexões online sincronizadas.";
                 RebuildLists();
+                await RefreshRelationshipProfilesAsync();
+                _status = "Conexões online sincronizadas.";
             }
             catch (Exception exception)
             {
@@ -304,45 +313,17 @@ namespace ArcaneArena.Frontend
             NotifyChanged();
             try
             {
-                string url = PlayerIdAccessRuntime.CatalogBaseUrl +
-                             "/v1/player/search?query=" +
-                             UnityWebRequest.EscapeURL(query);
-                using UnityWebRequest request = UnityWebRequest.Get(url);
-                request.timeout =
-                    PlayerIdAccessRuntime.CatalogRequestTimeoutSeconds;
-                request.SetRequestHeader(
-                    "Authorization",
-                    "Bearer " + AuthenticationService.Instance.AccessToken);
-                UnityWebRequestAsyncOperation send = request.SendWebRequest();
-                while (!send.isDone)
-                    await Task.Yield();
-                if (request.result != UnityWebRequest.Result.Success)
-                {
-                    throw new InvalidOperationException(
-                        $"A busca respondeu HTTP {request.responseCode}: " +
-                        request.error);
-                }
-
-                FriendSearchResponse response = JsonUtility.FromJson<
-                    FriendSearchResponse>(request.downloadHandler.text);
-                if (response == null || !response.found)
-                {
-                    throw new InvalidOperationException(
-                        !string.IsNullOrWhiteSpace(response?.message)
-                            ? response.message
-                            : "Nenhum jogador foi encontrado com esse nome ou ID.");
-                }
-                if (string.IsNullOrWhiteSpace(response.playerId) ||
-                    !PlayerIdAccessPolicy.IsValidPublicId(response.publicId))
-                {
-                    throw new InvalidOperationException(
-                        "O catálogo devolveu um perfil incompleto.");
-                }
-
-                FriendProfileView profile = response.ToProfile();
+                FriendProfileView profile = await FetchCatalogProfileAsync(
+                    query);
+                CacheCatalogProfile(profile);
                 ApplyKnownRelationship(profile);
                 _status = "Perfil encontrado.";
                 return profile;
+            }
+            catch (Exception exception)
+            {
+                _status = exception.GetBaseException().Message;
+                throw;
             }
             finally
             {
@@ -365,6 +346,7 @@ namespace ArcaneArena.Frontend
                 await operation();
                 await Service.ForceRelationshipsRefreshAsync();
                 RebuildLists();
+                await RefreshRelationshipProfilesAsync();
                 _status = successMessage;
             }
             catch (Exception exception)
@@ -392,11 +374,12 @@ namespace ArcaneArena.Frontend
             _eventsSubscribed = true;
         }
 
-        private void HandleRelationshipChanged()
+        private async void HandleRelationshipChanged()
         {
             RebuildLists();
             _status = "A lista de conexões recebeu uma atualização.";
             NotifyChanged();
+            await RefreshRelationshipProfilesAsync();
         }
 
         private void RebuildLists()
@@ -421,7 +404,7 @@ namespace ArcaneArena.Frontend
                 _outgoing);
         }
 
-        private static void AppendRelationships(
+        private void AppendRelationships(
             IReadOnlyList<Relationship> relationships,
             FriendConnectionState state,
             List<FriendProfileView> target)
@@ -432,7 +415,11 @@ namespace ArcaneArena.Frontend
             {
                 if (relationship?.Member == null)
                     continue;
-                target.Add(ToProfile(relationship.Member, state));
+                FriendProfileView profile = ToProfile(
+                    relationship.Member,
+                    state);
+                ApplyCatalogProfile(profile);
+                target.Add(profile);
             }
             target.Sort((left, right) => string.Compare(
                 left.displayName,
@@ -459,6 +446,138 @@ namespace ArcaneArena.Frontend
                     : new DateTimeOffset(member.Presence.LastSeen)
                         .ToUnixTimeSeconds()
             };
+        }
+
+        private async Task<FriendProfileView> FetchCatalogProfileAsync(
+            string query)
+        {
+            string url = PlayerIdAccessRuntime.CatalogBaseUrl +
+                         "/v1/player/search?query=" +
+                         UnityWebRequest.EscapeURL(query);
+            using UnityWebRequest request = UnityWebRequest.Get(url);
+            request.timeout =
+                PlayerIdAccessRuntime.CatalogRequestTimeoutSeconds;
+            request.SetRequestHeader(
+                "Authorization",
+                "Bearer " + AuthenticationService.Instance.AccessToken);
+            UnityWebRequestAsyncOperation send = request.SendWebRequest();
+            while (!send.isDone)
+                await Task.Yield();
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                throw new InvalidOperationException(
+                    $"A busca respondeu HTTP {request.responseCode}: " +
+                    request.error);
+            }
+
+            FriendSearchResponse response = JsonUtility.FromJson<
+                FriendSearchResponse>(request.downloadHandler.text);
+            if (response == null || !response.found)
+            {
+                throw new InvalidOperationException(
+                    !string.IsNullOrWhiteSpace(response?.message)
+                        ? response.message
+                        : "Nenhum jogador foi encontrado com esse nome ou ID.");
+            }
+            if (string.IsNullOrWhiteSpace(response.playerId) ||
+                !PlayerIdAccessPolicy.IsValidPublicId(response.publicId))
+            {
+                throw new InvalidOperationException(
+                    "O catálogo devolveu um perfil incompleto.");
+            }
+            return response.ToProfile();
+        }
+
+        private async Task RefreshRelationshipProfilesAsync()
+        {
+            if (!PlayerIdAccessRuntime.IsCatalogConfigured ||
+                !AuthenticationService.Instance.IsSignedIn)
+            {
+                return;
+            }
+            if (_profileRefreshInProgress)
+            {
+                _profileRefreshQueued = true;
+                return;
+            }
+
+            _profileRefreshInProgress = true;
+            try
+            {
+                do
+                {
+                    _profileRefreshQueued = false;
+                    FriendProfileView[] relationships = _friends
+                        .Concat(_incoming)
+                        .Concat(_outgoing)
+                        .Where(profile => profile != null &&
+                            PlayerIdAccessPolicy.IsValidPublicId(
+                                profile.publicId))
+                        .GroupBy(profile => profile.playerId,
+                            StringComparer.Ordinal)
+                        .Select(group => group.First().Copy())
+                        .ToArray();
+                    foreach (FriendProfileView relationship in relationships)
+                    {
+                        try
+                        {
+                            FriendProfileView catalog =
+                                await FetchCatalogProfileAsync(
+                                    relationship.publicId);
+                            CacheCatalogProfile(catalog);
+                        }
+                        catch (Exception exception)
+                        {
+                            Debug.LogWarning(
+                                "[Amigos] O resumo visual de " +
+                                relationship.publicId +
+                                " será atualizado depois: " +
+                                exception.GetBaseException().Message);
+                        }
+                    }
+                    RebuildLists();
+                    NotifyChanged();
+                } while (_profileRefreshQueued);
+            }
+            finally
+            {
+                _profileRefreshInProgress = false;
+            }
+        }
+
+        private void CacheCatalogProfile(FriendProfileView profile)
+        {
+            if (profile == null || string.IsNullOrWhiteSpace(profile.playerId))
+                return;
+            _catalogProfiles[profile.playerId] = profile.Copy();
+        }
+
+        private void ApplyCatalogProfile(FriendProfileView target)
+        {
+            if (target == null || string.IsNullOrWhiteSpace(target.playerId) ||
+                !_catalogProfiles.TryGetValue(
+                    target.playerId,
+                    out FriendProfileView source))
+            {
+                return;
+            }
+            target.publicId = source.publicId;
+            target.displayName = source.displayName;
+            target.unityPlayerName = source.unityPlayerName;
+            target.equippedIconId = source.equippedIconId;
+            target.publicProfileSchemaVersion =
+                source.publicProfileSchemaVersion;
+            target.rankTier = source.rankTier;
+            target.rankedPoints = source.rankedPoints;
+            target.duelsPlayed = source.duelsPlayed;
+            target.wins = source.wins;
+            target.losses = source.losses;
+            target.draws = source.draws;
+            target.profileUpdatedUtcUnixSeconds =
+                source.profileUpdatedUtcUnixSeconds;
+            target.lastSeenUtcUnixSeconds = Math.Max(
+                target.lastSeenUtcUnixSeconds,
+                source.lastSeenUtcUnixSeconds);
         }
 
         private static FriendPresenceState ResolvePresence(

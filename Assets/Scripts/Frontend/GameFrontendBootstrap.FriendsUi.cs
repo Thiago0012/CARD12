@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ArcaneDuel.Game.Competitive;
 using ArcaneDuel.Game.Social;
 using UnityEngine;
 using UnityEngine.UI;
@@ -545,7 +546,11 @@ namespace ArcaneArena.Frontend
             layout.padding = new RectOffset(4, 4, 4, 12);
             layout.childAlignment = TextAnchor.UpperCenter;
             layout.childControlWidth = true;
-            layout.childControlHeight = false;
+            // As linhas possuem LayoutElement com uma altura preferencial.
+            // Se o grupo não controlar a altura, os RectTransforms esticados
+            // nascem com zero pixel dentro do ContentSizeFitter e pedidos
+            // válidos ficam invisíveis apesar de o contador estar correto.
+            layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
             contentObject.GetComponent<ContentSizeFitter>().verticalFit =
@@ -633,18 +638,71 @@ namespace ArcaneArena.Frontend
                 new Vector2(textMin, 0.32f),
                 new Vector2(0.67f, 0.57f),
                 TextAnchor.MiddleLeft);
+            if (expanded)
+                BuildExpandedFriendProfile(card.transform, profile, textMin);
             CreateText(
                 card.transform,
                 ConnectionLabel(profile),
                 expanded ? 12 : 10,
                 FontStyle.Bold,
                 accent,
-                new Vector2(textMin, 0.10f),
-                new Vector2(0.67f, 0.34f),
-                TextAnchor.MiddleLeft);
+                expanded
+                    ? new Vector2(0.72f, 0.72f)
+                    : new Vector2(textMin, 0.10f),
+                expanded
+                    ? new Vector2(0.965f, 0.90f)
+                    : new Vector2(0.67f, 0.34f),
+                expanded
+                    ? TextAnchor.MiddleCenter
+                    : TextAnchor.MiddleLeft);
 
             BuildFriendCardActions(card.transform, profile);
             return card;
+        }
+
+        private static void BuildExpandedFriendProfile(
+            Transform parent,
+            FriendProfileView profile,
+            float textMin)
+        {
+            string iconTitle = ProfileIconCatalog.Resolve(
+                profile.equippedIconId)?.DisplayName ?? "Brasão Arcano";
+            string rank = RankRules.DisplayName(profile.rankTier);
+            long decided = Math.Max(0, profile.wins) +
+                           Math.Max(0, profile.losses);
+            double winRate = decided > 0
+                ? Math.Max(0, profile.wins) * 100.0 / decided
+                : 0.0;
+
+            CreateText(
+                parent,
+                $"{rank}  •  {Math.Max(0, profile.rankedPoints)} PE",
+                12,
+                FontStyle.Bold,
+                ArcaneGold,
+                new Vector2(textMin, 0.22f),
+                new Vector2(0.48f, 0.36f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                parent,
+                $"{Math.Max(0, profile.duelsPlayed)} DUELOS  •  " +
+                $"{Math.Max(0, profile.wins)} V  •  " +
+                $"{Math.Max(0, profile.losses)} D  •  {winRate:0.#}%",
+                11,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.49f, 0.22f),
+                new Vector2(0.70f, 0.36f),
+                TextAnchor.MiddleRight);
+            CreateText(
+                parent,
+                iconTitle.ToUpperInvariant(),
+                9,
+                FontStyle.Bold,
+                new Color(Muted.r, Muted.g, Muted.b, 0.86f),
+                new Vector2(textMin, 0.08f),
+                new Vector2(0.70f, 0.20f),
+                TextAnchor.MiddleLeft);
         }
 
         private void BuildFriendCardActions(

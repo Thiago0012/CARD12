@@ -43,10 +43,17 @@ namespace ArcaneArena.Frontend
         private sealed class PresenceRequest
         {
             public int schemaVersion = 1;
+            public int publicProfileSchemaVersion = 1;
             public string sessionId;
             public string playerId;
             public string publicId;
             public string playerDisplayName;
+            public string equippedIconId;
+            public int rankedPoints;
+            public long duelsPlayed;
+            public long wins;
+            public long losses;
+            public long draws;
             public string buildVersion;
             public string platform;
         }
@@ -60,6 +67,12 @@ namespace ArcaneArena.Frontend
         private PlayerIdAccessSnapshot _snapshot;
         private string _sessionId;
         private string _playerDisplayName;
+        private string _equippedIconId = ProfileIconCatalog.DefaultIconId;
+        private int _rankedPoints;
+        private long _duelsPlayed;
+        private long _wins;
+        private long _losses;
+        private long _draws;
         private Coroutine _heartbeat;
 
         public static event Action<PlayerIdAccessSnapshot> AccessChanged;
@@ -147,6 +160,24 @@ namespace ArcaneArena.Frontend
             EnsureRuntimeExists();
             _instance._playerDisplayName = (displayName ?? string.Empty)
                 .Trim();
+        }
+
+        public static void SetPlayerPublicProfile(
+            string equippedIconId,
+            int rankedPoints,
+            long duelsPlayed,
+            long wins,
+            long losses,
+            long draws)
+        {
+            EnsureRuntimeExists();
+            _instance._equippedIconId = ProfileIconCatalog.ResolveId(
+                equippedIconId);
+            _instance._rankedPoints = Mathf.Clamp(rankedPoints, 0, 200);
+            _instance._duelsPlayed = Math.Max(0, duelsPlayed);
+            _instance._wins = Math.Max(0, wins);
+            _instance._losses = Math.Max(0, losses);
+            _instance._draws = Math.Max(0, draws);
         }
 
         public static async Task RefreshNowAsync()
@@ -287,6 +318,12 @@ namespace ArcaneArena.Frontend
                 playerId = playerId,
                 publicId = PlayerIdAccessPolicy.FormatPublicId(playerId),
                 playerDisplayName = _playerDisplayName,
+                equippedIconId = _equippedIconId,
+                rankedPoints = _rankedPoints,
+                duelsPlayed = _duelsPlayed,
+                wins = _wins,
+                losses = _losses,
+                draws = _draws,
                 buildVersion = Application.version ?? string.Empty,
                 platform = Application.platform.ToString()
             };

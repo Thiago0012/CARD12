@@ -1,4 +1,5 @@
 using System;
+using ArcaneDuel.Game.Competitive;
 
 namespace ArcaneDuel.Game.Social
 {
@@ -28,6 +29,14 @@ namespace ArcaneDuel.Game.Social
         public string displayName;
         public string unityPlayerName;
         public string equippedIconId;
+        public int publicProfileSchemaVersion;
+        public RankTier rankTier;
+        public int rankedPoints;
+        public long duelsPlayed;
+        public long wins;
+        public long losses;
+        public long draws;
+        public long profileUpdatedUtcUnixSeconds;
         public FriendConnectionState connectionState;
         public FriendPresenceState presence;
         public long lastSeenUtcUnixSeconds;
@@ -41,6 +50,14 @@ namespace ArcaneDuel.Game.Social
                 displayName = displayName ?? string.Empty,
                 unityPlayerName = unityPlayerName ?? string.Empty,
                 equippedIconId = equippedIconId ?? string.Empty,
+                publicProfileSchemaVersion = publicProfileSchemaVersion,
+                rankTier = rankTier,
+                rankedPoints = rankedPoints,
+                duelsPlayed = duelsPlayed,
+                wins = wins,
+                losses = losses,
+                draws = draws,
+                profileUpdatedUtcUnixSeconds = profileUpdatedUtcUnixSeconds,
                 connectionState = connectionState,
                 presence = presence,
                 lastSeenUtcUnixSeconds = lastSeenUtcUnixSeconds
@@ -57,6 +74,15 @@ namespace ArcaneDuel.Game.Social
         public string displayName;
         public string unityPlayerName;
         public string equippedIconId;
+        public int publicProfileSchemaVersion;
+        public RankTier rankTier;
+        public int rankedPoints;
+        public long duelsPlayed;
+        public long wins;
+        public long losses;
+        public long draws;
+        public long profileUpdatedUtcUnixSeconds;
+        public long lastSeenUtcUnixSeconds;
         public bool online;
         public string message;
 
@@ -69,10 +95,23 @@ namespace ArcaneDuel.Game.Social
                 displayName = (displayName ?? string.Empty).Trim(),
                 unityPlayerName = (unityPlayerName ?? string.Empty).Trim(),
                 equippedIconId = (equippedIconId ?? string.Empty).Trim(),
+                publicProfileSchemaVersion = Math.Max(
+                    0,
+                    publicProfileSchemaVersion),
+                rankTier = rankTier,
+                rankedPoints = Math.Max(0, rankedPoints),
+                duelsPlayed = Math.Max(0, duelsPlayed),
+                wins = Math.Max(0, wins),
+                losses = Math.Max(0, losses),
+                draws = Math.Max(0, draws),
+                profileUpdatedUtcUnixSeconds = Math.Max(
+                    0,
+                    profileUpdatedUtcUnixSeconds),
                 connectionState = FriendConnectionState.None,
                 presence = online
                     ? FriendPresenceState.Online
-                    : FriendPresenceState.Offline
+                    : FriendPresenceState.Offline,
+                lastSeenUtcUnixSeconds = Math.Max(0, lastSeenUtcUnixSeconds)
             };
         }
     }
