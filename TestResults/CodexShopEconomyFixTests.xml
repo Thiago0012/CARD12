@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="17" result="Passed" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-24 10:04:40Z" end-time="2026-08-24 10:04:41Z" duration="0,7055643">
+  <test-suite type="TestSuite" id="1000" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="680" result="Passed" start-time="2026-08-24 10:04:40Z" end-time="2026-08-24 10:04:41Z" duration="0.705564" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1732" name="ArcaneDuel.EditModeTests.dll" fullname="D:/JOGO Y/DO ZERO/CARD12/Library/ScriptAssemblies/ArcaneDuel.EditModeTests.dll" runstate="Runnable" testcasecount="659" result="Passed" start-time="2026-08-24 10:04:40Z" end-time="2026-08-24 10:04:41Z" duration="0.655666" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="17232" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1733" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="659" result="Passed" start-time="2026-08-24 10:04:40Z" end-time="2026-08-24 10:04:41Z" duration="0.647852" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1734" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="659" result="Passed" start-time="2026-08-24 10:04:40Z" end-time="2026-08-24 10:04:41Z" duration="0.640677" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1735" name="EditMode" fullname="ArcaneDuel.Tests.EditMode" runstate="Runnable" testcasecount="659" result="Passed" start-time="2026-08-24 10:04:40Z" end-time="2026-08-24 10:04:41Z" duration="0.634077" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1592" name="ShopEconomyEditModeTests" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" testcasecount="17" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.622966" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1608" name="BlockedMatchIsConsumedBeforeFutureAuthorization" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.BlockedMatchIsConsumedBeforeFutureAuthorization" methodname="BlockedMatchIsConsumedBeforeFutureAuthorization" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="1093085565" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.059817" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1606" name="EveryPackCardResolvesToAVisibleRarityBadge" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.EveryPackCardResolvesToAVisibleRarityBadge" methodname="EveryPackCardResolvesToAVisibleRarityBadge" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="353514231" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.424767" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1609" name="NicknameChangedDuringMatchUsesTheStartSnapshot" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.NicknameChangedDuringMatchUsesTheStartSnapshot" methodname="NicknameChangedDuringMatchUsesTheStartSnapshot" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="2072583112" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.023975" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1610" name="OfflineMatchNeverCreditsAnAuthorizedProfile" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OfflineMatchNeverCreditsAnAuthorizedProfile" methodname="OfflineMatchNeverCreditsAnAuthorizedProfile" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="1633862644" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.021235" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-suite type="ParameterizedMethod" id="1602" name="OnlineRewardMatchesSpecification" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.008665" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1593" name="OnlineRewardMatchesSpecification(8000,6,True,False,53)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(8000,6,True,False,53)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="467536166" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000968" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1594" name="OnlineRewardMatchesSpecification(8000,7,True,False,49)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(8000,7,True,False,49)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="586219480" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000435" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1595" name="OnlineRewardMatchesSpecification(8000,8,True,False,45)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(8000,8,True,False,45)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="947834796" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000400" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1596" name="OnlineRewardMatchesSpecification(8000,9,True,False,41)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(8000,9,True,False,41)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="60172181" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000368" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1597" name="OnlineRewardMatchesSpecification(300,9,True,False,0)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(300,9,True,False,0)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="845281035" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000356" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1598" name="OnlineRewardMatchesSpecification(8000,4,False,False,26)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(8000,4,False,False,26)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="1685284923" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000311" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1599" name="OnlineRewardMatchesSpecification(4000,12,False,False,13)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(4000,12,False,False,13)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="773423925" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000297" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1600" name="OnlineRewardMatchesSpecification(149,2,True,False,0)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(149,2,True,False,0)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="2049951111" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000262" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1601" name="OnlineRewardMatchesSpecification(8000,2,True,True,0)" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardMatchesSpecification(8000,2,True,True,0)" methodname="OnlineRewardMatchesSpecification" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="1791002255" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.000236" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-case id="1607" name="OnlineRewardRequestCannotCreditTwice" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.OnlineRewardRequestCannotCreditTwice" methodname="OnlineRewardRequestCannotCreditTwice" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="649116697" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.019727" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1604" name="PackPurchaseIsFiveCardsAtomicAndIdempotent" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.PackPurchaseIsFiveCardsAtomicAndIdempotent" methodname="PackPurchaseIsFiveCardsAtomicAndIdempotent" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="1605432845" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.030881" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1605" name="PackRarityTablesProduceTheBalancedFiveCardOpening" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.PackRarityTablesProduceTheBalancedFiveCardOpening" methodname="PackRarityTablesProduceTheBalancedFiveCardOpening" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="1209515478" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.002076" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1603" name="VersionedPackCatalogCoversEveryCollectibleExactlyOnce" fullname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests.VersionedPackCatalogCoversEveryCollectibleExactlyOnce" methodname="VersionedPackCatalogCoversEveryCollectibleExactlyOnce" classname="ArcaneDuel.Tests.EditMode.ShopEconomyEditModeTests" runstate="Runnable" seed="277309443" result="Passed" start-time="2026-08-24 10:04:41Z" end-time="2026-08-24 10:04:41Z" duration="0.019456" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

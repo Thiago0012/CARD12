@@ -220,6 +220,7 @@ namespace ArcaneArena.Frontend
             }
             _repository = new DeckRepository();
             _repository.Load(_catalog);
+            InitializePlayerIdAccess();
             InitializeCoinRewardAuthorization();
             InitializeScenePresentation();
             if (!IsActiveScene(DuelArenaSceneName) &&
@@ -1278,7 +1279,7 @@ namespace ArcaneArena.Frontend
 
             var feedback = CreateText(
                 panel.transform,
-                "De 3 a 18 caracteres. Seus dados ficam somente neste dispositivo.",
+                "De 3 a 18 caracteres. Este também será seu nome público nas conexões.",
                 15,
                 FontStyle.Normal,
                 new Color(Cyan.r, Cyan.g, Cyan.b, 0.84f),
@@ -1292,6 +1293,10 @@ namespace ArcaneArena.Frontend
                         input.text,
                         out var rejection))
                 {
+                    PlayerIdAccessRuntime.SetPlayerDisplayName(
+                        _repository.PlayerDisplayName);
+                    PlayerFriendsRuntime.SetLocalDisplayName(
+                        _repository.PlayerDisplayName);
                     if (_repository.NeedsStarterDeckSelection)
                         ShowStarterDeckSelection();
                     else
@@ -1314,7 +1319,7 @@ namespace ArcaneArena.Frontend
 
             CreateText(
                 panel.transform,
-                "PERFIL LOCAL • SEM CADASTRO EXTERNO • ALTERÁVEL NAS OPÇÕES",
+                "IDENTIDADE PROTEGIDA PELO ID • ALTERÁVEL A QUALQUER MOMENTO",
                 13,
                 FontStyle.Bold,
                 Gold,
@@ -5306,6 +5311,7 @@ namespace ArcaneArena.Frontend
 
         private void OnDestroy()
         {
+            ReleasePlayerIdAccess();
             if (Application.isPlaying && IsActiveScene(DeckEditorSceneName))
                 _repository?.ClearPendingDeckEditorNewCards();
             CancelPackOpeningPresentation();

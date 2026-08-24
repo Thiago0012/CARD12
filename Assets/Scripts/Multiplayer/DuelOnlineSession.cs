@@ -12,13 +12,13 @@ using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Accounts;
 using ArcaneDuel.Game.Competitive;
 using ArcaneDuel.Game.Tournaments;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
-using Unity.Services.Core;
 using Unity.Services.Multiplayer;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
@@ -1588,41 +1588,22 @@ namespace ArcaneArena.Multiplayer
             rankedBotFallbackCoroutine = null;
         }
 
-        private static async Task InitializeServices()
+        private async Task InitializeServices()
         {
-            if (UnityServices.State == ServicesInitializationState.Uninitialized)
-            {
-                string authenticationProfile = CommandLineValue(
-                    "-arcaneAuthProfile");
-                if (string.IsNullOrWhiteSpace(authenticationProfile))
-                {
-                    await UnityServices.InitializeAsync();
-                }
-                else
-                {
-                    var options = new InitializationOptions();
-                    options.SetProfile(authenticationProfile.Trim());
-                    await UnityServices.InitializeAsync(options);
-                }
-            }
+            await PlayerIdAccessRuntime.EnsureReadyAsync();
             if (!AuthenticationService.Instance.IsSignedIn)
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
-        }
+                throw new InvalidOperationException(
+                    "A conta não pôde ser autenticada pela Unity.");
 
-        private static string CommandLineValue(string name)
-        {
-            string[] arguments = Environment.GetCommandLineArgs();
-            for (int index = 0; index + 1 < arguments.Length; index++)
+            string capability = competitivePolicy == CompetitivePolicy.Ranked
+                ? PlayerIdCapability.Ranked
+                : PlayerIdCapability.Online;
+            if (!PlayerIdAccessRuntime.Allows(
+                    capability,
+                    out string rejection))
             {
-                if (string.Equals(
-                        arguments[index],
-                        name,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    return arguments[index + 1];
-                }
+                throw new InvalidOperationException(rejection);
             }
-            return string.Empty;
         }
 
         private void ConfigureConnectionIdentity()

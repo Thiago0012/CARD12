@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "baseUrl": "",
+  "heartbeatSeconds": 60,
+  "requestTimeoutSeconds": 10,
+  "allowOnlineWhenCatalogUnavailable": true
+}

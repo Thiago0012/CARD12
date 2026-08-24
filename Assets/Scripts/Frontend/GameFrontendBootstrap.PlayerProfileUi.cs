@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using ArcaneDuel.Game.Accounts;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 using UnityEngine.UI;
@@ -51,59 +53,18 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.298f, 0.91f),
                 Color.clear);
             RankPresentationModel rank = _repository.GetRankPresentation();
-            CreateText(
+            ProfileIconDefinition equippedIcon = ProfileIconCatalog.Resolve(
+                _repository.EquippedIconId);
+            BuildProfileIdentitySignature(
                 identity.transform,
-                "IDENTIDADE DO DUELISTA",
-                12,
-                FontStyle.Bold,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.78f),
-                new Vector2(0.08f, 0.915f),
-                new Vector2(0.92f, 0.965f),
-                TextAnchor.MiddleCenter);
-            Text nickname = CreateText(
+                equippedIcon?.DisplayName,
+                !string.IsNullOrWhiteSpace(
+                    PlayerIdAccessRuntime.CanonicalPlayerId)
+                    ? PlayerIdAccessRuntime.CanonicalPlayerId
+                    : _repository.CanonicalPlayerId);
+            BuildProfilePlayerNamePlate(
                 identity.transform,
-                _repository.PlayerDisplayName,
-                31,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.07f, 0.82f),
-                new Vector2(0.93f, 0.915f),
-                TextAnchor.MiddleCenter);
-            nickname.resizeTextMinSize = 18;
-            nickname.horizontalOverflow = HorizontalWrapMode.Wrap;
-            nickname.verticalOverflow = VerticalWrapMode.Truncate;
-
-            Image rankRow = CreatePanel(
-                identity.transform,
-                "Elo do Duelista",
-                new Vector2(0.075f, 0.54f),
-                new Vector2(0.925f, 0.64f),
-                new Color(0.002f, 0.014f, 0.026f, 0.30f));
-            CreateRankBadgeImage(
-                rankRow.transform,
-                "Símbolo do Elo",
-                rank.Tier,
-                new Vector2(0.045f, 0.09f),
-                new Vector2(0.27f, 0.91f),
-                1f);
-            CreateText(
-                rankRow.transform,
-                "CLASSIFICAÇÃO ATUAL",
-                11,
-                FontStyle.Bold,
-                Muted,
-                new Vector2(0.29f, 0.53f),
-                new Vector2(0.96f, 0.88f),
-                TextAnchor.MiddleLeft);
-            CreateText(
-                rankRow.transform,
-                $"{RankRules.DisplayName(rank.Tier)}  ·  {rank.Points} PE",
-                17,
-                FontStyle.Bold,
-                Gold,
-                new Vector2(0.29f, 0.12f),
-                new Vector2(0.96f, 0.58f),
-                TextAnchor.MiddleLeft);
+                _repository.PlayerDisplayName);
 
             Image portraitStage = CreatePanel(
                 identity.transform,
@@ -142,13 +103,122 @@ namespace ArcaneArena.Frontend
                 ProfileTab.Statistics, 1);
             CreateProfileTabButton(detail.transform, "ÍCONES",
                 ProfileTab.Icons, 2);
-
             if (_profileTab == ProfileTab.Overview)
                 BuildProfileOverview(detail.transform, rank);
             else if (_profileTab == ProfileTab.Statistics)
                 BuildProfileStatistics(detail.transform);
             else
                 BuildOwnedIcons(detail.transform);
+        }
+
+        private static void BuildProfileIdentitySignature(
+            Transform parent,
+            string profileTitle,
+            string stablePlayerId)
+        {
+            CreateText(
+                parent,
+                "IDENTIDADE DO DUELISTA",
+                12,
+                FontStyle.Bold,
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.82f),
+                new Vector2(0.08f, 0.915f),
+                new Vector2(0.92f, 0.965f),
+                TextAnchor.MiddleCenter);
+
+            Image signature = CreateProfileSurface(
+                parent,
+                "Assinatura do Duelista",
+                new Vector2(0.075f, 0.675f),
+                new Vector2(0.925f, 0.905f),
+                Cyan,
+                new Color(0.002f, 0.014f, 0.026f, 0.62f),
+                0.48f);
+            CreateText(
+                signature.transform,
+                "TÍTULO DO PERFIL",
+                10,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.07f, 0.76f),
+                new Vector2(0.93f, 0.92f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                signature.transform,
+                string.IsNullOrWhiteSpace(profileTitle)
+                    ? "DUELISTA ARCANO"
+                    : profileTitle.ToUpperInvariant(),
+                17,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.06f, 0.52f),
+                new Vector2(0.94f, 0.77f),
+                TextAnchor.MiddleCenter);
+            CreatePanel(
+                signature.transform,
+                "Divisor da Assinatura",
+                new Vector2(0.12f, 0.475f),
+                new Vector2(0.88f, 0.49f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.42f))
+                .raycastTarget = false;
+            CreateText(
+                signature.transform,
+                "ID DA CONTA",
+                10,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.07f, 0.28f),
+                new Vector2(0.93f, 0.45f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                signature.transform,
+                string.IsNullOrWhiteSpace(FormatDuelistId(stablePlayerId))
+                    ? "ID INDISPONÍVEL"
+                    : FormatDuelistId(stablePlayerId),
+                16,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.07f, 0.08f),
+                new Vector2(0.93f, 0.30f),
+                TextAnchor.MiddleCenter);
+        }
+
+        private static string FormatDuelistId(string stablePlayerId)
+        {
+            return PlayerIdAccessPolicy.FormatPublicId(stablePlayerId);
+        }
+
+        private static void BuildProfilePlayerNamePlate(
+            Transform parent,
+            string displayName)
+        {
+            Image namePlate = CreatePanel(
+                parent,
+                "Nome Próximo ao Ícone",
+                new Vector2(0.075f, 0.54f),
+                new Vector2(0.925f, 0.64f),
+                new Color(0.002f, 0.014f, 0.026f, 0.36f));
+            CreateText(
+                namePlate.transform,
+                "NOME DO DUELISTA",
+                10,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.08f, 0.56f),
+                new Vector2(0.92f, 0.90f),
+                TextAnchor.MiddleCenter);
+            Text nickname = CreateText(
+                namePlate.transform,
+                displayName ?? string.Empty,
+                19,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.06f, 0.08f),
+                new Vector2(0.94f, 0.62f),
+                TextAnchor.MiddleCenter);
+            nickname.resizeTextMinSize = 12;
+            nickname.horizontalOverflow = HorizontalWrapMode.Wrap;
+            nickname.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
         private void CreateProfileTabButton(
@@ -1211,6 +1281,13 @@ namespace ArcaneArena.Frontend
         private void ShowProfileIconPurchaseConfirmation(
             ProfileIconDefinition icon)
         {
+            if (!PlayerIdAccessRuntime.Allows(
+                    PlayerIdCapability.Economy,
+                    out string accessRejection))
+            {
+                ShowPlayerIdCapabilityBlocked(accessRejection);
+                return;
+            }
             SetDuelPresentation(false);
             ClearScreen();
             BuildShopBackground("CONFIRMAR COMPRA");

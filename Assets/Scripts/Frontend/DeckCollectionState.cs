@@ -10,6 +10,7 @@ namespace ArcaneArena.Frontend
     {
         public int schemaVersion = 12;
         public string localProfileId;
+        public string authenticatedPlayerId;
         public string playerDisplayName;
         public bool starterDeckClaimed;
         public string starterDeckId;

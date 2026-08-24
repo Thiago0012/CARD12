@@ -42,6 +42,76 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void ProfileIdentityPlacesNameByIconAndSignatureAboveIt()
+        {
+            var root = new GameObject(
+                "Identidade do Perfil em Teste",
+                typeof(RectTransform));
+            try
+            {
+                Type bootstrap = FindType(
+                    "ArcaneArena.Frontend.GameFrontendBootstrap");
+                MethodInfo buildSignature = bootstrap.GetMethod(
+                    "BuildProfileIdentitySignature",
+                    BindingFlags.NonPublic | BindingFlags.Static);
+                MethodInfo buildNamePlate = bootstrap.GetMethod(
+                    "BuildProfilePlayerNamePlate",
+                    BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.That(buildSignature, Is.Not.Null);
+                Assert.That(buildNamePlate, Is.Not.Null);
+
+                buildSignature.Invoke(null, new object[]
+                {
+                    root.transform,
+                    "Maga do Eclipse Violeta",
+                    "7f3a91c2deadbeef"
+                });
+                buildNamePlate.Invoke(
+                    null,
+                    new object[] { root.transform, "KimDelas" });
+
+                Transform signature = root.transform.Find(
+                    "Assinatura do Duelista");
+                Transform namePlate = root.transform.Find(
+                    "Nome Próximo ao Ícone");
+                Assert.That(signature, Is.Not.Null);
+                Assert.That(namePlate, Is.Not.Null);
+                Assert.That(
+                    signature.GetComponent<RectTransform>().anchorMin.y,
+                    Is.GreaterThan(
+                        namePlate.GetComponent<RectTransform>().anchorMax.y));
+
+                string[] signatureTexts = signature
+                    .GetComponentsInChildren<Text>(true)
+                    .Select(text => text.text)
+                    .ToArray();
+                Assert.That(signatureTexts, Does.Contain("TÍTULO DO PERFIL"));
+                Assert.That(signatureTexts,
+                    Does.Contain("MAGA DO ECLIPSE VIOLETA"));
+                Assert.That(signatureTexts, Does.Contain("ID DA CONTA"));
+                Assert.That(signatureTexts.Any(value =>
+                    value != null &&
+                    value.Length == 12 &&
+                    value.All(char.IsDigit)),
+                    Is.True,
+                    "O ID público deve conter somente doze números.");
+                Assert.That(signature.Find("Divisor da Assinatura"),
+                    Is.Not.Null);
+
+                string[] nameTexts = namePlate
+                    .GetComponentsInChildren<Text>(true)
+                    .Select(text => text.text)
+                    .ToArray();
+                Assert.That(nameTexts, Does.Contain("NOME DO DUELISTA"));
+                Assert.That(nameTexts, Does.Contain("KimDelas"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void CrimsonIconUsesExclusiveAuraWithoutTheBlueFrame()
         {
             Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
@@ -396,7 +466,7 @@ namespace ArcaneDuel.Tests.EditMode
                 object statistics = Property(repository, "Statistics");
                 object overall = Field(statistics, "overall");
 
-                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(11));
+                Assert.That(Field(state, "schemaVersion"), Is.EqualTo(12));
                 Assert.That(Field(overall, "duelsPlayed"), Is.EqualTo(7L));
                 Assert.That(Field(overall, "wins"), Is.EqualTo(4L));
                 Assert.That(Field(overall, "damageDealt"), Is.EqualTo(12345L));

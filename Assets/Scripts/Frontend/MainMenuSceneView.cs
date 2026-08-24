@@ -23,6 +23,7 @@ namespace ArcaneArena.Frontend
         [SerializeField] private Button multiplayerButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button profileButton;
+        [SerializeField] private Button friendsButton;
 
         private GameFrontendBootstrap _boundController;
         private UnityAction _duelAction;
@@ -31,6 +32,7 @@ namespace ArcaneArena.Frontend
         private UnityAction _multiplayerAction;
         private UnityAction _settingsAction;
         private UnityAction _profileAction;
+        private UnityAction _friendsAction;
 
         public Canvas SceneCanvas => sceneCanvas;
         public RectTransform DynamicRoot => dynamicRoot;
@@ -52,7 +54,8 @@ namespace ArcaneArena.Frontend
             Button shop,
             Button multiplayer,
             Button settings,
-            Button profile)
+            Button profile,
+            Button friends = null)
         {
             sceneCanvas = canvas;
             mainMenuRoot = authoredRoot;
@@ -63,6 +66,7 @@ namespace ArcaneArena.Frontend
             multiplayerButton = multiplayer;
             settingsButton = settings;
             profileButton = profile;
+            friendsButton = friends;
         }
 
         public void Bind(GameFrontendBootstrap controller)
@@ -71,6 +75,7 @@ namespace ArcaneArena.Frontend
                 return;
             Unbind();
             _boundController = controller;
+            EnsureFriendsButton();
             BindButton(duelButton, ref _duelAction, controller.MainMenuDuel);
             BindButton(decksButton, ref _decksAction, controller.MainMenuDecks);
             BindButton(shopButton, ref _shopAction, controller.MainMenuShop);
@@ -86,7 +91,12 @@ namespace ArcaneArena.Frontend
                 profileButton,
                 ref _profileAction,
                 controller.MainMenuProfile);
+            BindButton(
+                friendsButton,
+                ref _friendsAction,
+                controller.MainMenuFriends);
             controller.DecorateMainMenuProfileButton(profileButton);
+            controller.DecorateMainMenuFriendsButton(friendsButton);
         }
 
         public void SetMainMenuVisible(bool visible)
@@ -116,7 +126,39 @@ namespace ArcaneArena.Frontend
             RemoveButton(multiplayerButton, ref _multiplayerAction);
             RemoveButton(settingsButton, ref _settingsAction);
             RemoveButton(profileButton, ref _profileAction);
+            RemoveButton(friendsButton, ref _friendsAction);
             _boundController = null;
+        }
+
+        private void EnsureFriendsButton()
+        {
+            if (friendsButton != null || mainMenuRoot == null)
+                return;
+
+            var item = new GameObject(
+                "Ação AMIGOS (SINO)",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(Button));
+            item.transform.SetParent(mainMenuRoot, false);
+            RectTransform rect = item.GetComponent<RectTransform>();
+            // Área exata do sino desenhado na arte-base da barra superior.
+            // Centro medido na arte exibida pela cena: x 0,909 / y 0,9565.
+            // A área cobre o hexágono inteiro de forma simétrica.
+            rect.anchorMin = new Vector2(0.891f, 0.918f);
+            rect.anchorMax = new Vector2(0.927f, 0.995f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            Image hitArea = item.GetComponent<Image>();
+            hitArea.color = new Color(1f, 1f, 1f, 0.001f);
+            friendsButton = item.GetComponent<Button>();
+            friendsButton.targetGraphic = hitArea;
+            friendsButton.transition = Selectable.Transition.None;
+            Navigation navigation = friendsButton.navigation;
+            navigation.mode = Navigation.Mode.None;
+            friendsButton.navigation = navigation;
         }
 
         private static void RemoveButton(

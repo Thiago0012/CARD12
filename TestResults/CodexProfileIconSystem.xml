@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="14" result="Failed(Child)" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:53Z" duration="0,7569938">
+  <test-suite type="TestSuite" id="1000" name="Arcane Duel" fullname="Arcane Duel" runstate="Runnable" testcasecount="681" result="Failed" site="Child" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:53Z" duration="0.756994" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1733" name="ArcaneDuel.EditModeTests.dll" fullname="D:/JOGO Y/DO ZERO/CARD12/Library/ScriptAssemblies/ArcaneDuel.EditModeTests.dll" runstate="Runnable" testcasecount="660" result="Failed" site="Child" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:53Z" duration="0.741512" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="7176" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1734" name="ArcaneDuel" fullname="ArcaneDuel" runstate="Runnable" testcasecount="660" result="Failed" site="Child" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:53Z" duration="0.735299" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1735" name="Tests" fullname="ArcaneDuel.Tests" runstate="Runnable" testcasecount="660" result="Failed" site="Child" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:53Z" duration="0.727503" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1736" name="EditMode" fullname="ArcaneDuel.Tests.EditMode" runstate="Runnable" testcasecount="660" result="Failed" site="Child" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:53Z" duration="0.721276" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1515" name="ProfileIconSystemEditModeTests" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" testcasecount="14" result="Failed" site="Child" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:53Z" duration="0.709445" total="14" passed="13" failed="1" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1519" name="AzureTempestDragonUsesItsExclusiveAnimatedAura" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.AzureTempestDragonUsesItsExclusiveAnimatedAura" methodname="AzureTempestDragonUsesItsExclusiveAnimatedAura" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="1167271550" result="Passed" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:52Z" duration="0.195174" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1516" name="CatalogHasDefaultAndTwentyFiveIconsAtExactPrice" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.CatalogHasDefaultAndTwentyFiveIconsAtExactPrice" methodname="CatalogHasDefaultAndTwentyFiveIconsAtExactPrice" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="1056237169" result="Passed" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:52Z" duration="0.003196" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1525" name="ConfirmedStatisticsAreScopedAndIdempotent" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.ConfirmedStatisticsAreScopedAndIdempotent" methodname="ConfirmedStatisticsAreScopedAndIdempotent" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="985165715" result="Passed" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:52Z" duration="0.027445" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1518" name="CrimsonIconUsesExclusiveAuraWithoutTheBlueFrame" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.CrimsonIconUsesExclusiveAuraWithoutTheBlueFrame" methodname="CrimsonIconUsesExclusiveAuraWithoutTheBlueFrame" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="875032869" result="Passed" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:52Z" duration="0.026283" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1524" name="DuelIdentityIsFrozenAfterMatchStarts" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.DuelIdentityIsFrozenAfterMatchStarts" methodname="DuelIdentityIsFrozenAfterMatchStarts" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="869679548" result="Passed" start-time="2026-08-24 14:37:52Z" end-time="2026-08-24 14:37:53Z" duration="0.034430" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1529" name="DuelPlateReusesAuthoredLabelAndBindsExactProfileIcon" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.DuelPlateReusesAuthoredLabelAndBindsExactProfileIcon" methodname="DuelPlateReusesAuthoredLabelAndBindsExactProfileIcon" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="1730403281" result="Passed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.050697" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1527" name="DuelProfileNormalizationIsSafeForEmptyProfiles" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.DuelProfileNormalizationIsSafeForEmptyProfiles" methodname="DuelProfileNormalizationIsSafeForEmptyProfiles" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="358202106" result="Passed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.010236" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1521" name="EveryProfileIconUsesTheSameRegularHexagonalViewport" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.EveryProfileIconUsesTheSameRegularHexagonalViewport" methodname="EveryProfileIconUsesTheSameRegularHexagonalViewport" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="1098428375" result="Passed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.310240" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1522" name="EveryPurchasableIconLoadsAsAProjectResource" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.EveryPurchasableIconLoadsAsAProjectResource" methodname="EveryPurchasableIconLoadsAsAProjectResource" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="1127756646" result="Passed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.001088" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1528" name="HudSafeAreaUsesIntersectionWithArenaViewport" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.HudSafeAreaUsesIntersectionWithArenaViewport" methodname="HudSafeAreaUsesIntersectionWithArenaViewport" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="930277466" result="Passed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.002071" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1526" name="LegacyStatisticsMigrateWithoutResettingExistingCounters" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.LegacyStatisticsMigrateWithoutResettingExistingCounters" methodname="LegacyStatisticsMigrateWithoutResettingExistingCounters" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="211114727" result="Failed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.013394" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: 11
+  But was:  12
+]]></message>
+                  <stack-trace><![CDATA[at ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.LegacyStatisticsMigrateWithoutResettingExistingCounters () [0x00048] in D:\JOGO Y\DO ZERO\CARD12\Assets\Tests\EditMode\ProfileIconSystemEditModeTests.cs:464
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1517" name="ProfileIdentityPlacesNameByIconAndSignatureAboveIt" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.ProfileIdentityPlacesNameByIconAndSignatureAboveIt" methodname="ProfileIdentityPlacesNameByIconAndSignatureAboveIt" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="486079512" result="Passed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.008383" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1523" name="PurchaseIsAtomicIdempotentAndEquipPersists" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.PurchaseIsAtomicIdempotentAndEquipPersists" methodname="PurchaseIsAtomicIdempotentAndEquipPersists" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="129568393" result="Passed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.011553" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1520" name="VioletEclipseSorceressUsesItsExclusiveAnimatedAura" fullname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests.VioletEclipseSorceressUsesItsExclusiveAnimatedAura" methodname="VioletEclipseSorceressUsesItsExclusiveAnimatedAura" classname="ArcaneDuel.Tests.EditMode.ProfileIconSystemEditModeTests" runstate="Runnable" seed="1899211897" result="Passed" start-time="2026-08-24 14:37:53Z" end-time="2026-08-24 14:37:53Z" duration="0.001956" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/sousa/AppData/LocalLow/Arcane Duel Team/Arcane Duel\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

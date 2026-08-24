@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using ArcaneArena.Multiplayer;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Accounts;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -139,6 +140,13 @@ namespace ArcaneArena.Frontend
         public void MainMenuShop()
         {
             FrontendClickAudio.Play();
+            if (!PlayerIdAccessRuntime.Allows(
+                    PlayerIdCapability.Economy,
+                    out string rejection))
+            {
+                ShowPlayerIdCapabilityBlocked(rejection);
+                return;
+            }
             RunMainMenuFeatureTransition(
                 ShowDeckShop,
                 LoadingCardMotionStyle.ShopSpiral,
@@ -166,6 +174,12 @@ namespace ArcaneArena.Frontend
         {
             FrontendClickAudio.Play();
             ShowPlayerProfileSetup(true);
+        }
+
+        public void MainMenuFriends()
+        {
+            FrontendClickAudio.Play();
+            OpenPlayerSearchFromBell();
         }
 
         private void BuildTemplateMainMenu()
@@ -234,6 +248,12 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.793f, 0.919f),
                 new Vector2(0.827f, 0.988f),
                 () => ShowPlayerProfileSetup(true));
+            Button friendsButton = CreateInvisibleButton(
+                "AMIGOS (SINO)",
+                new Vector2(0.891f, 0.918f),
+                new Vector2(0.927f, 0.995f),
+                OpenPlayerSearchFromBell);
+            DecorateMainMenuFriendsButton(friendsButton);
 
             // A moldura vem depois das artes: os botoes aparecem atraves
             // dos recortes transparentes do shader e nunca sobre a HUD.
@@ -289,6 +309,12 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.792f, 0.927f),
                 new Vector2(0.826f, 0.990f),
                 () => ShowPlayerProfileSetup(true));
+            Button friendsButton = CreateInvisibleButton(
+                "AMIGOS (SINO)",
+                new Vector2(0.891f, 0.918f),
+                new Vector2(0.927f, 0.995f),
+                OpenPlayerSearchFromBell);
+            DecorateMainMenuFriendsButton(friendsButton);
         }
 
         public void ShowDuelHub()
@@ -1127,7 +1153,7 @@ namespace ArcaneArena.Frontend
             });
         }
 
-        private void CreateInvisibleButton(
+        private Button CreateInvisibleButton(
             string label,
             Vector2 min,
             Vector2 max,
@@ -1148,6 +1174,7 @@ namespace ArcaneArena.Frontend
                 FrontendClickAudio.Play();
                 action?.Invoke();
             });
+            return button;
         }
 
         private void BuildVersionOverlay()

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using ArcaneArena.Cards;
+using ArcaneDuel.Game.Accounts;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -89,6 +90,12 @@ namespace ArcaneArena.Frontend
         {
             receipt = null;
             rejection = string.Empty;
+            if (!PlayerIdAccessRuntime.Allows(
+                    PlayerIdCapability.Economy,
+                    out rejection))
+            {
+                return false;
+            }
             if (_repository == null)
             {
                 rejection = "O perfil local não está disponível para salvar a recompensa.";
@@ -181,6 +188,13 @@ namespace ArcaneArena.Frontend
 
         private void ShowEconomyShop()
         {
+            if (!PlayerIdAccessRuntime.Allows(
+                    PlayerIdCapability.Economy,
+                    out string accessRejection))
+            {
+                ShowPlayerIdCapabilityBlocked(accessRejection);
+                return;
+            }
             PendingPackOpeningRecord pending = _repository?.PendingPackOpening;
             if (pending != null)
             {

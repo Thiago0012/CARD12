@@ -32,7 +32,8 @@ namespace ArcaneDuel.Editor.Validation
             "ArcaneDuel.Tests.EditMode.CardAudit.CardScenarioRunnerEditModeTests",
             "ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests",
             "ArcaneDuel.Tests.EditMode.RankPointServiceEditModeTests",
-            "ArcaneDuel.Tests.EditMode.TournamentManagerEditModeTests"
+            "ArcaneDuel.Tests.EditMode.TournamentManagerEditModeTests",
+            "ArcaneDuel.Tests.EditMode.PlayerFriendsDomainEditModeTests"
         };
 
         private static readonly string[] PlayModeGateTests =
