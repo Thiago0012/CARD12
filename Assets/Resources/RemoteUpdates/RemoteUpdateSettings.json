@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "enabled": true,
-  "manifestUrl": "https://raw.githubusercontent.com/Thiago0012/CARD12/main/ContentStaging/production/release-envelope.json",
+  "manifestUrl": "https://raw.githubusercontent.com/Thiago0012/CARD12/refs/heads/main/ContentStaging/production/release-envelope.json",
   "requestTimeoutSeconds": 15,
   "failOpenWhenUnavailable": false,
   "allowBundledManifestInEditor": true,

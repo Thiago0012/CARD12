@@ -21,7 +21,8 @@ namespace ArcaneDuel.Editor.RemoteUpdates
         private const string MenuPath =
             "Master Duel 2 Plus Ultra/Atualizações/Central de Publicação";
         private const string DefaultPackageBaseUrl =
-            "https://raw.githubusercontent.com/Thiago0012/CARD12/main/" +
+            "https://raw.githubusercontent.com/Thiago0012/CARD12/" +
+            "refs/heads/main/" +
             "ContentStaging/production/packages";
 
         private static readonly string[] IgnoredReleasePrefixes =
