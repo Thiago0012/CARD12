@@ -1,0 +1,15 @@
+{
+  "name": "card12-player-directory",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply card12-player-directory --local",
+    "migrate:remote": "wrangler d1 migrations apply card12-player-directory --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.33.1"
+  }
+}

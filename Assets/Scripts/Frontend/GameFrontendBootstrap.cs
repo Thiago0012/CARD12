@@ -220,6 +220,7 @@ namespace ArcaneArena.Frontend
             }
             _repository = new DeckRepository();
             _repository.Load(_catalog);
+            PlayerCloudSaveRuntime.Attach(_repository);
             InitializePlayerIdAccess();
             InitializeCoinRewardAuthorization();
             InitializeScenePresentation();
@@ -1216,116 +1217,13 @@ namespace ArcaneArena.Frontend
                 TextAnchor.LowerRight);
         }
 
-        private void ShowPlayerNameEditor(bool canReturn = false)
+        private void ShowPlayerNameEditor(
+            bool canReturn = false,
+            Action backAction = null)
         {
-            SetDuelPresentation(false);
-            ClearScreen();
-            BuildSharedBackground("PERFIL DO DUELISTA");
-            if (canReturn)
-                BuildHeader(
-                    "PERFIL",
-                    ShowMainMenu);
-
-            var panel = CreatePanel(
-                _screenRoot,
-                "Identidade Local",
-                new Vector2(0.22f, 0.17f),
-                new Vector2(0.78f, 0.80f),
-                new Color(0.015f, 0.04f, 0.075f, 0.97f));
-            AddOutline(
-                panel.gameObject,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.86f),
-                new Vector2(3f, -3f));
-
-            CreateText(
-                panel.transform,
-                canReturn
-                    ? "IDENTIDADE DO DUELISTA"
-                    : "BEM-VINDO À ARENA",
-                38,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.08f, 0.72f),
-                new Vector2(0.92f, 0.91f),
-                TextAnchor.MiddleCenter);
-            CreateText(
-                panel.transform,
-                canReturn
-                    ? "Atualize como seu nome aparece neste dispositivo."
-                    : "Antes do primeiro duelo, escolha como a Arena vai chamar você.",
-                19,
-                FontStyle.Normal,
-                Muted,
-                new Vector2(0.10f, 0.62f),
-                new Vector2(0.90f, 0.73f),
-                TextAnchor.MiddleCenter);
-            CreateText(
-                panel.transform,
-                "NOME DE DUELISTA",
-                17,
-                FontStyle.Bold,
-                Cyan,
-                new Vector2(0.14f, 0.51f),
-                new Vector2(0.86f, 0.58f),
-                TextAnchor.MiddleLeft);
-
-            var input = CreateProfileNameField(
-                panel.transform,
-                "Ex.: Guardião Arcano",
-                new Vector2(0.14f, 0.37f),
-                new Vector2(0.86f, 0.50f));
-            input.characterLimit = DeckRepository.MaximumPlayerNameLength;
-            input.text = _repository.PlayerDisplayName;
-
-            var feedback = CreateText(
-                panel.transform,
-                "De 3 a 18 caracteres. Este também será seu nome público nas conexões.",
-                15,
-                FontStyle.Normal,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.84f),
-                new Vector2(0.14f, 0.275f),
-                new Vector2(0.86f, 0.35f),
-                TextAnchor.MiddleCenter);
-
-            Action confirm = () =>
-            {
-                if (_repository.TrySetPlayerDisplayName(
-                        input.text,
-                        out var rejection))
-                {
-                    PlayerIdAccessRuntime.SetPlayerDisplayName(
-                        _repository.PlayerDisplayName);
-                    PlayerFriendsRuntime.SetLocalDisplayName(
-                        _repository.PlayerDisplayName);
-                    if (_repository.NeedsStarterDeckSelection)
-                        ShowStarterDeckSelection();
-                    else
-                        ShowMainMenu();
-                    return;
-                }
-
-                feedback.text = rejection;
-                feedback.color = Danger;
-                input.ActivateInputField();
-            };
-            input.onEndEdit.AddListener(_ => confirm());
-            CreateButton(
-                panel.transform,
-                canReturn ? "SALVAR ALTERAÇÃO" : "ENTRAR NA ARENA",
-                new Vector2(0.28f, 0.12f),
-                new Vector2(0.72f, 0.23f),
-                Lime,
-                confirm);
-
-            CreateText(
-                panel.transform,
-                "IDENTIDADE PROTEGIDA PELO ID • ALTERÁVEL A QUALQUER MOMENTO",
-                13,
-                FontStyle.Bold,
-                Gold,
-                new Vector2(0.08f, 0.035f),
-                new Vector2(0.92f, 0.10f),
-                TextAnchor.MiddleCenter);
+            BuildModernPlayerNameEditor(
+                canReturn,
+                backAction ?? ShowMainMenu);
         }
 
         private void ShowAnimationOptions()

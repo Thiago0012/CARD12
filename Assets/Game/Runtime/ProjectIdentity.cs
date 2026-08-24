@@ -2,7 +2,7 @@ namespace ArcaneDuel.Game
 {
     public static class ProjectIdentity
     {
-        public const string ProductName = "Arcane Duel";
+        public const string ProductName = "Master Duel 2 Plus Ultra";
         public const string ProjectVersion = "1.2.0";
         public const string UnityVersion = "6000.5.0f1";
         public const string CoreApiVersion = "11.0";

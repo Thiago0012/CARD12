@@ -33,7 +33,9 @@ namespace ArcaneDuel.Editor.Validation
             "ArcaneDuel.Tests.EditMode.OcgHeadlessDuelEditModeTests",
             "ArcaneDuel.Tests.EditMode.RankPointServiceEditModeTests",
             "ArcaneDuel.Tests.EditMode.TournamentManagerEditModeTests",
-            "ArcaneDuel.Tests.EditMode.PlayerFriendsDomainEditModeTests"
+            "ArcaneDuel.Tests.EditMode.PlayerFriendsDomainEditModeTests",
+            "ArcaneDuel.Tests.EditMode.PlayerIdAccessEditModeTests",
+            "ArcaneDuel.Tests.EditMode.AccountAndUpdateInfrastructureEditModeTests"
         };
 
         private static readonly string[] PlayModeGateTests =
@@ -47,6 +49,7 @@ namespace ArcaneDuel.Editor.Validation
         private const string StateName = "codex-phase3-6.state";
         private const string EditStage = "edit";
         private const string PlayStage = "play";
+        private const string EditOnlyRequest = "edit-only";
         private static bool callbacksRegistered;
         private static double nextPollTime;
 
@@ -81,10 +84,19 @@ namespace ArcaneDuel.Editor.Validation
         [MenuItem("Arcane Duel/Validation/Run Field Compliance Phases 3-6")]
         public static void RunFromMenu()
         {
+            BeginRequest(DateTime.UtcNow.ToString("O"));
+        }
+
+        [MenuItem("Arcane Duel/Validation/Run EditMode Gate Only")]
+        public static void RunEditModeOnlyFromMenu()
+        {
+            BeginRequest(EditOnlyRequest);
+        }
+
+        private static void BeginRequest(string request)
+        {
             Directory.CreateDirectory(ResultDirectory);
-            File.WriteAllText(
-                RequestPath,
-                DateTime.UtcNow.ToString("O"));
+            File.WriteAllText(RequestPath, request);
             File.WriteAllText(StatePath, "pending-edit");
             EditorApplication.delayCall += ContinueRequestedRun;
         }
@@ -297,6 +309,17 @@ namespace ArcaneDuel.Editor.Validation
             }
             if (stage == EditStage)
             {
+                bool editOnly = File.Exists(RequestPath) &&
+                                string.Equals(
+                                    File.ReadAllText(RequestPath).Trim(),
+                                    EditOnlyRequest,
+                                    StringComparison.Ordinal);
+                if (editOnly)
+                {
+                    File.WriteAllText(StatePath, "done-edit-only");
+                    File.Delete(RequestPath);
+                    return;
+                }
                 File.WriteAllText(StatePath, "pending-play");
                 EditorApplication.delayCall += ContinueRequestedRun;
             }

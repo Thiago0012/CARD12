@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "keyId": "development-unsigned",
+  "signatureBase64": "",
+  "payload": {
+    "schemaVersion": 1,
+    "releaseId": "release-1-2-0",
+    "publishedUtc": "2026-08-24T00:00:00Z",
+    "minimumClientVersion": "1.2.0",
+    "latestClientVersion": "1.2.0",
+    "requiredClientUpdate": true,
+    "title": "ATUALIZAÇÃO DO MASTER DUEL 2 PLUS ULTRA",
+    "summary": "Conexão com o servidor de versões concluída.",
+    "changes": [],
+    "windowsUpdateUrl": "https://github.com/Thiago0012/CARD12/releases/latest",
+    "androidUpdateUrl": "https://github.com/Thiago0012/CARD12/releases/latest",
+    "fallbackUpdateUrl": "https://github.com/Thiago0012/CARD12/releases/latest",
+    "contentVersion": "0.0.0",
+    "requiredContentUpdate": true,
+    "packages": []
+  }
+}

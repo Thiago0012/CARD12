@@ -28,6 +28,20 @@ namespace ArcaneArena.Frontend
                 ApplyPlayerIdAccess(snapshot);
                 try
                 {
+                    await PlayerCloudSaveRuntime.EnsureSynchronizedAsync();
+                    if (this == null)
+                        return;
+                    PlayerIdAccessRuntime.SetPlayerDisplayName(
+                        _repository?.PlayerDisplayName);
+                    PlayerFriendsRuntime.SetLocalDisplayName(
+                        _repository?.PlayerDisplayName);
+                    if (!IsDuelSceneName(
+                            UnityEngine.SceneManagement.SceneManager
+                                .GetActiveScene().name) &&
+                        !_playerIdAccessScreenVisible)
+                    {
+                        InitializeScenePresentation();
+                    }
                     await PlayerIdAccessRuntime.RefreshNowAsync();
                 }
                 catch (Exception exception)

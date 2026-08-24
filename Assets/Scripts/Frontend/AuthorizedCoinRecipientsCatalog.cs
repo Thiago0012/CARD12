@@ -48,7 +48,7 @@ namespace ArcaneArena.Frontend
 
     [CreateAssetMenu(
         fileName = "AuthorizedCoinRecipientsCatalog",
-        menuName = "Arcane Arena/Economia/Destinatários de Moedas")]
+        menuName = "Master Duel 2 Plus Ultra/Economia/Destinatários de Moedas")]
     public sealed class AuthorizedCoinRecipientsCatalog : ScriptableObject
     {
         [SerializeField, Min(1)] private int catalogVersion = 1;

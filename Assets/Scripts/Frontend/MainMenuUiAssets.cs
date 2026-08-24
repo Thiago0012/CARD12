@@ -4,7 +4,7 @@ namespace ArcaneArena.Frontend
 {
     [CreateAssetMenu(
         fileName = "MainMenuUiAssets",
-        menuName = "Arcane Arena/Main Menu UI Assets")]
+        menuName = "Master Duel 2 Plus Ultra/Main Menu UI Assets")]
     public sealed class MainMenuUiAssets : ScriptableObject
     {
         [Header("Tela inicial")]
