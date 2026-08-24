@@ -2786,10 +2786,9 @@ namespace ArcaneArena.Frontend
             RefreshDeckEditorCombatInformation(entry);
             if (_deckEditorDetailEffect != null)
             {
-                _deckEditorDetailEffect.text =
-                    string.IsNullOrWhiteSpace(entry.EffectText)
-                        ? "Descrição ainda não cadastrada para esta carta."
-                        : entry.EffectText;
+                _deckEditorDetailEffect.text = CardPresentationText.EffectPtBr(
+                    entry,
+                    "Descrição ainda não cadastrada para esta carta.");
                 var scroll =
                     _deckEditorDetailEffect.GetComponentInParent<ScrollRect>();
                 if (scroll != null)

@@ -1,0 +1,93 @@
+using System;
+
+namespace ArcaneArena.Cards
+{
+    /// <summary>
+    /// Centraliza a política de idioma dos textos exibidos ao jogador.
+    /// Os scripts de duelo continuam usando os dados originais; esta classe
+    /// protege apenas a apresentação para que uma tradução incompleta não
+    /// misture inglês e português na mesma interface.
+    /// </summary>
+    public static class CardPresentationText
+    {
+        private const string TranslationReviewMessage =
+            "A tradução em português do efeito desta carta está em revisão. " +
+            "O texto em inglês foi ocultado para manter a interface em português.";
+
+        private static readonly string[] EnglishMarkers =
+        {
+            " once per ", " you can ", " your opponent ",
+            " this card ", " this turn ", " target 1 ",
+            " special summon", " normal summon", " from your ",
+            " to your hand", " on the field", " in your graveyard",
+            " destroy that", " banish that", " when this ",
+            " if this ", " during your "
+        };
+
+        private static readonly string[] EnglishVocabulary =
+        {
+            " the ", " this ", " that ", " card ", " you ",
+            " your ", " opponent ", " monster ", " spell ",
+            " trap ", " deck ", " hand ", " field ", " summon ",
+            " turn ", " target ", " destroy ", " banish ",
+            " once ", " when ", " during ", " cannot "
+        };
+
+        public static string EffectPtBr(
+            CardCatalogEntry entry,
+            string emptyMessage = "Esta carta não possui texto de efeito.")
+        {
+            return EffectPtBr(entry?.EffectText, emptyMessage);
+        }
+
+        public static string EffectPtBr(
+            string value,
+            string emptyMessage = "Esta carta não possui texto de efeito.")
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return emptyMessage;
+
+            string localized = LocalizeKnownHeadings(value.Trim());
+            return LooksEnglish(localized)
+                ? TranslationReviewMessage
+                : localized;
+        }
+
+        private static string LocalizeKnownHeadings(string value)
+        {
+            return value
+                .Replace("[ Pendulum Effect ]", "[ Efeito de Pêndulo ]")
+                .Replace("[Pendulum Effect]", "[Efeito de Pêndulo]")
+                .Replace("[ Monster Effect ]", "[ Efeito de Monstro ]")
+                .Replace("[Monster Effect]", "[Efeito de Monstro]")
+                .Replace("[ Spell Effect ]", "[ Efeito de Magia ]")
+                .Replace("[Spell Effect]", "[Efeito de Magia]")
+                .Replace("[ Trap Effect ]", "[ Efeito de Armadilha ]")
+                .Replace("[Trap Effect]", "[Efeito de Armadilha]");
+        }
+
+        private static bool LooksEnglish(string value)
+        {
+            string normalized = " " + value.ToLowerInvariant()
+                .Replace('\r', ' ')
+                .Replace('\n', ' ') + " ";
+
+            foreach (string marker in EnglishMarkers)
+            {
+                if (normalized.Contains(marker, StringComparison.Ordinal))
+                    return true;
+            }
+
+            int vocabularyMatches = 0;
+            foreach (string word in EnglishVocabulary)
+            {
+                if (!normalized.Contains(word, StringComparison.Ordinal))
+                    continue;
+                vocabularyMatches++;
+                if (vocabularyMatches >= 4)
+                    return true;
+            }
+            return false;
+        }
+    }
+}

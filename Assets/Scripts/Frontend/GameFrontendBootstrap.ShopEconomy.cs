@@ -911,13 +911,7 @@ namespace ArcaneArena.Frontend
             AddOutline(metadataPanel.gameObject,
                 new Color(Gold.r, Gold.g, Gold.b, 0.42f),
                 new Vector2(1f, -1f));
-            Text metadata = CreateText(metadataPanel.transform,
-                $"{entry.TypeName}  •  ID {entry.OfficialCardId}\n" +
-                $"NA COLEÇÃO  •  {_repository.OwnedCardQuantity(cardId)}",
-                17, FontStyle.Bold, Cyan, new Vector2(0.035f, 0.08f),
-                new Vector2(0.965f, 0.92f), TextAnchor.MiddleLeft);
-            metadata.gameObject.name = "Texto dos Metadados da Carta da Loja";
-            metadata.resizeTextMinSize = 15;
+            BuildShopCardMetadata(metadataPanel.transform, entry);
 
             Image effectHeader = CreatePanel(panel.transform,
                 "Cabeçalho do Efeito da Carta", new Vector2(0.39f, 0.58f),
@@ -931,9 +925,7 @@ namespace ArcaneArena.Frontend
                 "Painel do Efeito da Carta", new Vector2(0.39f, 0.08f),
                 new Vector2(0.96f, 0.57f));
             effectText.gameObject.name = "Texto do Efeito da Carta";
-            effectText.text = string.IsNullOrWhiteSpace(entry.EffectText)
-                ? "Esta carta não possui texto de efeito."
-                : entry.EffectText;
+            effectText.text = CardPresentationText.EffectPtBr(entry);
             effectText.fontSize = 19;
             effectText.color = new Color(0.92f, 0.96f, 1f, 1f);
             effectText.lineSpacing = 1.14f;
@@ -946,6 +938,143 @@ namespace ArcaneArena.Frontend
                 effectScroll.scrollSensitivity = 56f;
                 effectScroll.verticalNormalizedPosition = 1f;
             }
+        }
+
+        private void BuildShopCardMetadata(
+            Transform parent,
+            CardCatalogEntry entry)
+        {
+            if (parent == null || entry == null)
+                return;
+
+            bool monster = entry.Category == CardCategory.Monster;
+            if (!monster)
+            {
+                string type = entry.Category == CardCategory.Spell
+                    ? "CARTA DE MAGIA"
+                    : entry.Category == CardCategory.Trap
+                        ? "CARTA DE ARMADILHA"
+                        : entry.TypeName;
+                string attributeKey = entry.Category == CardCategory.Spell
+                    ? "spell"
+                    : entry.Category == CardCategory.Trap
+                        ? "trap"
+                        : string.Empty;
+                CreateShopMetadataItem(
+                    parent,
+                    "Tipo da carta",
+                    FindDeckEditorTemplate(
+                        deckEditorAttributeIconTemplates,
+                        attributeKey,
+                        false),
+                    "◆",
+                    $"TIPO  •  {type}",
+                    new Vector2(0.025f, 0.10f),
+                    new Vector2(0.975f, 0.90f));
+                return;
+            }
+
+            Sprite typeIcon = FindDeckEditorTemplate(
+                deckEditorTypeIconTemplates,
+                DeckEditorTypeTemplateKey(entry.RaceName),
+                true);
+            Sprite attributeIcon = FindDeckEditorTemplate(
+                deckEditorAttributeIconTemplates,
+                entry.Attribute.ToString(),
+                false);
+
+            CreateShopMetadataItem(
+                parent, "Tipo do monstro", typeIcon, "◆",
+                $"TIPO  •  {entry.RaceName}",
+                new Vector2(0.02f, 0.52f),
+                new Vector2(0.42f, 0.96f));
+            CreateShopMetadataItem(
+                parent, "Atributo do monstro", attributeIcon, "◈",
+                $"ATRIBUTO  •  {BuiltInCardDatabase.AttributeLabel(entry.Attribute)}",
+                new Vector2(0.43f, 0.52f),
+                new Vector2(0.98f, 0.96f));
+
+            if (entry.Level > 0)
+            {
+                CreateShopMetadataItem(
+                    parent, "Nível do monstro", deckEditorLevelIconTemplate, "★",
+                    $"NÍVEL  •  {entry.Level}",
+                    new Vector2(0.02f, 0.04f),
+                    new Vector2(0.32f, 0.48f));
+            }
+            if (entry.Attack >= 0)
+            {
+                CreateShopMetadataItem(
+                    parent, "Ataque do monstro", deckEditorAttackIconTemplate, "⚔",
+                    $"ATK  •  {FormatCardStat(entry.Attack)}",
+                    new Vector2(0.34f, 0.04f),
+                    new Vector2(0.65f, 0.48f));
+            }
+            if (entry.Defense >= 0 &&
+                entry.MonsterFrame != MonsterFrameKind.Link)
+            {
+                CreateShopMetadataItem(
+                    parent, "Defesa do monstro", deckEditorDefenseIconTemplate, "⬟",
+                    $"DEF  •  {FormatCardStat(entry.Defense)}",
+                    new Vector2(0.67f, 0.04f),
+                    new Vector2(0.98f, 0.48f));
+            }
+        }
+
+        private static void CreateShopMetadataItem(
+            Transform parent,
+            string objectName,
+            Sprite iconSprite,
+            string fallbackSymbol,
+            string value,
+            Vector2 min,
+            Vector2 max)
+        {
+            Image item = CreatePanel(
+                parent,
+                objectName,
+                min,
+                max,
+                new Color(0.006f, 0.03f, 0.045f, 0.42f));
+            item.raycastTarget = false;
+
+            if (iconSprite != null)
+            {
+                Image icon = CreatePanel(
+                    item.transform,
+                    $"Ícone de {objectName}",
+                    new Vector2(0.03f, 0.10f),
+                    new Vector2(0.20f, 0.90f),
+                    Color.white);
+                icon.sprite = iconSprite;
+                icon.preserveAspect = true;
+                icon.raycastTarget = false;
+            }
+            else
+            {
+                CreateText(
+                    item.transform,
+                    fallbackSymbol,
+                    15,
+                    FontStyle.Bold,
+                    Gold,
+                    new Vector2(0.02f, 0f),
+                    new Vector2(0.21f, 1f),
+                    TextAnchor.MiddleCenter);
+            }
+
+            Text label = CreateText(
+                item.transform,
+                value,
+                13,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.22f, 0.04f),
+                new Vector2(0.98f, 0.96f),
+                TextAnchor.MiddleLeft);
+            label.resizeTextMinSize = 9;
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
         private void ShowPackPurchaseConfirmation(ShopPackDefinition pack)
@@ -1695,9 +1824,13 @@ namespace ArcaneArena.Frontend
 
             Image veil = CreatePanel(background.transform,
                 "Contraste da Arte da Loja", Vector2.zero, Vector2.one,
-                new Color(0.010f, 0.008f, 0.012f, 0.46f));
+                new Color32(3, 2, 3, 228));
             veil.raycastTarget = false;
             veil.transform.SetSiblingIndex(1);
+            // Escala capturada no Inspector: o véu avança 113 px para cada
+            // lado, preenchendo também a sangria horizontal do layout 16:9.
+            veil.rectTransform.offsetMin = new Vector2(-113.2444f, 0f);
+            veil.rectTransform.offsetMax = new Vector2(113.2456f, 0f);
 
             Image upperRail = CreatePanel(
                 background.transform,

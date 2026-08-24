@@ -68,5 +68,17 @@ namespace ArcaneDuel.Tests.EditMode
                 Assert.That(card.Name, Is.Not.Empty, code.ToString());
             }
         }
+
+        [Test]
+        public void CoinDragonEffectIsFullyLocalizedInPortuguese()
+        {
+            CardRecord coinDragon = CardDatabase.LoadDefault().Get(9000988);
+            Assert.That(coinDragon.Name,
+                Is.EqualTo("Camarartista Dragão Moeda"));
+            Assert.That(coinDragon.Description,
+                Does.Contain("[ Efeito de Pêndulo ]"));
+            Assert.That(coinDragon.Description,
+                Does.Not.Contain("Once per turn"));
+        }
     }
 }

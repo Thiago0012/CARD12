@@ -315,7 +315,7 @@ namespace ArcaneArena.Frontend
             if (_starterDetailType != null)
                 _starterDetailType.text = $"{entry.TypeName}  |  ID {cardId}";
             if (_starterDetailEffect != null)
-                _starterDetailEffect.text = entry.EffectText;
+                _starterDetailEffect.text = CardPresentationText.EffectPtBr(entry);
         }
 
         private void ShowStarterClaimConfirmation(

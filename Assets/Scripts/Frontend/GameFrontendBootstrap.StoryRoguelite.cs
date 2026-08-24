@@ -1087,9 +1087,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.42f, 0.10f),
                 new Vector2(0.96f, 0.58f),
                 19);
-            effect.text = string.IsNullOrWhiteSpace(entry.EffectText)
-                ? "Esta carta não possui texto de efeito."
-                : entry.EffectText;
+            effect.text = CardPresentationText.EffectPtBr(entry);
             effect.color = new Color(0.92f, 0.96f, 1f, 1f);
             effect.lineSpacing = 1.14f;
             ScrollRect effectScroll = effect.GetComponentInParent<ScrollRect>();

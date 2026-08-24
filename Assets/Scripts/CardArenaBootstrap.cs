@@ -3178,10 +3178,9 @@ namespace ArcaneArena
                     !string.IsNullOrWhiteSpace(legacy.EffectText)
                         ? legacy.EffectText
                         : card.Description;
-                detailEffect.text =
-                    string.IsNullOrWhiteSpace(description)
-                        ? "Descrição não disponível."
-                        : description;
+                detailEffect.text = CardPresentationText.EffectPtBr(
+                    description,
+                    "Descrição não disponível.");
                 detailEffect.fontSize = Mathf.Min(detailEffect.fontSize, 18);
                 detailEffect.gameObject.SetActive(true);
                 detailEffect.enabled = true;
