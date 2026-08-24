@@ -11,7 +11,7 @@ export default {
     try {
       const url = new URL(request.url);
       if (request.method === "GET" && url.pathname === "/health") {
-        return json({ ok: true, service: "card12-player-directory", schemaVersion: 1 });
+        return json({ ok: true, service: "card12-player-directory", schemaVersion: 2 });
       }
 
       if (url.pathname.startsWith("/v1/admin/")) {
@@ -61,10 +61,14 @@ async function openOrHeartbeat(request, env, identity, operation) {
   }
 
   const displayName = cleanDisplayName(body.playerDisplayName) || player.display_name;
+  const publicProfile = normalizePublicProfile(body, player, now);
   await env.DB.prepare(
     `UPDATE players
        SET display_name = ?, normalized_name = ?, last_seen_utc = ?,
-           last_build_version = ?, last_platform = ?
+           last_build_version = ?, last_platform = ?, equipped_icon_id = ?,
+           public_profile_schema_version = ?, ranked_points = ?,
+           duels_played = ?, wins = ?, losses = ?, draws = ?,
+           profile_updated_utc = ?
      WHERE unity_player_id = ?`)
     .bind(
       displayName,
@@ -72,6 +76,14 @@ async function openOrHeartbeat(request, env, identity, operation) {
       now,
       cleanShort(body.buildVersion, 32),
       cleanShort(body.platform, 32),
+      publicProfile.equippedIconId,
+      publicProfile.schemaVersion,
+      publicProfile.rankedPoints,
+      publicProfile.duelsPlayed,
+      publicProfile.wins,
+      publicProfile.losses,
+      publicProfile.draws,
+      publicProfile.updatedUtc,
       identity.playerId)
     .run();
 
@@ -190,6 +202,15 @@ async function searchPlayer(env, requester, rawQuery) {
     displayName: player.display_name,
     unityPlayerName: player.display_name,
     equippedIconId: player.equipped_icon_id,
+    publicProfileSchemaVersion: player.public_profile_schema_version,
+    rankTier: resolveRankTier(player.ranked_points),
+    rankedPoints: player.ranked_points,
+    duelsPlayed: player.duels_played,
+    wins: player.wins,
+    losses: player.losses,
+    draws: player.draws,
+    profileUpdatedUtcUnixSeconds: player.profile_updated_utc,
+    lastSeenUtcUnixSeconds: player.last_seen_utc,
     online: Boolean(active),
     message: "Perfil encontrado."
   });
@@ -311,6 +332,57 @@ function cleanShort(value, limit) {
 function cleanSessionId(value) {
   const text = String(value || "").trim();
   return /^[a-f0-9]{32}$/i.test(text) ? text.toLowerCase() : "";
+}
+
+function normalizePublicProfile(body, current, now) {
+  const requestedVersion = clampInteger(
+    body.publicProfileSchemaVersion,
+    0,
+    16);
+  if (requestedVersion < 1) {
+    return {
+      schemaVersion: Number(current.public_profile_schema_version || 0),
+      equippedIconId: String(current.equipped_icon_id || ""),
+      rankedPoints: Number(current.ranked_points || 0),
+      duelsPlayed: Number(current.duels_played || 0),
+      wins: Number(current.wins || 0),
+      losses: Number(current.losses || 0),
+      draws: Number(current.draws || 0),
+      updatedUtc: Number(current.profile_updated_utc || 0)
+    };
+  }
+
+  const proposedIcon = cleanShort(body.equippedIconId, 64).trim();
+  const equippedIconId = KEY_PATTERN.test(proposedIcon)
+    ? proposedIcon
+    : String(current.equipped_icon_id || "");
+  const wins = clampInteger(body.wins, 0, 2147483647);
+  const losses = clampInteger(body.losses, 0, 2147483647);
+  const draws = clampInteger(body.draws, 0, 2147483647);
+  const decidedTotal = Math.min(2147483647, wins + losses + draws);
+  return {
+    schemaVersion: requestedVersion,
+    equippedIconId,
+    rankedPoints: clampInteger(body.rankedPoints, 0, 200),
+    duelsPlayed: Math.max(
+      decidedTotal,
+      clampInteger(body.duelsPlayed, 0, 2147483647)),
+    wins,
+    losses,
+    draws,
+    updatedUtc: now
+  };
+}
+
+function clampInteger(value, minimum, maximum) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return minimum;
+  return Math.max(minimum, Math.min(maximum, Math.trunc(numeric)));
+}
+
+function resolveRankTier(rankedPoints) {
+  const points = clampInteger(rankedPoints, 0, 200);
+  return points >= 200 ? 8 : Math.min(7, Math.floor(points / 25));
 }
 
 function decodeJson(value) {

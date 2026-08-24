@@ -8,11 +8,19 @@ namespace ArcaneArena.Frontend
     public sealed partial class GameFrontendBootstrap
     {
         private bool _playerIdAccessScreenVisible;
+        private bool _publicProfileRefreshRunning;
+        private bool _publicProfileRefreshQueued;
 
         private void InitializePlayerIdAccess()
         {
             PlayerIdAccessRuntime.AccessChanged += ApplyPlayerIdAccess;
             PlayerFriendsRuntime.Changed += HandleFriendsRuntimeChanged;
+            if (_repository != null)
+            {
+                _repository.LocalSaveCommitted -= HandlePublicProfileChanged;
+                _repository.LocalSaveCommitted += HandlePublicProfileChanged;
+            }
+            SyncPublicProfileSnapshot();
             PlayerFriendsRuntime.SetLocalDisplayName(
                 _repository?.PlayerDisplayName);
             _ = BindPlayerIdWhenReadyAsync();
@@ -33,6 +41,7 @@ namespace ArcaneArena.Frontend
                         return;
                     PlayerIdAccessRuntime.SetPlayerDisplayName(
                         _repository?.PlayerDisplayName);
+                    SyncPublicProfileSnapshot();
                     PlayerFriendsRuntime.SetLocalDisplayName(
                         _repository?.PlayerDisplayName);
                     if (!IsDuelSceneName(
@@ -61,6 +70,7 @@ namespace ArcaneArena.Frontend
 
             PlayerIdAccessRuntime.SetPlayerDisplayName(
                 _repository?.PlayerDisplayName);
+            SyncPublicProfileSnapshot();
             PlayerFriendsRuntime.SetLocalDisplayName(
                 _repository?.PlayerDisplayName);
 
@@ -191,8 +201,58 @@ namespace ArcaneArena.Frontend
 
         private void ReleasePlayerIdAccess()
         {
+            if (_repository != null)
+                _repository.LocalSaveCommitted -= HandlePublicProfileChanged;
             PlayerIdAccessRuntime.AccessChanged -= ApplyPlayerIdAccess;
             PlayerFriendsRuntime.Changed -= HandleFriendsRuntimeChanged;
+        }
+
+        private void SyncPublicProfileSnapshot()
+        {
+            DuelStatisticsScope statistics = _repository?.Statistics?.overall ??
+                                              new DuelStatisticsScope();
+            PlayerIdAccessRuntime.SetPlayerPublicProfile(
+                _repository?.EquippedIconId,
+                _repository?.CaptureRankSnapshot()?.rankedPoints ?? 0,
+                statistics.duelsPlayed,
+                statistics.wins,
+                statistics.losses,
+                statistics.draws);
+        }
+
+        private void HandlePublicProfileChanged()
+        {
+            SyncPublicProfileSnapshot();
+            _publicProfileRefreshQueued = true;
+            if (!_publicProfileRefreshRunning)
+                _ = RefreshPublicProfileAsync();
+        }
+
+        private async Task RefreshPublicProfileAsync()
+        {
+            _publicProfileRefreshRunning = true;
+            try
+            {
+                while (_publicProfileRefreshQueued && this != null)
+                {
+                    _publicProfileRefreshQueued = false;
+                    try
+                    {
+                        await PlayerIdAccessRuntime.RefreshNowAsync();
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogWarning(
+                            "O perfil público será sincronizado no próximo " +
+                            "heartbeat: " +
+                            exception.GetBaseException().Message);
+                    }
+                }
+            }
+            finally
+            {
+                _publicProfileRefreshRunning = false;
+            }
         }
     }
 }
