@@ -1969,6 +1969,29 @@ namespace ArcaneArena
                     prompt.Message == CoreMessage.SelectYesNo);
         }
 
+        private bool TryGetOpeningDrawPhasePass(
+            DuelPrompt prompt,
+            out DuelChoice passChoice)
+        {
+            const uint drawPhase = 0x001U;
+            passChoice = null;
+            if (prompt == null || state == null || prompt.Player != 0 ||
+                prompt.Forced || prompt.Message != CoreMessage.SelectChain ||
+                state.TurnNumber != 1 || state.Phase != drawPhase ||
+                state.ChainLinks.Any())
+            {
+                return false;
+            }
+
+            // ocgcore can expose a free optional response window immediately
+            // after the opening draw. It is not an effect already resolving,
+            // so advance cleanly to the normal phase flow while preserving all
+            // forced triggers and every later legal response window.
+            passChoice = DuelPromptPresentationRules.DeclineChoice(prompt);
+            return passChoice?.Response != null &&
+                   passChoice.Response.Length > 0;
+        }
+
         private bool RefreshPrompt(DuelPrompt prompt)
         {
             AbandonAttackTargetingIfSuperseded(prompt);
@@ -2022,6 +2045,14 @@ namespace ArcaneArena
                 .OrderBy(link => link.ChainIndex)
                 .LastOrDefault()
                 ?.Player;
+            if (TryGetOpeningDrawPhasePass(prompt, out DuelChoice openingPass))
+            {
+                ScheduleAutomaticPromptChoice(
+                    prompt,
+                    openingPass,
+                    "Abertura concluída · avançando para o fluxo normal das fases.");
+                return true;
+            }
             if (DuelActivationPromptPolicy.TryGetAutomaticPass(
                     prompt,
                     lastChainPlayer,

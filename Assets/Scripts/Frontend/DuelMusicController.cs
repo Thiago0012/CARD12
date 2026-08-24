@@ -14,8 +14,8 @@ namespace ArcaneArena.Frontend
     {
         private const string DuelArenaSceneName = "DuelArena";
         private const string MusicResourceFolder = "Audio/Music/Duel";
-        private const float StartDelaySeconds = 1f;
-        private const float FadeInSeconds = 1.35f;
+        private const float StartDelaySeconds = 0f;
+        private const float FadeInSeconds = 1f;
         private const float TrackCrossfadeSeconds = 0.50f;
         private const float ExitFadeSeconds = 0.90f;
 

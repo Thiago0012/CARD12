@@ -996,36 +996,45 @@ namespace ArcaneArena.Multiplayer
             if (floatingCards.Count == 0)
                 return;
 
-            if (cachedCardArtwork.Count == 0)
+            // The presenter survives scene changes, but dynamically imported
+            // card sprites do not necessarily do so. Rebuild this small visual
+            // sample on every transition instead of retaining destroyed Sprite
+            // references, which Unity renders as plain white rectangles.
+            cachedCardArtwork.Clear();
+            CardCatalog[] catalogs =
+                Resources.FindObjectsOfTypeAll<CardCatalog>();
+            foreach (CardCatalog catalog in catalogs)
             {
-                CardCatalog[] catalogs =
-                    Resources.FindObjectsOfTypeAll<CardCatalog>();
-                foreach (CardCatalog catalog in catalogs)
+                if (catalog == null)
+                    continue;
+                CardCatalogEntry[] candidates = catalog.Entries
+                    .Where(entry => entry != null &&
+                                    entry.IsCollectible &&
+                                    entry.HasArtwork)
+                    .OrderBy(entry => entry.OfficialCardId,
+                        StringComparer.Ordinal)
+                    .ToArray();
+                int stride = Mathf.Max(1, candidates.Length / 48);
+                for (int offset = 0;
+                     offset < stride && cachedCardArtwork.Count < 48;
+                     offset++)
                 {
-                    if (catalog == null)
-                        continue;
-                    CardCatalogEntry[] candidates = catalog.Entries
-                        .Where(entry => entry != null &&
-                                        entry.IsCollectible &&
-                                        entry.HasArtwork)
-                        .OrderBy(entry => entry.OfficialCardId,
-                            StringComparer.Ordinal)
-                        .ToArray();
-                    int stride = Mathf.Max(1, candidates.Length / 48);
                     for (int index = 0;
-                         index < candidates.Length && cachedCardArtwork.Count < 48;
+                         index + offset < candidates.Length &&
+                         cachedCardArtwork.Count < 48;
                          index += stride)
                     {
-                        Sprite artwork = candidates[index].Artwork;
-                        if (artwork != null)
+                        Sprite artwork = candidates[index + offset].Artwork;
+                        if (artwork != null && artwork.texture != null &&
+                            !cachedCardArtwork.Contains(artwork))
+                        {
                             cachedCardArtwork.Add(artwork);
+                        }
                     }
-                    if (cachedCardArtwork.Count > 0)
-                        break;
                 }
+                if (cachedCardArtwork.Count >= 48)
+                    break;
             }
-            if (cachedCardArtwork.Count == 0)
-                return;
 
             for (int index = 0; index < floatingCards.Count; index++)
             {
@@ -1034,13 +1043,26 @@ namespace ArcaneArena.Multiplayer
                     : null;
                 if (image == null)
                     continue;
-                image.sprite = cachedCardArtwork[
-                    visualRandom.Next(cachedCardArtwork.Count)];
                 Image trailImage = index < floatingCardTrailImages.Count
                     ? floatingCardTrailImages[index]
                     : null;
+                bool hasArtwork = cachedCardArtwork.Count > 0;
+                image.enabled = hasArtwork;
                 if (trailImage != null)
-                    trailImage.sprite = image.sprite;
+                    trailImage.enabled = hasArtwork;
+                if (!hasArtwork)
+                {
+                    image.sprite = null;
+                    if (trailImage != null)
+                        trailImage.sprite = null;
+                    continue;
+                }
+
+                Sprite selectedArtwork = cachedCardArtwork[
+                    visualRandom.Next(cachedCardArtwork.Count)];
+                image.sprite = selectedArtwork;
+                if (trailImage != null)
+                    trailImage.sprite = selectedArtwork;
                 float depth = floatingCardDepths[index];
                 Color baseColor = new Color(
                     0.76f + depth * 0.24f,
@@ -1824,7 +1846,7 @@ namespace ArcaneArena.Multiplayer
                 DuelPreludeChoice.Paper,
                 DuelPreludeChoice.Scissors
             };
-            string[] glyphs = { "◆\nPEDRA", "▰\nPAPEL", "✦\nTESOURA" };
+            string[] labels = { "PEDRA", "PAPEL", "TESOURA" };
             for (int index = 0; index < choices.Length; index++)
             {
                 float xMin = 0.035f + index * 0.325f;
@@ -1832,7 +1854,7 @@ namespace ArcaneArena.Multiplayer
                 Button button = CreateButton(
                     panel.transform,
                     captured.ToString(),
-                    glyphs[index],
+                    labels[index],
                     font,
                     new Vector2(xMin, 0.12f),
                     new Vector2(xMin + 0.28f, 0.88f),
@@ -1840,6 +1862,24 @@ namespace ArcaneArena.Multiplayer
                         ? new Color(0.20f, 0.62f, 0.94f, 0.90f)
                         : new Color(0.36f, 0.18f, 0.74f, 0.90f),
                     Color.white);
+                Text label = button.GetComponentInChildren<Text>(true);
+                if (label != null)
+                {
+                    Stretch(
+                        label.rectTransform,
+                        new Vector2(0.04f, 0.035f),
+                        new Vector2(0.96f, 0.30f));
+                    label.fontSize = 19;
+                }
+                Image icon = CreateImage(
+                    button.transform,
+                    $"Ícone {labels[index]}",
+                    Color.white,
+                    new Vector2(0.18f, 0.31f),
+                    new Vector2(0.82f, 0.93f));
+                icon.sprite = CreatePreludeChoiceIconSprite(captured);
+                icon.preserveAspect = true;
+                icon.raycastTarget = false;
                 button.onClick.AddListener(() =>
                 {
                     foreach (Button item in choiceButtons)
@@ -1850,6 +1890,196 @@ namespace ArcaneArena.Multiplayer
                 choiceButtons.Add(button);
             }
             choicePanel.SetActive(false);
+        }
+
+        private static Sprite CreatePreludeChoiceIconSprite(
+            DuelPreludeChoice choice)
+        {
+            const int size = 128;
+            var pixels = new Color32[size * size];
+            Color32 cyan = new Color32(112, 226, 255, 255);
+            Color32 pale = new Color32(226, 246, 255, 255);
+            Color32 blue = new Color32(37, 111, 196, 255);
+            Color32 violet = new Color32(135, 70, 220, 255);
+            Color32 dark = new Color32(17, 32, 58, 255);
+
+            switch (choice)
+            {
+                case DuelPreludeChoice.Rock:
+                    FillIconEllipse(pixels, size, 64, 53, 43, 33, dark);
+                    FillIconEllipse(pixels, size, 64, 60, 38, 31, blue);
+                    FillIconEllipse(pixels, size, 49, 72, 20, 13, cyan);
+                    DrawIconLine(pixels, size, 35, 50, 51, 32, 5, pale);
+                    DrawIconLine(pixels, size, 52, 32, 76, 29, 5, pale);
+                    DrawIconLine(pixels, size, 76, 29, 94, 48, 5, pale);
+                    break;
+                case DuelPreludeChoice.Paper:
+                    FillIconRect(pixels, size, 31, 19, 96, 109, dark);
+                    FillIconRect(pixels, size, 35, 23, 92, 105, pale);
+                    FillIconTriangle(
+                        pixels,
+                        size,
+                        new Vector2Int(72, 105),
+                        new Vector2Int(92, 105),
+                        new Vector2Int(92, 84),
+                        cyan);
+                    DrawIconLine(pixels, size, 45, 73, 82, 73, 4, blue);
+                    DrawIconLine(pixels, size, 45, 59, 82, 59, 4, blue);
+                    DrawIconLine(pixels, size, 45, 45, 72, 45, 4, blue);
+                    break;
+                default:
+                    DrawIconLine(pixels, size, 45, 38, 91, 99, 8, pale);
+                    DrawIconLine(pixels, size, 82, 29, 48, 91, 8, pale);
+                    DrawIconLine(pixels, size, 47, 39, 92, 98, 3, cyan);
+                    DrawIconLine(pixels, size, 81, 30, 48, 91, 3, cyan);
+                    FillIconRing(pixels, size, 38, 31, 19, 10, violet);
+                    FillIconRing(pixels, size, 37, 89, 19, 10, violet);
+                    break;
+            }
+
+            var texture = new Texture2D(
+                size,
+                size,
+                TextureFormat.RGBA32,
+                false)
+            {
+                name = $"Ícone procedural {choice}",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            Sprite sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, size, size),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            sprite.name = texture.name;
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
+        }
+
+        private static void FillIconRect(
+            Color32[] pixels,
+            int size,
+            int minX,
+            int minY,
+            int maxX,
+            int maxY,
+            Color32 color)
+        {
+            for (int y = Mathf.Max(0, minY); y <= Mathf.Min(size - 1, maxY); y++)
+            for (int x = Mathf.Max(0, minX); x <= Mathf.Min(size - 1, maxX); x++)
+                pixels[y * size + x] = color;
+        }
+
+        private static void FillIconEllipse(
+            Color32[] pixels,
+            int size,
+            int centerX,
+            int centerY,
+            int radiusX,
+            int radiusY,
+            Color32 color)
+        {
+            for (int y = centerY - radiusY; y <= centerY + radiusY; y++)
+            for (int x = centerX - radiusX; x <= centerX + radiusX; x++)
+            {
+                if (x < 0 || y < 0 || x >= size || y >= size)
+                    continue;
+                float dx = (x - centerX) / (float)radiusX;
+                float dy = (y - centerY) / (float)radiusY;
+                if (dx * dx + dy * dy <= 1f)
+                    pixels[y * size + x] = color;
+            }
+        }
+
+        private static void FillIconRing(
+            Color32[] pixels,
+            int size,
+            int centerX,
+            int centerY,
+            int outerRadius,
+            int innerRadius,
+            Color32 color)
+        {
+            int outerSquared = outerRadius * outerRadius;
+            int innerSquared = innerRadius * innerRadius;
+            for (int y = centerY - outerRadius; y <= centerY + outerRadius; y++)
+            for (int x = centerX - outerRadius; x <= centerX + outerRadius; x++)
+            {
+                if (x < 0 || y < 0 || x >= size || y >= size)
+                    continue;
+                int dx = x - centerX;
+                int dy = y - centerY;
+                int distance = dx * dx + dy * dy;
+                if (distance <= outerSquared && distance >= innerSquared)
+                    pixels[y * size + x] = color;
+            }
+        }
+
+        private static void DrawIconLine(
+            Color32[] pixels,
+            int size,
+            int startX,
+            int startY,
+            int endX,
+            int endY,
+            int thickness,
+            Color32 color)
+        {
+            Vector2 start = new Vector2(startX, startY);
+            Vector2 end = new Vector2(endX, endY);
+            Vector2 segment = end - start;
+            float lengthSquared = Mathf.Max(0.001f, segment.sqrMagnitude);
+            int padding = thickness + 1;
+            for (int y = Mathf.Max(0, Mathf.Min(startY, endY) - padding);
+                 y <= Mathf.Min(size - 1, Mathf.Max(startY, endY) + padding);
+                 y++)
+            for (int x = Mathf.Max(0, Mathf.Min(startX, endX) - padding);
+                 x <= Mathf.Min(size - 1, Mathf.Max(startX, endX) + padding);
+                 x++)
+            {
+                Vector2 point = new Vector2(x, y);
+                float t = Mathf.Clamp01(Vector2.Dot(point - start, segment) /
+                                        lengthSquared);
+                if (Vector2.Distance(point, start + segment * t) <= thickness)
+                    pixels[y * size + x] = color;
+            }
+        }
+
+        private static void FillIconTriangle(
+            Color32[] pixels,
+            int size,
+            Vector2Int a,
+            Vector2Int b,
+            Vector2Int c,
+            Color32 color)
+        {
+            int minX = Mathf.Max(0, Mathf.Min(a.x, Mathf.Min(b.x, c.x)));
+            int maxX = Mathf.Min(size - 1, Mathf.Max(a.x, Mathf.Max(b.x, c.x)));
+            int minY = Mathf.Max(0, Mathf.Min(a.y, Mathf.Min(b.y, c.y)));
+            int maxY = Mathf.Min(size - 1, Mathf.Max(a.y, Mathf.Max(b.y, c.y)));
+            float area = (b.x - a.x) * (c.y - a.y) -
+                         (b.y - a.y) * (c.x - a.x);
+            if (Mathf.Abs(area) < 0.001f)
+                return;
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                float w0 = ((b.x - a.x) * (y - a.y) -
+                            (b.y - a.y) * (x - a.x)) / area;
+                float w1 = ((c.x - b.x) * (y - b.y) -
+                            (c.y - b.y) * (x - b.x)) / area;
+                float w2 = ((a.x - c.x) * (y - c.y) -
+                            (a.y - c.y) * (x - c.x)) / area;
+                if ((w0 >= 0f && w1 >= 0f && w2 >= 0f) ||
+                    (w0 <= 0f && w1 <= 0f && w2 <= 0f))
+                {
+                    pixels[y * size + x] = color;
+                }
+            }
         }
 
         private void BuildResultPanel(Transform parent, Font font)

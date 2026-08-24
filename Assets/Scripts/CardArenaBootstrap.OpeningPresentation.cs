@@ -30,6 +30,14 @@ namespace ArcaneArena
                 return;
             if (openingDuelRoutine != null)
                 return;
+            // Nothing from the persistent transition canvas may remain behind
+            // the letterboxed arena once the authored opening takes control.
+            FindAnyObjectByType<OnlineLoadingScreenPresenter>(
+                    FindObjectsInactive.Include)
+                ?.HideImmediately();
+            // Start the duel soundtrack with the opening itself. The music
+            // controller owns the one-second fade and prevents duplicate play.
+            DuelMusicController.BeginDuelPlayback();
             SuspendAnnouncementsForOpening();
             HideDecisionRibbon();
             openingDuelRoutine = StartCoroutine(PlayOpeningDuelPresentation());
@@ -135,7 +143,6 @@ namespace ArcaneArena
             ResumeAnnouncementsAfterOpening();
             RefreshEverything(true);
             HideDecisionRibbon();
-            DuelMusicController.BeginDuelPlayback();
         }
 
         private static void AddOpeningDeck(

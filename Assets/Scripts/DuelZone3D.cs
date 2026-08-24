@@ -417,6 +417,7 @@ namespace ArcaneArena
             else
             {
                 const int segments = 40;
+                const float specialWellRadius = 0.52f;
                 specialZoneOutline.positionCount = segments;
                 for (int index = 0; index < segments; index++)
                 {
@@ -424,9 +425,9 @@ namespace ArcaneArena
                     specialZoneOutline.SetPosition(
                         index,
                         new Vector3(
-                            Mathf.Cos(angle) * 1.18f,
-                            0.34f,
-                            Mathf.Sin(angle) * 1.18f));
+                            Mathf.Cos(angle) * specialWellRadius,
+                            0.18f,
+                            Mathf.Sin(angle) * specialWellRadius));
                 }
             }
         }
@@ -448,7 +449,7 @@ namespace ArcaneArena
             specialZoneOutline.startColor = color;
             specialZoneOutline.endColor = color;
             specialZoneOutline.widthMultiplier =
-                Mathf.Lerp(0.075f, 0.15f, pulse);
+                Mathf.Lerp(0.035f, 0.065f, pulse);
         }
 
         private void OnDestroy()
