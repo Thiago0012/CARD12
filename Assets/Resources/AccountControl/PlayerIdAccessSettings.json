@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "enabled": false,
-  "baseUrl": "",
+  "enabled": true,
+  "baseUrl": "https://card12-player-directory.sousathi12.workers.dev",
   "heartbeatSeconds": 60,
   "requestTimeoutSeconds": 10,
   "allowOnlineWhenCatalogUnavailable": true

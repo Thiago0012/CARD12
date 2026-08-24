@@ -4,6 +4,7 @@
 [Tt]mp/
 .utmp/
 [Tt]est[Rr]esults/codex-phase3-6*
+[Tt]est[Rr]esults/unity-current.png
 [Oo]bj/
 [Bb]uild/
 [Bb]uilds/
@@ -22,6 +23,7 @@ Assets/Resources/PerformanceTestRunSettings.json.meta
 .vs/
 .vscode/
 .idea/
+.wrangler/
 ExportedObj/
 *.csproj
 *.sln
