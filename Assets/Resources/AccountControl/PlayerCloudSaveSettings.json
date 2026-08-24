@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "playerFileName": "arcane-arena-profile-v1.json",
+  "uploadDebounceSeconds": 2.5,
+  "requestTimeoutSeconds": 30
+}

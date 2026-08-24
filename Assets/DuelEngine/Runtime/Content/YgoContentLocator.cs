@@ -36,6 +36,14 @@ namespace ArcaneDuel.DuelEngine.Content
                     if (!string.IsNullOrEmpty(cachedRoot))
                         return cachedRoot;
 
+                    string remoteRoot = TryResolveRemoteContentRoot();
+                    if (!string.IsNullOrWhiteSpace(remoteRoot))
+                    {
+                        ValidateEssentialContent(remoteRoot);
+                        cachedRoot = remoteRoot;
+                        return cachedRoot;
+                    }
+
 #if UNITY_ANDROID && !UNITY_EDITOR
                     cachedRoot = EnsureAndroidMirror();
 #else
@@ -47,6 +55,12 @@ namespace ArcaneDuel.DuelEngine.Content
                     return cachedRoot;
                 }
             }
+        }
+
+        public static void InvalidateCachedRoot()
+        {
+            lock (Sync)
+                cachedRoot = null;
         }
 
         public static string Resolve(params string[] relativeSegments)
@@ -95,6 +109,57 @@ namespace ArcaneDuel.DuelEngine.Content
                         "Required packaged duel content is missing.",
                         path);
                 }
+            }
+        }
+
+        [Serializable]
+        private sealed class RemoteContentPointer
+        {
+            public int schemaVersion;
+            public string contentVersion;
+            public string releaseDirectory;
+        }
+
+        private static string TryResolveRemoteContentRoot()
+        {
+            try
+            {
+                string container = Path.Combine(
+                    Application.persistentDataPath,
+                    "ArcaneArena",
+                    "RemoteContent",
+                    ContentFolder);
+                string pointerPath = Path.Combine(container, "active.json");
+                if (!File.Exists(pointerPath))
+                    return string.Empty;
+                RemoteContentPointer pointer = JsonUtility.FromJson<
+                    RemoteContentPointer>(File.ReadAllText(pointerPath));
+                string directory = pointer?.releaseDirectory?.Trim() ??
+                                   string.Empty;
+                if (directory.Length == 0 ||
+                    directory.IndexOf("..", StringComparison.Ordinal) >= 0 ||
+                    directory.IndexOfAny(new[] { '/', '\\' }) >= 0)
+                {
+                    return string.Empty;
+                }
+                string root = Path.GetFullPath(Path.Combine(
+                    container,
+                    "releases",
+                    directory));
+                string releases = Path.GetFullPath(Path.Combine(
+                    container,
+                    "releases")) + Path.DirectorySeparatorChar;
+                if (!root.StartsWith(releases, StringComparison.OrdinalIgnoreCase))
+                    return string.Empty;
+                ValidateEssentialContent(root);
+                return root;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "ARCANE_REMOTE_CONTENT_FALLBACK reason=" +
+                    exception.GetBaseException().Message);
+                return string.Empty;
             }
         }
 

@@ -46,8 +46,15 @@ namespace ArcaneArena.Frontend
         public static IReadOnlyList<FriendProfileView> OutgoingRequests =>
             CopyList(_instance?._outgoing);
 
+        // Resolve pelo registro do Unity Services. No Editor, o acessor
+        // estático FriendsService.Instance pode ser limpo depois de o pacote
+        // já ter registrado o serviço (especialmente com reload de domínio
+        // desativado), embora a instância válida continue no CoreRegistry.
+        private static IFriendsService Service =>
+            UnityServices.Instance.GetFriendsService();
+
         // Aguarda os inicializadores dos pacotes UGS concluírem o registro no
-        // CoreRegistry antes de tentar obter FriendsService.Instance.
+        // CoreRegistry antes de tentar obter o serviço de amigos.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureExists()
         {
@@ -142,13 +149,13 @@ namespace ArcaneArena.Frontend
                 {
                     if (!string.IsNullOrWhiteSpace(profile.playerId))
                     {
-                        await FriendsService.Instance.AddFriendAsync(
+                        await Service.AddFriendAsync(
                             profile.playerId);
                     }
                     else if (!string.IsNullOrWhiteSpace(
                                  profile.unityPlayerName))
                     {
-                        await FriendsService.Instance.AddFriendByNameAsync(
+                        await Service.AddFriendByNameAsync(
                             profile.unityPlayerName);
                     }
                     else
@@ -165,7 +172,7 @@ namespace ArcaneArena.Frontend
             await EnsureReadyAsync();
             RequireReady();
             await _instance.RunOperationAsync(
-                () => FriendsService.Instance.AddFriendAsync(playerId),
+                () => Service.AddFriendAsync(playerId),
                 "Solicitação aceita. A conexão foi adicionada.");
         }
 
@@ -174,7 +181,7 @@ namespace ArcaneArena.Frontend
             await EnsureReadyAsync();
             RequireReady();
             await _instance.RunOperationAsync(
-                () => FriendsService.Instance.DeleteIncomingFriendRequestAsync(
+                () => Service.DeleteIncomingFriendRequestAsync(
                     playerId),
                 "Solicitação ignorada.");
         }
@@ -184,7 +191,7 @@ namespace ArcaneArena.Frontend
             await EnsureReadyAsync();
             RequireReady();
             await _instance.RunOperationAsync(
-                () => FriendsService.Instance.DeleteOutgoingFriendRequestAsync(
+                () => Service.DeleteOutgoingFriendRequestAsync(
                     playerId),
                 "Solicitação cancelada.");
         }
@@ -194,7 +201,7 @@ namespace ArcaneArena.Frontend
             await EnsureReadyAsync();
             RequireReady();
             await _instance.RunOperationAsync(
-                () => FriendsService.Instance.DeleteFriendAsync(playerId),
+                () => Service.DeleteFriendAsync(playerId),
                 "Jogador removido da sua lista.");
         }
 
@@ -203,7 +210,7 @@ namespace ArcaneArena.Frontend
             await EnsureReadyAsync();
             RequireReady();
             await _instance.RunOperationAsync(
-                () => FriendsService.Instance.ForceRelationshipsRefreshAsync(),
+                () => Service.ForceRelationshipsRefreshAsync(),
                 "Lista de conexões atualizada.");
         }
 
@@ -245,11 +252,11 @@ namespace ArcaneArena.Frontend
                         .WithMemberProfile(true)
                         .WithMemberPresence(true)
                         .WithEvents(true);
-                    await FriendsService.Instance.InitializeAsync(options);
+                    await Service.InitializeAsync(options);
                     _friendsSdkInitialized = true;
                 }
                 SubscribeToEvents();
-                await FriendsService.Instance.SetPresenceAvailabilityAsync(
+                await Service.SetPresenceAvailabilityAsync(
                     Availability.Online);
                 _initialized = true;
                 _status = "Conexões online sincronizadas.";
@@ -356,7 +363,7 @@ namespace ArcaneArena.Frontend
             try
             {
                 await operation();
-                await FriendsService.Instance.ForceRelationshipsRefreshAsync();
+                await Service.ForceRelationshipsRefreshAsync();
                 RebuildLists();
                 _status = successMessage;
             }
@@ -376,11 +383,11 @@ namespace ArcaneArena.Frontend
         {
             if (_eventsSubscribed)
                 return;
-            FriendsService.Instance.RelationshipAdded +=
+            Service.RelationshipAdded +=
                 _ => HandleRelationshipChanged();
-            FriendsService.Instance.RelationshipDeleted +=
+            Service.RelationshipDeleted +=
                 _ => HandleRelationshipChanged();
-            FriendsService.Instance.PresenceUpdated +=
+            Service.PresenceUpdated +=
                 _ => HandleRelationshipChanged();
             _eventsSubscribed = true;
         }
@@ -401,15 +408,15 @@ namespace ArcaneArena.Frontend
                 return;
 
             AppendRelationships(
-                FriendsService.Instance.Friends,
+                Service.Friends,
                 FriendConnectionState.Friend,
                 _friends);
             AppendRelationships(
-                FriendsService.Instance.IncomingFriendRequests,
+                Service.IncomingFriendRequests,
                 FriendConnectionState.IncomingRequest,
                 _incoming);
             AppendRelationships(
-                FriendsService.Instance.OutgoingFriendRequests,
+                Service.OutgoingFriendRequests,
                 FriendConnectionState.OutgoingRequest,
                 _outgoing);
         }
@@ -560,7 +567,7 @@ namespace ArcaneArena.Frontend
                 return;
             try
             {
-                await FriendsService.Instance.SetPresenceAvailabilityAsync(
+                await Service.SetPresenceAvailabilityAsync(
                     Availability.Offline);
             }
             catch

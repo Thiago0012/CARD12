@@ -8,7 +8,9 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
-        public int schemaVersion = 12;
+        public int schemaVersion = 13;
+        public long lastModifiedUtcTicks;
+        public long cloudRevision;
         public string localProfileId;
         public string authenticatedPlayerId;
         public string playerDisplayName;

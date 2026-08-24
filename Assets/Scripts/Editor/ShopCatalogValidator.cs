@@ -20,7 +20,7 @@ namespace ArcaneArena.Editor
 
         public int callbackOrder => -200;
 
-        [MenuItem("Arcane Arena/Validar Loja e Economia")]
+        [MenuItem("Master Duel 2 Plus Ultra/Validar Loja e Economia")]
         public static void ValidateFromMenu()
         {
             string[] problems = FindProblems(

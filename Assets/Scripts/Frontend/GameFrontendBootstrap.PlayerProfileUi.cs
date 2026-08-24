@@ -58,6 +58,7 @@ namespace ArcaneArena.Frontend
             BuildProfileIdentitySignature(
                 identity.transform,
                 equippedIcon?.DisplayName,
+                PlayerIdAccessRuntime.PublicPlayerId,
                 !string.IsNullOrWhiteSpace(
                     PlayerIdAccessRuntime.CanonicalPlayerId)
                     ? PlayerIdAccessRuntime.CanonicalPlayerId
@@ -84,11 +85,11 @@ namespace ArcaneArena.Frontend
 
             CreateProfileArtworkButton(
                 identity.transform,
-                "EDITAR NOME",
+                "CONTA E NOME",
                 // Retângulo autoral: x 132..467 e y 768..850 na imagem-base.
                 new Vector2(0.080f, 0.044f),
                 new Vector2(0.922f, 0.146f),
-                () => ShowPlayerNameEditor(true),
+                ShowAccountCenter,
                 16);
 
             Image detail = CreatePanel(
@@ -114,6 +115,7 @@ namespace ArcaneArena.Frontend
         private static void BuildProfileIdentitySignature(
             Transform parent,
             string profileTitle,
+            string publicPlayerId,
             string stablePlayerId)
         {
             CreateText(
@@ -172,9 +174,10 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleCenter);
             CreateText(
                 signature.transform,
-                string.IsNullOrWhiteSpace(FormatDuelistId(stablePlayerId))
+                string.IsNullOrWhiteSpace(
+                    FormatDuelistId(publicPlayerId, stablePlayerId))
                     ? "ID INDISPONÍVEL"
-                    : FormatDuelistId(stablePlayerId),
+                    : FormatDuelistId(publicPlayerId, stablePlayerId),
                 16,
                 FontStyle.Bold,
                 Cyan,
@@ -183,8 +186,12 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleCenter);
         }
 
-        private static string FormatDuelistId(string stablePlayerId)
+        private static string FormatDuelistId(
+            string publicPlayerId,
+            string stablePlayerId)
         {
+            if (PlayerIdAccessPolicy.IsValidPublicId(publicPlayerId))
+                return publicPlayerId.Trim();
             return PlayerIdAccessPolicy.FormatPublicId(stablePlayerId);
         }
 

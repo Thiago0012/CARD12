@@ -15,7 +15,7 @@ namespace ArcaneArena.Frontend
     /// </summary>
     public sealed partial class DeckRepository
     {
-        private const int CurrentSchemaVersion = 12;
+        private const int CurrentSchemaVersion = 13;
         private const int StarterOnboardingSchemaVersion = 6;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
@@ -26,6 +26,8 @@ namespace ArcaneArena.Frontend
         public const int MaximumPlayerNameLength = 18;
         private readonly string _savePath;
         private CardCatalog _catalog;
+
+        public event Action LocalSaveCommitted;
 
         public DeckCollectionState State { get; private set; }
         public string PlayerDisplayName =>
@@ -111,7 +113,7 @@ namespace ArcaneArena.Frontend
             }
 
             if (persistNormalizedState)
-                Save();
+                Save(false);
         }
 
         private void MigrateStarterOnboarding(int loadedSchemaVersion)
@@ -607,7 +609,7 @@ namespace ArcaneArena.Frontend
             return true;
         }
 
-        public void Save()
+        public void Save(bool markModified = true)
         {
             if (State == null)
                 return;
@@ -615,10 +617,90 @@ namespace ArcaneArena.Frontend
             foreach (var deck in State.decks)
                 deck?.Normalize();
 
+            if (markModified)
+                State.lastModifiedUtcTicks = DateTime.UtcNow.Ticks;
+
             var directory = Path.GetDirectoryName(_savePath);
             if (!string.IsNullOrWhiteSpace(directory))
                 Directory.CreateDirectory(directory);
             SaveAtomically(JsonUtility.ToJson(State, true));
+            if (markModified)
+                LocalSaveCommitted?.Invoke();
+        }
+
+        public string ExportJson(bool prettyPrint = false)
+        {
+            return State == null
+                ? string.Empty
+                : JsonUtility.ToJson(State, prettyPrint);
+        }
+
+        public bool TryImportCloudJson(
+            string json,
+            string expectedPlayerId,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                rejection = "O save recebido da nuvem está vazio.";
+                return false;
+            }
+
+            DeckCollectionState candidate;
+            try
+            {
+                candidate = JsonUtility.FromJson<DeckCollectionState>(json);
+            }
+            catch (Exception exception)
+            {
+                rejection = "O save da nuvem está corrompido: " +
+                            exception.Message;
+                return false;
+            }
+
+            if (candidate == null ||
+                candidate.schemaVersion <= 0 ||
+                candidate.schemaVersion > CurrentSchemaVersion)
+            {
+                rejection =
+                    "O save da nuvem usa uma versão incompatível com este jogo.";
+                return false;
+            }
+
+            string normalizedPlayerId = (expectedPlayerId ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(candidate.authenticatedPlayerId) &&
+                !string.IsNullOrWhiteSpace(normalizedPlayerId) &&
+                !string.Equals(
+                    candidate.authenticatedPlayerId.Trim(),
+                    normalizedPlayerId,
+                    StringComparison.Ordinal))
+            {
+                rejection =
+                    "O save da nuvem pertence a outra conta autenticada.";
+                return false;
+            }
+
+            try
+            {
+                SaveAtomically(json);
+                Load(_catalog, false);
+                if (!string.IsNullOrWhiteSpace(normalizedPlayerId) &&
+                    !TryBindAuthenticatedPlayerId(
+                        normalizedPlayerId,
+                        out rejection))
+                {
+                    return false;
+                }
+                Save(false);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                rejection = "Não foi possível ativar o save da nuvem: " +
+                            exception.Message;
+                return false;
+            }
         }
 
         private void SaveAtomically(string json)

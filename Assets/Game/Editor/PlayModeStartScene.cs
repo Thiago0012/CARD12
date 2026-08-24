@@ -8,15 +8,15 @@ namespace ArcaneDuel.Editor
     [InitializeOnLoad]
     public static class PlayModeStartScene
     {
-        private const string MainMenuPath =
-            "Assets/Scenes/MainMenu.unity";
+        private const string LoginPath =
+            "Assets/Scenes/Login.unity";
 
         static PlayModeStartScene()
         {
             EditorApplication.delayCall += Ensure;
         }
 
-        [MenuItem("Arcane Duel/Use Classic Main Menu as Play Start Scene")]
+        [MenuItem("Master Duel 2 Plus Ultra/Usar Abertura como Cena Inicial")]
         public static void Ensure()
         {
             if (Array.Exists(
@@ -28,14 +28,14 @@ namespace ArcaneDuel.Editor
             {
                 return;
             }
-            SceneAsset mainMenu =
-                AssetDatabase.LoadAssetAtPath<SceneAsset>(MainMenuPath);
-            if (mainMenu != null &&
-                EditorSceneManager.playModeStartScene != mainMenu)
+            SceneAsset login =
+                AssetDatabase.LoadAssetAtPath<SceneAsset>(LoginPath);
+            if (login != null &&
+                EditorSceneManager.playModeStartScene != login)
             {
-                EditorSceneManager.playModeStartScene = mainMenu;
+                EditorSceneManager.playModeStartScene = login;
                 Debug.Log(
-                    "Arcane Duel: Play Mode começará pela Central de Duelos clássica.");
+                    "Master Duel 2 Plus Ultra: Play Mode começará pela abertura.");
             }
         }
     }

@@ -156,6 +156,28 @@ namespace ArcaneArena.Frontend
                 await _instance.RefreshFromCatalogAsync("open");
         }
 
+        public static async Task<PlayerIdAccessSnapshot>
+            RebindCurrentAuthenticationAsync()
+        {
+            EnsureRuntimeExists();
+            if (!AuthenticationService.Instance.IsSignedIn)
+            {
+                throw new InvalidOperationException(
+                    "Nenhuma conta da Unity está autenticada.");
+            }
+
+            _instance._sessionId = Guid.NewGuid().ToString("N");
+            _instance.SetSnapshot(
+                PlayerIdAccessPolicy.CreateUnverifiedFallback(
+                    AuthenticationService.Instance.PlayerId));
+            if (_instance._settings.enabled &&
+                !string.IsNullOrWhiteSpace(_instance._settings.baseUrl))
+            {
+                await _instance.RefreshFromCatalogAsync("open");
+            }
+            return Current;
+        }
+
         private void Awake()
         {
             if (_instance != null && _instance != this)

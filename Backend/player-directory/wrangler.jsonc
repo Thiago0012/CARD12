@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "card12-player-directory",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-08-24",
+  "vars": {
+    "UNITY_PROJECT_ID": "c699af3d-47e9-4c80-97d5-c33c54cff05b",
+    "AUTH_ISSUER": "https://player-auth.services.api.unity.com"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "card12-player-directory",
+      "database_id": "REPLACE_AFTER_D1_CREATE",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
