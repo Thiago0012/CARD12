@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "card12-player-directory",
-      "database_id": "REPLACE_AFTER_D1_CREATE",
+      "database_id": "bf7470db-be48-439a-ac2e-041fca700570",
       "migrations_dir": "migrations"
     }
   ]

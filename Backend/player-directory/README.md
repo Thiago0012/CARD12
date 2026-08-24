@@ -7,6 +7,11 @@ pela Unity.
 
 ## Publicação
 
+Produção: `https://card12-player-directory.sousathi12.workers.dev`
+
+O banco D1 e o Worker já estão publicados. Os passos abaixo servem para
+republicações e manutenção futura.
+
 1. Instale as dependências com `npm install`.
 2. Autentique o Wrangler: `npx wrangler login`.
 3. Crie o banco: `npx wrangler d1 create card12-player-directory`.
