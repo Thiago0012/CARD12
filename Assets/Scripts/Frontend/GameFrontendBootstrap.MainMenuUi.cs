@@ -369,17 +369,89 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.570f, 0.463f),
                 OpenDeckEditorScene);
 
-            Image storyButton = CreateButton(
-                _screenRoot,
-                "CRÔNICAS DO DUELO",
-                new Vector2(0.405f, 0.018f),
-                new Vector2(0.595f, 0.078f),
-                Gold,
-                ShowStoryRoguelite);
-            DecorateRuntimeShopButton(storyButton, Gold, true, 8f);
-
             BuildDuelHubDeckPresentation();
             BuildDuelHubRankPresentation();
+            BuildDuelHubStoryEntry();
+        }
+
+        private void BuildDuelHubStoryEntry()
+        {
+            // Crônicas é um modo especial da Central, não parte da progressão
+            // de elo. A faixa superior direita mantém o acesso próximo do
+            // título, equilibra o botão de voltar e não encobre deck, patente
+            // ou nenhum dos quatro modos de duelo da arte original.
+            Image storyButton = CreateArcaneSurface(
+                _screenRoot,
+                "Acesso às Crônicas do Duelo",
+                new Vector2(0.742f, 0.907f),
+                new Vector2(0.974f, 0.985f),
+                ArcaneGold,
+                true,
+                0.84f);
+            AddButtonBehaviour(storyButton, ShowStoryRoguelite);
+            Button behaviour = storyButton.GetComponent<Button>();
+            ArcanePanelSheenGraphic sheen =
+                storyButton.GetComponentInChildren<ArcanePanelSheenGraphic>();
+            if (behaviour != null && sheen != null)
+                behaviour.targetGraphic = sheen;
+
+            Image seal = CreateArcaneSurface(
+                storyButton.transform,
+                "Selo das Crônicas",
+                new Vector2(0.025f, 0.16f),
+                new Vector2(0.145f, 0.84f),
+                ArcaneCyan,
+                true,
+                0.80f);
+            seal.raycastTarget = false;
+            CreateText(
+                seal.transform,
+                "✦",
+                23,
+                FontStyle.Bold,
+                new Color(0.96f, 0.80f, 0.46f, 1f),
+                new Vector2(0.08f, 0.08f),
+                new Vector2(0.92f, 0.92f),
+                TextAnchor.MiddleCenter)
+                .raycastTarget = false;
+
+            CreateText(
+                storyButton.transform,
+                "CRÔNICAS DO DUELO",
+                17,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.175f, 0.43f),
+                new Vector2(0.82f, 0.88f),
+                TextAnchor.MiddleLeft)
+                .raycastTarget = false;
+            CreateText(
+                storyButton.transform,
+                "JORNADA ROGUELITE  •  3 ATOS",
+                10,
+                FontStyle.Bold,
+                new Color(0.48f, 0.90f, 0.96f, 0.96f),
+                new Vector2(0.175f, 0.12f),
+                new Vector2(0.82f, 0.47f),
+                TextAnchor.MiddleLeft)
+                .raycastTarget = false;
+            CreateText(
+                storyButton.transform,
+                "›",
+                29,
+                FontStyle.Bold,
+                new Color(0.92f, 0.72f, 0.36f, 1f),
+                new Vector2(0.84f, 0.12f),
+                new Vector2(0.96f, 0.88f),
+                TextAnchor.MiddleCenter)
+                .raycastTarget = false;
+            CreatePanel(
+                storyButton.transform,
+                "Energia ciano das Crônicas",
+                new Vector2(0.18f, 0.045f),
+                new Vector2(0.78f, 0.075f),
+                new Color(ArcaneCyan.r, ArcaneCyan.g, ArcaneCyan.b, 0.82f))
+                .raycastTarget = false;
         }
 
         private void StartRankedMatchmakingFromDuelHub()
