@@ -84,6 +84,16 @@ namespace ArcaneDuel.Tests.EditMode
                     Is.True, nameError);
                 Assert.That(Bind(source, "unity-player-kim", out string bindError),
                     Is.True, bindError);
+                object sourceState = source.GetType()
+                    .GetProperty("State")
+                    .GetValue(source);
+                SetField(sourceState, "coinBalance", 4321);
+                object sourceRank = GetField(sourceState, "rankData");
+                SetField(sourceRank, "rankedPoints", 480);
+                object sourceStatistics = GetField(sourceState, "statistics");
+                object sourceOverall = GetField(sourceStatistics, "overall");
+                SetField(sourceOverall, "duelsPlayed", 17L);
+                SetField(sourceOverall, "wins", 11L);
                 string json = (string)source.GetType()
                     .GetMethod("ExportJson")
                     .Invoke(source, new object[] { true });
@@ -108,12 +118,47 @@ namespace ArcaneDuel.Tests.EditMode
                     restored.GetType().GetProperty("AuthenticatedPlayerId")
                         .GetValue(restored),
                     Is.EqualTo("unity-player-kim"));
+                object restoredState = restored.GetType()
+                    .GetProperty("State")
+                    .GetValue(restored);
+                Assert.That(GetField(restoredState, "coinBalance"),
+                    Is.EqualTo(4321));
+                Assert.That(
+                    GetField(GetField(restoredState, "rankData"),
+                        "rankedPoints"),
+                    Is.EqualTo(480));
+                object restoredOverall = GetField(
+                    GetField(restoredState, "statistics"),
+                    "overall");
+                Assert.That(GetField(restoredOverall, "duelsPlayed"),
+                    Is.EqualTo(17L));
+                Assert.That(GetField(restoredOverall, "wins"),
+                    Is.EqualTo(11L));
             }
             finally
             {
                 DeleteSave(sourcePath);
                 DeleteSave(restoredPath);
             }
+        }
+
+        [Test]
+        public void TitleAccountRestoreRequestIsConsumedOnlyOnce()
+        {
+            Type account = FindType(
+                "ArcaneArena.Frontend.PlayerAccountRuntime");
+            MethodInfo request = account.GetMethod(
+                "RequestRestoreOnNextMenu",
+                BindingFlags.Public | BindingFlags.Static);
+            MethodInfo consume = account.GetMethod(
+                "ConsumeRestoreRequest",
+                BindingFlags.Public | BindingFlags.Static);
+
+            consume.Invoke(null, null);
+            request.Invoke(null, null);
+
+            Assert.That((bool)consume.Invoke(null, null), Is.True);
+            Assert.That((bool)consume.Invoke(null, null), Is.False);
         }
 
         [Test]
@@ -179,6 +224,19 @@ namespace ArcaneDuel.Tests.EditMode
                 .Invoke(repository, arguments);
             rejection = arguments[1] as string;
             return result;
+        }
+
+        private static object GetField(object target, string name)
+        {
+            return target.GetType().GetField(name).GetValue(target);
+        }
+
+        private static void SetField(
+            object target,
+            string name,
+            object value)
+        {
+            target.GetType().GetField(name).SetValue(target, value);
         }
 
         private static Type FindType(string fullName)

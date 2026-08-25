@@ -1,11 +1,14 @@
 using System;
 using System.Threading.Tasks;
 using Unity.Services.Authentication;
+using UnityEngine;
 
 namespace ArcaneArena.Frontend
 {
     public static class PlayerAccountRuntime
     {
+        private static bool _restoreRequestedForNextMenu;
+
         public static event Action Changed;
 
         public static bool IsProtected =>
@@ -15,6 +18,18 @@ namespace ArcaneArena.Frontend
         public static string AccountUsername =>
             AuthenticationService.Instance.PlayerInfo?.Username ??
             string.Empty;
+
+        public static void RequestRestoreOnNextMenu()
+        {
+            _restoreRequestedForNextMenu = true;
+        }
+
+        public static bool ConsumeRestoreRequest()
+        {
+            bool requested = _restoreRequestedForNextMenu;
+            _restoreRequestedForNextMenu = false;
+            return requested;
+        }
 
         public static async Task RefreshProtectionStateAsync()
         {
@@ -73,28 +88,103 @@ namespace ArcaneArena.Frontend
         {
             ValidateCredentials(username, password);
             await PlayerIdAccessRuntime.EnsureReadyAsync();
+            string previousPlayerId = AuthenticationService.Instance.PlayerId;
             if (AuthenticationService.Instance.IsSignedIn)
             {
                 try
                 {
                     await PlayerCloudSaveRuntime.UploadNowAsync();
                 }
-                catch
+                catch (Exception exception)
                 {
-                    // O login não deve ficar preso se a conta anônima vazia
-                    // ainda não tiver Cloud Save habilitado no Dashboard.
+                    if (PlayerCloudSaveRuntime.HasLocalProfile)
+                    {
+                        throw new InvalidOperationException(
+                            "O perfil atual ainda não foi salvo na nuvem. " +
+                            "Sincronize-o antes de trocar de conta.",
+                            exception);
+                    }
                 }
-                AuthenticationService.Instance.SignOut(true);
+                // Mantém o token da sessão anterior até o novo login ser
+                // confirmado. Uma senha errada não pode deixar o save órfão.
+                AuthenticationService.Instance.SignOut(false);
             }
 
-            await AuthenticationService.Instance
-                .SignInWithUsernamePasswordAsync(
-                    username.Trim(),
-                    password);
+            try
+            {
+                await AuthenticationService.Instance
+                    .SignInWithUsernamePasswordAsync(
+                        username.Trim(),
+                        password);
+            }
+            catch (Exception exception)
+            {
+                bool restored = await RestorePreviousSessionAsync(
+                    previousPlayerId);
+                throw new InvalidOperationException(
+                    restored
+                        ? "Não foi possível entrar nessa conta. A conta que " +
+                          "já estava neste aparelho foi preservada."
+                        : "Não foi possível entrar nessa conta. Confira as " +
+                          "credenciais e tente novamente.",
+                    exception);
+            }
             await AuthenticationService.Instance.GetPlayerInfoAsync();
             await PlayerCloudSaveRuntime.ReloadForCurrentAccountAsync();
-            await PlayerIdAccessRuntime.RebindCurrentAuthenticationAsync();
+            if (PlayerCloudSaveRuntime.State !=
+                PlayerCloudSaveState.Synchronized)
+            {
+                throw new InvalidOperationException(
+                    "A conta foi autenticada, mas os dados ainda não puderam " +
+                    "ser restaurados. " + PlayerCloudSaveRuntime.Status);
+            }
+            await RebindSessionServicesAsync();
             Changed?.Invoke();
+        }
+
+        private static async Task<bool> RestorePreviousSessionAsync(
+            string previousPlayerId)
+        {
+            try
+            {
+                if (!AuthenticationService.Instance.IsSignedIn)
+                {
+                    await AuthenticationService.Instance
+                        .SignInAnonymouslyAsync();
+                }
+                bool restored = string.Equals(
+                    AuthenticationService.Instance.PlayerId,
+                    previousPlayerId,
+                    StringComparison.Ordinal);
+                if (restored)
+                    await RebindSessionServicesAsync();
+                return restored;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Conta] A sessão anterior não pôde ser retomada: " +
+                    exception.GetBaseException().Message);
+                return false;
+            }
+        }
+
+        private static async Task RebindSessionServicesAsync()
+        {
+            try
+            {
+                await PlayerIdAccessRuntime.RebindCurrentAuthenticationAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Conta] O catálogo de IDs reconectará depois: " +
+                    exception.GetBaseException().Message);
+            }
+
+            await PlayerFriendsRuntime.RebindCurrentAuthenticationAsync();
+            await FriendDuelChallengeRuntime
+                .RebindCurrentAuthenticationAsync();
         }
 
         private static void ValidateCredentials(

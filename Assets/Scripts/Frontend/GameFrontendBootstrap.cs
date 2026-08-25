@@ -781,6 +781,12 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            if (PlayerAccountRuntime.ConsumeRestoreRequest())
+            {
+                ShowAccountCredentials(true);
+                return;
+            }
+
             if (_repository != null && !_repository.HasPlayerProfile)
             {
                 ShowPlayerProfileSetup();

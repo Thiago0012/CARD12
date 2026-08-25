@@ -395,7 +395,10 @@ namespace ArcaneArena.Frontend
                 signInExisting ? "RESTAURAÇÃO DA IDENTIDADE" : "VÍNCULO DA IDENTIDADE");
             BuildHeader(
                 signInExisting ? "RESTAURAR CONTA" : "PROTEGER CONTA",
-                ShowAccountCenter);
+                signInExisting && _repository != null &&
+                !_repository.HasPlayerProfile
+                    ? ShowPlayerProfileSetup
+                    : ShowAccountCenter);
 
             Image stage = CreatePanel(
                 _screenRoot,

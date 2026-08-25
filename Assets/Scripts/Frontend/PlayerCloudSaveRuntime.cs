@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Unity.Services.Authentication;
 using Unity.Services.CloudSave;
@@ -64,6 +65,7 @@ namespace ArcaneArena.Frontend
         private string _writeLock;
         private string _cloudPlayerId;
         private bool _applyingRemote;
+        private readonly SemaphoreSlim _operationGate = new(1, 1);
 
         public static event Action Changed;
         public static PlayerCloudSaveState State { get; private set; } =
@@ -71,6 +73,8 @@ namespace ArcaneArena.Frontend
         public static string Status { get; private set; } =
             "Save local disponível.";
         public static long LastSynchronizedUtcTicks { get; private set; }
+        public static bool HasLocalProfile =>
+            _instance?._repository?.HasPlayerProfile == true;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureRuntimeExists()
@@ -97,6 +101,7 @@ namespace ArcaneArena.Frontend
         public static async Task ReloadForCurrentAccountAsync()
         {
             EnsureRuntimeExists();
+            _instance.CancelPendingUpload();
             _initialSyncTask = _instance.SynchronizeAsync(true);
             await _initialSyncTask;
         }
@@ -158,6 +163,19 @@ namespace ArcaneArena.Frontend
 
         private async Task SynchronizeAsync(bool forceRemote)
         {
+            await _operationGate.WaitAsync();
+            try
+            {
+                await SynchronizeCoreAsync(forceRemote);
+            }
+            finally
+            {
+                _operationGate.Release();
+            }
+        }
+
+        private async Task SynchronizeCoreAsync(bool forceRemote)
+        {
             if (!_settings.enabled || _repository == null)
             {
                 SetState(
@@ -201,7 +219,7 @@ namespace ArcaneArena.Frontend
                     {
                         throw new InvalidOperationException(bindRejection);
                     }
-                    await UploadCurrentAsync();
+                    await UploadCurrentCoreAsync();
                     return;
                 }
 
@@ -251,7 +269,7 @@ namespace ArcaneArena.Frontend
                 else if ((_repository.State?.lastModifiedUtcTicks ?? 0) >
                          remoteState.lastModifiedUtcTicks)
                 {
-                    await UploadCurrentAsync();
+                    await UploadCurrentCoreAsync();
                     return;
                 }
 
@@ -279,6 +297,36 @@ namespace ArcaneArena.Frontend
         }
 
         private async Task UploadCurrentAsync()
+        {
+            await _operationGate.WaitAsync();
+            try
+            {
+                await UploadCurrentCoreAsync();
+            }
+            catch (CloudSaveConflictException exception)
+            {
+                SetState(
+                    PlayerCloudSaveState.Conflict,
+                    "O perfil foi alterado em outro aparelho. Sincronize novamente.");
+                Debug.LogWarning("[Cloud Save conflito] " + exception.Message);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                SetState(
+                    PlayerCloudSaveState.Error,
+                    "Nuvem indisponível; seu save local foi preservado.");
+                Debug.LogWarning(
+                    "[Cloud Save] " + exception.GetBaseException().Message);
+                throw;
+            }
+            finally
+            {
+                _operationGate.Release();
+            }
+        }
+
+        private async Task UploadCurrentCoreAsync()
         {
             if (!_settings.enabled || _repository?.State == null ||
                 !AuthenticationService.Instance.IsSignedIn)
@@ -331,6 +379,36 @@ namespace ArcaneArena.Frontend
             SetState(
                 PlayerCloudSaveState.Synchronized,
                 "Conta e progresso sincronizados.");
+        }
+
+        private void CancelPendingUpload()
+        {
+            if (_pendingUpload == null)
+                return;
+            StopCoroutine(_pendingUpload);
+            _pendingUpload = null;
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (!paused || !_settings.enabled || _repository == null)
+                return;
+            CancelPendingUpload();
+            _ = UploadCurrentAsync();
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!focused || !_settings.enabled || _repository == null)
+                return;
+            _initialSyncTask = SynchronizeAsync(false);
+        }
+
+        private void OnApplicationQuit()
+        {
+            CancelPendingUpload();
+            if (_settings.enabled && _repository != null)
+                _ = UploadCurrentAsync();
         }
 
         private static void SetState(

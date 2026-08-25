@@ -60,6 +60,7 @@ namespace ArcaneArena.Frontend
         private string _joinedReportedChallengeId = string.Empty;
         private float _hostStartedAt;
         private float _joinStartedAt;
+        private int _identityGeneration;
 
         public static event Action Changed;
 
@@ -87,6 +88,26 @@ namespace ArcaneArena.Frontend
         {
             EnsureExists();
             return _readyTask ?? Task.CompletedTask;
+        }
+
+        public static async Task RebindCurrentAuthenticationAsync()
+        {
+            EnsureExists();
+            if (_readyTask != null)
+            {
+                try
+                {
+                    await _readyTask;
+                }
+                catch
+                {
+                    // Uma inicialização antiga não pode impedir o novo login.
+                }
+            }
+
+            _instance.ResetForIdentityChange();
+            _readyTask = _instance.InitializeAsync();
+            await _readyTask;
         }
 
         public static async Task ChallengeAsync(
@@ -220,6 +241,28 @@ namespace ArcaneArena.Frontend
             }
         }
 
+        private void ResetForIdentityChange()
+        {
+            _identityGeneration++;
+            if (_pollLoop != null)
+            {
+                StopCoroutine(_pollLoop);
+                _pollLoop = null;
+            }
+            _initialized = false;
+            _busy = false;
+            _pollInProgress = false;
+            _bridgeMutationInProgress = false;
+            _incoming = null;
+            _outgoing = null;
+            _hostStartedChallengeId = string.Empty;
+            _joinStartedChallengeId = string.Empty;
+            _roomPublishedChallengeId = string.Empty;
+            _joinedReportedChallengeId = string.Empty;
+            _status = "Reconectando convites à conta restaurada...";
+            NotifyChanged();
+        }
+
         private IEnumerator PollLoop()
         {
             var delay = new WaitForSecondsRealtime(PollIntervalSeconds);
@@ -348,11 +391,14 @@ namespace ArcaneArena.Frontend
         {
             if (_pollInProgress || !_initialized)
                 return;
+            int identityGeneration = _identityGeneration;
             _pollInProgress = true;
             try
             {
                 string priorSignature = StateSignature();
                 string json = await SendAsync("/v1/duel/challenges", "GET", null);
+                if (identityGeneration != _identityGeneration)
+                    return;
                 FriendDuelChallengeStateResponse response =
                     JsonUtility.FromJson<FriendDuelChallengeStateResponse>(json);
                 if (response == null || response.schemaVersion < 1)
@@ -370,6 +416,8 @@ namespace ArcaneArena.Frontend
             }
             catch (Exception exception)
             {
+                if (identityGeneration != _identityGeneration)
+                    return;
                 if (!background)
                     throw;
                 _status = "Os convites serão sincronizados novamente: " +
@@ -379,7 +427,8 @@ namespace ArcaneArena.Frontend
             }
             finally
             {
-                _pollInProgress = false;
+                if (identityGeneration == _identityGeneration)
+                    _pollInProgress = false;
             }
         }
 

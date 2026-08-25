@@ -47,6 +47,9 @@ namespace ArcaneArena.Frontend
         private Button _updateButton;
         private Text _updateLabel;
         private Action _updateAction;
+        private GameObject _accountRestoreOffer;
+        private Button _accountRestoreButton;
+        private CanvasGroup _accountRestoreGroup;
 
         public void Configure(
             RectTransform logoRect,
@@ -93,6 +96,8 @@ namespace ArcaneArena.Frontend
 
         private void Start()
         {
+            BuildAccountRestoreOffer();
+            SetCanvasGroup(_accountRestoreGroup, 0f, false);
             if (themeSource != null && loginTheme != null)
             {
                 themeSource.volume = 0f;
@@ -114,6 +119,11 @@ namespace ArcaneArena.Frontend
                 loginButton.onClick.RemoveListener(HandleLoginButton);
             if (_updateButton != null)
                 _updateButton.onClick.RemoveListener(HandleUpdateButton);
+            if (_accountRestoreButton != null)
+            {
+                _accountRestoreButton.onClick.RemoveListener(
+                    HandleAccountRestoreButton);
+            }
         }
 
         /// <summary>
@@ -129,6 +139,8 @@ namespace ArcaneArena.Frontend
             _updateBlocksEntry = blocksEntry;
             if (loginButton != null && blocksEntry)
                 loginButton.interactable = false;
+            if (_accountRestoreButton != null && blocksEntry)
+                _accountRestoreButton.interactable = false;
 
             if (_updateOffer == null)
                 BuildUpdateOffer();
@@ -165,6 +177,85 @@ namespace ArcaneArena.Frontend
             {
                 loginButton.interactable = true;
             }
+            if (!_isLeaving && _accountRestoreButton != null &&
+                (_accountRestoreGroup == null ||
+                 _accountRestoreGroup.alpha > 0.99f))
+            {
+                _accountRestoreButton.interactable = true;
+            }
+        }
+
+        private void BuildAccountRestoreOffer()
+        {
+            if (_accountRestoreOffer != null)
+                return;
+            Transform parent = loginButton != null
+                ? loginButton.transform.parent
+                : transform;
+            _accountRestoreOffer = new GameObject(
+                "Acesso à Conta Existente",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(Outline),
+                typeof(Button),
+                typeof(CanvasGroup));
+            _accountRestoreOffer.transform.SetParent(parent, false);
+            RectTransform rect =
+                _accountRestoreOffer.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(0f, -505f);
+            rect.sizeDelta = new Vector2(300f, 56f);
+
+            Image background = _accountRestoreOffer.GetComponent<Image>();
+            background.color = new Color(0.012f, 0.035f, 0.060f, 0.92f);
+            Outline outline = _accountRestoreOffer.GetComponent<Outline>();
+            outline.effectColor = new Color(0.54f, 0.72f, 0.82f, 0.82f);
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+            _accountRestoreButton =
+                _accountRestoreOffer.GetComponent<Button>();
+            _accountRestoreButton.targetGraphic = background;
+            ColorBlock colors = _accountRestoreButton.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(0.72f, 0.96f, 1f, 1f);
+            colors.pressedColor = new Color(0.38f, 0.78f, 0.90f, 1f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.disabledColor = new Color(0.38f, 0.48f, 0.54f, 0.72f);
+            colors.fadeDuration = 0.10f;
+            _accountRestoreButton.colors = colors;
+            _accountRestoreButton.onClick.AddListener(
+                HandleAccountRestoreButton);
+            _accountRestoreGroup =
+                _accountRestoreOffer.GetComponent<CanvasGroup>();
+
+            CreateUpdateText(
+                _accountRestoreOffer.transform,
+                "ENTRAR EM CONTA",
+                16,
+                new Color(0.82f, 0.94f, 1f, 1f),
+                new Vector2(0.05f, 0.34f),
+                new Vector2(0.95f, 0.92f));
+            CreateUpdateText(
+                _accountRestoreOffer.transform,
+                "RECUPERAR NO PC OU CELULAR",
+                9,
+                new Color(0.48f, 0.70f, 0.80f, 1f),
+                new Vector2(0.05f, 0.05f),
+                new Vector2(0.95f, 0.40f));
+        }
+
+        private void HandleAccountRestoreButton()
+        {
+            if (_isLeaving || _updateBlocksEntry ||
+                !RemoteUpdateRuntime.EntryReady)
+            {
+                return;
+            }
+            PlayerAccountRuntime.RequestRestoreOnNextMenu();
+            HandleLoginButton();
         }
 
         private void BuildUpdateOffer()
@@ -343,6 +434,8 @@ namespace ArcaneArena.Frontend
             _isLeaving = true;
             if (loginButton != null)
                 loginButton.interactable = false;
+            if (_accountRestoreButton != null)
+                _accountRestoreButton.interactable = false;
             StopAllCoroutines();
             StartCoroutine(LeaveForMainMenu());
         }
@@ -383,6 +476,8 @@ namespace ArcaneArena.Frontend
                     elapsed / buttonFadeDuration);
                 if (loginButtonGroup != null)
                     loginButtonGroup.alpha = progress;
+                if (_accountRestoreGroup != null)
+                    _accountRestoreGroup.alpha = progress;
                 yield return null;
             }
 
@@ -390,9 +485,13 @@ namespace ArcaneArena.Frontend
                 yield break;
 
             SetCanvasGroup(loginButtonGroup, 1f, true);
+            SetCanvasGroup(_accountRestoreGroup, 1f, true);
             if (loginButton != null)
                 loginButton.interactable = !_updateBlocksEntry &&
                                            RemoteUpdateRuntime.EntryReady;
+            if (_accountRestoreButton != null)
+                _accountRestoreButton.interactable = !_updateBlocksEntry &&
+                                                     RemoteUpdateRuntime.EntryReady;
         }
 
         private IEnumerator PlayTitleAccents()
@@ -454,8 +553,12 @@ namespace ArcaneArena.Frontend
                     "A cena MainMenu nao esta disponivel no Build Settings.");
                 _isLeaving = false;
                 SetCanvasGroup(loginButtonGroup, 1f, true);
+                SetCanvasGroup(_accountRestoreGroup, 1f, true);
                 if (loginButton != null)
                     loginButton.interactable = true;
+                if (_accountRestoreButton != null)
+                    _accountRestoreButton.interactable = true;
+                PlayerAccountRuntime.ConsumeRestoreRequest();
                 yield break;
             }
 
