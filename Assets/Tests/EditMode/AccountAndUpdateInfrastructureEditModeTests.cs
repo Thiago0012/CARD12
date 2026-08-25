@@ -192,6 +192,29 @@ namespace ArcaneDuel.Tests.EditMode
             }
         }
 
+        [Test]
+        public void CloudRestoreRequiresARealPlayerProfile()
+        {
+            Type stateType = FindType(
+                "ArcaneArena.Frontend.DeckCollectionState");
+            object emptyState = Activator.CreateInstance(stateType);
+            object namedState = Activator.CreateInstance(stateType);
+            SetField(namedState, "playerDisplayName", "KimDelas");
+
+            Type runtime = FindType(
+                "ArcaneArena.Frontend.PlayerCloudSaveRuntime");
+            MethodInfo hasProfile = runtime.GetMethod(
+                "HasPlayerProfile",
+                BindingFlags.NonPublic | BindingFlags.Static);
+
+            Assert.That(
+                (bool)hasProfile.Invoke(null, new[] { emptyState }),
+                Is.False);
+            Assert.That(
+                (bool)hasProfile.Invoke(null, new[] { namedState }),
+                Is.True);
+        }
+
         private static object CreateRepository(string path)
         {
             Type type = FindType("ArcaneArena.Frontend.DeckRepository");

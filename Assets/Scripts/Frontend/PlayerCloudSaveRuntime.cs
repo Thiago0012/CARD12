@@ -95,14 +95,22 @@ namespace ArcaneArena.Frontend
         {
             EnsureRuntimeExists();
             return _initialSyncTask ??=
-                _instance.SynchronizeAsync(false);
+                _instance.SynchronizeAsync(false, false);
         }
 
         public static async Task ReloadForCurrentAccountAsync()
         {
             EnsureRuntimeExists();
             _instance.CancelPendingUpload();
-            _initialSyncTask = _instance.SynchronizeAsync(true);
+            _initialSyncTask = _instance.SynchronizeAsync(true, false);
+            await _initialSyncTask;
+        }
+
+        public static async Task RestoreForCurrentAccountAsync()
+        {
+            EnsureRuntimeExists();
+            _instance.CancelPendingUpload();
+            _initialSyncTask = _instance.SynchronizeAsync(true, true);
             await _initialSyncTask;
         }
 
@@ -161,12 +169,14 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        private async Task SynchronizeAsync(bool forceRemote)
+        private async Task SynchronizeAsync(
+            bool forceRemote,
+            bool requireRemoteProfile)
         {
             await _operationGate.WaitAsync();
             try
             {
-                await SynchronizeCoreAsync(forceRemote);
+                await SynchronizeCoreAsync(forceRemote, requireRemoteProfile);
             }
             finally
             {
@@ -174,7 +184,9 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        private async Task SynchronizeCoreAsync(bool forceRemote)
+        private async Task SynchronizeCoreAsync(
+            bool forceRemote,
+            bool requireRemoteProfile)
         {
             if (!_settings.enabled || _repository == null)
             {
@@ -213,6 +225,21 @@ namespace ArcaneArena.Frontend
                         StringComparison.Ordinal));
                 if (remoteFile == null)
                 {
+                    if (requireRemoteProfile)
+                    {
+                        throw new InvalidOperationException(
+                            "Nenhum perfil salvo foi encontrado na nuvem " +
+                            "para essa conta. Entre no aparelho antigo, use " +
+                            "SINCRONIZAR AGORA e tente restaurar novamente.");
+                    }
+                    if (!_repository.HasPlayerProfile)
+                    {
+                        SetState(
+                            PlayerCloudSaveState.Offline,
+                            "Nenhum perfil salvo ainda. Crie uma identidade " +
+                            "ou entre em uma conta existente.");
+                        return;
+                    }
                     if (!_repository.TryBindAuthenticatedPlayerId(
                             playerId,
                             out string bindRejection))
@@ -240,6 +267,24 @@ namespace ArcaneArena.Frontend
                         _repository.AuthenticatedPlayerId,
                         playerId,
                         StringComparison.Ordinal);
+                bool remoteHasPlayerProfile =
+                    HasPlayerProfile(remoteState);
+                if (!remoteHasPlayerProfile)
+                {
+                    if (requireRemoteProfile ||
+                        localBelongsToAnotherAccount ||
+                        !_repository.HasPlayerProfile)
+                    {
+                        throw new InvalidOperationException(
+                            "A conta foi autenticada, mas o perfil salvo na " +
+                            "nuvem ainda não possui identidade de duelista. " +
+                            "Abra o aparelho onde o perfil existe e sincronize.");
+                    }
+
+                    await UploadCurrentCoreAsync();
+                    return;
+                }
+
                 bool remoteIsNewer =
                     remoteState.lastModifiedUtcTicks >
                     (_repository.State?.lastModifiedUtcTicks ?? 0);
@@ -401,7 +446,7 @@ namespace ArcaneArena.Frontend
         {
             if (!focused || !_settings.enabled || _repository == null)
                 return;
-            _initialSyncTask = SynchronizeAsync(false);
+            _initialSyncTask = SynchronizeAsync(false, false);
         }
 
         private void OnApplicationQuit()
@@ -428,6 +473,12 @@ namespace ArcaneArena.Frontend
                 : JsonUtility.FromJson<Settings>(asset.text) ?? new Settings();
             settings.Normalize();
             return settings;
+        }
+
+        private static bool HasPlayerProfile(DeckCollectionState state)
+        {
+            return !string.IsNullOrWhiteSpace(
+                state?.playerDisplayName);
         }
 
         private void OnDestroy()

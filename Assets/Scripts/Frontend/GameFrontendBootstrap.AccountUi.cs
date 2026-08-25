@@ -6,6 +6,61 @@ namespace ArcaneArena.Frontend
 {
     public sealed partial class GameFrontendBootstrap
     {
+        private void ShowAccountBootstrapScreen()
+        {
+            SetDuelPresentation(false);
+            ClearScreen();
+            BuildSharedBackground("IDENTIDADE DO DUELISTA");
+
+            Image stage = CreatePanel(
+                _screenRoot,
+                "Verificação Inicial da Conta",
+                new Vector2(0.22f, 0.26f),
+                new Vector2(0.78f, 0.70f),
+                Color.clear);
+            Image panel = CreateArcaneSurface(
+                stage.transform,
+                "Painel de Verificação da Conta",
+                Vector2.zero,
+                Vector2.one,
+                ArcaneCyan,
+                true,
+                0.88f);
+            CreatePanel(
+                panel.transform,
+                "Marcador de Verificação",
+                new Vector2(0.03f, 0.18f),
+                new Vector2(0.042f, 0.82f),
+                ArcaneGold).raycastTarget = false;
+            CreateText(
+                panel.transform,
+                "VERIFICANDO CONTA",
+                24,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.08f, 0.58f),
+                new Vector2(0.92f, 0.82f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                panel.transform,
+                "Carregando o ID numérico, a conta vinculada e o perfil salvo na nuvem.",
+                13,
+                FontStyle.Normal,
+                Muted,
+                new Vector2(0.08f, 0.38f),
+                new Vector2(0.92f, 0.58f),
+                TextAnchor.UpperLeft);
+            CreateText(
+                panel.transform,
+                PlayerCloudSaveRuntime.Status,
+                11,
+                FontStyle.Bold,
+                ArcaneGold,
+                new Vector2(0.08f, 0.20f),
+                new Vector2(0.92f, 0.33f),
+                TextAnchor.MiddleLeft);
+        }
+
         private void ShowAccountCenter()
         {
             SetDuelPresentation(false);

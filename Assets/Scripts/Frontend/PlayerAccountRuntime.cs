@@ -130,7 +130,7 @@ namespace ArcaneArena.Frontend
                     exception);
             }
             await AuthenticationService.Instance.GetPlayerInfoAsync();
-            await PlayerCloudSaveRuntime.ReloadForCurrentAccountAsync();
+            await PlayerCloudSaveRuntime.RestoreForCurrentAccountAsync();
             if (PlayerCloudSaveRuntime.State !=
                 PlayerCloudSaveState.Synchronized)
             {

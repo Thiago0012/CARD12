@@ -134,6 +134,7 @@ namespace ArcaneArena.Frontend
         private DeckRecord _editingDeck;
         private bool _duelPresentationVisible;
         private bool _editorRefreshQueued;
+        private bool _accountBootstrapPending;
         private string _catalogSearch = string.Empty;
         private string _shopFeedback = string.Empty;
         private bool _shopFeedbackIsError;
@@ -221,9 +222,14 @@ namespace ArcaneArena.Frontend
             _repository = new DeckRepository();
             _repository.Load(_catalog);
             PlayerCloudSaveRuntime.Attach(_repository);
+            _accountBootstrapPending = !IsDuelSceneName(
+                SceneManager.GetActiveScene().name);
             InitializePlayerIdAccess();
             InitializeCoinRewardAuthorization();
-            InitializeScenePresentation();
+            if (_accountBootstrapPending)
+                ShowAccountBootstrapScreen();
+            else
+                InitializeScenePresentation();
             if (!IsActiveScene(DuelArenaSceneName) &&
                 !HasCommandArgument("-arcaneSkipTitle"))
             {
@@ -778,6 +784,12 @@ namespace ArcaneArena.Frontend
             if (IsDuelSceneName(sceneName))
             {
                 StartCoroutine(StartRequestedDuelAfterArenaReset());
+                return;
+            }
+
+            if (_accountBootstrapPending)
+            {
+                ShowAccountBootstrapScreen();
                 return;
             }
 

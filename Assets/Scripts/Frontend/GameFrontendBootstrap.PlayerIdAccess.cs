@@ -33,36 +33,45 @@ namespace ArcaneArena.Frontend
 
         private async Task BindPlayerIdWhenReadyAsync()
         {
-            PlayerIdAccessSnapshot snapshot =
-                await PlayerIdAccessRuntime.EnsureReadyAsync();
-            if (this != null && snapshot != null)
+            try
             {
-                ApplyPlayerIdAccess(snapshot);
-                try
+                PlayerIdAccessSnapshot snapshot =
+                    await PlayerIdAccessRuntime.EnsureReadyAsync();
+                if (this != null && snapshot != null)
                 {
-                    await PlayerCloudSaveRuntime.EnsureSynchronizedAsync();
-                    if (this == null)
-                        return;
-                    PlayerIdAccessRuntime.SetPlayerDisplayName(
-                        _repository?.PlayerDisplayName);
-                    SyncPublicProfileSnapshot(true);
-                    PlayerFriendsRuntime.SetLocalDisplayName(
-                        _repository?.PlayerDisplayName);
-                    if (!IsDuelSceneName(
-                            UnityEngine.SceneManagement.SceneManager
-                                .GetActiveScene().name) &&
-                        !_playerIdAccessScreenVisible)
+                    ApplyPlayerIdAccess(snapshot);
+                    try
                     {
-                        InitializeScenePresentation();
+                        await PlayerCloudSaveRuntime.EnsureSynchronizedAsync();
+                        if (this == null)
+                            return;
+                        PlayerIdAccessRuntime.SetPlayerDisplayName(
+                            _repository?.PlayerDisplayName);
+                        SyncPublicProfileSnapshot(true);
+                        PlayerFriendsRuntime.SetLocalDisplayName(
+                            _repository?.PlayerDisplayName);
+                        await PlayerIdAccessRuntime.RefreshNowAsync();
                     }
-                    await PlayerIdAccessRuntime.RefreshNowAsync();
+                    catch (Exception exception)
+                    {
+                        Debug.LogWarning(
+                            "O nome público será enviado ao catálogo no próximo " +
+                            "heartbeat: " +
+                            exception.GetBaseException().Message);
+                    }
                 }
-                catch (Exception exception)
+            }
+            finally
+            {
+                if (this == null)
+                    return;
+                _accountBootstrapPending = false;
+                if (!IsDuelSceneName(
+                        UnityEngine.SceneManagement.SceneManager
+                            .GetActiveScene().name) &&
+                    !_playerIdAccessScreenVisible)
                 {
-                    Debug.LogWarning(
-                        "O nome público será enviado ao catálogo no próximo " +
-                        "heartbeat: " +
-                        exception.GetBaseException().Message);
+                    InitializeScenePresentation();
                 }
             }
         }

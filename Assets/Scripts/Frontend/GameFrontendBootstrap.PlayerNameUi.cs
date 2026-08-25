@@ -264,14 +264,31 @@ namespace ArcaneArena.Frontend
             CreateArcaneActionButton(
                 parent,
                 canReturn ? "SALVAR IDENTIDADE" : "CONFIRMAR IDENTIDADE",
-                new Vector2(0.18f, 0.15f),
-                new Vector2(0.82f, 0.30f),
+                canReturn
+                    ? new Vector2(0.18f, 0.15f)
+                    : new Vector2(0.18f, 0.21f),
+                canReturn
+                    ? new Vector2(0.82f, 0.30f)
+                    : new Vector2(0.82f, 0.34f),
                 canReturn ? ArcaneCyan : Lime,
                 confirm,
                 15);
+            if (!canReturn)
+            {
+                CreateArcaneActionButton(
+                    parent,
+                    "ENTRAR EM CONTA EXISTENTE",
+                    new Vector2(0.18f, 0.105f),
+                    new Vector2(0.82f, 0.19f),
+                    ArcaneCyan,
+                    () => ShowAccountCredentials(true),
+                    12);
+            }
             CreateText(
                 parent,
-                "O NOME E O ID SERÃO ASSOCIADOS AO SEU REGISTRO DE JOGADOR",
+                canReturn
+                    ? "O NOME E O ID SERÃO ASSOCIADOS AO SEU REGISTRO DE JOGADOR"
+                    : "SE VOCÊ JÁ TEM CONTA, ENTRE ANTES DE CRIAR OUTRO PERFIL",
                 9,
                 FontStyle.Bold,
                 ArcaneGold,
