@@ -62,5 +62,68 @@ namespace ArcaneDuel.Tests.EditMode
                 Does.Contain(BanlistService.ActiveBanlistId));
         }
 
+        [TestCase(RuntimePlatform.Android)]
+        [TestCase(RuntimePlatform.WindowsPlayer)]
+        [TestCase(RuntimePlatform.WindowsEditor)]
+        [TestCase(RuntimePlatform.IPhonePlayer)]
+        public void RelayPolicyUsesFirewallSafeEncryptedWebSockets(
+            RuntimePlatform platform)
+        {
+            Assert.That(
+                SelectRelayProtocol(platform),
+                Is.EqualTo("WSS"));
+            Assert.That(
+                RelayProtocolRequiresWebSockets(),
+                Is.True);
+        }
+
+        [Test]
+        public void InstalledProductIdentityUsesCurrentGameName()
+        {
+            Assert.That(
+                ProjectIdentity.ProductName,
+                Is.EqualTo("Master Duel 2 Plus Ultra"));
+            Assert.That(
+                PlayerSettings.productName,
+                Is.EqualTo(ProjectIdentity.ProductName));
+        }
+
+        private static string SelectRelayProtocol(RuntimePlatform platform)
+        {
+            foreach (System.Reflection.Assembly assembly in
+                     System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                System.Type policy = assembly.GetType(
+                    "ArcaneArena.Multiplayer.RelayTransportPolicy");
+                if (policy == null)
+                    continue;
+                object selected = policy.GetMethod("Select")?.Invoke(
+                    null,
+                    new object[] { platform });
+                return selected?.ToString() ?? string.Empty;
+            }
+            return string.Empty;
+        }
+
+        private static bool RelayProtocolRequiresWebSockets()
+        {
+            foreach (System.Reflection.Assembly assembly in
+                     System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                System.Type policy = assembly.GetType(
+                    "ArcaneArena.Multiplayer.RelayTransportPolicy");
+                if (policy == null)
+                    continue;
+                object selected = policy.GetMethod("Select")?.Invoke(
+                    null,
+                    new object[] { RuntimePlatform.Android });
+                object requiresWebSockets = policy
+                    .GetMethod("RequiresWebSockets")
+                    ?.Invoke(null, new[] { selected });
+                return requiresWebSockets is true;
+            }
+            return false;
+        }
+
     }
 }

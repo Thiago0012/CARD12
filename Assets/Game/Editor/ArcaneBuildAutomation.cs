@@ -74,7 +74,9 @@ namespace ArcaneDuel.Editor
                 "Builds",
                 folderName);
             Directory.CreateDirectory(outputDirectory);
-            string output = Path.Combine(outputDirectory, "ArcaneDuel.exe");
+            string output = Path.Combine(
+                outputDirectory,
+                "MasterDuel2PlusUltra.exe");
             string[] scenes = EditorBuildSettings.scenes
                 .Where(scene => scene.enabled)
                 .Select(scene => scene.path)
@@ -154,7 +156,7 @@ namespace ArcaneDuel.Editor
             Directory.CreateDirectory(outputDirectory);
             string output = Path.Combine(
                 outputDirectory,
-                "ArcaneDuel.apk");
+                "MasterDuel2PlusUltra.apk");
             string[] scenes = EditorBuildSettings.scenes
                 .Where(scene => scene.enabled)
                 .Select(scene => scene.path)

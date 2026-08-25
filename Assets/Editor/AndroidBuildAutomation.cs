@@ -81,7 +81,7 @@ namespace ArcaneArena.EditorTools
                 : PlayerSettings.bundleVersion.Replace(' ', '-');
             string apkPath = Path.Combine(
                 OutputDirectory,
-                $"ArcaneDuel-v{safeVersion}-arm64.apk");
+                $"MasterDuel2PlusUltra-v{safeVersion}-arm64.apk");
 
             var options = new BuildPlayerOptions
             {

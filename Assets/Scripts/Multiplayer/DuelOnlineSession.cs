@@ -65,6 +65,7 @@ namespace ArcaneArena.Multiplayer
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
+        private const int ConnectionApprovalTimeoutSeconds = 12;
         private const int MaximumHandshakeAttempts = 40;
         private const int MaximumStartAttempts = 80;
         private const float HandshakeRetrySeconds = 0.75f;
@@ -1249,6 +1250,13 @@ namespace ArcaneArena.Multiplayer
             transport.HeartbeatTimeoutMS = TransportHeartbeatMilliseconds;
             transport.DisconnectTimeoutMS =
                 TransportDisconnectTimeoutMilliseconds;
+            RelayTransportPolicy.ApplyTo(
+                transport,
+                sessionCoordinator.ActiveRelayProtocol);
+            Debug.Log(
+                "[MP] stage=relay-transport-config protocol=" +
+                sessionCoordinator.ActiveRelayProtocol +
+                " useWebSockets=" + transport.UseWebSockets);
             networkManager = GetComponent<NetworkManager>() ??
                              NetworkManager.Singleton ??
                              gameObject.AddComponent<NetworkManager>();
@@ -1717,16 +1725,16 @@ namespace ArcaneArena.Multiplayer
             networkManager.NetworkConfig.ConnectionData = payload;
         }
 
-        private void ApproveConnection(
+        private async void ApproveConnection(
             NetworkManager.ConnectionApprovalRequest request,
             NetworkManager.ConnectionApprovalResponse response)
         {
-            response.Pending = false;
             response.CreatePlayerObject = false;
 
             if (request.ClientNetworkId == NetworkManager.ServerClientId)
             {
                 response.Approved = true;
+                response.Pending = false;
                 return;
             }
 
@@ -1740,29 +1748,79 @@ namespace ArcaneArena.Multiplayer
                     approval.v == ProtocolVersion &&
                     approval.c ==
                         MultiplayerSessionCoordinator.ComputeCompatibilityHash();
+                if (!compatible)
+                {
+                    CompleteConnectionApproval(
+                        response,
+                        false,
+                        "Versão do jogo incompatível.",
+                        false,
+                        compatible);
+                    return;
+                }
+
                 bool sessionMember = approval != null &&
                     sessionCoordinator.HasMember(approval.p);
+                if (!sessionMember)
+                {
+                    // JoinSessionByCodeAsync first registers the player in
+                    // Lobby and then starts NGO. On slower mobile networks the
+                    // Relay connection may reach this callback before the
+                    // host's cached session has received the Lobby event.
+                    response.Pending = true;
+                    Debug.Log(
+                        "[MP] stage=connection-approval pending=membership");
+                    sessionMember = await sessionCoordinator.WaitForMemberAsync(
+                        approval.p,
+                        TimeSpan.FromSeconds(
+                            ConnectionApprovalTimeoutSeconds));
+                }
+
                 bool capacityAvailable = networkManager != null &&
                     networkManager.ConnectedClientsIds.Count < 2;
-
-                response.Approved = compatible && sessionMember &&
-                    capacityAvailable && (!matchStarted ||
-                        hostAwaitingReconnect);
-                response.Reason = response.Approved
-                    ? string.Empty
-                    : "Sala cheia, partida iniciada ou versão incompatível.";
-                Debug.Log("[MP] stage=connection-approval approved=" +
-                    response.Approved + " member=" + sessionMember +
-                    " compatible=" + compatible);
+                bool matchAvailable = !matchStarted || hostAwaitingReconnect;
+                bool approved = sessionMember && capacityAvailable &&
+                    matchAvailable;
+                string rejection = !sessionMember
+                    ? "A presença do jogador não foi confirmada no Lobby."
+                    : !capacityAvailable
+                        ? "A sala já está cheia."
+                        : !matchAvailable
+                            ? "A partida já foi iniciada."
+                            : string.Empty;
+                CompleteConnectionApproval(
+                    response,
+                    approved,
+                    rejection,
+                    sessionMember,
+                    compatible);
             }
             catch (Exception exception)
             {
                 response.Approved = false;
                 response.Reason = "Identidade de conexão inválida.";
+                response.Pending = false;
                 Debug.LogWarning(
                     "[MP] stage=connection-approval approved=false error=" +
                     exception.GetType().Name);
             }
+        }
+
+        private static void CompleteConnectionApproval(
+            NetworkManager.ConnectionApprovalResponse response,
+            bool approved,
+            string rejection,
+            bool sessionMember,
+            bool compatible)
+        {
+            response.Approved = approved;
+            response.Reason = approved ? string.Empty : rejection;
+            // Pending must be the last field written: NGO observes this
+            // object and finalizes approval as soon as it becomes false.
+            response.Pending = false;
+            Debug.Log("[MP] stage=connection-approval approved=" +
+                approved + " member=" + sessionMember +
+                " compatible=" + compatible);
         }
 
         private IEnumerator TryRestorePersistedClientSession()
@@ -5882,7 +5940,8 @@ namespace ArcaneArena.Multiplayer
             {
                 return "Código da sala não encontrado no Relay. O anfitrião " +
                     "pode ter saído da sala; mantenha o jogo do anfitrião aberto " +
-                    "e use um novo código criado neste mesmo Card12.";
+                    "e use um novo código criado no mesmo " +
+                    ProjectIdentity.ProductName + ".";
             }
             return $"Não foi possível entrar na sala: {detail}";
         }
@@ -6203,14 +6262,17 @@ namespace ArcaneArena.Multiplayer
         {
             if (!IsOnlineDuelActive)
             {
-                return "ONLINE v11 • Sessions escolhe a melhor região Relay.";
+                return "ONLINE v12 • Relay " +
+                    RelayTransportPolicy.DisplayName +
+                    " • melhor região automática.";
             }
 
             int roundTrip = RelayRoundTripTimeMs;
             string rtt = roundTrip < 0
                 ? "medindo RTT..."
                 : $"RTT real: {roundTrip} ms";
-            return $"ONLINE v11 • Relay: {GetRelayRegionLabel()}  •  {rtt}";
+            return $"ONLINE v12 • Relay {RelayTransportPolicy.DisplayName}: " +
+                $"{GetRelayRegionLabel()}  •  {rtt}";
         }
 
         private string GetRelayRegionLabel()
