@@ -38,3 +38,19 @@ Authorization: Bearer <ADMIN_TOKEN>
 
 Revogar a função usa o mesmo endereço com `DELETE`. Bloqueios de capacidade
 usam `/block/<chave>`. Todas as alterações ficam registradas no audit log.
+
+## Desafios privados entre amigos
+
+Os convites de duelo usam o mesmo JWT da conta Unity e nunca expõem o código
+Relay publicamente. O fluxo persistente é:
+
+1. `POST /v1/duel/challenges` cria um convite Casual ou Ranqueado.
+2. O convidado aceita ou recusa em
+   `/v1/duel/challenges/<id>/accept|decline`.
+3. Depois da aceitação, somente o remetente publica o código privado em
+   `/room` e somente o convidado confirma a entrada em `/joined`.
+4. `GET /v1/duel/challenges` restaura o convite após troca de tela,
+   reconexão ou reinício do jogo.
+
+Convites expiram automaticamente, uma conta não pode manter dois desafios
+ativos e qualquer participante pode cancelar antes da entrada na sala.

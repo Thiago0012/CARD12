@@ -15,6 +15,7 @@ namespace ArcaneArena.Frontend
         {
             Connections,
             Requests,
+            Duels,
             Add
         }
 
@@ -27,10 +28,13 @@ namespace ArcaneArena.Frontend
         private bool _friendsAutomaticRefreshRunning;
         private GameObject _friendsUiRoot;
         private Button _mainMenuFriendsButton;
+        private GameObject _friendDuelModeModal;
 
         private void OpenPlayerSearchFromBell()
         {
-            _friendsPage = FriendsPage.Add;
+            _friendsPage = FriendDuelChallengeRuntime.IncomingCount > 0
+                ? FriendsPage.Duels
+                : FriendsPage.Add;
             _friendSearchResult = null;
             _friendsFeedback = string.Empty;
             _friendsFeedbackIsError = false;
@@ -110,8 +114,24 @@ namespace ArcaneArena.Frontend
                 BuildFriendsList(body.transform);
             else if (_friendsPage == FriendsPage.Requests)
                 BuildFriendRequests(body.transform);
+            else if (_friendsPage == FriendsPage.Duels)
+                BuildFriendDuelChallenges(body.transform);
             else
                 BuildFriendSearch(body.transform);
+
+            if (_friendsPage != FriendsPage.Add &&
+                !string.IsNullOrWhiteSpace(_friendsFeedback))
+            {
+                CreateText(
+                    body.transform,
+                    _friendsFeedback,
+                    10,
+                    FontStyle.Bold,
+                    _friendsFeedbackIsError ? Danger : ArcaneCyan,
+                    new Vector2(0.04f, 0.005f),
+                    new Vector2(0.96f, 0.05f),
+                    TextAnchor.MiddleCenter);
+            }
         }
 
         private void BuildFriendsHeader(Transform parent)
@@ -147,24 +167,33 @@ namespace ArcaneArena.Frontend
                 FontStyle.Bold,
                 Muted,
                 new Vector2(0.052f, 0.11f),
-                new Vector2(0.68f, 0.48f),
+                new Vector2(0.65f, 0.48f),
                 TextAnchor.MiddleLeft);
 
             CreateFriendsMetric(
                 heading.transform,
                 "AMIGOS",
                 PlayerFriendsRuntime.FriendCount.ToString(),
-                new Vector2(0.735f, 0.15f),
-                new Vector2(0.84f, 0.85f),
+                new Vector2(0.665f, 0.15f),
+                new Vector2(0.755f, 0.85f),
                 ArcaneCyan);
             CreateFriendsMetric(
                 heading.transform,
                 "PEDIDOS",
                 PlayerFriendsRuntime.IncomingCount.ToString(),
-                new Vector2(0.855f, 0.15f),
-                new Vector2(0.96f, 0.85f),
+                new Vector2(0.77f, 0.15f),
+                new Vector2(0.86f, 0.85f),
                 PlayerFriendsRuntime.IncomingCount > 0
                     ? ArcaneGold
+                    : ArcaneCyan);
+            CreateFriendsMetric(
+                heading.transform,
+                "DUELOS",
+                FriendDuelChallengeRuntime.IncomingCount.ToString(),
+                new Vector2(0.875f, 0.15f),
+                new Vector2(0.965f, 0.85f),
+                FriendDuelChallengeRuntime.IncomingCount > 0
+                    ? Lime
                     : ArcaneCyan);
         }
 
@@ -234,12 +263,19 @@ namespace ArcaneArena.Frontend
                     : "AMIGOS",
                 FriendsPage.Connections,
                 2);
+            CreateFriendsNavigationButton(
+                parent,
+                FriendDuelChallengeRuntime.IncomingCount > 0
+                    ? $"DUELOS  •  {FriendDuelChallengeRuntime.IncomingCount}"
+                    : "DUELOS",
+                FriendsPage.Duels,
+                3);
 
             CreatePanel(
                 parent,
                 "Separador da Identidade",
-                new Vector2(0.08f, 0.285f),
-                new Vector2(0.92f, 0.29f),
+                new Vector2(0.08f, 0.315f),
+                new Vector2(0.92f, 0.32f),
                 new Color(ArcaneCyan.r, ArcaneCyan.g, ArcaneCyan.b, 0.30f))
                 .raycastTarget = false;
             CreateText(
@@ -248,8 +284,8 @@ namespace ArcaneArena.Frontend
                 10,
                 FontStyle.Bold,
                 Muted,
-                new Vector2(0.08f, 0.20f),
-                new Vector2(0.92f, 0.27f),
+                new Vector2(0.08f, 0.245f),
+                new Vector2(0.92f, 0.305f),
                 TextAnchor.MiddleLeft);
             string ownId = PlayerIdAccessRuntime.PublicPlayerId;
             CreateText(
@@ -258,8 +294,8 @@ namespace ArcaneArena.Frontend
                 15,
                 FontStyle.Bold,
                 ArcaneGold,
-                new Vector2(0.08f, 0.12f),
-                new Vector2(0.92f, 0.21f),
+                new Vector2(0.08f, 0.165f),
+                new Vector2(0.92f, 0.245f),
                 TextAnchor.MiddleLeft);
             CreateText(
                 parent,
@@ -267,8 +303,8 @@ namespace ArcaneArena.Frontend
                 10,
                 FontStyle.Normal,
                 Muted,
-                new Vector2(0.08f, 0.025f),
-                new Vector2(0.92f, 0.115f),
+                new Vector2(0.08f, 0.035f),
+                new Vector2(0.92f, 0.155f),
                 TextAnchor.UpperLeft);
         }
 
@@ -279,8 +315,8 @@ namespace ArcaneArena.Frontend
             int index)
         {
             bool active = _friendsPage == page;
-            float top = 0.85f - index * 0.15f;
-            float bottom = top - 0.12f;
+            float top = 0.85f - index * 0.125f;
+            float bottom = top - 0.10f;
             Color accent = active ? ArcaneGold : ArcaneCyan;
             Image button = CreateArcaneSurface(
                 parent,
@@ -527,6 +563,182 @@ namespace ArcaneArena.Frontend
                 CreateFriendListRow(content, request, true);
         }
 
+        private void BuildFriendDuelChallenges(Transform parent)
+        {
+            FriendDuelChallengeView incoming =
+                FriendDuelChallengeRuntime.Incoming;
+            FriendDuelChallengeView outgoing =
+                FriendDuelChallengeRuntime.Outgoing;
+            int total = (incoming != null ? 1 : 0) +
+                        (outgoing != null ? 1 : 0);
+            BuildFriendsSectionHeading(
+                parent,
+                "DESAFIOS PRIVADOS",
+                total == 1 ? "1 ATIVO" : $"{total} ATIVOS");
+
+            if (total == 0)
+            {
+                BuildFriendsEmptyState(
+                    parent,
+                    "NENHUM DESAFIO ATIVO",
+                    "Abra a lista de amigos, escolha um duelista e toque em DESAFIAR.",
+                    new Vector2(0.04f, 0.18f),
+                    new Vector2(0.96f, 0.82f));
+                CreateText(
+                    parent,
+                    FriendDuelChallengeRuntime.Status,
+                    10,
+                    FontStyle.Bold,
+                    Muted,
+                    new Vector2(0.06f, 0.06f),
+                    new Vector2(0.94f, 0.16f),
+                    TextAnchor.MiddleCenter);
+                return;
+            }
+
+            RectTransform content = CreateFriendsScrollList(parent);
+            if (incoming != null)
+                CreateFriendDuelChallengeRow(content, incoming, true);
+            if (outgoing != null)
+                CreateFriendDuelChallengeRow(content, outgoing, false);
+        }
+
+        private void CreateFriendDuelChallengeRow(
+            Transform parent,
+            FriendDuelChallengeView challenge,
+            bool incoming)
+        {
+            FriendDuelMode mode = challenge.Mode;
+            Color accent = mode == FriendDuelMode.Ranked
+                ? ArcaneGold
+                : ArcaneCyan;
+            string displayName = incoming
+                ? challenge.senderDisplayName
+                : challenge.recipientDisplayName;
+            string publicId = incoming
+                ? challenge.senderPublicId
+                : challenge.recipientPublicId;
+            string iconId = incoming
+                ? challenge.senderIconId
+                : challenge.recipientIconId;
+
+            Image row = CreateProfileSurface(
+                parent,
+                "Desafio com " + displayName,
+                Vector2.zero,
+                Vector2.one,
+                accent,
+                new Color(0.005f, 0.027f, 0.050f, 0.98f),
+                0.64f);
+            LayoutElement layout = row.gameObject.AddComponent<LayoutElement>();
+            layout.minHeight = 132f;
+            layout.preferredHeight = 132f;
+
+            CreateBoundedHexIcon(
+                row.transform,
+                "Emblema do desafiante",
+                string.IsNullOrWhiteSpace(iconId)
+                    ? ProfileIconCatalog.DefaultIconId
+                    : iconId,
+                new Vector2(0.025f, 0.13f),
+                new Vector2(0.145f, 0.87f));
+            CreateText(
+                row.transform,
+                string.IsNullOrWhiteSpace(displayName)
+                    ? "DUELISTA"
+                    : displayName,
+                17,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.17f, 0.57f),
+                new Vector2(0.55f, 0.88f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                row.transform,
+                string.IsNullOrWhiteSpace(publicId)
+                    ? "ID PROTEGIDO"
+                    : "ID  " + publicId,
+                10,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.17f, 0.39f),
+                new Vector2(0.55f, 0.58f),
+                TextAnchor.MiddleLeft);
+            CreateText(
+                row.transform,
+                FriendDuelChallengePolicy.ModeLabel(mode) +
+                (mode == FriendDuelMode.Ranked
+                    ? "  •  RESULTADO ALTERA PE"
+                    : "  •  SEM ALTERAÇÃO DE PE"),
+                10,
+                FontStyle.Bold,
+                accent,
+                new Vector2(0.17f, 0.15f),
+                new Vector2(0.67f, 0.38f),
+                TextAnchor.MiddleLeft);
+
+            string state = ChallengeStatusLabel(challenge, incoming);
+            CreateText(
+                row.transform,
+                state,
+                10,
+                FontStyle.Bold,
+                challenge.Status == FriendDuelChallengeStatus.Pending
+                    ? Lime
+                    : accent,
+                new Vector2(0.57f, 0.62f),
+                new Vector2(0.965f, 0.90f),
+                TextAnchor.MiddleCenter);
+
+            if (incoming &&
+                challenge.Status == FriendDuelChallengeStatus.Pending)
+            {
+                CreateCompactFriendsButton(
+                    row.transform,
+                    "ACEITAR",
+                    new Vector2(0.70f, 0.31f),
+                    new Vector2(0.825f, 0.59f),
+                    Lime,
+                    () => AcceptFriendDuelFromUi(challenge));
+                CreateCompactFriendsButton(
+                    row.transform,
+                    "RECUSAR",
+                    new Vector2(0.84f, 0.31f),
+                    new Vector2(0.965f, 0.59f),
+                    Danger,
+                    () => DeclineFriendDuelFromUi(challenge));
+            }
+            else
+            {
+                CreateCompactFriendsButton(
+                    row.transform,
+                    "CANCELAR",
+                    new Vector2(0.72f, 0.25f),
+                    new Vector2(0.965f, 0.57f),
+                    Danger,
+                    () => CancelFriendDuelFromUi(challenge));
+            }
+        }
+
+        private static string ChallengeStatusLabel(
+            FriendDuelChallengeView challenge,
+            bool incoming)
+        {
+            return challenge.Status switch
+            {
+                FriendDuelChallengeStatus.Pending => incoming
+                    ? "DESAFIO RECEBIDO"
+                    : "AGUARDANDO RESPOSTA",
+                FriendDuelChallengeStatus.Accepted => incoming
+                    ? "AGUARDANDO A SALA"
+                    : "CRIANDO SALA PRIVADA",
+                FriendDuelChallengeStatus.Ready => incoming
+                    ? "ENTRANDO NA SALA"
+                    : "AGUARDANDO O AMIGO",
+                _ => "SINCRONIZANDO"
+            };
+        }
+
         private static void BuildFriendsSectionHeading(
             Transform parent,
             string title,
@@ -760,10 +972,171 @@ namespace ArcaneArena.Frontend
             else if (profile.connectionState == FriendConnectionState.Friend)
             {
                 CreateCompactFriendsButton(
-                    parent, "REMOVER", new Vector2(0.72f, 0.30f),
-                    new Vector2(0.965f, 0.70f), Danger,
+                    parent, "DESAFIAR", new Vector2(0.72f, 0.53f),
+                    new Vector2(0.965f, 0.88f), Lime,
+                    () => ShowFriendDuelModeChooser(profile));
+                CreateCompactFriendsButton(
+                    parent, "REMOVER", new Vector2(0.72f, 0.12f),
+                    new Vector2(0.965f, 0.45f), Danger,
                     () => RemoveFriendFromUi(profile));
             }
+        }
+
+        private void ShowFriendDuelModeChooser(FriendProfileView profile)
+        {
+            if (profile == null || _screenRoot == null)
+                return;
+            CloseFriendDuelModeChooser();
+
+            Image veil = CreatePanel(
+                _screenRoot,
+                "Escolha do tipo de desafio",
+                Vector2.zero,
+                Vector2.one,
+                new Color(0f, 0f, 0f, 0.88f));
+            veil.raycastTarget = true;
+            veil.transform.SetAsLastSibling();
+            _friendDuelModeModal = veil.gameObject;
+
+            Image shell = CreateArcaneSurface(
+                veil.transform,
+                "Terminal de Desafio Privado",
+                new Vector2(0.20f, 0.15f),
+                new Vector2(0.80f, 0.85f),
+                ArcaneCyan,
+                true,
+                0.96f);
+            CreatePanel(
+                shell.transform,
+                "Linha de energia",
+                new Vector2(0.04f, 0.89f),
+                new Vector2(0.96f, 0.902f),
+                new Color(ArcaneCyan.r, ArcaneCyan.g, ArcaneCyan.b, 0.72f))
+                .raycastTarget = false;
+            CreateText(
+                shell.transform,
+                "DESAFIO DE DUELO",
+                25,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.08f, 0.82f),
+                new Vector2(0.92f, 0.94f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                shell.transform,
+                $"CONVIDAR  {profile.displayName}  •  ID {profile.publicId}",
+                12,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.08f, 0.75f),
+                new Vector2(0.92f, 0.83f),
+                TextAnchor.MiddleCenter);
+
+            CreateFriendDuelModeCard(
+                shell.transform,
+                profile,
+                FriendDuelMode.Casual,
+                "CASUAL",
+                "Duelo privado livre",
+                "O resultado não altera seus Pontos de Elo.",
+                new Vector2(0.07f, 0.30f),
+                new Vector2(0.48f, 0.70f),
+                ArcaneCyan);
+            CreateFriendDuelModeCard(
+                shell.transform,
+                profile,
+                FriendDuelMode.Ranked,
+                "RANQUEADO",
+                "Confronto competitivo",
+                "Vitória e derrota alteram o PE das duas contas.",
+                new Vector2(0.52f, 0.30f),
+                new Vector2(0.93f, 0.70f),
+                ArcaneGold);
+
+            CreateText(
+                shell.transform,
+                "O convite expira automaticamente se não houver resposta.",
+                10,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.10f, 0.20f),
+                new Vector2(0.90f, 0.29f),
+                TextAnchor.MiddleCenter);
+            Image cancel = CreateButton(
+                shell.transform,
+                "VOLTAR",
+                new Vector2(0.35f, 0.07f),
+                new Vector2(0.65f, 0.18f),
+                Muted,
+                CloseFriendDuelModeChooser);
+            SetButtonTextSize(cancel, 12);
+        }
+
+        private void CreateFriendDuelModeCard(
+            Transform parent,
+            FriendProfileView profile,
+            FriendDuelMode mode,
+            string title,
+            string subtitle,
+            string detail,
+            Vector2 min,
+            Vector2 max,
+            Color accent)
+        {
+            Image card = CreateArcaneSurface(
+                parent,
+                "Modo " + title,
+                min,
+                max,
+                accent,
+                true,
+                0.78f);
+            AddButtonBehaviour(
+                card,
+                () => BeginFriendDuelChallengeFromUi(profile, mode));
+            CreateText(
+                card.transform,
+                mode == FriendDuelMode.Ranked ? "◆" : "◇",
+                32,
+                FontStyle.Bold,
+                accent,
+                new Vector2(0.32f, 0.67f),
+                new Vector2(0.68f, 0.94f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                card.transform,
+                title,
+                20,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.08f, 0.47f),
+                new Vector2(0.92f, 0.70f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                card.transform,
+                subtitle.ToUpperInvariant(),
+                10,
+                FontStyle.Bold,
+                accent,
+                new Vector2(0.08f, 0.34f),
+                new Vector2(0.92f, 0.49f),
+                TextAnchor.MiddleCenter);
+            CreateText(
+                card.transform,
+                detail,
+                11,
+                FontStyle.Normal,
+                Muted,
+                new Vector2(0.10f, 0.08f),
+                new Vector2(0.90f, 0.34f),
+                TextAnchor.MiddleCenter);
+        }
+
+        private void CloseFriendDuelModeChooser()
+        {
+            if (_friendDuelModeModal != null)
+                Destroy(_friendDuelModeModal);
+            _friendDuelModeModal = null;
         }
 
         private static void CreateCompactFriendsButton(
@@ -906,6 +1279,62 @@ namespace ArcaneArena.Frontend
                 () => PlayerFriendsRuntime.RemoveFriendAsync(profile.playerId),
                 FriendsPage.Connections);
 
+        private void BeginFriendDuelChallengeFromUi(
+            FriendProfileView profile,
+            FriendDuelMode mode)
+        {
+            CloseFriendDuelModeChooser();
+            RunFriendDuelUiOperation(
+                () => FriendDuelChallengeRuntime.ChallengeAsync(profile, mode));
+        }
+
+        private void AcceptFriendDuelFromUi(
+            FriendDuelChallengeView challenge) =>
+            RunFriendDuelUiOperation(
+                () => FriendDuelChallengeRuntime.AcceptAsync(
+                    challenge.challengeId));
+
+        private void DeclineFriendDuelFromUi(
+            FriendDuelChallengeView challenge) =>
+            RunFriendDuelUiOperation(
+                () => FriendDuelChallengeRuntime.DeclineAsync(
+                    challenge.challengeId));
+
+        private void CancelFriendDuelFromUi(
+            FriendDuelChallengeView challenge) =>
+            RunFriendDuelUiOperation(
+                () => FriendDuelChallengeRuntime.CancelAsync(
+                    challenge.challengeId));
+
+        private async void RunFriendDuelUiOperation(Func<Task> operation)
+        {
+            if (_friendsUiOperationInProgress ||
+                FriendDuelChallengeRuntime.IsBusy)
+            {
+                return;
+            }
+            _friendsUiOperationInProgress = true;
+            _friendsFeedback = "Sincronizando desafio privado...";
+            _friendsFeedbackIsError = false;
+            try
+            {
+                await operation();
+                _friendsPage = FriendsPage.Duels;
+                _friendsFeedback = FriendDuelChallengeRuntime.Status;
+            }
+            catch (Exception exception)
+            {
+                _friendsFeedback = exception.GetBaseException().Message;
+                _friendsFeedbackIsError = true;
+            }
+            finally
+            {
+                _friendsUiOperationInProgress = false;
+                if (this != null)
+                    ShowFriendsHubScreen();
+            }
+        }
+
         private async void RunFriendsUiOperation(
             Func<Task> operation,
             FriendsPage successPage)
@@ -946,14 +1375,22 @@ namespace ArcaneArena.Frontend
             if (_mainMenuFriendsButton == null)
                 return;
             Transform prior = _mainMenuFriendsButton.transform.Find(
-                "Pedidos de Amizade Pendentes");
+                "Alertas Sociais Pendentes");
+            if (prior == null)
+            {
+                prior = _mainMenuFriendsButton.transform.Find(
+                    "Pedidos de Amizade Pendentes");
+                if (prior != null)
+                    prior.name = "Alertas Sociais Pendentes";
+            }
             GameObject badgeObject = prior != null ? prior.gameObject : null;
-            int count = PlayerFriendsRuntime.IncomingCount;
+            int count = PlayerFriendsRuntime.IncomingCount +
+                        FriendDuelChallengeRuntime.IncomingCount;
             if (badgeObject == null && count > 0)
             {
                 Image badge = CreatePanel(
                     _mainMenuFriendsButton.transform,
-                    "Pedidos de Amizade Pendentes",
+                    "Alertas Sociais Pendentes",
                     new Vector2(0.62f, 0.68f),
                     new Vector2(1.22f, 1.20f),
                     new Color(0.08f, 0.80f, 1f, 0.98f));
@@ -985,6 +1422,17 @@ namespace ArcaneArena.Frontend
         }
 
         private void HandleFriendsRuntimeChanged()
+        {
+            UpdateMainMenuFriendsBadge();
+            if (_friendsUiRoot != null &&
+                _friendsUiRoot.activeInHierarchy &&
+                !_friendsUiOperationInProgress)
+            {
+                ShowFriendsHubScreen();
+            }
+        }
+
+        private void HandleFriendDuelChallengeChanged()
         {
             UpdateMainMenuFriendsBadge();
             if (_friendsUiRoot != null &&

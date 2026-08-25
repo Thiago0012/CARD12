@@ -514,6 +514,8 @@ namespace ArcaneArena.Multiplayer
         public string Status => status;
         public string RoomCode => roomCode;
         public string RelayRegion => relayRegion;
+        public bool ConnectionOperationInProgress =>
+            connectionOperationInProgress;
         public OnlineMatchFlowState FlowState => flowState;
         public OnlineLoadingScreenPresenter TransitionPresenter =>
             loadingPresenter;
@@ -574,6 +576,98 @@ namespace ArcaneArena.Multiplayer
         internal DuelArenaController DiagnosticController => IsHost
             ? hostController
             : replicaController;
+
+        public bool BeginFriendChallengeHosting(
+            CompetitivePolicy policy,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            if (connectionOperationInProgress)
+            {
+                rejection = "A operação online atual ainda está terminando.";
+                return false;
+            }
+            if (IsOnlineDuelActive)
+            {
+                rejection = "Já existe uma sessão online em andamento.";
+                return false;
+            }
+            if (networkManager != null && networkManager.ShutdownInProgress)
+            {
+                rejection = "A sessão anterior ainda está sendo encerrada.";
+                return false;
+            }
+            if (!TryGetLocalLoadout(out _, out rejection))
+                return false;
+            if (policy == CompetitivePolicy.Ranked &&
+                CaptureLocalRankSnapshot()?.IsValid != true)
+            {
+                rejection =
+                    "O perfil ranqueado local não pôde ser carregado.";
+                return false;
+            }
+
+            competitivePolicy = policy;
+            automaticRankedMatchmaking = false;
+            rankedRoomCreationPanel = policy == CompetitivePolicy.Ranked;
+            focusJoinCode = false;
+            requestJoinFocus = false;
+            showPanel = true;
+            status = "Criando a sala privada do desafio...";
+            BeginHosting();
+            return true;
+        }
+
+        public bool BeginFriendChallengeJoining(
+            string code,
+            CompetitivePolicy policy,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            string normalizedCode = (code ?? string.Empty)
+                .Trim()
+                .ToUpperInvariant();
+            if (normalizedCode.Length < 6 || normalizedCode.Length > 12)
+            {
+                rejection = "O código da sala privada é inválido.";
+                return false;
+            }
+            if (connectionOperationInProgress)
+            {
+                rejection = "A operação online atual ainda está terminando.";
+                return false;
+            }
+            if (IsOnlineDuelActive)
+            {
+                rejection = "Já existe uma sessão online em andamento.";
+                return false;
+            }
+            if (networkManager != null && networkManager.ShutdownInProgress)
+            {
+                rejection = "A sessão anterior ainda está sendo encerrada.";
+                return false;
+            }
+            if (!TryGetLocalLoadout(out _, out rejection))
+                return false;
+            if (policy == CompetitivePolicy.Ranked &&
+                CaptureLocalRankSnapshot()?.IsValid != true)
+            {
+                rejection =
+                    "O perfil ranqueado local não pôde ser carregado.";
+                return false;
+            }
+
+            competitivePolicy = policy;
+            automaticRankedMatchmaking = false;
+            rankedRoomCreationPanel = false;
+            focusJoinCode = true;
+            requestJoinFocus = false;
+            showPanel = true;
+            joinCode = normalizedCode;
+            status = "Entrando na sala privada do desafio...";
+            BeginJoining();
+            return true;
+        }
 
         internal void BeginHostingForDiagnostics()
         {
