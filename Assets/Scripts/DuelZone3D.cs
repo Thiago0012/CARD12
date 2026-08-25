@@ -256,7 +256,15 @@ namespace ArcaneArena
         {
             dropHighlighted = enabled;
             if (enabled)
-                dropHighlightColor = color;
+            {
+                // Destinos de invocação/baixar compartilham a leitura azul do
+                // tabuleiro. Cores de efeitos continuam livres nas zonas
+                // especiais, mas não transformam os slots principais em
+                // círculos verdes ou vermelhos.
+                dropHighlightColor = UsesPlacementPulse()
+                    ? new Color(0.12f, 0.66f, 1f, 1f)
+                    : color;
+            }
             RefreshSpecialZoneOutline(enabled);
             RefreshExtraMonsterZoneSurface();
             if (enabled)
@@ -446,22 +454,39 @@ namespace ArcaneArena
             }
             else
             {
-                const int segments = 48;
-                float radius = UsesPlacementPulse() ? 0.73f : 0.52f;
                 float height = UsesPlacementPulse() ? 0.205f : 0.18f;
-                specialZoneOutline.positionCount = segments;
-                for (int index = 0; index < segments; index++)
-                {
-                    float angle = index * Mathf.PI * 2f / segments;
-                    specialZoneOutline.SetPosition(
-                        index,
-                        new Vector3(
-                            Mathf.Cos(angle) * radius,
-                            height,
-                            Mathf.Sin(angle) * radius));
-                }
                 if (UsesPlacementPulse())
+                {
+                    // O marcador segue o quadrado visual das cinco zonas da
+                    // arena, como na referência. A linha é fechada pelo loop
+                    // do LineRenderer e permanece centralizada no próprio slot.
+                    const float halfExtent = 0.73f;
+                    specialZoneOutline.positionCount = 4;
+                    specialZoneOutline.SetPositions(new[]
+                    {
+                        new Vector3(-halfExtent, height, -halfExtent),
+                        new Vector3(-halfExtent, height, halfExtent),
+                        new Vector3(halfExtent, height, halfExtent),
+                        new Vector3(halfExtent, height, -halfExtent)
+                    });
                     EnsurePlacementDust(outlineParent);
+                }
+                else
+                {
+                    const int segments = 48;
+                    const float specialWellRadius = 0.52f;
+                    specialZoneOutline.positionCount = segments;
+                    for (int index = 0; index < segments; index++)
+                    {
+                        float angle = index * Mathf.PI * 2f / segments;
+                        specialZoneOutline.SetPosition(
+                            index,
+                            new Vector3(
+                                Mathf.Cos(angle) * specialWellRadius,
+                                height,
+                                Mathf.Sin(angle) * specialWellRadius));
+                    }
+                }
             }
         }
 
@@ -493,9 +518,8 @@ namespace ArcaneArena
             emission.rateOverTime = 14f;
             ParticleSystem.ShapeModule shape = placementDust.shape;
             shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.73f;
-            shape.radiusThickness = 0.10f;
+            shape.shapeType = ParticleSystemShapeType.BoxEdge;
+            shape.scale = new Vector3(1.46f, 1.46f, 0.02f);
 
             ParticleSystemRenderer dustRenderer =
                 dustObject.GetComponent<ParticleSystemRenderer>();
