@@ -63,15 +63,16 @@ namespace ArcaneArena.Frontend
             }
             finally
             {
-                if (this == null)
-                    return;
-                _accountBootstrapPending = false;
-                if (!IsDuelSceneName(
-                        UnityEngine.SceneManagement.SceneManager
-                            .GetActiveScene().name) &&
-                    !_playerIdAccessScreenVisible)
+                if (this != null)
                 {
-                    InitializeScenePresentation();
+                    _accountBootstrapPending = false;
+                    if (!IsDuelSceneName(
+                            UnityEngine.SceneManagement.SceneManager
+                                .GetActiveScene().name) &&
+                        !_playerIdAccessScreenVisible)
+                    {
+                        InitializeScenePresentation();
+                    }
                 }
             }
         }
