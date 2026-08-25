@@ -393,12 +393,19 @@ namespace ArcaneArena.Frontend
             ClearScreen();
             BuildSharedBackground(
                 signInExisting ? "RESTAURAÇÃO DA IDENTIDADE" : "VÍNCULO DA IDENTIDADE");
+            Action backAction;
+            if (signInExisting && _repository != null &&
+                !_repository.HasPlayerProfile)
+            {
+                backAction = () => ShowPlayerProfileSetup();
+            }
+            else
+            {
+                backAction = ShowAccountCenter;
+            }
             BuildHeader(
                 signInExisting ? "RESTAURAR CONTA" : "PROTEGER CONTA",
-                signInExisting && _repository != null &&
-                !_repository.HasPlayerProfile
-                    ? ShowPlayerProfileSetup
-                    : ShowAccountCenter);
+                backAction);
 
             Image stage = CreatePanel(
                 _screenRoot,
