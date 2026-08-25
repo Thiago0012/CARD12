@@ -56,6 +56,7 @@ namespace ArcaneDuel.Tests.EditMode
                 wins = 8,
                 losses = 3,
                 draws = 1,
+                publicProfileRevisionUtcMilliseconds = 1787616401000,
                 online = true
             };
 
@@ -69,6 +70,8 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(profile.rankedPoints, Is.EqualTo(48));
             Assert.That(profile.duelsPlayed, Is.EqualTo(12));
             Assert.That(profile.wins, Is.EqualTo(8));
+            Assert.That(profile.publicProfileRevisionUtcMilliseconds,
+                Is.EqualTo(1787616401000));
             Assert.That(profile.presence, Is.EqualTo(
                 FriendPresenceState.Online));
         }
@@ -89,7 +92,8 @@ namespace ArcaneDuel.Tests.EditMode
                 wins = 20,
                 losses = 12,
                 draws = 3,
-                profileUpdatedUtcUnixSeconds = 123456
+                profileUpdatedUtcUnixSeconds = 123456,
+                publicProfileRevisionUtcMilliseconds = 1787616401000
             };
 
             FriendProfileView copy = original.Copy();
@@ -101,6 +105,8 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(copy.rankedPoints, Is.EqualTo(132));
             Assert.That(copy.duelsPlayed, Is.EqualTo(35));
             Assert.That(copy.profileUpdatedUtcUnixSeconds, Is.EqualTo(123456));
+            Assert.That(copy.publicProfileRevisionUtcMilliseconds,
+                Is.EqualTo(1787616401000));
         }
     }
 }

@@ -43,7 +43,8 @@ namespace ArcaneArena.Frontend
         private sealed class PresenceRequest
         {
             public int schemaVersion = 1;
-            public int publicProfileSchemaVersion = 1;
+            public int publicProfileSchemaVersion;
+            public long publicProfileRevisionUtcMilliseconds;
             public string sessionId;
             public string playerId;
             public string publicId;
@@ -73,6 +74,8 @@ namespace ArcaneArena.Frontend
         private long _wins;
         private long _losses;
         private long _draws;
+        private long _publicProfileRevisionUtcMilliseconds;
+        private bool _publicProfileReadyForUpload;
         private Coroutine _heartbeat;
 
         public static event Action<PlayerIdAccessSnapshot> AccessChanged;
@@ -168,7 +171,9 @@ namespace ArcaneArena.Frontend
             long duelsPlayed,
             long wins,
             long losses,
-            long draws)
+            long draws,
+            long revisionUtcMilliseconds,
+            bool readyForUpload)
         {
             EnsureRuntimeExists();
             _instance._equippedIconId = ProfileIconCatalog.ResolveId(
@@ -178,6 +183,11 @@ namespace ArcaneArena.Frontend
             _instance._wins = Math.Max(0, wins);
             _instance._losses = Math.Max(0, losses);
             _instance._draws = Math.Max(0, draws);
+            _instance._publicProfileRevisionUtcMilliseconds = Math.Max(
+                0,
+                revisionUtcMilliseconds);
+            if (readyForUpload)
+                _instance._publicProfileReadyForUpload = true;
         }
 
         public static async Task RefreshNowAsync()
@@ -198,6 +208,8 @@ namespace ArcaneArena.Frontend
             }
 
             _instance._sessionId = Guid.NewGuid().ToString("N");
+            _instance._publicProfileReadyForUpload = false;
+            _instance._publicProfileRevisionUtcMilliseconds = 0;
             _instance.SetSnapshot(
                 PlayerIdAccessPolicy.CreateUnverifiedFallback(
                     AuthenticationService.Instance.PlayerId));
@@ -314,6 +326,13 @@ namespace ArcaneArena.Frontend
                               string.Empty;
             var payload = new PresenceRequest
             {
+                publicProfileSchemaVersion =
+                    PlayerIdAccessPolicy.PublicProfileUploadSchemaVersion(
+                        _publicProfileReadyForUpload),
+                publicProfileRevisionUtcMilliseconds =
+                    _publicProfileReadyForUpload
+                        ? _publicProfileRevisionUtcMilliseconds
+                        : 0,
                 sessionId = _sessionId,
                 playerId = playerId,
                 publicId = PlayerIdAccessPolicy.FormatPublicId(playerId),

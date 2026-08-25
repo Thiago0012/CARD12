@@ -11,7 +11,7 @@ export default {
     try {
       const url = new URL(request.url);
       if (request.method === "GET" && url.pathname === "/health") {
-        return json({ ok: true, service: "card12-player-directory", schemaVersion: 2 });
+        return json({ ok: true, service: "card12-player-directory", schemaVersion: 3 });
       }
 
       if (url.pathname.startsWith("/v1/admin/")) {
@@ -65,10 +65,7 @@ async function openOrHeartbeat(request, env, identity, operation) {
   await env.DB.prepare(
     `UPDATE players
        SET display_name = ?, normalized_name = ?, last_seen_utc = ?,
-           last_build_version = ?, last_platform = ?, equipped_icon_id = ?,
-           public_profile_schema_version = ?, ranked_points = ?,
-           duels_played = ?, wins = ?, losses = ?, draws = ?,
-           profile_updated_utc = ?
+           last_build_version = ?, last_platform = ?
      WHERE unity_player_id = ?`)
     .bind(
       displayName,
@@ -76,16 +73,32 @@ async function openOrHeartbeat(request, env, identity, operation) {
       now,
       cleanShort(body.buildVersion, 32),
       cleanShort(body.platform, 32),
-      publicProfile.equippedIconId,
-      publicProfile.schemaVersion,
-      publicProfile.rankedPoints,
-      publicProfile.duelsPlayed,
-      publicProfile.wins,
-      publicProfile.losses,
-      publicProfile.draws,
-      publicProfile.updatedUtc,
       identity.playerId)
     .run();
+
+  if (publicProfile.shouldUpdate) {
+    await env.DB.prepare(
+      `UPDATE players
+          SET equipped_icon_id = ?, public_profile_schema_version = ?,
+              ranked_points = ?, duels_played = ?, wins = ?, losses = ?,
+              draws = ?, profile_updated_utc = ?,
+              public_profile_revision_utc_ms = ?
+        WHERE unity_player_id = ?
+          AND public_profile_revision_utc_ms < ?`)
+      .bind(
+        publicProfile.equippedIconId,
+        publicProfile.schemaVersion,
+        publicProfile.rankedPoints,
+        publicProfile.duelsPlayed,
+        publicProfile.wins,
+        publicProfile.losses,
+        publicProfile.draws,
+        publicProfile.updatedUtc,
+        publicProfile.revisionUtcMilliseconds,
+        identity.playerId,
+        publicProfile.revisionUtcMilliseconds)
+      .run();
+  }
 
   const sessionId = cleanSessionId(body.sessionId);
   if (sessionId) {
@@ -210,6 +223,8 @@ async function searchPlayer(env, requester, rawQuery) {
     losses: player.losses,
     draws: player.draws,
     profileUpdatedUtcUnixSeconds: player.profile_updated_utc,
+    publicProfileRevisionUtcMilliseconds:
+      player.public_profile_revision_utc_ms,
     lastSeenUtcUnixSeconds: player.last_seen_utc,
     online: Boolean(active),
     message: "Perfil encontrado."
@@ -339,17 +354,17 @@ function normalizePublicProfile(body, current, now) {
     body.publicProfileSchemaVersion,
     0,
     16);
-  if (requestedVersion < 1) {
-    return {
-      schemaVersion: Number(current.public_profile_schema_version || 0),
-      equippedIconId: String(current.equipped_icon_id || ""),
-      rankedPoints: Number(current.ranked_points || 0),
-      duelsPlayed: Number(current.duels_played || 0),
-      wins: Number(current.wins || 0),
-      losses: Number(current.losses || 0),
-      draws: Number(current.draws || 0),
-      updatedUtc: Number(current.profile_updated_utc || 0)
-    };
+  const requestedRevision = clampInteger(
+    body.publicProfileRevisionUtcMilliseconds,
+    0,
+    Number.MAX_SAFE_INTEGER);
+  const currentRevision = clampInteger(
+    current.public_profile_revision_utc_ms,
+    0,
+    Number.MAX_SAFE_INTEGER);
+  if (requestedVersion < 1 || requestedRevision <= 0 ||
+      requestedRevision <= currentRevision) {
+    return { shouldUpdate: false };
   }
 
   const proposedIcon = cleanShort(body.equippedIconId, 64).trim();
@@ -361,6 +376,7 @@ function normalizePublicProfile(body, current, now) {
   const draws = clampInteger(body.draws, 0, 2147483647);
   const decidedTotal = Math.min(2147483647, wins + losses + draws);
   return {
+    shouldUpdate: true,
     schemaVersion: requestedVersion,
     equippedIconId,
     rankedPoints: clampInteger(body.rankedPoints, 0, 200),
@@ -370,7 +386,8 @@ function normalizePublicProfile(body, current, now) {
     wins,
     losses,
     draws,
-    updatedUtc: now
+    updatedUtc: now,
+    revisionUtcMilliseconds: requestedRevision
   };
 }
 

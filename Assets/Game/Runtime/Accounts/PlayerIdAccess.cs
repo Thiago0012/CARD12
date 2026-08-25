@@ -101,6 +101,29 @@ namespace ArcaneDuel.Game.Accounts
     public static class PlayerIdAccessPolicy
     {
         public const int PublicIdLength = 12;
+        public const int PublicProfileSchemaVersion = 1;
+
+        /// <summary>
+        /// A tela de login ainda não carregou o save autenticado. Nessa fase o
+        /// catálogo recebe versão zero e preserva o perfil público já salvo,
+        /// em vez de substituir o ícone real pelo brasão padrão de bootstrap.
+        /// </summary>
+        public static int PublicProfileUploadSchemaVersion(
+            bool authenticatedProfileLoaded) =>
+            authenticatedProfileLoaded ? PublicProfileSchemaVersion : 0;
+
+        /// <summary>
+        /// Converte a revisão persistente do save para milissegundos Unix,
+        /// mantendo o número dentro da faixa inteira segura do JavaScript.
+        /// </summary>
+        public static long PublicProfileRevisionUtcMilliseconds(
+            long lastModifiedUtcTicks)
+        {
+            long unixTicks = lastModifiedUtcTicks - DateTime.UnixEpoch.Ticks;
+            return unixTicks <= 0
+                ? 0
+                : unixTicks / TimeSpan.TicksPerMillisecond;
+        }
 
         public static PlayerIdAccessSnapshot CreateUnverifiedFallback(
             string playerId)

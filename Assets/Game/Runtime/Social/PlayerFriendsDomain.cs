@@ -37,6 +37,7 @@ namespace ArcaneDuel.Game.Social
         public long losses;
         public long draws;
         public long profileUpdatedUtcUnixSeconds;
+        public long publicProfileRevisionUtcMilliseconds;
         public FriendConnectionState connectionState;
         public FriendPresenceState presence;
         public long lastSeenUtcUnixSeconds;
@@ -58,6 +59,8 @@ namespace ArcaneDuel.Game.Social
                 losses = losses,
                 draws = draws,
                 profileUpdatedUtcUnixSeconds = profileUpdatedUtcUnixSeconds,
+                publicProfileRevisionUtcMilliseconds =
+                    publicProfileRevisionUtcMilliseconds,
                 connectionState = connectionState,
                 presence = presence,
                 lastSeenUtcUnixSeconds = lastSeenUtcUnixSeconds
@@ -82,6 +85,7 @@ namespace ArcaneDuel.Game.Social
         public long losses;
         public long draws;
         public long profileUpdatedUtcUnixSeconds;
+        public long publicProfileRevisionUtcMilliseconds;
         public long lastSeenUtcUnixSeconds;
         public bool online;
         public string message;
@@ -107,6 +111,9 @@ namespace ArcaneDuel.Game.Social
                 profileUpdatedUtcUnixSeconds = Math.Max(
                     0,
                     profileUpdatedUtcUnixSeconds),
+                publicProfileRevisionUtcMilliseconds = Math.Max(
+                    0,
+                    publicProfileRevisionUtcMilliseconds),
                 connectionState = FriendConnectionState.None,
                 presence = online
                     ? FriendPresenceState.Online

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ArcaneDuel.Game.Accounts;
 using NUnit.Framework;
@@ -111,6 +112,34 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(record.publicId, Does.Match("^[0-9]{12}$"));
             Assert.That(PlayerIdAccessPolicy.IsValidPublicId(record.publicId),
                 Is.True);
+        }
+
+        [Test]
+        public void LoginBootstrapCannotOverwriteLoadedPublicProfile()
+        {
+            Assert.That(
+                PlayerIdAccessPolicy.PublicProfileUploadSchemaVersion(false),
+                Is.Zero,
+                "Antes do save autenticado, o servidor deve preservar o ícone existente.");
+            Assert.That(
+                PlayerIdAccessPolicy.PublicProfileUploadSchemaVersion(true),
+                Is.EqualTo(PlayerIdAccessPolicy.PublicProfileSchemaVersion));
+        }
+
+        [Test]
+        public void PublicProfileRevisionIsSafeMonotonicUnixMilliseconds()
+        {
+            long firstTicks = DateTime.UnixEpoch.AddSeconds(1).Ticks;
+            long secondTicks = DateTime.UnixEpoch.AddSeconds(2).Ticks;
+
+            long first = PlayerIdAccessPolicy
+                .PublicProfileRevisionUtcMilliseconds(firstTicks);
+            long second = PlayerIdAccessPolicy
+                .PublicProfileRevisionUtcMilliseconds(secondTicks);
+
+            Assert.That(first, Is.EqualTo(1000));
+            Assert.That(second, Is.GreaterThan(first));
+            Assert.That(second, Is.LessThan(9007199254740991L));
         }
     }
 }

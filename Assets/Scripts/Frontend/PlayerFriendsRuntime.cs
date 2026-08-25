@@ -102,8 +102,7 @@ namespace ArcaneArena.Frontend
 
             FriendProfileView known = FindKnownProfile(normalized, numeric);
             if (known != null &&
-                (known.publicProfileSchemaVersion > 0 ||
-                 !PlayerIdAccessRuntime.IsCatalogConfigured))
+                !PlayerIdAccessRuntime.IsCatalogConfigured)
             {
                 return known;
             }
@@ -220,6 +219,13 @@ namespace ArcaneArena.Frontend
             await _instance.RunOperationAsync(
                 () => Service.ForceRelationshipsRefreshAsync(),
                 "Lista de conexões atualizada.");
+        }
+
+        public static async Task RefreshPublicProfilesAsync()
+        {
+            await EnsureReadyAsync();
+            RequireReady();
+            await _instance.RefreshRelationshipProfilesAsync();
         }
 
         private void Awake()
@@ -575,6 +581,8 @@ namespace ArcaneArena.Frontend
             target.draws = source.draws;
             target.profileUpdatedUtcUnixSeconds =
                 source.profileUpdatedUtcUnixSeconds;
+            target.publicProfileRevisionUtcMilliseconds =
+                source.publicProfileRevisionUtcMilliseconds;
             target.lastSeenUtcUnixSeconds = Math.Max(
                 target.lastSeenUtcUnixSeconds,
                 source.lastSeenUtcUnixSeconds);

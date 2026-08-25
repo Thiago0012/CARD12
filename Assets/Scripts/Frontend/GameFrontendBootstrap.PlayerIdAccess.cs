@@ -10,6 +10,7 @@ namespace ArcaneArena.Frontend
         private bool _playerIdAccessScreenVisible;
         private bool _publicProfileRefreshRunning;
         private bool _publicProfileRefreshQueued;
+        private bool _publicProfileReadyForUpload;
 
         private void InitializePlayerIdAccess()
         {
@@ -41,7 +42,7 @@ namespace ArcaneArena.Frontend
                         return;
                     PlayerIdAccessRuntime.SetPlayerDisplayName(
                         _repository?.PlayerDisplayName);
-                    SyncPublicProfileSnapshot();
+                    SyncPublicProfileSnapshot(true);
                     PlayerFriendsRuntime.SetLocalDisplayName(
                         _repository?.PlayerDisplayName);
                     if (!IsDuelSceneName(
@@ -207,8 +208,12 @@ namespace ArcaneArena.Frontend
             PlayerFriendsRuntime.Changed -= HandleFriendsRuntimeChanged;
         }
 
-        private void SyncPublicProfileSnapshot()
+        private void SyncPublicProfileSnapshot(bool readyForUpload = false)
         {
+            if (_repository?.State == null)
+                return;
+            if (readyForUpload)
+                _publicProfileReadyForUpload = true;
             DuelStatisticsScope statistics = _repository?.Statistics?.overall ??
                                               new DuelStatisticsScope();
             PlayerIdAccessRuntime.SetPlayerPublicProfile(
@@ -217,12 +222,17 @@ namespace ArcaneArena.Frontend
                 statistics.duelsPlayed,
                 statistics.wins,
                 statistics.losses,
-                statistics.draws);
+                statistics.draws,
+                PlayerIdAccessPolicy.PublicProfileRevisionUtcMilliseconds(
+                    _repository.State.lastModifiedUtcTicks),
+                _publicProfileReadyForUpload);
         }
 
         private void HandlePublicProfileChanged()
         {
             SyncPublicProfileSnapshot();
+            if (!_publicProfileReadyForUpload)
+                return;
             _publicProfileRefreshQueued = true;
             if (!_publicProfileRefreshRunning)
                 _ = RefreshPublicProfileAsync();

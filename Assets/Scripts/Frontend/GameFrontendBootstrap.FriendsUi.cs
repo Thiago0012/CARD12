@@ -24,6 +24,7 @@ namespace ArcaneArena.Frontend
         private string _friendsFeedback = string.Empty;
         private bool _friendsFeedbackIsError;
         private bool _friendsUiOperationInProgress;
+        private bool _friendsAutomaticRefreshRunning;
         private GameObject _friendsUiRoot;
         private Button _mainMenuFriendsButton;
 
@@ -34,6 +35,28 @@ namespace ArcaneArena.Frontend
             _friendsFeedback = string.Empty;
             _friendsFeedbackIsError = false;
             ShowFriendsHubScreen();
+            _ = RefreshFriendsHubProfilesAsync();
+        }
+
+        private async Task RefreshFriendsHubProfilesAsync()
+        {
+            if (_friendsAutomaticRefreshRunning)
+                return;
+            _friendsAutomaticRefreshRunning = true;
+            try
+            {
+                await PlayerFriendsRuntime.RefreshPublicProfilesAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Amigos] O catálogo visual será consultado novamente: " +
+                    exception.GetBaseException().Message);
+            }
+            finally
+            {
+                _friendsAutomaticRefreshRunning = false;
+            }
         }
 
         private void ShowFriendsHubScreen()
