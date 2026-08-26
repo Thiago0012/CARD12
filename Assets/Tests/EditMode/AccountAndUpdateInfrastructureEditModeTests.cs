@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace ArcaneDuel.Tests.EditMode
 {
@@ -70,6 +72,202 @@ namespace ArcaneDuel.Tests.EditMode
             string json = File.ReadAllText(path);
 
             Assert.That(json, Does.Contain("\"failOpenWhenUnavailable\": false"));
+        }
+
+        [Test]
+        public void ReleaseManifestIsSignedByTheEmbeddedProductionKey()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string settingsJson = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Resources",
+                "RemoteUpdates",
+                "RemoteUpdateSettings.json"));
+            Assert.That(settingsJson, Does.Contain("\"requireSignature\": true"));
+            Assert.That(settingsJson, Does.Contain("\"expectedKeyId\": \"production-2026\""));
+
+            Type runtimeType = FindType(
+                "ArcaneArena.Frontend.RemoteUpdateRuntime");
+            Type envelopeType = FindType(
+                "ArcaneArena.Frontend.RemoteReleaseEnvelope");
+            string envelopeJson = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "ContentStaging",
+                "production",
+                "v2",
+                "release-envelope.json"));
+            object envelope = JsonUtility.FromJson(
+                envelopeJson,
+                envelopeType);
+            var gameObject = new GameObject("Manifest signature test");
+            try
+            {
+                object runtime = gameObject.AddComponent(runtimeType);
+                MethodInfo validate = runtimeType.GetMethod(
+                    "ValidateEnvelope",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.DoesNotThrow(() => validate.Invoke(
+                    runtime,
+                    new[] { envelope, (object)false }));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void ReleaseManifestRejectsPayloadChangedAfterSigning()
+        {
+            Type runtimeType = FindType(
+                "ArcaneArena.Frontend.RemoteUpdateRuntime");
+            Type envelopeType = FindType(
+                "ArcaneArena.Frontend.RemoteReleaseEnvelope");
+            string envelopeJson = File.ReadAllText(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "ContentStaging",
+                "production",
+                "v2",
+                "release-envelope.json"));
+            object envelope = JsonUtility.FromJson(envelopeJson, envelopeType);
+            object payload = envelopeType.GetField("payload").GetValue(envelope);
+            payload.GetType().GetField("summary").SetValue(
+                payload,
+                "manifesto adulterado");
+            var gameObject = new GameObject("Tampered manifest test");
+            try
+            {
+                object runtime = gameObject.AddComponent(runtimeType);
+                MethodInfo validate = runtimeType.GetMethod(
+                    "ValidateEnvelope",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                TargetInvocationException exception = Assert.Throws<
+                    TargetInvocationException>(() => validate.Invoke(
+                    runtime,
+                    new[] { envelope, (object)false }));
+                Assert.That(
+                    exception.InnerException,
+                    Is.TypeOf<System.Security.Cryptography.CryptographicException>());
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void ProductionManifestHasFreshnessAndRollbackMetadata()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string path = Path.Combine(
+                projectRoot,
+                "ContentStaging",
+                "production",
+                "v2",
+                "release-envelope.json");
+            string json = File.ReadAllText(path);
+
+            Assert.That(json, Does.Contain("\"sequenceNumber\": 2"));
+            Assert.That(json, Does.Contain("\"channel\": \"production\""));
+            Assert.That(json, Does.Contain("\"expiresUtc\":"));
+
+            string runtime = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "RemoteUpdateRuntime.cs"));
+            Assert.That(runtime, Does.Contain(
+                "manifest.sequenceNumber < trusted.highestSequenceNumber"));
+            Assert.That(runtime, Does.Contain("expiresUtc <= now"));
+        }
+
+        [Test]
+        public void LegacyManifestRemainsAvailableForInstalledVersionMigration()
+        {
+            string json = File.ReadAllText(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "ContentStaging",
+                "production",
+                "release-envelope.json"));
+
+            Assert.That(json, Does.Contain("\"schemaVersion\": 1"));
+            Assert.That(json, Does.Not.Contain("\"sequenceNumber\""));
+        }
+
+        [Test]
+        public void AndroidUpdaterDeclaresInstallerPermissionAndReceiver()
+        {
+            string manifest = File.ReadAllText(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "Assets",
+                "Plugins",
+                "Android",
+                "MasterDuelUpdater.androidlib",
+                "AndroidManifest.xml"));
+
+            Assert.That(manifest, Does.Contain("REQUEST_INSTALL_PACKAGES"));
+            Assert.That(manifest, Does.Contain("UpdateInstallReceiver"));
+            Assert.That(manifest, Does.Contain("android:exported=\"false\""));
+        }
+
+        [Test]
+        public void WindowsUpdaterContainsRollbackAndPathContainmentGuards()
+        {
+            string source = File.ReadAllText(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "PlatformApplicationUpdater.cs"));
+
+            Assert.That(source, Does.Contain("backupDirectory"));
+            Assert.That(source, Does.Contain("O pacote tentou gravar fora da instalação"));
+            Assert.That(source, Does.Contain("Copy-Item -LiteralPath $backupFile"));
+        }
+
+        [Test]
+        public void WindowsUpdateExtractorRejectsZipTraversal()
+        {
+            string root = Path.Combine(
+                Path.GetTempPath(),
+                "master-duel-update-test-" + Guid.NewGuid().ToString("N"));
+            string archivePath = Path.Combine(root, "malicious.zip");
+            string destination = Path.Combine(root, "staging");
+            Directory.CreateDirectory(root);
+            try
+            {
+                using (var archive = ZipFile.Open(
+                           archivePath,
+                           ZipArchiveMode.Create))
+                {
+                    ZipArchiveEntry entry = archive.CreateEntry(
+                        "../outside.txt");
+                    using var writer = new StreamWriter(entry.Open());
+                    writer.Write("blocked");
+                }
+
+                Type updater = FindType(
+                    "ArcaneArena.Frontend.PlatformApplicationUpdater");
+                MethodInfo extract = updater.GetMethod(
+                    "ExtractZipSafely",
+                    BindingFlags.NonPublic | BindingFlags.Static);
+                TargetInvocationException exception = Assert.Throws<
+                    TargetInvocationException>(() => extract.Invoke(
+                    null,
+                    new object[] { archivePath, destination }));
+
+                Assert.That(exception.InnerException, Is.TypeOf<IOException>());
+                Assert.That(
+                    File.Exists(Path.Combine(root, "outside.txt")),
+                    Is.False);
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                    Directory.Delete(root, true);
+            }
         }
 
         [Test]

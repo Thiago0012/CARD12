@@ -1,11 +1,15 @@
 {
   "schemaVersion": 1,
   "enabled": true,
-  "manifestUrl": "https://raw.githubusercontent.com/Thiago0012/CARD12/refs/heads/main/ContentStaging/production/release-envelope.json",
+  "manifestUrl": "https://github.com/Thiago0012/CARD12/releases/latest/download/release-envelope.json",
+  "releaseChannel": "production",
   "requestTimeoutSeconds": 15,
   "failOpenWhenUnavailable": false,
   "allowBundledManifestInEditor": true,
-  "requireSignature": false,
-  "rsaPublicKeyPem": "",
+  "requireSignature": true,
+  "expectedKeyId": "production-2026",
+  "rsaPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAmYCvPsq3Aq3vMYmSdZEL\nNiYfLyumbB6yTU8rYE83dJi0q7CCBdPuHEyuQM6SchRF3OF7T2hjbj+H31Feiqsd\nvDysSRHGZ3C53/M/lKpTuWPoWSDh98mTmTODeqc3+2x2mfbRr9/DNXmWyCoWBHaq\nSZ36QZzp+2pKXGOgIXZF1aaUIz9CgPdO2bnk3J5kfm6OXY+fVlziN+ffwnLreh+7\nIwfiFC3IQIlNw/1iZ2gJJkfPtBHC50wW1AfdozpiwFgWfkiUn8P54xBwzGL1TzlP\nVeXkDcnZ5sXCnp0RceLALdnq3fi5eNqI1ohK2SbvtP3nOoLUhhrv4xmF/bdmyHPc\nH88ruWR0zC9TBWiPOLd8p3vhKCLynkWfvIsxn0xBkX0L5gXPsNPmzIwotCBu6qkS\n4VVBHfTyo3RioA7Qkvv3hIwVjjX/D94kNO/mqV6C2A1AMWUeKBl0hn2LVT0PiauK\nTdegfiWMH1to7aW3XwTKxpQ9DJEsPO1RQTNzHIBCo+1ZAgMBAAE=\n-----END PUBLIC KEY-----",
+  "rsaModulusBase64": "mYCvPsq3Aq3vMYmSdZELNiYfLyumbB6yTU8rYE83dJi0q7CCBdPuHEyuQM6SchRF3OF7T2hjbj+H31FeiqsdvDysSRHGZ3C53/M/lKpTuWPoWSDh98mTmTODeqc3+2x2mfbRr9/DNXmWyCoWBHaqSZ36QZzp+2pKXGOgIXZF1aaUIz9CgPdO2bnk3J5kfm6OXY+fVlziN+ffwnLreh+7IwfiFC3IQIlNw/1iZ2gJJkfPtBHC50wW1AfdozpiwFgWfkiUn8P54xBwzGL1TzlPVeXkDcnZ5sXCnp0RceLALdnq3fi5eNqI1ohK2SbvtP3nOoLUhhrv4xmF/bdmyHPcH88ruWR0zC9TBWiPOLd8p3vhKCLynkWfvIsxn0xBkX0L5gXPsNPmzIwotCBu6qkS4VVBHfTyo3RioA7Qkvv3hIwVjjX/D94kNO/mqV6C2A1AMWUeKBl0hn2LVT0PiauKTdegfiWMH1to7aW3XwTKxpQ9DJEsPO1RQTNzHIBCo+1Z",
+  "rsaExponentBase64": "AQAB",
   "bundledEnvelopeResource": "RemoteUpdates/BundledReleaseEnvelope"
 }

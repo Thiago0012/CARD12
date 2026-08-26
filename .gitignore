@@ -24,6 +24,7 @@ Assets/Resources/PerformanceTestRunSettings.json.meta
 .vscode/
 .idea/
 .wrangler/
+.release-secrets/
 ExportedObj/
 *.csproj
 *.sln
@@ -54,6 +55,7 @@ Assets/Plugins/Windows/x86_64/*.pdb
 # Copyrighted card art is staged locally and tracked through a hash manifest
 ContentStaging/**/Art/
 ContentStaging/**/Raw/
+ContentStaging/production/artifacts/
 
 # Reproducible project build scripts are source files
 !Tools/Build/

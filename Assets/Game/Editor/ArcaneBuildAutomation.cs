@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using ArcaneDuel.Game;
@@ -96,6 +97,8 @@ namespace ArcaneDuel.Editor
                     $"errors={report.summary.totalErrors}.");
             }
             PackageDocumentation(projectRoot, outputDirectory);
+            if ((options & BuildOptions.Development) == 0)
+                PackageWindowsReleaseArtifact(projectRoot, outputDirectory);
             Debug.Log(
                 $"ARCANE_DUEL_WINDOWS_BUILD_OK path={output} " +
                 $"bytes={report.summary.totalSize} options={options}");
@@ -142,6 +145,8 @@ namespace ArcaneDuel.Editor
             PlayerSettings.Android.minSdkVersion =
                 AndroidSdkVersions.AndroidApiLevel26;
             EditorUserBuildSettings.buildAppBundle = false;
+            ReleaseBuildSigningConfiguration.ApplyAndroidSigning(
+                (options & BuildOptions.Development) == 0);
 
             string projectRoot =
                 Directory.GetParent(Application.dataPath).FullName;
@@ -175,9 +180,57 @@ namespace ArcaneDuel.Editor
                     $"Android build failed: {report.summary.result}, " +
                     $"errors={report.summary.totalErrors}.");
             }
+            if ((options & BuildOptions.Development) == 0)
+                CopyAndroidReleaseArtifact(projectRoot, output);
             Debug.Log(
                 $"ARCANE_DUEL_ANDROID_BUILD_OK path={output} " +
                 $"bytes={report.summary.totalSize} options={options}");
+        }
+
+        private static void PackageWindowsReleaseArtifact(
+            string projectRoot,
+            string buildDirectory)
+        {
+            string artifacts = Path.Combine(
+                projectRoot,
+                "ContentStaging",
+                "production",
+                "artifacts");
+            Directory.CreateDirectory(artifacts);
+            string destination = Path.Combine(
+                artifacts,
+                "MasterDuel2PlusUltra-Windows-v" +
+                PlayerSettings.bundleVersion + ".zip");
+            string temporary = destination + ".tmp";
+            if (File.Exists(temporary))
+                File.Delete(temporary);
+            ZipFile.CreateFromDirectory(
+                buildDirectory,
+                temporary,
+                System.IO.Compression.CompressionLevel.Optimal,
+                false);
+            if (File.Exists(destination))
+                File.Delete(destination);
+            File.Move(temporary, destination);
+            Debug.Log("WINDOWS_UPDATE_ARTIFACT_READY path=" + destination);
+        }
+
+        private static void CopyAndroidReleaseArtifact(
+            string projectRoot,
+            string apkPath)
+        {
+            string artifacts = Path.Combine(
+                projectRoot,
+                "ContentStaging",
+                "production",
+                "artifacts");
+            Directory.CreateDirectory(artifacts);
+            string destination = Path.Combine(
+                artifacts,
+                "MasterDuel2PlusUltra-Android-v" +
+                PlayerSettings.bundleVersion + ".apk");
+            File.Copy(apkPath, destination, true);
+            Debug.Log("ANDROID_UPDATE_ARTIFACT_READY path=" + destination);
         }
 
         private static void WriteBuildDiagnostics(

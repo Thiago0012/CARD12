@@ -20,7 +20,7 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class RemoteReleaseEnvelope
     {
-        public int schemaVersion = 1;
+        public int schemaVersion = 2;
         public string keyId;
         public string signatureBase64;
         public RemoteReleaseManifest payload = new RemoteReleaseManifest();
@@ -29,9 +29,13 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class RemoteReleaseManifest
     {
-        public int schemaVersion = 1;
+        public int schemaVersion = 2;
         public string releaseId;
         public string publishedUtc;
+        public long sequenceNumber = 1;
+        public string channel = "production";
+        public string expiresUtc;
+        public int protocolVersion = 1;
         public string minimumClientVersion;
         public string latestClientVersion;
         public bool requiredClientUpdate;
@@ -41,10 +45,32 @@ namespace ArcaneArena.Frontend
         public string windowsUpdateUrl;
         public string androidUpdateUrl;
         public string fallbackUpdateUrl;
+        public RemoteClientArtifact windows = new RemoteClientArtifact();
+        public RemoteClientArtifact android = new RemoteClientArtifact();
         public string contentVersion;
         public bool requiredContentUpdate;
         public RemoteContentPackage[] packages =
             Array.Empty<RemoteContentPackage>();
+    }
+
+    [Serializable]
+    public sealed class RemoteClientArtifact
+    {
+        public string platform;
+        public string versionName;
+        public int versionCode;
+        public int minimumVersionCode;
+        public int protocolVersion = 1;
+        public string url;
+        public long sizeBytes;
+        public string sha256;
+        public string signingCertificateSha256;
+        public string executableName;
+
+        public bool HasInstallableArtifact =>
+            !string.IsNullOrWhiteSpace(url) &&
+            sizeBytes > 0 &&
+            !string.IsNullOrWhiteSpace(sha256);
     }
 
     [Serializable]
@@ -73,11 +99,15 @@ namespace ArcaneArena.Frontend
             public int schemaVersion = 1;
             public bool enabled = true;
             public string manifestUrl;
+            public string releaseChannel = "production";
             public int requestTimeoutSeconds = 15;
             public bool failOpenWhenUnavailable;
             public bool allowBundledManifestInEditor = true;
             public bool requireSignature;
+            public string expectedKeyId;
             public string rsaPublicKeyPem;
+            public string rsaModulusBase64;
+            public string rsaExponentBase64;
             public string bundledEnvelopeResource =
                 "RemoteUpdates/BundledReleaseEnvelope";
 
@@ -85,11 +115,19 @@ namespace ArcaneArena.Frontend
             {
                 schemaVersion = Math.Max(1, schemaVersion);
                 manifestUrl = (manifestUrl ?? string.Empty).Trim();
+                releaseChannel = string.IsNullOrWhiteSpace(releaseChannel)
+                    ? "production"
+                    : releaseChannel.Trim().ToLowerInvariant();
                 requestTimeoutSeconds = Mathf.Clamp(
                     requestTimeoutSeconds,
                     5,
                     60);
                 rsaPublicKeyPem = (rsaPublicKeyPem ?? string.Empty).Trim();
+                rsaModulusBase64 =
+                    (rsaModulusBase64 ?? string.Empty).Trim();
+                rsaExponentBase64 =
+                    (rsaExponentBase64 ?? string.Empty).Trim();
+                expectedKeyId = (expectedKeyId ?? string.Empty).Trim();
                 bundledEnvelopeResource = string.IsNullOrWhiteSpace(
                     bundledEnvelopeResource)
                     ? "RemoteUpdates/BundledReleaseEnvelope"
@@ -106,6 +144,16 @@ namespace ArcaneArena.Frontend
             public long installedUtcTicks;
         }
 
+        [Serializable]
+        private sealed class TrustedReleaseState
+        {
+            public int schemaVersion = 1;
+            public string channel;
+            public long highestSequenceNumber;
+            public string releaseId;
+            public long acceptedUtcTicks;
+        }
+
         private enum GateState
         {
             Checking,
@@ -119,6 +167,8 @@ namespace ArcaneArena.Frontend
         private const string SettingsResourcePath =
             "RemoteUpdates/RemoteUpdateSettings";
         private const string CacheFileName = "last-release-envelope.json";
+        private const string TrustedStateFileName =
+            "trusted-release-state.json";
         private static RemoteUpdateRuntime _instance;
 
         private Settings _settings;
@@ -132,6 +182,7 @@ namespace ArcaneArena.Frontend
         private Image _progressFill;
         private RectTransform _actions;
         private RemoteReleaseManifest _manifest;
+        private RemoteClientArtifact _activeArtifact;
         private List<RemoteContentPackage> _pendingPackages =
             new List<RemoteContentPackage>();
         private bool _mandatory;
@@ -192,6 +243,8 @@ namespace ArcaneArena.Frontend
                     envelope = await DownloadEnvelopeAsync(
                         _settings.manifestUrl);
                     ValidateEnvelope(envelope, true);
+                    NormalizeManifest(envelope.payload);
+                    ValidateAndTrustRemoteManifest(envelope.payload);
                     SaveCachedEnvelope(envelope);
                 }
                 catch (Exception exception)
@@ -232,13 +285,8 @@ namespace ArcaneArena.Frontend
             NormalizeManifest(_manifest);
             SetProgress(0.35f, "VERSÃO LOCAL  " + Application.version);
 
-            int minimumComparison = SemanticVersion.Compare(
-                Application.version,
-                _manifest.minimumClientVersion);
-            int latestComparison = SemanticVersion.Compare(
-                Application.version,
-                _manifest.latestClientVersion);
-            if (minimumComparison < 0 || latestComparison < 0)
+            _activeArtifact = SelectClientArtifactForCurrentPlatform(_manifest);
+            if (RequiresApplicationUpdate(_manifest, _activeArtifact))
             {
                 // Every published client version is mandatory. The legacy
                 // manifest flag remains serialized for compatibility, but it
@@ -305,13 +353,28 @@ namespace ArcaneArena.Frontend
             RemoteReleaseEnvelope envelope,
             bool remote)
         {
-            if (envelope?.payload == null || envelope.schemaVersion != 1)
+            _settings ??= LoadSettings();
+            if (envelope?.payload == null ||
+                envelope.schemaVersion < 1 || envelope.schemaVersion > 2)
                 throw new InvalidDataException(
                     "Envelope de atualização incompatível.");
             if (!_settings.requireSignature)
                 return;
+            if (!string.IsNullOrWhiteSpace(_settings.expectedKeyId) &&
+                !string.Equals(
+                    envelope.keyId?.Trim(),
+                    _settings.expectedKeyId,
+                    StringComparison.Ordinal))
+            {
+                throw new CryptographicException(
+                    "O manifesto foi assinado por uma chave não autorizada.");
+            }
+            bool hasPortablePublicKey =
+                !string.IsNullOrWhiteSpace(_settings.rsaModulusBase64) &&
+                !string.IsNullOrWhiteSpace(_settings.rsaExponentBase64);
             if (string.IsNullOrWhiteSpace(envelope.signatureBase64) ||
-                string.IsNullOrWhiteSpace(_settings.rsaPublicKeyPem))
+                (!hasPortablePublicKey &&
+                 string.IsNullOrWhiteSpace(_settings.rsaPublicKeyPem)))
             {
                 throw new CryptographicException(
                     remote
@@ -324,14 +387,27 @@ namespace ArcaneArena.Frontend
             byte[] signature = Convert.FromBase64String(
                 envelope.signatureBase64);
             using RSA rsa = RSA.Create();
-            string publicKey = _settings.rsaPublicKeyPem
-                .Replace("-----BEGIN PUBLIC KEY-----", string.Empty)
-                .Replace("-----END PUBLIC KEY-----", string.Empty)
-                .Replace("\r", string.Empty)
-                .Replace("\n", string.Empty)
-                .Trim();
-            byte[] publicKeyBytes = Convert.FromBase64String(publicKey);
-            rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            if (hasPortablePublicKey)
+            {
+                rsa.ImportParameters(new RSAParameters
+                {
+                    Modulus = Convert.FromBase64String(
+                        _settings.rsaModulusBase64),
+                    Exponent = Convert.FromBase64String(
+                        _settings.rsaExponentBase64)
+                });
+            }
+            else
+            {
+                string publicKey = _settings.rsaPublicKeyPem
+                    .Replace("-----BEGIN PUBLIC KEY-----", string.Empty)
+                    .Replace("-----END PUBLIC KEY-----", string.Empty)
+                    .Replace("\r", string.Empty)
+                    .Replace("\n", string.Empty)
+                    .Trim();
+                byte[] publicKeyBytes = Convert.FromBase64String(publicKey);
+                rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            }
             if (!rsa.VerifyData(
                     payload,
                     signature,
@@ -346,7 +422,74 @@ namespace ArcaneArena.Frontend
         private void ShowApplicationUpdate()
         {
             _state = GateState.AppUpdate;
-            PresentUpdateShortcut(OpenApplicationUpdate, _mandatory);
+            PresentUpdateShortcut(BeginApplicationUpdate, _mandatory);
+        }
+
+        private async void BeginApplicationUpdate()
+        {
+            if (_state == GateState.Downloading)
+                return;
+
+            if (_activeArtifact == null ||
+                !_activeArtifact.HasInstallableArtifact ||
+                Application.isEditor)
+            {
+                OpenApplicationUpdatePage();
+                return;
+            }
+
+            _state = GateState.Downloading;
+            ClearActions();
+            try
+            {
+                string artifactPath = await PlatformApplicationUpdater
+                    .DownloadAndVerifyAsync(
+                        _activeArtifact,
+                        _settings.requestTimeoutSeconds,
+                        (progress, status) => SetProgress(progress, status));
+                ApplicationUpdateLaunchResult launchResult =
+                    PlatformApplicationUpdater.BeginInstall(
+                        _activeArtifact,
+                        artifactPath);
+                if (launchResult == ApplicationUpdateLaunchResult
+                        .PermissionRequested)
+                {
+                    _state = GateState.AppUpdate;
+                    SetCopy(
+                        "AUTORIZAR ATUALIZAÇÃO",
+                        "PERMITA A INSTALAÇÃO DESTA FONTE",
+                        "Ao voltar ao jogo, pressione continuar. O pacote já " +
+                        "foi baixado e validado.");
+                    PresentUpdateShortcut(
+                        BeginApplicationUpdate,
+                        true,
+                        "CONTINUAR INSTALAÇÃO");
+                    return;
+                }
+
+                SetCopy(
+                    "ATUALIZAÇÃO PRONTA",
+                    "CONCLUA A INSTALAÇÃO NO SISTEMA",
+                    Application.platform == RuntimePlatform.Android
+                        ? "O Android exibirá a confirmação oficial do pacote."
+                        : "O jogo será reiniciado quando os arquivos forem trocados.");
+                SetProgress(1f, "PACOTE VALIDADO");
+            }
+            catch (Exception exception)
+            {
+                _state = GateState.Failed;
+                Debug.LogWarning(
+                    "[Atualização do aplicativo] " +
+                    exception.GetBaseException().Message);
+                SetCopy(
+                    "ATUALIZAÇÃO INTERROMPIDA",
+                    "NÃO FOI POSSÍVEL INSTALAR A NOVA VERSÃO",
+                    exception.GetBaseException().Message);
+                PresentUpdateShortcut(
+                    BeginApplicationUpdate,
+                    true,
+                    "TENTAR NOVAMENTE");
+            }
         }
 
         private void ShowContentUpdate(string installedVersion)
@@ -559,21 +702,26 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        private void OpenApplicationUpdate()
+        private void OpenApplicationUpdatePage()
         {
-            string url = Application.platform switch
+            string url = _activeArtifact?.url;
+            if (string.IsNullOrWhiteSpace(url))
             {
-                RuntimePlatform.Android => _manifest.androidUpdateUrl,
-                RuntimePlatform.WindowsPlayer => _manifest.windowsUpdateUrl,
-                RuntimePlatform.WindowsEditor => _manifest.windowsUpdateUrl,
-                _ => _manifest.fallbackUpdateUrl
-            };
+                url = Application.platform switch
+                {
+                    RuntimePlatform.Android => _manifest.androidUpdateUrl,
+                    RuntimePlatform.WindowsPlayer => _manifest.windowsUpdateUrl,
+                    RuntimePlatform.WindowsEditor => _manifest.windowsUpdateUrl,
+                    _ => _manifest.fallbackUpdateUrl
+                };
+            }
             if (string.IsNullOrWhiteSpace(url))
                 url = _manifest.fallbackUpdateUrl;
             if (string.IsNullOrWhiteSpace(url))
             {
-                _message.text =
-                    "O endereço da atualização ainda não foi publicado.";
+                if (_message != null)
+                    _message.text =
+                        "O endereço da atualização ainda não foi publicado.";
                 return;
             }
             Application.OpenURL(url);
@@ -600,7 +748,26 @@ namespace ArcaneArena.Frontend
             {
                 Debug.LogWarning(
                     "[Atualização] A oferta existe, mas a cena de abertura " +
-                    "não está ativa. Inicie o jogo pela cena Login.");
+                    "não está ativa. Exibindo o painel de segurança.");
+                if (_canvas == null)
+                    BuildGate();
+                SetCopy(
+                    _manifest?.title ?? "ATUALIZAÇÃO OBRIGATÓRIA",
+                    label,
+                    (_manifest?.summary ?? string.Empty) +
+                    FormatChanges(_manifest?.changes));
+                ClearActions();
+                CreateActionButton(
+                    label,
+                    new Color(0.08f, 0.78f, 0.98f, 1f),
+                    action);
+                if (!blocksEntry)
+                {
+                    CreateActionButton(
+                        "CONTINUAR",
+                        new Color(0.62f, 0.78f, 0.22f, 1f),
+                        CompleteEntry);
+                }
                 return;
             }
             intro.ShowUpdateOffer(action, blocksEntry, label);
@@ -921,6 +1088,115 @@ namespace ArcaneArena.Frontend
             }
         }
 
+        private void ValidateAndTrustRemoteManifest(
+            RemoteReleaseManifest manifest)
+        {
+            if (manifest == null)
+                throw new InvalidDataException("Manifesto remoto ausente.");
+            if (!string.Equals(
+                    manifest.channel,
+                    _settings.releaseChannel,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException(
+                    "O manifesto pertence a outro canal de atualização.");
+            }
+            if (manifest.sequenceNumber <= 0)
+                throw new InvalidDataException(
+                    "O manifesto não possui uma sequência de segurança válida.");
+            if (!DateTimeOffset.TryParse(
+                    manifest.publishedUtc,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal |
+                    DateTimeStyles.AdjustToUniversal,
+                    out DateTimeOffset publishedUtc))
+            {
+                throw new InvalidDataException(
+                    "A data de publicação do manifesto é inválida.");
+            }
+            if (!DateTimeOffset.TryParse(
+                    manifest.expiresUtc,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal |
+                    DateTimeStyles.AdjustToUniversal,
+                    out DateTimeOffset expiresUtc))
+            {
+                throw new InvalidDataException(
+                    "O manifesto não possui uma validade verificável.");
+            }
+
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            if (publishedUtc > now.AddHours(24))
+                throw new InvalidDataException(
+                    "A data do manifesto está adiantada em relação ao dispositivo.");
+            if (expiresUtc <= now || expiresUtc <= publishedUtc)
+                throw new InvalidDataException(
+                    "O manifesto de atualização expirou ou possui validade inválida.");
+
+            TrustedReleaseState trusted = LoadTrustedReleaseState();
+            if (trusted != null &&
+                string.Equals(
+                    trusted.channel,
+                    manifest.channel,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                if (manifest.sequenceNumber < trusted.highestSequenceNumber)
+                {
+                    throw new CryptographicException(
+                        "Uma versão antiga do catálogo de atualização foi bloqueada.");
+                }
+                if (manifest.sequenceNumber == trusted.highestSequenceNumber &&
+                    !string.Equals(
+                        manifest.releaseId,
+                        trusted.releaseId,
+                        StringComparison.Ordinal))
+                {
+                    throw new CryptographicException(
+                        "A sequência do catálogo foi reutilizada por outra versão.");
+                }
+            }
+
+            if (trusted == null ||
+                manifest.sequenceNumber > trusted.highestSequenceNumber)
+            {
+                SaveTrustedReleaseState(new TrustedReleaseState
+                {
+                    channel = manifest.channel,
+                    highestSequenceNumber = manifest.sequenceNumber,
+                    releaseId = manifest.releaseId,
+                    acceptedUtcTicks = now.UtcDateTime.Ticks
+                });
+            }
+        }
+
+        private static TrustedReleaseState LoadTrustedReleaseState()
+        {
+            try
+            {
+                string path = TrustedStatePath();
+                if (!File.Exists(path))
+                    return null;
+                TrustedReleaseState state = JsonUtility.FromJson<
+                    TrustedReleaseState>(File.ReadAllText(path));
+                return state != null && state.highestSequenceNumber > 0
+                    ? state
+                    : null;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Atualização] O estado de confiança foi ignorado: " +
+                    exception.Message);
+                return null;
+            }
+        }
+
+        private static void SaveTrustedReleaseState(TrustedReleaseState state)
+        {
+            string path = TrustedStatePath();
+            WriteTextAtomically(path, JsonUtility.ToJson(state, true));
+        }
+
         private RemoteReleaseEnvelope LoadCachedEnvelope()
         {
             try
@@ -951,6 +1227,10 @@ namespace ArcaneArena.Frontend
             if (manifest == null)
                 throw new InvalidDataException("Manifesto ausente.");
             manifest.releaseId = SafeFileName(manifest.releaseId);
+            manifest.channel = string.IsNullOrWhiteSpace(manifest.channel)
+                ? "production"
+                : manifest.channel.Trim().ToLowerInvariant();
+            manifest.expiresUtc = (manifest.expiresUtc ?? string.Empty).Trim();
             manifest.minimumClientVersion = string.IsNullOrWhiteSpace(
                 manifest.minimumClientVersion)
                 ? Application.version
@@ -969,6 +1249,95 @@ namespace ArcaneArena.Frontend
             manifest.summary = (manifest.summary ?? string.Empty).Trim();
             manifest.changes ??= Array.Empty<string>();
             manifest.packages ??= Array.Empty<RemoteContentPackage>();
+            manifest.windows ??= new RemoteClientArtifact();
+            manifest.android ??= new RemoteClientArtifact();
+            NormalizeClientArtifact(
+                manifest.windows,
+                "windows",
+                manifest.latestClientVersion,
+                manifest.windowsUpdateUrl,
+                manifest.protocolVersion);
+            NormalizeClientArtifact(
+                manifest.android,
+                "android",
+                manifest.latestClientVersion,
+                manifest.androidUpdateUrl,
+                manifest.protocolVersion);
+        }
+
+        private static void NormalizeClientArtifact(
+            RemoteClientArtifact artifact,
+            string platform,
+            string legacyVersion,
+            string legacyUrl,
+            int protocolVersion)
+        {
+            artifact.platform = platform;
+            artifact.versionName = string.IsNullOrWhiteSpace(
+                artifact.versionName)
+                ? legacyVersion
+                : artifact.versionName.Trim();
+            artifact.url = string.IsNullOrWhiteSpace(artifact.url)
+                ? (legacyUrl ?? string.Empty).Trim()
+                : artifact.url.Trim();
+            artifact.sha256 = (artifact.sha256 ?? string.Empty)
+                .Replace("-", string.Empty)
+                .Trim()
+                .ToLowerInvariant();
+            artifact.signingCertificateSha256 =
+                (artifact.signingCertificateSha256 ?? string.Empty)
+                .Replace(":", string.Empty)
+                .Replace("-", string.Empty)
+                .Trim()
+                .ToLowerInvariant();
+            artifact.executableName = (artifact.executableName ?? string.Empty)
+                .Trim();
+            artifact.protocolVersion = Math.Max(
+                1,
+                artifact.protocolVersion > 0
+                    ? artifact.protocolVersion
+                    : protocolVersion);
+        }
+
+        private static RemoteClientArtifact
+            SelectClientArtifactForCurrentPlatform(
+                RemoteReleaseManifest manifest)
+        {
+            return Application.platform switch
+            {
+                RuntimePlatform.Android => manifest.android,
+                RuntimePlatform.WindowsPlayer => manifest.windows,
+                RuntimePlatform.WindowsEditor => manifest.windows,
+                _ => null
+            };
+        }
+
+        private static bool RequiresApplicationUpdate(
+            RemoteReleaseManifest manifest,
+            RemoteClientArtifact artifact)
+        {
+            if (Application.platform == RuntimePlatform.Android &&
+                artifact != null && artifact.versionCode > 0)
+            {
+                long installedCode = PlatformApplicationUpdater
+                    .GetInstalledAndroidVersionCode();
+                int minimumCode = artifact.minimumVersionCode > 0
+                    ? artifact.minimumVersionCode
+                    : artifact.versionCode;
+                if (installedCode > 0)
+                    return installedCode < minimumCode ||
+                           installedCode < artifact.versionCode;
+            }
+
+            string latest = string.IsNullOrWhiteSpace(artifact?.versionName)
+                ? manifest.latestClientVersion
+                : artifact.versionName;
+            return SemanticVersion.Compare(
+                       Application.version,
+                       manifest.minimumClientVersion) < 0 ||
+                   SemanticVersion.Compare(
+                       Application.version,
+                       latest) < 0;
         }
 
         private static IEnumerable<RemoteContentPackage>
@@ -1120,6 +1489,15 @@ namespace ArcaneArena.Frontend
                 "ArcaneArena",
                 "RemoteUpdates",
                 CacheFileName);
+        }
+
+        private static string TrustedStatePath()
+        {
+            return Path.Combine(
+                Application.persistentDataPath,
+                "ArcaneArena",
+                "RemoteUpdates",
+                TrustedStateFileName);
         }
 
         private static Settings LoadSettings()

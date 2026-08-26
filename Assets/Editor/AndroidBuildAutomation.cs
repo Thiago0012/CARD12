@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using ArcaneDuel.Editor.RemoteUpdates;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -74,6 +75,7 @@ namespace ArcaneArena.EditorTools
             // and BuildPipeline later fails with "Target architecture not
             // specified".
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            ReleaseSigningConfiguration.ApplyAndroidSigning(true);
             AssetDatabase.SaveAssets();
 
             string safeVersion = string.IsNullOrWhiteSpace(PlayerSettings.bundleVersion)
@@ -99,6 +101,22 @@ namespace ArcaneArena.EditorTools
                     $"Build Android falhou: {summary.result}; " +
                     $"erros={summary.totalErrors}; avisos={summary.totalWarnings}.");
             }
+
+            string projectRoot =
+                Directory.GetParent(Application.dataPath)?.FullName ??
+                Application.dataPath;
+            string artifacts = Path.Combine(
+                projectRoot,
+                "ContentStaging",
+                "production",
+                "artifacts");
+            Directory.CreateDirectory(artifacts);
+            File.Copy(
+                apkPath,
+                Path.Combine(
+                    artifacts,
+                    "MasterDuel2PlusUltra-Android-v" + safeVersion + ".apk"),
+                true);
 
             Debug.Log(
                 $"ANDROID_APK_READY path={apkPath}; bytes={summary.totalSize}; " +
