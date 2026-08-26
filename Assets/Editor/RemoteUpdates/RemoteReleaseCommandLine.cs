@@ -124,10 +124,12 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                             releaseBase + androidName,
                             androidPath,
                             string.Empty),
+                        // A full build already contains its current YGO
+                        // content. Do not make a new installation download a
+                        // previously published patch on top of that build.
                         contentVersion = previous?.contentVersion ?? "0.0.0",
-                        requiredContentUpdate = true,
-                        packages = previous?.packages ??
-                                   Array.Empty<RemoteContentPackage>()
+                        requiredContentUpdate = false,
+                        packages = Array.Empty<RemoteContentPackage>()
                     }
                 };
                 envelope.payload.android.signingCertificateSha256 =

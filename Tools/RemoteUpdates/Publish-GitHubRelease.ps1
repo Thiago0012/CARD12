@@ -10,7 +10,7 @@ $envelopePath = Join-Path $ProjectRoot 'ContentStaging/production/v2/release-env
 $envelope = Get-Content -LiteralPath $envelopePath -Raw | ConvertFrom-Json
 $version = [string]$envelope.payload.latestClientVersion
 $tag = if ($ManifestOnly) {
-    'updater-bootstrap-' + $version + '-s' +
+    'content-' + $version + '-s' +
         [string]$envelope.payload.sequenceNumber
 } else {
     'v' + $version
@@ -18,6 +18,7 @@ $tag = if ($ManifestOnly) {
 $artifactRoot = Join-Path $ProjectRoot 'ContentStaging/production/artifacts'
 $windowsPath = Join-Path $artifactRoot "MasterDuel2PlusUltra-Windows-v$version.zip"
 $androidPath = Join-Path $artifactRoot "MasterDuel2PlusUltra-Android-v$version.apk"
+$packageRoot = Join-Path $ProjectRoot 'ContentStaging/production/packages'
 
 function Assert-Artifact([string]$Path, $Descriptor) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -107,9 +108,34 @@ function Send-ReleaseAsset([string]$Path, [string]$ContentType) {
     Write-Output "RELEASE_ASSET_UPLOADED name=$name"
 }
 
+function Get-ContentPackageAssets {
+    $assets = @()
+    foreach ($descriptor in @($envelope.payload.packages)) {
+        if ($null -eq $descriptor) { continue }
+        $uri = [Uri]([string]$descriptor.url)
+        $name = [IO.Path]::GetFileName($uri.AbsolutePath)
+        if ([string]::IsNullOrWhiteSpace($name) -or
+            -not $name.EndsWith('.zip', [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Pacote de conteúdo inválido no manifesto: $($descriptor.url)"
+        }
+        $expected = "https://github.com/$Repository/releases/download/$tag/$name"
+        if (-not [string]::Equals([string]$descriptor.url, $expected,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            throw "O link do pacote precisa apontar para o release ${tag}: $expected"
+        }
+        $path = Join-Path $packageRoot $name
+        Assert-Artifact $path $descriptor
+        $assets += $path
+    }
+    return $assets
+}
+
 if (-not $ManifestOnly) {
     Send-ReleaseAsset $windowsPath 'application/zip'
     Send-ReleaseAsset $androidPath 'application/vnd.android.package-archive'
+}
+foreach ($contentPackage in (Get-ContentPackageAssets)) {
+    Send-ReleaseAsset $contentPackage 'application/zip'
 }
 Send-ReleaseAsset $envelopePath 'application/json'
 

@@ -225,6 +225,9 @@ namespace ArcaneDuel.Tests.EditMode
                 "O APK não pode ser copiado na thread visual da Unity.");
             Assert.That(bridge, Does.Contain("getInstallProgress"));
             Assert.That(bridge, Does.Contain("runOnUiThread"));
+            Assert.That(bridge, Does.Contain("deleteManagedDownload"));
+            Assert.That(bridge, Does.Contain("reconcileCompletedInstall"));
+            Assert.That(bridge, Does.Contain("KEY_TARGET_VERSION"));
 
             string runtime = File.ReadAllText(Path.Combine(
                 projectRoot,
@@ -234,6 +237,66 @@ namespace ArcaneDuel.Tests.EditMode
                 "RemoteUpdateRuntime.cs"));
             Assert.That(runtime, Does.Contain("MonitorAndroidInstallerAsync"));
             Assert.That(runtime, Does.Contain("ABRIR INSTALADOR"));
+            Assert.That(runtime, Does.Contain("DiscardDownloadedArtifact"));
+            Assert.That(runtime, Does.Contain("CleanupAbandonedDownloads"));
+            string updater = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "PlatformApplicationUpdater.cs"));
+            Assert.That(updater, Does.Contain(".download"),
+                "Downloads de conteúdo interrompidos também precisam ser limpos.");
+        }
+
+        [Test]
+        public void ContentUpdatesUseSmallPatchArchivesAndAtomicPointers()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string runtime = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "RemoteUpdateRuntime.cs"));
+            string locator = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "DuelEngine",
+                "Runtime",
+                "Content",
+                "YgoContentLocator.cs"));
+            string publisher = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Editor",
+                "RemoteUpdates",
+                "RemoteReleasePublisherWindow.cs"));
+            string publication = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Tools",
+                "RemoteUpdates",
+                "Publish-GitHubRelease.ps1"));
+
+            Assert.That(runtime, Does.Contain("ygo-patch"));
+            Assert.That(runtime, Does.Contain("patches.json"));
+            Assert.That(runtime, Does.Contain("patch-manifest.json"));
+            Assert.That(runtime, Does.Contain(
+                "CompactYgoPatchDirectoriesIfNeeded"));
+            Assert.That(runtime, Does.Contain(
+                "BuildCompactedYgoPatchDirectory"));
+            Assert.That(runtime, Does.Contain(
+                "CleanupInactiveYgoPatchDirectories"));
+            Assert.That(runtime, Does.Contain(
+                "RefreshBundledContentBaseline"));
+            Assert.That(runtime, Does.Contain(
+                "MaximumActiveYgoPatchDirectories = 1"));
+            Assert.That(locator, Does.Contain("TryResolvePatchedCoreRoot"));
+            Assert.That(locator, Does.Contain("TryResolvePatchedFile"));
+            Assert.That(publisher, Does.Contain("ygo-patch-"));
+            Assert.That(publisher, Does.Contain("deletedFiles"));
+            Assert.That(publication, Does.Contain("content-"));
+            Assert.That(publication, Does.Contain("Get-ContentPackageAssets"));
         }
 
         [Test]

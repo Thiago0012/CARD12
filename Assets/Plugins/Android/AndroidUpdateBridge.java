@@ -26,6 +26,10 @@ public final class AndroidUpdateBridge {
     private static final String ACTION_INSTALL_STATUS =
         "com.arcaneduel.updater.INSTALL_STATUS";
     private static final String PREFERENCES = "master_duel_updater";
+    private static final String KEY_STATE = "state";
+    private static final String KEY_PROGRESS = "progress";
+    private static final String KEY_MESSAGE = "message";
+    private static final String KEY_TARGET_VERSION = "targetVersionCode";
     private static final AtomicBoolean INSTALLING = new AtomicBoolean(false);
     private static volatile WeakReference<Activity> currentActivity =
         new WeakReference<>(null);
@@ -110,23 +114,31 @@ public final class AndroidUpdateBridge {
 
     public static String getInstallState(Activity activity) {
         rememberActivity(activity);
-        return preferences(activity).getString("state", "IDLE");
+        Context context = activity.getApplicationContext();
+        reconcileCompletedInstall(context);
+        return preferences(context).getString(KEY_STATE, "IDLE");
     }
 
     public static float getInstallProgress(Activity activity) {
         rememberActivity(activity);
-        return preferences(activity).getFloat("progress", 0f);
+        return preferences(activity).getFloat(KEY_PROGRESS, 0f);
     }
 
     public static String getInstallMessage(Activity activity) {
         rememberActivity(activity);
-        return preferences(activity).getString("message", "");
+        return preferences(activity).getString(KEY_MESSAGE, "");
     }
 
     public static boolean reopenPendingUserAction(Activity activity) {
         rememberActivity(activity);
         Intent confirmation = pendingConfirmationIntent;
         if (confirmation == null) {
+            writeState(
+                activity,
+                "FAILED",
+                1f,
+                "A confirmação anterior não está mais ativa. Toque em " +
+                "tentar atualização para iniciar uma nova instalação.");
             return false;
         }
         try {
@@ -174,10 +186,45 @@ public final class AndroidUpdateBridge {
         float progress,
         String message) {
         preferences(context).edit()
-            .putString("state", state == null ? "IDLE" : state)
-            .putFloat("progress", Math.max(0f, Math.min(1f, progress)))
-            .putString("message", message == null ? "" : message)
+            .putString(KEY_STATE, state == null ? "IDLE" : state)
+            .putFloat(KEY_PROGRESS, Math.max(0f, Math.min(1f, progress)))
+            .putString(KEY_MESSAGE, message == null ? "" : message)
             .apply();
+    }
+
+    private static void reconcileCompletedInstall(Context context) {
+        SharedPreferences preferences = preferences(context);
+        long target = preferences.getLong(KEY_TARGET_VERSION, 0L);
+        String state = preferences.getString(KEY_STATE, "IDLE");
+        if (target > 0L && getInstalledVersionCode(context) >= target &&
+            !"SUCCESS".equals(state)) {
+            writeState(
+                context,
+                "SUCCESS",
+                1f,
+                "Atualização instalada. Reabra o jogo.");
+        }
+    }
+
+    private static void deleteManagedDownload(Context context, File apk) {
+        try {
+            String candidate = apk.getCanonicalPath();
+            File externalFiles = context.getExternalFilesDir(null);
+            File internalFiles = context.getFilesDir();
+            boolean inExternal = externalFiles != null && candidate.startsWith(
+                externalFiles.getCanonicalPath() + File.separator);
+            boolean inInternal = internalFiles != null && candidate.startsWith(
+                internalFiles.getCanonicalPath() + File.separator);
+            if ((inExternal || inInternal) && apk.isFile() && !apk.delete()) {
+                writeState(
+                    context,
+                    "COMMITTING",
+                    1f,
+                    "Instalador preparado. O Android limpará o arquivo temporário.");
+            }
+        } catch (Exception ignored) {
+            // A failed cleanup must never cancel a verified installation.
+        }
     }
 
     private static void installPackageInBackground(
@@ -213,6 +260,10 @@ public final class AndroidUpdateBridge {
                         "O certificado do APK não corresponde ao publicado.");
                 }
             }
+
+            preferences(context).edit()
+                .putLong(KEY_TARGET_VERSION, candidateVersion)
+                .apply();
 
             PackageInstaller installer = manager.getPackageInstaller();
             abandonStaleSessions(installer, expectedPackageName);
@@ -255,6 +306,11 @@ public final class AndroidUpdateBridge {
                 }
                 session.fsync(output);
             }
+
+            // PackageInstaller now owns an independent copy. Delete the
+            // download from Unity's persistent folder before asking Android
+            // for confirmation so app storage does not retain a second APK.
+            deleteManagedDownload(context, apk);
 
             writeState(context, "COMMITTING", 1f, "Abrindo o instalador.");
             Intent callback = new Intent(context, UpdateInstallReceiver.class);

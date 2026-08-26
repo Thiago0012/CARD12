@@ -136,6 +136,90 @@ namespace ArcaneArena.Frontend
 #endif
         }
 
+        /// <summary>
+        /// Removes a verified installer artifact once the operating system has
+        /// copied it into its own installation session. Keeping a full APK or
+        /// Windows ZIP in persistent data would otherwise make the game look
+        /// as though two complete versions were installed.
+        /// </summary>
+        public static void DiscardDownloadedArtifact(string artifactPath)
+        {
+            if (string.IsNullOrWhiteSpace(artifactPath))
+                return;
+
+            try
+            {
+                string downloads = Path.GetFullPath(Path.Combine(
+                    UpdateRoot(),
+                    "downloads"));
+                string prefix = downloads.TrimEnd(
+                                    Path.DirectorySeparatorChar,
+                                    Path.AltDirectorySeparatorChar) +
+                                Path.DirectorySeparatorChar;
+                string candidate = Path.GetFullPath(artifactPath);
+                if (!candidate.StartsWith(
+                        prefix,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    UnityEngine.Debug.LogWarning(
+                        "[Atualização] A limpeza recusou um caminho fora da " +
+                        "área de downloads do jogo.");
+                    return;
+                }
+
+                if (File.Exists(candidate))
+                    File.Delete(candidate);
+                string partial = candidate + ".partial";
+                if (File.Exists(partial))
+                    File.Delete(partial);
+            }
+            catch (Exception exception)
+            {
+                UnityEngine.Debug.LogWarning(
+                    "[Atualização] Não foi possível liberar o pacote temporário: " +
+                    exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Clears abandoned full-client downloads from older attempts. The
+        /// PackageInstaller session owns its own bytes after commit, so a
+        /// subsequent launch never needs to retain these files in app storage.
+        /// </summary>
+        public static void CleanupAbandonedDownloads()
+        {
+            try
+            {
+                string downloads = Path.Combine(UpdateRoot(), "downloads");
+                if (!Directory.Exists(downloads))
+                    return;
+                foreach (string path in Directory.GetFiles(
+                             downloads,
+                             "*",
+                             SearchOption.TopDirectoryOnly))
+                {
+                    string extension = Path.GetExtension(path);
+                    if (string.Equals(extension, ".apk",
+                            StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(extension, ".zip",
+                            StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(extension, ".download",
+                            StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(extension, ".partial",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Delete(path);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                UnityEngine.Debug.LogWarning(
+                    "[Atualização] Não foi possível limpar downloads antigos: " +
+                    exception.Message);
+            }
+        }
+
         public static async Task<string> DownloadAndVerifyAsync(
             RemoteClientArtifact artifact,
             int requestTimeoutSeconds,
@@ -305,6 +389,10 @@ namespace ArcaneArena.Frontend
             string executableName = ResolveExecutableName(
                 payloadRoot,
                 artifact.executableName);
+
+            // The release has already been extracted and validated. The ZIP
+            // is no longer necessary while the helper performs the file swap.
+            DiscardDownloadedArtifact(artifactPath);
 
             string operationId = DateTime.UtcNow.ToString("yyyyMMddHHmmss") +
                                  "-" + Guid.NewGuid().ToString("N").Substring(0, 8);
