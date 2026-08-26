@@ -467,6 +467,12 @@ namespace ArcaneArena.Frontend
                     return;
                 }
 
+                if (launchResult == ApplicationUpdateLaunchResult.Preparing)
+                {
+                    await MonitorAndroidInstallerAsync();
+                    return;
+                }
+
                 SetCopy(
                     "ATUALIZAÇÃO PRONTA",
                     "CONCLUA A INSTALAÇÃO NO SISTEMA",
@@ -474,6 +480,7 @@ namespace ArcaneArena.Frontend
                         ? "O Android exibirá a confirmação oficial do pacote."
                         : "O jogo será reiniciado quando os arquivos forem trocados.");
                 SetProgress(1f, "PACOTE VALIDADO");
+                SetUpdateShortcutStatus("CONFIRME NO ANDROID", false);
             }
             catch (Exception exception)
             {
@@ -490,6 +497,119 @@ namespace ArcaneArena.Frontend
                     true,
                     "TENTAR NOVAMENTE");
             }
+        }
+
+        private async Task MonitorAndroidInstallerAsync()
+        {
+            DateTimeOffset deadline = DateTimeOffset.UtcNow.AddMinutes(30);
+            DateTimeOffset? committedSince = null;
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                AndroidInstallSnapshot snapshot = PlatformApplicationUpdater
+                    .GetAndroidInstallSnapshot();
+                string state = (snapshot.State ?? string.Empty)
+                    .Trim()
+                    .ToUpperInvariant();
+                switch (state)
+                {
+                    case "PREPARING":
+                        SetCopy(
+                            "PREPARANDO ATUALIZAÇÃO",
+                            "VALIDANDO O PACOTE NO ANDROID",
+                            snapshot.Message);
+                        SetUpdateShortcutStatus("VALIDANDO PACOTE", false);
+                        break;
+                    case "COPYING":
+                        int percentage = Mathf.RoundToInt(
+                            snapshot.Progress * 100f);
+                        SetCopy(
+                            "PREPARANDO ATUALIZAÇÃO",
+                            "ENVIANDO O APK AO INSTALADOR",
+                            "Esta etapa ocorre no aparelho e pode demorar " +
+                            "alguns minutos.");
+                        SetUpdateShortcutStatus(
+                            "PREPARANDO  " + percentage + "%",
+                            false);
+                        break;
+                    case "COMMITTING":
+                    case "COMMITTED":
+                        committedSince ??= DateTimeOffset.UtcNow;
+                        SetCopy(
+                            "ABRINDO INSTALADOR",
+                            "AGUARDANDO O ANDROID",
+                            snapshot.Message);
+                        SetUpdateShortcutStatus("ABRINDO INSTALADOR", false);
+                        if (DateTimeOffset.UtcNow - committedSince.Value >
+                            TimeSpan.FromMinutes(3))
+                        {
+                            throw new TimeoutException(
+                                "O Android não abriu a confirmação. Toque em " +
+                                "tentar novamente.");
+                        }
+                        break;
+                    case "AWAITING_CONFIRMATION":
+                        _state = GateState.AppUpdate;
+                        SetCopy(
+                            "CONFIRMAR ATUALIZAÇÃO",
+                            "CONCLUA A INSTALAÇÃO NO ANDROID",
+                            snapshot.Message);
+                        PresentUpdateShortcut(
+                            ReopenAndroidInstaller,
+                            true,
+                            "ABRIR INSTALADOR");
+                        return;
+                    case "SUCCESS":
+                        _state = GateState.AppUpdate;
+                        SetCopy(
+                            "ATUALIZAÇÃO INSTALADA",
+                            "REABRA O MASTER DUEL 2 PLUS ULTRA",
+                            snapshot.Message);
+                        SetUpdateShortcutStatus("ATUALIZAÇÃO CONCLUÍDA", false);
+                        return;
+                    case "FAILED":
+                        throw new InvalidOperationException(
+                            string.IsNullOrWhiteSpace(snapshot.Message)
+                                ? "O Android recusou a instalação."
+                                : snapshot.Message);
+                    case "IDLE":
+                        SetUpdateShortcutStatus("INICIANDO INSTALADOR", false);
+                        break;
+                    default:
+                        throw new InvalidOperationException(
+                            "Estado inesperado do instalador: " + state);
+                }
+
+                float waitUntil = Time.realtimeSinceStartup + 0.35f;
+                while (Time.realtimeSinceStartup < waitUntil)
+                    await Task.Yield();
+            }
+            throw new TimeoutException(
+                "O Android excedeu o tempo de preparação da instalação.");
+        }
+
+        private void ReopenAndroidInstaller()
+        {
+            if (PlatformApplicationUpdater
+                .ReopenAndroidInstallerConfirmation())
+            {
+                SetUpdateShortcutStatus("CONFIRME NO ANDROID", false);
+                return;
+            }
+
+            _state = GateState.AppUpdate;
+            PresentUpdateShortcut(
+                BeginApplicationUpdate,
+                true,
+                "TENTAR INSTALAÇÃO");
+        }
+
+        private static void SetUpdateShortcutStatus(
+            string label,
+            bool interactable)
+        {
+            LoginIntroController intro = FindAnyObjectByType<
+                LoginIntroController>(FindObjectsInactive.Include);
+            intro?.SetUpdateStatus(label, interactable);
         }
 
         private void ShowContentUpdate(string installedVersion)

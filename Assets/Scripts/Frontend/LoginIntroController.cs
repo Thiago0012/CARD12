@@ -141,6 +141,16 @@ namespace ArcaneArena.Frontend
                 loginButton.interactable = false;
             if (_accountRestoreButton != null && blocksEntry)
                 _accountRestoreButton.interactable = false;
+            if (loginButtonGroup != null && blocksEntry)
+            {
+                loginButtonGroup.interactable = false;
+                loginButtonGroup.blocksRaycasts = false;
+            }
+            if (_accountRestoreGroup != null && blocksEntry)
+            {
+                _accountRestoreGroup.interactable = false;
+                _accountRestoreGroup.blocksRaycasts = false;
+            }
 
             if (_updateOffer == null)
                 BuildUpdateOffer();
@@ -164,6 +174,19 @@ namespace ArcaneArena.Frontend
                 _updateLabel.text = $"ATUALIZANDO  {percentage}%";
             if (_updateButton != null)
                 _updateButton.interactable = false;
+        }
+
+        public void SetUpdateStatus(string label, bool interactable)
+        {
+            if (_updateOffer == null)
+                BuildUpdateOffer();
+            if (_updateLabel != null)
+                _updateLabel.text = string.IsNullOrWhiteSpace(label)
+                    ? "AGUARDE"
+                    : label.Trim().ToUpperInvariant();
+            if (_updateButton != null)
+                _updateButton.interactable = interactable;
+            _updateOffer.SetActive(true);
         }
 
         public void HideUpdateOffer()
@@ -484,8 +507,10 @@ namespace ArcaneArena.Frontend
             if (_isLeaving)
                 yield break;
 
-            SetCanvasGroup(loginButtonGroup, 1f, true);
-            SetCanvasGroup(_accountRestoreGroup, 1f, true);
+            bool entryAvailable = !_updateBlocksEntry &&
+                                  RemoteUpdateRuntime.EntryReady;
+            SetCanvasGroup(loginButtonGroup, 1f, entryAvailable);
+            SetCanvasGroup(_accountRestoreGroup, 1f, entryAvailable);
             if (loginButton != null)
                 loginButton.interactable = !_updateBlocksEntry &&
                                            RemoteUpdateRuntime.EntryReady;

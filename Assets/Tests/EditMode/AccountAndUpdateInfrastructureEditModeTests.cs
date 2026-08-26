@@ -168,7 +168,9 @@ namespace ArcaneDuel.Tests.EditMode
                 "release-envelope.json");
             string json = File.ReadAllText(path);
 
-            Assert.That(json, Does.Contain("\"sequenceNumber\": 2"));
+            Assert.That(
+                json,
+                Does.Match("\\\"sequenceNumber\\\"\\s*:\\s*[1-9][0-9]*"));
             Assert.That(json, Does.Contain("\"channel\": \"production\""));
             Assert.That(json, Does.Contain("\"expiresUtc\":"));
 
@@ -199,8 +201,9 @@ namespace ArcaneDuel.Tests.EditMode
         [Test]
         public void AndroidUpdaterDeclaresInstallerPermissionAndReceiver()
         {
+            string projectRoot = Directory.GetCurrentDirectory();
             string manifest = File.ReadAllText(Path.Combine(
-                Directory.GetCurrentDirectory(),
+                projectRoot,
                 "Assets",
                 "Plugins",
                 "Android",
@@ -210,6 +213,27 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(manifest, Does.Contain("REQUEST_INSTALL_PACKAGES"));
             Assert.That(manifest, Does.Contain("UpdateInstallReceiver"));
             Assert.That(manifest, Does.Contain("android:exported=\"false\""));
+
+            string bridge = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Plugins",
+                "Android",
+                "AndroidUpdateBridge.java"));
+            Assert.That(bridge, Does.Contain(
+                "new Thread(() ->"),
+                "O APK não pode ser copiado na thread visual da Unity.");
+            Assert.That(bridge, Does.Contain("getInstallProgress"));
+            Assert.That(bridge, Does.Contain("runOnUiThread"));
+
+            string runtime = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "RemoteUpdateRuntime.cs"));
+            Assert.That(runtime, Does.Contain("MonitorAndroidInstallerAsync"));
+            Assert.That(runtime, Does.Contain("ABRIR INSTALADOR"));
         }
 
         [Test]

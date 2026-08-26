@@ -13,7 +13,25 @@ namespace ArcaneArena.Frontend
     internal enum ApplicationUpdateLaunchResult
     {
         Started,
+        Preparing,
         PermissionRequested
+    }
+
+    internal readonly struct AndroidInstallSnapshot
+    {
+        public AndroidInstallSnapshot(
+            string state,
+            float progress,
+            string message)
+        {
+            State = state ?? string.Empty;
+            Progress = Mathf.Clamp01(progress);
+            Message = message ?? string.Empty;
+        }
+
+        public string State { get; }
+        public float Progress { get; }
+        public string Message { get; }
     }
 
     /// <summary>
@@ -61,6 +79,60 @@ namespace ArcaneArena.Frontend
             }
 #else
             return 0;
+#endif
+        }
+
+        public static AndroidInstallSnapshot GetAndroidInstallSnapshot()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
+            {
+                using var unityPlayer = new AndroidJavaClass(
+                    "com.unity3d.player.UnityPlayer");
+                using AndroidJavaObject activity =
+                    unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                using var bridge = new AndroidJavaClass(AndroidBridgeClass);
+                return new AndroidInstallSnapshot(
+                    bridge.CallStatic<string>("getInstallState", activity),
+                    bridge.CallStatic<float>("getInstallProgress", activity),
+                    bridge.CallStatic<string>("getInstallMessage", activity));
+            }
+            catch (Exception exception)
+            {
+                return new AndroidInstallSnapshot(
+                    "FAILED",
+                    0f,
+                    "O estado do instalador não pôde ser consultado: " +
+                    exception.Message);
+            }
+#else
+            return new AndroidInstallSnapshot("UNSUPPORTED", 0f, string.Empty);
+#endif
+        }
+
+        public static bool ReopenAndroidInstallerConfirmation()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
+            {
+                using var unityPlayer = new AndroidJavaClass(
+                    "com.unity3d.player.UnityPlayer");
+                using AndroidJavaObject activity =
+                    unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                using var bridge = new AndroidJavaClass(AndroidBridgeClass);
+                return bridge.CallStatic<bool>(
+                    "reopenPendingUserAction",
+                    activity);
+            }
+            catch (Exception exception)
+            {
+                UnityEngine.Debug.LogWarning(
+                    "[Atualização Android] A confirmação não foi reaberta: " +
+                    exception.Message);
+                return false;
+            }
+#else
+            return false;
 #endif
         }
 
@@ -191,6 +263,12 @@ namespace ArcaneArena.Frontend
                     string.IsNullOrWhiteSpace(result)
                         ? "O Android não iniciou o instalador do pacote."
                         : result.Substring("ERROR:".Length).Trim());
+            }
+            if (result.StartsWith(
+                    "INSTALL_PREPARING",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return ApplicationUpdateLaunchResult.Preparing;
             }
             return ApplicationUpdateLaunchResult.Started;
 #else
