@@ -94,6 +94,7 @@ namespace ArcaneArena.Frontend
         private static RankedMatchSnapshot _activeRankedBotMatch;
         private static BotProfile _activeRankedBotProfile;
         private static bool _activeRankedBotResultCommitted;
+        private static bool _accountSessionBootstrapCompleted;
         private static string _activeDuelStatisticsId = string.Empty;
         private static bool _activeDuelStatisticsRanked;
         public static string ActiveDuelStatisticsId =>
@@ -198,6 +199,12 @@ namespace ArcaneArena.Frontend
             root.AddComponent<GameFrontendBootstrap>();
         }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetAccountSessionBootstrap()
+        {
+            _accountSessionBootstrapCompleted = false;
+        }
+
         private void Awake()
         {
             if (!Application.isPlaying)
@@ -223,7 +230,8 @@ namespace ArcaneArena.Frontend
             _repository.Load(_catalog);
             PlayerCloudSaveRuntime.Attach(_repository);
             _accountBootstrapPending = !IsDuelSceneName(
-                SceneManager.GetActiveScene().name);
+                                           SceneManager.GetActiveScene().name) &&
+                                       !_accountSessionBootstrapCompleted;
             InitializePlayerIdAccess();
             InitializeCoinRewardAuthorization();
             if (_accountBootstrapPending)

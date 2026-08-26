@@ -65,8 +65,12 @@ namespace ArcaneArena.Frontend
             {
                 if (this != null)
                 {
+                    bool revealAfterBootstrap = _accountBootstrapPending;
                     _accountBootstrapPending = false;
-                    if (!IsDuelSceneName(
+                    if (revealAfterBootstrap)
+                        _accountSessionBootstrapCompleted = true;
+                    if (revealAfterBootstrap &&
+                        !IsDuelSceneName(
                             UnityEngine.SceneManagement.SceneManager
                                 .GetActiveScene().name) &&
                         !_playerIdAccessScreenVisible)

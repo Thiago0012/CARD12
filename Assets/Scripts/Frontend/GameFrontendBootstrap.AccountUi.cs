@@ -63,6 +63,11 @@ namespace ArcaneArena.Frontend
 
         private void ShowAccountCenter()
         {
+            ShowAccountCenterCore(true);
+        }
+
+        private void ShowAccountCenterCore(bool refreshRemoteState)
+        {
             SetDuelPresentation(false);
             ClearScreen();
             BuildSharedBackground("IDENTIDADE DO DUELISTA");
@@ -75,7 +80,8 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.895f, 0.85f),
                 Color.clear);
             BuildAccountCenter(stage.transform);
-            _ = RefreshAccountStateAsync();
+            if (refreshRemoteState)
+                _ = RefreshAccountStateAsync();
         }
 
         private void BuildAccountCenter(Transform parent)
@@ -419,6 +425,13 @@ namespace ArcaneArena.Frontend
             try
             {
                 await PlayerAccountRuntime.RefreshProtectionStateAsync();
+                if (this != null &&
+                    FindDescendantByName(
+                        _screenRoot,
+                        "Central Moderna da Conta") != null)
+                {
+                    ShowAccountCenterCore(false);
+                }
             }
             catch (Exception exception)
             {
@@ -447,7 +460,7 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             BuildSharedBackground(
-                signInExisting ? "RESTAURAÇÃO DA IDENTIDADE" : "VÍNCULO DA IDENTIDADE");
+                signInExisting ? "ACESSO À IDENTIDADE" : "VÍNCULO DA IDENTIDADE");
             Action backAction;
             if (signInExisting && _repository != null &&
                 !_repository.HasPlayerProfile)
@@ -459,7 +472,7 @@ namespace ArcaneArena.Frontend
                 backAction = ShowAccountCenter;
             }
             BuildHeader(
-                signInExisting ? "RESTAURAR CONTA" : "PROTEGER CONTA",
+                signInExisting ? "ENTRAR OU CRIAR CONTA" : "PROTEGER CONTA",
                 backAction);
 
             Image stage = CreatePanel(
@@ -491,7 +504,7 @@ namespace ArcaneArena.Frontend
                 signInExisting ? ArcaneCyan : ArcaneGold).raycastTarget = false;
             CreateText(
                 heading.transform,
-                signInExisting ? "RESTAURAR IDENTIDADE" : "VINCULAR IDENTIDADE ATUAL",
+                signInExisting ? "ACESSAR IDENTIDADE" : "VINCULAR IDENTIDADE ATUAL",
                 24,
                 FontStyle.Bold,
                 Color.white,
@@ -518,7 +531,7 @@ namespace ArcaneArena.Frontend
                 0.76f);
             CreateText(
                 briefing.transform,
-                signInExisting ? "RECUPERAÇÃO" : "PROTEÇÃO",
+                signInExisting ? "ACESSO ÚNICO" : "PROTEÇÃO",
                 12,
                 FontStyle.Bold,
                 signInExisting ? ArcaneCyan : ArcaneGold,
@@ -528,7 +541,7 @@ namespace ArcaneArena.Frontend
             CreateText(
                 briefing.transform,
                 signInExisting
-                    ? "Entre com as credenciais já vinculadas. A sessão será trocada e o perfil salvo na nuvem será restaurado."
+                    ? "Se o usuário já existir, a senha abrirá a conta salva. Se ainda não existir, ele será vinculado à identidade atual."
                     : "Crie um acesso para a identidade que está neste aparelho. O ID numérico e o nome público não serão trocados.",
                 12,
                 FontStyle.Normal,
@@ -617,7 +630,7 @@ namespace ArcaneArena.Frontend
             Text feedback = CreateText(
                 form.transform,
                 signInExisting
-                    ? "A identidade armazenada na nuvem será recuperada."
+                    ? "O usuário é único. Uma senha errada nunca cria uma cópia da conta."
                     : "Use maiúscula, minúscula, número e símbolo. Guarde essas credenciais.",
                 10,
                 FontStyle.Normal,
@@ -633,14 +646,14 @@ namespace ArcaneArena.Frontend
                     return;
                 busy = true;
                 feedback.text = signInExisting
-                    ? "AUTENTICANDO E RESTAURANDO..."
+                    ? "LOCALIZANDO E AUTENTICANDO CONTA..."
                     : "VINCULANDO E SINCRONIZANDO...";
                 feedback.color = ArcaneCyan;
                 try
                 {
                     if (signInExisting)
                     {
-                        await PlayerAccountRuntime.SignInExistingAccountAsync(
+                        await PlayerAccountRuntime.AccessOrCreateAccountAsync(
                             username.text,
                             password.text);
                     }
@@ -665,7 +678,7 @@ namespace ArcaneArena.Frontend
             };
             CreateArcaneActionButton(
                 form.transform,
-                signInExisting ? "ENTRAR E RESTAURAR" : "VINCULAR CONTA",
+                signInExisting ? "ENTRAR OU CRIAR" : "VINCULAR CONTA",
                 new Vector2(0.20f, 0.055f),
                 new Vector2(0.80f, 0.19f),
                 signInExisting ? ArcaneCyan : Lime,
@@ -743,6 +756,50 @@ namespace ArcaneArena.Frontend
 
         private static string DescribeAccountFailure(Exception exception)
         {
+            Exception current = exception;
+            while (current != null)
+            {
+                if (current is Unity.Services.Core.RequestFailedException request)
+                {
+                    if (request.ErrorCode ==
+                            Unity.Services.Core.CommonErrorCodes.TransportError ||
+                        request.ErrorCode ==
+                            Unity.Services.Core.CommonErrorCodes.Timeout ||
+                        request.ErrorCode ==
+                            Unity.Services.Core.CommonErrorCodes.ServiceUnavailable)
+                    {
+                        return "A Unity não respondeu. Verifique a internet e tente novamente.";
+                    }
+                    if (request.ErrorCode ==
+                        Unity.Services.Core.CommonErrorCodes.TooManyRequests)
+                    {
+                        return "Muitas tentativas seguidas. Aguarde um instante e tente novamente.";
+                    }
+                    if (request.ErrorCode ==
+                            Unity.Services.Authentication.AuthenticationErrorCodes
+                                .InvalidProvider ||
+                        request.ErrorCode ==
+                            Unity.Services.Core.CommonErrorCodes
+                                .ProjectPolicyAccessDenied)
+                    {
+                        return "O acesso por usuário e senha não está ativo no projeto CARD12.";
+                    }
+                    if (request.ErrorCode ==
+                        Unity.Services.Authentication.AuthenticationErrorCodes
+                            .BannedUser)
+                    {
+                        return "Esta conta está bloqueada no serviço de autenticação.";
+                    }
+                    if (request.ErrorCode ==
+                        Unity.Services.Authentication.AuthenticationErrorCodes
+                            .InvalidParameters)
+                    {
+                        return "Usuário ou senha inválidos.";
+                    }
+                }
+                current = current.InnerException;
+            }
+
             string message = exception?.GetBaseException().Message ??
                              "Falha desconhecida.";
             if (message.IndexOf("already", StringComparison.OrdinalIgnoreCase) >= 0 ||

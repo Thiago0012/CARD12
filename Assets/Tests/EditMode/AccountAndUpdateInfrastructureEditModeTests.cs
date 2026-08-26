@@ -386,6 +386,80 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void AccountBootstrapBlocksOnlyTheFirstFrontendScenePerSession()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string bootstrap = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "GameFrontendBootstrap.cs"));
+            string playerIdAccess = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "GameFrontendBootstrap.PlayerIdAccess.cs"));
+
+            Assert.That(
+                bootstrap,
+                Does.Contain("_accountSessionBootstrapCompleted"));
+            Assert.That(
+                bootstrap,
+                Does.Contain("!_accountSessionBootstrapCompleted"));
+            Assert.That(
+                playerIdAccess,
+                Does.Contain("bool revealAfterBootstrap = _accountBootstrapPending"));
+            Assert.That(
+                playerIdAccess,
+                Does.Contain("if (revealAfterBootstrap &&"));
+        }
+
+        [Test]
+        public void UniqueUsernameAccessSignsInBeforeCreatingAndPreservesSession()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string runtime = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "PlayerAccountRuntime.cs"));
+            string accountUi = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "GameFrontendBootstrap.AccountUi.cs"));
+
+            int accessMethod = runtime.IndexOf(
+                "AccessOrCreateAccountAsync",
+                StringComparison.Ordinal);
+            int signIn = runtime.IndexOf(
+                "SignInWithUsernamePasswordAsync",
+                accessMethod,
+                StringComparison.Ordinal);
+            int protect = runtime.IndexOf(
+                "ProtectCurrentAccountAsync",
+                signIn,
+                StringComparison.Ordinal);
+
+            Assert.That(accessMethod, Is.GreaterThanOrEqualTo(0));
+            Assert.That(signIn, Is.GreaterThan(accessMethod));
+            Assert.That(
+                protect,
+                Is.GreaterThan(signIn),
+                "O acesso deve tentar a conta existente antes de criar o usuário.");
+            Assert.That(runtime, Does.Contain("RestorePreviousSessionAsync"));
+            Assert.That(runtime, Does.Contain("AccountAlreadyLinked"));
+            Assert.That(runtime, Does.Contain("StringComparison.OrdinalIgnoreCase"));
+            Assert.That(accountUi, Does.Contain("ENTRAR OU CRIAR CONTA"));
+            Assert.That(accountUi, Does.Contain(
+                "Uma senha errada nunca cria uma cópia da conta."));
+        }
+
+        [Test]
         public void CloudProfileCannotBeImportedIntoDifferentAuthenticatedIdentity()
         {
             string sourcePath = TemporarySave("owner");

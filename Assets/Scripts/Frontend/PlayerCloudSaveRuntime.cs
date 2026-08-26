@@ -75,6 +75,8 @@ namespace ArcaneArena.Frontend
         public static long LastSynchronizedUtcTicks { get; private set; }
         public static bool HasLocalProfile =>
             _instance?._repository?.HasPlayerProfile == true;
+        public static string LocalPlayerDisplayName =>
+            _instance?._repository?.PlayerDisplayName ?? string.Empty;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureRuntimeExists()
