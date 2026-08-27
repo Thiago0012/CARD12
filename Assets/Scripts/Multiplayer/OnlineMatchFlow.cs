@@ -16,6 +16,7 @@ namespace ArcaneArena.Multiplayer
     public enum OnlineMatchFlowState
     {
         InSessionWaiting,
+        ChoosingFirstPlayer,
         PreparingTransition,
         LoadingDuel,
         WaitingSceneReady,
@@ -28,6 +29,31 @@ namespace ArcaneArena.Multiplayer
         Menu,
         RecoverableError,
         FatalError
+    }
+
+    public static class OnlineMatchFlowPolicy
+    {
+        public static bool UsesTransitionTimeout(OnlineMatchFlowState state)
+        {
+            return state == OnlineMatchFlowState.PreparingTransition ||
+                state == OnlineMatchFlowState.LoadingDuel ||
+                state == OnlineMatchFlowState.WaitingSceneReady ||
+                state == OnlineMatchFlowState.Synchronizing ||
+                state == OnlineMatchFlowState.WaitingSnapshotAck;
+        }
+
+        public static bool UsesSnapshotTimeout(OnlineMatchFlowState state)
+        {
+            return state == OnlineMatchFlowState.Synchronizing ||
+                state == OnlineMatchFlowState.WaitingSnapshotAck;
+        }
+
+        public static bool ShouldReopenLobbyAfterLeave(
+            bool wasVisible,
+            bool leavingAutomaticQueue)
+        {
+            return wasVisible && !leavingAutomaticQueue;
+        }
     }
 
     /// <summary>

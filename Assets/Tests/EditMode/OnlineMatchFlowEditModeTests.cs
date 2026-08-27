@@ -66,6 +66,48 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(Property<int>(barrier, "SnapshotAppliedCount"), Is.EqualTo(1));
         }
 
+        [Test]
+        public void PlayerChoiceNeverConsumesTheSceneLoadingTimeout()
+        {
+            Type stateType = TypeByName(
+                "ArcaneArena.Multiplayer.OnlineMatchFlowState");
+            Type policyType = TypeByName(
+                "ArcaneArena.Multiplayer.OnlineMatchFlowPolicy");
+            object choosing = Enum.Parse(stateType, "ChoosingFirstPlayer");
+            object preparing = Enum.Parse(stateType, "PreparingTransition");
+            MethodInfo usesTimeout = policyType.GetMethod(
+                "UsesTransitionTimeout",
+                BindingFlags.Public | BindingFlags.Static);
+
+            Assert.That(usesTimeout, Is.Not.Null);
+            Assert.That(
+                usesTimeout.Invoke(null, new[] { choosing }),
+                Is.False,
+                "Waiting for a human RPS choice must not cancel the match.");
+            Assert.That(
+                usesTimeout.Invoke(null, new[] { preparing }),
+                Is.True,
+                "The real scene transition must still be protected by a timeout.");
+        }
+
+        [Test]
+        public void LeavingAutomaticQueueDoesNotReopenTheGenericLobby()
+        {
+            Type policyType = TypeByName(
+                "ArcaneArena.Multiplayer.OnlineMatchFlowPolicy");
+            MethodInfo shouldReopen = policyType.GetMethod(
+                "ShouldReopenLobbyAfterLeave",
+                BindingFlags.Public | BindingFlags.Static);
+
+            Assert.That(shouldReopen, Is.Not.Null);
+            Assert.That(
+                shouldReopen.Invoke(null, new object[] { true, true }),
+                Is.False);
+            Assert.That(
+                shouldReopen.Invoke(null, new object[] { true, false }),
+                Is.True);
+        }
+
         [TestCase((byte)0, 0, 1, "ENGINE_WIN", "Victory")]
         [TestCase((byte)1, 0, 1, "ENGINE_WIN", "Defeat")]
         [TestCase((byte)1, -1, -1, "DRAW", "Draw")]

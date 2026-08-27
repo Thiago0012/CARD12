@@ -21,6 +21,9 @@ namespace ArcaneDuel.Tests.EditMode
         private const uint SummonedSkull = 70781052;
         private const uint Polymerization = 24094653;
         private const uint TheDarkMagicians = 50237654;
+        private const uint ChimeratechFortressDragon = 79229522;
+        private const uint CyberDragon = 70095154;
+        private const uint Jinzo = 77585513;
         private const uint BlackRoseDragon = 73580471;
         private const uint EbonIllusionMagician = 96471335;
         private const uint RelinquishedAnima = 94259633;
@@ -39,6 +42,93 @@ namespace ArcaneDuel.Tests.EditMode
                 new[] { DarkMagician },
                 Polymerization,
                 new[] { ApprenticeIllusionMagician });
+        }
+
+        [Test]
+        public void PolymerizationCannotUseAnOpponentMonsterWithoutPermission()
+        {
+            uint[] fillerDeck = Enumerable.Repeat(BlueEyesWhiteDragon, 40)
+                .ToArray();
+            var configuration = new DuelConfiguration
+            {
+                StartingHand = 0,
+                Seed = 0xF0510A0000000001UL,
+                ShuffleMainDecks = false,
+                SimpleOpponentAi = false,
+                PlayerDeck = (uint[])fillerDeck.Clone(),
+                OpponentDeck = (uint[])fillerDeck.Clone(),
+                PlayerExtraDeck = new[] { TheDarkMagicians },
+                OpponentExtraDeck = Array.Empty<uint>()
+            };
+
+            bool inspectedPlayerIdlePrompt = false;
+            int retries = 0;
+            int decisions = 0;
+            using (var engine = OcgDuelEngine.CreateDefault(configuration))
+            {
+                engine.AddCardAt(
+                    0,
+                    DarkMagician,
+                    DuelLocation.MonsterZone,
+                    0,
+                    FaceUpAttack);
+                engine.AddCardAt(
+                    0,
+                    Polymerization,
+                    DuelLocation.Hand,
+                    0,
+                    0);
+                engine.AddCardAt(
+                    1,
+                    ApprenticeIllusionMagician,
+                    DuelLocation.MonsterZone,
+                    0,
+                    FaceUpAttack);
+                engine.EventReceived += duelEvent =>
+                {
+                    if (duelEvent.Message == CoreMessage.Retry) retries++;
+                };
+
+                engine.Start();
+                while (!engine.IsFinished &&
+                       !inspectedPlayerIdlePrompt &&
+                       decisions++ < 100)
+                {
+                    DuelPrompt prompt = engine.CurrentPrompt;
+                    Assert.That(prompt, Is.Not.Null);
+                    if (prompt.Player == 0 &&
+                        prompt.Message == CoreMessage.SelectIdleCommand)
+                    {
+                        inspectedPlayerIdlePrompt = true;
+                        Assert.That(
+                            prompt.Choices.Any(choice =>
+                                choice.CardCode == Polymerization &&
+                                choice.Label.StartsWith(
+                                    "Ativar",
+                                    StringComparison.OrdinalIgnoreCase)),
+                            Is.False,
+                            "A generic Fusion Spell must not treat an " +
+                            "opponent monster as Fusion Material unless a " +
+                            "card effect explicitly permits it.");
+                        break;
+                    }
+
+                    engine.SubmitResponse(
+                        DeterministicDuelPolicy.Choose(prompt).Response);
+                }
+            }
+
+            Assert.That(inspectedPlayerIdlePrompt, Is.True);
+            Assert.That(retries, Is.Zero);
+        }
+
+        [Test]
+        public void ChimeratechFortressDragonMayUseFaceUpOpponentCyberDragon()
+        {
+            AssertExtraSummon(
+                ChimeratechFortressDragon,
+                new[] { Jinzo },
+                opponentFaceUpMaterials: new[] { CyberDragon });
         }
 
         [Test]
@@ -316,7 +406,8 @@ namespace ArcaneDuel.Tests.EditMode
             uint extraDeckMonster,
             IReadOnlyList<uint> faceUpMaterials,
             uint activatingSpell = 0,
-            IReadOnlyList<uint> handMaterials = null)
+            IReadOnlyList<uint> handMaterials = null,
+            IReadOnlyList<uint> opponentFaceUpMaterials = null)
         {
             uint[] fillerDeck = Enumerable.Repeat(BlueEyesWhiteDragon, 40)
                 .ToArray();
@@ -376,6 +467,17 @@ namespace ArcaneDuel.Tests.EditMode
                         DuelLocation.Hand,
                         (uint)(index + (activatingSpell == 0 ? 0 : 1)),
                         0);
+                }
+                for (int index = 0;
+                     index < (opponentFaceUpMaterials?.Count ?? 0);
+                     index++)
+                {
+                    engine.AddCardAt(
+                        1,
+                        opponentFaceUpMaterials[index],
+                        DuelLocation.MonsterZone,
+                        (uint)index,
+                        FaceUpAttack);
                 }
 
                 engine.EventReceived += duelEvent =>
@@ -489,6 +591,13 @@ namespace ArcaneDuel.Tests.EditMode
                     Is.SupersetOf(faceUpMaterials.Concat(
                         handMaterials ?? Array.Empty<uint>())),
                     "Fusion/Synchro/Link materials from every Core-selected zone must reach the authoritative destination.");
+                Assert.That(
+                    state.Players[1].Graveyard,
+                    Is.SupersetOf(
+                        opponentFaceUpMaterials ?? Array.Empty<uint>()),
+                    "A card-specific summoning procedure that explicitly " +
+                    "uses the opponent's field must move those materials " +
+                    "to their authoritative destination.");
             }
         }
 

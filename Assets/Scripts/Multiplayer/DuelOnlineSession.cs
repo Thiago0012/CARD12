@@ -499,6 +499,8 @@ namespace ArcaneArena.Multiplayer
         private bool rankedRoomCreationPanel;
         private bool rankedBotFallbackInProgress;
         private float rankedBotFallbackDeadline;
+        private uint rankedMatchmakingAttempt;
+        private bool rankedMatchmakingCancelRequested;
         private RankPlayerSnapshot localRankHandshake;
         private RankPlayerSnapshot remoteRankHandshake;
         private RankedMatchSnapshot sealedRankedMatch;
@@ -817,6 +819,12 @@ namespace ArcaneArena.Multiplayer
 
         public void StartRankedMatchmaking()
         {
+            if (connectionOperationInProgress)
+            {
+                showPanel = true;
+                status = "Uma conexão online já está sendo preparada. Aguarde.";
+                return;
+            }
             if (IsOnlineDuelActive)
             {
                 showPanel = true;
@@ -834,6 +842,7 @@ namespace ArcaneArena.Multiplayer
             // asynchronous service setup. A validation error must never fall
             // back to the create/join-room window.
             automaticRankedMatchmaking = true;
+            rankedMatchmakingCancelRequested = false;
             focusJoinCode = false;
             requestJoinFocus = false;
             status = "Preparando a busca por um rival ranqueado...";
@@ -844,11 +853,28 @@ namespace ArcaneArena.Multiplayer
         {
             if (connectionOperationInProgress)
             {
+                if (automaticRankedMatchmaking)
+                {
+                    rankedMatchmakingCancelRequested = true;
+                    rankedMatchmakingAttempt++;
+                    automaticRankedMatchmaking = false;
+                    CancelRankedBotFallback();
+                    showPanel = false;
+                    status = "Cancelando a busca ranqueada...";
+                    Debug.Log(
+                        "[MP] stage=ranked-cancel-requested " +
+                        $"attempt={rankedMatchmakingAttempt}");
+                    return;
+                }
                 status = "A operacao online atual ainda esta terminando.";
                 return;
             }
+            bool reopenPanel = OnlineMatchFlowPolicy
+                .ShouldReopenLobbyAfterLeave(
+                    showPanel,
+                    automaticRankedMatchmaking);
             connectionOperationInProgress = true;
-            _ = LeaveRoomAsync();
+            _ = LeaveRoomAsync(reopenPanel);
         }
 
         public void ReturnToMenuAfterOnlineMatch()
@@ -882,7 +908,7 @@ namespace ArcaneArena.Multiplayer
                             reportException.GetBaseException().Message);
                     }
                 }
-                await LeaveRoomAsync();
+                await LeaveRoomAsync(false);
                 if (SceneManager.GetActiveScene().name !=
                         ProjectIdentity.MainMenuScene &&
                     Application.CanStreamedLevelBeLoaded(
@@ -1417,6 +1443,8 @@ namespace ArcaneArena.Multiplayer
             }
 
             connectionOperationInProgress = true;
+            uint attempt = ++rankedMatchmakingAttempt;
+            rankedMatchmakingCancelRequested = false;
             try
             {
                 ResetMatchState(true);
@@ -1437,9 +1465,19 @@ namespace ArcaneArena.Multiplayer
                 }
 
                 await InitializeServices();
+                if (IsRankedMatchmakingCancelled(attempt))
+                {
+                    await CompleteCancelledRankedMatchmakingAsync();
+                    return;
+                }
                 ConfigureConnectionIdentity();
                 ISession session = await sessionCoordinator
                     .MatchmakeRankedAsync(localLoadout, ProtocolVersion);
+                if (IsRankedMatchmakingCancelled(attempt))
+                {
+                    await CompleteCancelledRankedMatchmakingAsync();
+                    return;
+                }
                 role = session.IsHost
                     ? SessionRole.Host
                     : SessionRole.Client;
@@ -1455,6 +1493,11 @@ namespace ArcaneArena.Multiplayer
                     await sessionCoordinator.SetPlayerStateAsync(
                         "connected",
                         true);
+                    if (IsRankedMatchmakingCancelled(attempt))
+                    {
+                        await CompleteCancelledRankedMatchmakingAsync();
+                        return;
+                    }
                     status = "Fila ranqueada criada. Aguardando um rival " +
                         "compativel...";
                     ScheduleRankedBotFallback();
@@ -1465,6 +1508,11 @@ namespace ArcaneArena.Multiplayer
                     await sessionCoordinator.SetPlayerStateAsync(
                         "connected",
                         false);
+                    if (IsRankedMatchmakingCancelled(attempt))
+                    {
+                        await CompleteCancelledRankedMatchmakingAsync();
+                        return;
+                    }
                     status = "Rival encontrado. Validando os dois decks...";
                     PersistReconnectTicket();
                     if (networkManager.IsConnectedClient)
@@ -1474,6 +1522,11 @@ namespace ArcaneArena.Multiplayer
             }
             catch (Exception exception)
             {
+                if (IsRankedMatchmakingCancelled(attempt))
+                {
+                    await CompleteCancelledRankedMatchmakingAsync();
+                    return;
+                }
                 RuntimeDiagnosticRecorder.Record(
                     "F08",
                     "RankedMatchmaking",
@@ -1489,6 +1542,45 @@ namespace ArcaneArena.Multiplayer
             finally
             {
                 connectionOperationInProgress = false;
+            }
+        }
+
+        private bool IsRankedMatchmakingCancelled(uint attempt)
+        {
+            return rankedMatchmakingCancelRequested ||
+                attempt != rankedMatchmakingAttempt;
+        }
+
+        private async Task CompleteCancelledRankedMatchmakingAsync()
+        {
+            CancelRankedBotFallback();
+            automaticRankedMatchmaking = false;
+            roomCode = string.Empty;
+            relayRegion = string.Empty;
+            relayRegionDescription = string.Empty;
+            role = SessionRole.None;
+            UnregisterHandlers();
+            try
+            {
+                await sessionCoordinator.LeaveAsync();
+                await EnsureNetworkStoppedAfterLeaveAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[MP] stage=ranked-cancel-cleanup result=" +
+                    exception.GetBaseException().Message);
+            }
+            finally
+            {
+                ResetMatchState(true);
+                rankedMatchmakingCancelRequested = false;
+                showPanel = false;
+                focusJoinCode = false;
+                requestJoinFocus = false;
+                joinCode = string.Empty;
+                status = "Busca ranqueada cancelada.";
+                Debug.Log("[MP] stage=ranked-cancel-complete");
             }
         }
 
@@ -1561,7 +1653,7 @@ namespace ArcaneArena.Multiplayer
             connectionOperationInProgress = true;
             status = "Nenhum jogador entrou na fila. Preparando um rival IA " +
                 "compativel com seu elo...";
-            await LeaveRoomAsync();
+            await LeaveRoomAsync(false);
             showPanel = false;
             rankedBotFallbackInProgress = false;
 
@@ -2437,7 +2529,7 @@ namespace ArcaneArena.Multiplayer
             authoritativeStateVersion = 0;
             authoritativePublicStateHash = 0;
             status = "Avisando o cliente e abrindo as duas arenas...";
-            SetFlowState(OnlineMatchFlowState.PreparingTransition);
+            SetFlowState(OnlineMatchFlowState.ChoosingFirstPlayer);
             loadingPresenter?.Show(
                 "PREPARANDO O DUELO",
                 "Os dois decks foram validados.");
@@ -2450,6 +2542,7 @@ namespace ArcaneArena.Multiplayer
             {
                 onlineStartingPlayer = 0;
                 onlinePreludeResolved = true;
+                SetFlowState(OnlineMatchFlowState.PreparingTransition);
                 StartHostStartHandshake();
                 StartArenaTransitionAfterBlack();
                 return;
@@ -2526,6 +2619,7 @@ namespace ArcaneArena.Multiplayer
             onlinePreludeResolved = false;
             localRewardEligibilityAtMatchStart ??=
                 CaptureLocalRewardEligibility();
+            SetFlowState(OnlineMatchFlowState.ChoosingFirstPlayer);
             PersistReconnectTicket();
             showPanel = false;
             status = "Escolha pedra, papel ou tesoura para definir quem inicia.";
@@ -2670,6 +2764,7 @@ namespace ArcaneArena.Multiplayer
                 "Abrindo os dois campos simultaneamente.",
                 0.10f);
             status = "Avisando o cliente e abrindo as duas arenas...";
+            SetFlowState(OnlineMatchFlowState.PreparingTransition);
             StartHostStartHandshake();
             StartArenaTransitionAfterBlack();
         }
@@ -4804,25 +4899,20 @@ namespace ArcaneArena.Multiplayer
         {
             if (!matchStarted || flowStateEnteredAt <= 0f ||
                 reconnecting || hostAwaitingReconnect ||
-                flowState == OnlineMatchFlowState.InDuel ||
-                flowState == OnlineMatchFlowState.DuelFinished ||
-                flowState == OnlineMatchFlowState.ResultScreen ||
-                flowState == OnlineMatchFlowState.Leaving ||
-                flowState == OnlineMatchFlowState.RecoverableError ||
-                flowState == OnlineMatchFlowState.FatalError)
+                !OnlineMatchFlowPolicy.UsesTransitionTimeout(flowState))
             {
                 return;
             }
 
-            float timeout = flowState == OnlineMatchFlowState.Synchronizing ||
-                            flowState == OnlineMatchFlowState.WaitingSnapshotAck
+            bool snapshotTimeout =
+                OnlineMatchFlowPolicy.UsesSnapshotTimeout(flowState);
+            float timeout = snapshotTimeout
                 ? flowConfig.SnapshotApplyTimeoutSeconds
                 : flowConfig.SceneLoadTimeoutSeconds;
             if (now - flowStateEnteredAt < timeout)
                 return;
 
-            string code = flowState == OnlineMatchFlowState.Synchronizing ||
-                          flowState == OnlineMatchFlowState.WaitingSnapshotAck
+            string code = snapshotTimeout
                 ? "INITIAL_SYNC_FAILED"
                 : "MATCH_LOAD_TIMEOUT";
             string message = code == "INITIAL_SYNC_FAILED"
@@ -5682,9 +5772,8 @@ namespace ArcaneArena.Multiplayer
             rewardResultVisibleUntil = 0f;
         }
 
-        private async Task LeaveRoomAsync()
+        private async Task LeaveRoomAsync(bool reopenPanel)
         {
-            bool reopenPanel = showPanel;
             ClearReconnectTicket();
             status = "Saindo da sala e liberando o Relay...";
             roomCode = string.Empty;
@@ -6072,7 +6161,7 @@ namespace ArcaneArena.Multiplayer
             }
             GUI.enabled = true;
 
-            if (roomActive)
+            if (roomActive || automaticQueue)
             {
                 GUI.backgroundColor = new Color(0.95f, 0.25f, 0.35f, 1f);
                 if (GUI.Button(new Rect(margin, 420f, 220f, 34f),
