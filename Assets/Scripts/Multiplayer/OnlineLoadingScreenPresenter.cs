@@ -192,10 +192,7 @@ namespace ArcaneArena.Multiplayer
             foreach (Button button in choiceButtons)
             {
                 button.interactable = true;
-                Transform selectionAura = button.transform.Find(
-                    "Aura da escolha confirmada");
-                if (selectionAura != null)
-                    selectionAura.gameObject.SetActive(false);
+                SetChoiceButtonSelected(button, false);
             }
         }
 
@@ -1871,9 +1868,17 @@ namespace ArcaneArena.Multiplayer
                 DuelPreludeChoice.Scissors
             };
             Sprite softAuraSprite = CreateProceduralBurstSprite(false);
+            Sprite sealRingSprite = CreateProceduralBurstSprite(true);
+            Image trail = CreateImage(
+                panel.transform,
+                "Trilha entre os selos",
+                new Color(0.17f, 0.80f, 1f, 0.16f),
+                new Vector2(0.12f, 0.475f),
+                new Vector2(0.88f, 0.49f));
+            trail.transform.SetAsFirstSibling();
             for (int index = 0; index < choices.Length; index++)
             {
-                float xMin = 0.055f + index * 0.315f;
+                float xMin = 0.05f + index * 0.315f;
                 DuelPreludeChoice captured = choices[index];
                 Color accent = PreludeChoiceAccent(captured);
                 Button button = CreateButton(
@@ -1881,8 +1886,8 @@ namespace ArcaneArena.Multiplayer
                     captured.ToString(),
                     string.Empty,
                     font,
-                    new Vector2(xMin, 0.14f),
-                    new Vector2(xMin + 0.26f, 0.82f),
+                    new Vector2(xMin, 0.13f),
+                    new Vector2(xMin + 0.27f, 0.83f),
                     new Color(0.005f, 0.012f, 0.028f, 0.012f),
                     Color.white);
                 button.transition = Selectable.Transition.None;
@@ -1891,27 +1896,62 @@ namespace ArcaneArena.Multiplayer
                     label.gameObject.SetActive(false);
                 Image restingAura = CreateImage(
                     button.transform,
-                    "Aura discreta",
-                    new Color(0.002f, 0.009f, 0.025f, 0.96f),
-                    new Vector2(-0.12f, -0.10f),
-                    new Vector2(1.12f, 1.10f));
+                    "Núcleo sombreado do selo",
+                    new Color(0.001f, 0.006f, 0.018f, 0.94f),
+                    new Vector2(0.03f, 0.03f),
+                    new Vector2(0.97f, 0.97f));
                 restingAura.sprite = softAuraSprite;
+                AspectRatioFitter restingAuraFit = restingAura.gameObject
+                    .AddComponent<AspectRatioFitter>();
+                restingAuraFit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                restingAuraFit.aspectRatio = 1f;
                 restingAura.transform.SetAsFirstSibling();
+                Image restingRing = CreateImage(
+                    button.transform,
+                    "Aro discreto do selo",
+                    new Color(accent.r, accent.g, accent.b, 0.24f),
+                    new Vector2(0.03f, 0.03f),
+                    new Vector2(0.97f, 0.97f));
+                restingRing.sprite = sealRingSprite;
+                AspectRatioFitter restingRingFit = restingRing.gameObject
+                    .AddComponent<AspectRatioFitter>();
+                restingRingFit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+                restingRingFit.aspectRatio = 1f;
+                restingRing.transform.SetAsFirstSibling();
                 Image selectionAura = CreateImage(
                     button.transform,
                     "Aura da escolha confirmada",
-                    new Color(accent.r, accent.g, accent.b, 0.48f),
-                    new Vector2(-0.05f, -0.04f),
-                    new Vector2(1.05f, 1.04f));
+                    new Color(accent.r, accent.g, accent.b, 0.33f),
+                    new Vector2(0.01f, 0.01f),
+                    new Vector2(0.99f, 0.99f));
                 selectionAura.sprite = softAuraSprite;
+                AspectRatioFitter selectionAuraFit = selectionAura.gameObject
+                    .AddComponent<AspectRatioFitter>();
+                selectionAuraFit.aspectMode =
+                    AspectRatioFitter.AspectMode.FitInParent;
+                selectionAuraFit.aspectRatio = 1f;
                 selectionAura.transform.SetAsFirstSibling();
                 selectionAura.gameObject.SetActive(false);
+                Image selectionRing = CreateImage(
+                    button.transform,
+                    "Aro da escolha confirmada",
+                    new Color(accent.r, accent.g, accent.b, 0.92f),
+                    Vector2.zero,
+                    Vector2.one);
+                selectionRing.sprite = sealRingSprite;
+                AspectRatioFitter selectionRingFit = selectionRing.gameObject
+                    .AddComponent<AspectRatioFitter>();
+                selectionRingFit.aspectMode =
+                    AspectRatioFitter.AspectMode.FitInParent;
+                selectionRingFit.aspectRatio = 1f;
+                selectionRing.transform.SetAsFirstSibling();
+                selectionRing.gameObject.SetActive(false);
                 Image icon = CreateImage(
                     button.transform,
                     $"Símbolo {captured}",
                     Color.white,
-                    new Vector2(0.16f, 0.12f),
-                    new Vector2(0.84f, 0.88f));
+                    new Vector2(0.20f, 0.18f),
+                    new Vector2(0.80f, 0.82f));
                 icon.sprite = PreludeChoiceIcon(captured);
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
@@ -1923,10 +1963,7 @@ namespace ArcaneArena.Multiplayer
                     foreach (Button item in choiceButtons)
                     {
                         item.interactable = false;
-                        Transform activeAura = item.transform.Find(
-                            "Aura da escolha confirmada");
-                        if (activeAura != null)
-                            activeAura.gameObject.SetActive(item == button);
+                        SetChoiceButtonSelected(item, item == button);
                     }
                     Action<DuelPreludeChoice> callback = choiceAction;
                     callback?.Invoke(captured);
@@ -1934,6 +1971,25 @@ namespace ArcaneArena.Multiplayer
                 choiceButtons.Add(button);
             }
             choicePanel.SetActive(false);
+        }
+
+        private static void SetChoiceButtonSelected(
+            Button button,
+            bool selected)
+        {
+            if (button == null)
+                return;
+            string[] selectionParts =
+            {
+                "Aura da escolha confirmada",
+                "Aro da escolha confirmada"
+            };
+            foreach (string partName in selectionParts)
+            {
+                Transform part = button.transform.Find(partName);
+                if (part != null)
+                    part.gameObject.SetActive(selected);
+            }
         }
 
         private Sprite PreludeChoiceIcon(DuelPreludeChoice choice)
