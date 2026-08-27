@@ -188,17 +188,12 @@ namespace ArcaneArena
                 }
 
                 Transform anchor = visual.Zone.CardPresentationAnchor;
-                // O ponto de leitura parte do centro da carta e segue sua
-                // orientação: avança para a borda superior e para dentro do
-                // campo. Como os montes do adversário são rotacionados, essa
-                // mesma conta espelha automaticamente os quatro cantos.
-                float inwardSideOffset = visual.Zone.Kind ==
-                    DuelZoneKind.MainDeck
-                    ? -0.34f
-                    : 0.34f;
+                // O ponto de leitura usa o eixo central do verso da carta.
+                // A rotação do monte já espelha o avanço superior para o
+                // adversário; não aplicamos desvio lateral, pois ele levava
+                // o número à quina da carta.
                 Vector3 numberWorldPosition = anchor.position +
                     anchor.forward * 0.55f +
-                    anchor.right * inwardSideOffset +
                     Vector3.up * 0.22f;
                 Vector3 screenPoint = camera.WorldToScreenPoint(
                     numberWorldPosition);
