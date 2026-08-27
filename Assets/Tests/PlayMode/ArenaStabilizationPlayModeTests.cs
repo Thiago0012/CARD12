@@ -947,6 +947,117 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator DestroyedLocalMonsterDoesNotSurviveAsAWorldView()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            Assert.That(controller, Is.Not.Null);
+            BindingFlags flags = BindingFlags.Instance |
+                                 BindingFlags.NonPublic;
+            MethodInfo reconcile = arena.GetType().GetMethod(
+                "ReconcileField", flags);
+            Assert.That(reconcile, Is.Not.Null);
+
+            controller.PresentationState.Apply(
+                MoveIntoMonsterZone(DarkMagician, 0));
+            reconcile.Invoke(arena, null);
+            yield return null;
+
+            Component zone = FindZone("PlayerOne", "Monster", 0);
+            Assert.That(zone, Is.Not.Null);
+            Assert.That(FindPresentedCard(zone), Is.Not.Null);
+
+            controller.PresentationState.Apply(MoveEvent(
+                DarkMagician,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                0,
+                0,
+                (byte)DuelLocation.Graveyard,
+                0,
+                1,
+                0x1U));
+            reconcile.Invoke(arena, null);
+            yield return null;
+
+            Assert.That(
+                controller.PresentationState.Players[0].MonsterZones[0],
+                Is.EqualTo(0U));
+            Assert.That(
+                FindPresentedCard(zone),
+                Is.Null,
+                "A carta destruída não pode continuar visível somente para " +
+                "o jogador local depois de o Core confirmar o cemitério.");
+        }
+
+        [UnityTest]
+        public IEnumerator EquipMetadataKeepsCardArtworkFreeOfDebugText()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            Assert.That(controller, Is.Not.Null);
+            DuelPresentationState state = controller.PresentationState;
+            state.Apply(MoveEvent(
+                DarkMagicalCircle,
+                0,
+                0,
+                0,
+                0,
+                (byte)DuelLocation.SpellTrapZone,
+                0,
+                1));
+            state.Apply(MoveIntoMonsterZone(DarkMagician, 0));
+            state.Apply(EquipEvent(
+                0,
+                (byte)DuelLocation.SpellTrapZone,
+                0,
+                0,
+                (byte)DuelLocation.MonsterZone,
+                0));
+
+            CardInstanceState equipped = state.Players[0]
+                .SpellTrapInstances[0];
+            Assert.That(equipped, Is.Not.Null);
+            Assert.That(equipped.EquippedToRuntimeId, Is.Not.EqualTo(0UL),
+                "A limpeza visual não pode remover o vínculo mecânico.");
+
+            arena.GetType().GetMethod(
+                    "ReconcileField",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, null);
+            yield return null;
+
+            Component zone = FindZone("PlayerOne", "SpellTrap", 0);
+            Transform card = FindPresentedCard(zone);
+            Assert.That(card, Is.Not.Null);
+            Text indicator = card.GetComponentsInChildren<Text>(true)
+                .FirstOrDefault(text => text.gameObject.name ==
+                    "Indicadores de Campo" ||
+                    text.gameObject.name == "Estado do Core");
+            Assert.That(
+                indicator == null || !indicator.gameObject.activeSelf ||
+                !indicator.text.Contains("EQUIP"),
+                Is.True,
+                "O vínculo de equipamento não deve virar texto técnico sobre a arte.");
+        }
+
+        [UnityTest]
         public IEnumerator ConsecutivePileUpdatesKeepTheLatestAuthoritativeView()
         {
             SceneManager.LoadScene(ProjectIdentity.DuelScene);
@@ -2244,7 +2355,8 @@ namespace ArcaneDuel.Tests.PlayMode
             byte currentController,
             byte currentLocation,
             uint currentSequence,
-            uint currentPosition)
+            uint currentPosition,
+            uint reason = 0)
         {
             var payload = new List<byte>();
             UInt32(payload, code);
@@ -2260,8 +2372,22 @@ namespace ArcaneDuel.Tests.PlayMode
                 currentLocation,
                 currentSequence,
                 currentPosition);
-            UInt32(payload, 0);
+            UInt32(payload, reason);
             return Decode(CoreMessage.Move, payload);
+        }
+
+        private static DuelEvent EquipEvent(
+            byte sourceController,
+            byte sourceLocation,
+            uint sourceSequence,
+            byte targetController,
+            byte targetLocation,
+            uint targetSequence)
+        {
+            var payload = new List<byte>();
+            Location(payload, sourceController, sourceLocation, sourceSequence, 1);
+            Location(payload, targetController, targetLocation, targetSequence, 1);
+            return Decode(CoreMessage.Equip, payload);
         }
 
         private static DuelEvent SummonEvent(
