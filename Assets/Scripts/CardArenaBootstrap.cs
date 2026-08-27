@@ -35,6 +35,7 @@ namespace ArcaneArena
         private const uint FaceDownAttack = 0x2;
         private const uint FaceUpDefense = 0x4;
         private const uint FaceDownDefense = 0x8;
+        private const uint PendulumType = 0x01000000U;
         private const float HandCardHeight = 258f;
         private const float HandVisibleViewportRatio = 0.14f;
         private const float HandMinimumVisibleHeight = 124f;
@@ -2915,7 +2916,12 @@ namespace ArcaneArena
             front.gameObject.SetActive(faceUp || cardBackSprite == null);
             canvasObject.GetComponent<WorldCardInstanceView>()
                 .Bind(instanceKey, faceUp);
-            RefreshWorldMetadata(canvasObject.transform, instance, faceUp);
+            RefreshWorldMetadata(
+                zone,
+                canvasObject.transform,
+                code,
+                instance,
+                faceUp);
 
             if (monster && faceUp)
                 CreateCombatLabel(zone, code, position);
@@ -3002,12 +3008,14 @@ namespace ArcaneArena
                 card.GetComponent<WorldCardInstanceView>();
             if (view != null)
                 view.Bind(view.InstanceKey, faceUp);
-            RefreshWorldMetadata(card, instance, faceUp);
+            RefreshWorldMetadata(zone, card, code, instance, faceUp);
             RefreshCombatLabel(zone, code, position, faceUp);
         }
 
         private void RefreshWorldMetadata(
+            DuelZone3D zone,
             Transform card,
+            uint code,
             CardInstanceState instance,
             bool faceUp)
         {
@@ -3017,13 +3025,20 @@ namespace ArcaneArena
                                  card.Find("Estado do Core");
             int counterTotal = instance?.Counters.Values.Sum(
                 value => checked((int)value)) ?? 0;
+            int xyzMaterials = OverlayMaterialCount(zone);
+            bool hasPendulumScale = TryGetPendulumScale(
+                zone,
+                instance,
+                code,
+                out uint pendulumScale);
             bool linked = instance?.LinkRating > 0;
             // Equipamentos, alvos e relações continuam no estado do Core para
             // as regras e a sincronização, mas não devem cobrir a arte da
             // carta com texto técnico. No campo mostramos somente informação
             // numérica ou estrutural que o jogador precisa ler de imediato.
             bool visible = faceUp &&
-                           (counterTotal > 0 || linked);
+                           (counterTotal > 0 || xyzMaterials > 0 ||
+                            hasPendulumScale || linked);
             if (!visible)
             {
                 if (existing != null)
@@ -3058,6 +3073,8 @@ namespace ArcaneArena
                 return;
             var parts = new List<string>();
             if (counterTotal > 0) parts.Add($"×{counterTotal}");
+            if (xyzMaterials > 0) parts.Add($"MAT ×{xyzMaterials}");
+            if (hasPendulumScale) parts.Add($"ESCALA {pendulumScale}");
             if (linked)
             {
                 string markers = FormatLinkMarkers(instance.LinkMarkers);
@@ -3066,7 +3083,59 @@ namespace ArcaneArena
                     : $"L:{instance.LinkRating} {markers}");
             }
             label.text = string.Join("\n", parts);
-            label.color = counterTotal > 0 ? Gold : Lime;
+            label.color = counterTotal > 0
+                ? Gold
+                : linked
+                    ? Lime
+                    : hasPendulumScale
+                        ? new Color(0.56f, 0.94f, 0.74f, 1f)
+                        : new Color(0.78f, 0.88f, 1f, 1f);
+        }
+
+        private int OverlayMaterialCount(DuelZone3D zone)
+        {
+            if (state == null || zone == null ||
+                zone.Kind != DuelZoneKind.Monster)
+            {
+                return 0;
+            }
+            int player = StatePlayerForZone(zone);
+            int sequence = zone.ZoneIndex;
+            if (player < 0 || player >= state.Players.Length ||
+                sequence < 0 ||
+                sequence >= state.Players[player].OverlayInstances.Length)
+            {
+                return 0;
+            }
+            return state.Players[player].OverlayInstances[sequence]?.Count ?? 0;
+        }
+
+        private bool TryGetPendulumScale(
+            DuelZone3D zone,
+            CardInstanceState instance,
+            uint code,
+            out uint scale)
+        {
+            scale = 0;
+            if (zone == null || zone.Kind != DuelZoneKind.SpellTrap ||
+                (zone.ZoneIndex != 0 && zone.ZoneIndex != 4) ||
+                database == null)
+            {
+                return false;
+            }
+
+            uint definitionCode = instance?.Key.DefinitionCode ?? code;
+            if (definitionCode == 0 ||
+                !database.TryGet(definitionCode, out CardRecord record) ||
+                (record.Type & PendulumType) == 0)
+            {
+                return false;
+            }
+
+            scale = zone.ZoneIndex == 0
+                ? record.LeftScale
+                : record.RightScale;
+            return true;
         }
 
         private static string FormatLinkMarkers(uint markers)
@@ -4898,8 +4967,16 @@ namespace ArcaneArena
                     $"Cemitério · {state.Players[player].Graveyard.Count} cartas",
                 DuelZoneKind.Banishment =>
                     $"Banimento · {state.Players[player].Banished.Count} cartas",
+                DuelZoneKind.Monster when zone.ZoneIndex >= 5 =>
+                    $"Zona de Monstro Adicional {zone.ZoneIndex - 4}",
                 DuelZoneKind.Monster =>
                     $"Zona de Monstro {zone.ZoneIndex + 1}",
+                DuelZoneKind.SpellTrap when TryGetPendulumScale(
+                    zone,
+                    InstanceAt(zone),
+                    CodeAt(zone),
+                    out uint scale) =>
+                    $"Zona de Pêndulo · Escala {scale}",
                 DuelZoneKind.SpellTrap =>
                     $"Zona de Magia/Armadilha {zone.ZoneIndex + 1}",
                 DuelZoneKind.Field =>
