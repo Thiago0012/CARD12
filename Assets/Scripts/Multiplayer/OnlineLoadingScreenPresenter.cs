@@ -190,7 +190,13 @@ namespace ArcaneArena.Multiplayer
                 : $"CONTRA {opponentName.ToUpperInvariant()} · RODADA {Mathf.Max(1, round)}";
             secondaryLabel.gameObject.SetActive(true);
             foreach (Button button in choiceButtons)
+            {
                 button.interactable = true;
+                Transform selectionAura = button.transform.Find(
+                    "Aura da escolha confirmada");
+                if (selectionAura != null)
+                    selectionAura.gameObject.SetActive(false);
+            }
         }
 
         public void ShowRockPaperScissorsWaiting(string message)
@@ -1867,9 +1873,10 @@ namespace ArcaneArena.Multiplayer
                 DuelPreludeChoice.Paper,
                 DuelPreludeChoice.Scissors
             };
+            Sprite softAuraSprite = CreateProceduralBurstSprite(false);
             for (int index = 0; index < choices.Length; index++)
             {
-                float xMin = 0.045f + index * 0.323f;
+                float xMin = 0.055f + index * 0.315f;
                 DuelPreludeChoice captured = choices[index];
                 Color accent = PreludeChoiceAccent(captured);
                 Button button = CreateButton(
@@ -1877,54 +1884,56 @@ namespace ArcaneArena.Multiplayer
                     captured.ToString(),
                     string.Empty,
                     font,
-                    new Vector2(xMin, 0.115f),
-                    new Vector2(xMin + 0.275f, 0.84f),
-                    new Color(
-                        accent.r * 0.17f,
-                        accent.g * 0.17f,
-                        accent.b * 0.23f,
-                        0.98f),
+                    new Vector2(xMin, 0.14f),
+                    new Vector2(xMin + 0.26f, 0.82f),
+                    new Color(0.005f, 0.012f, 0.028f, 0.012f),
                     Color.white);
+                button.transition = Selectable.Transition.None;
                 Text label = button.GetComponentInChildren<Text>(true);
                 if (label != null)
                     label.gameObject.SetActive(false);
-                Outline tileOutline = button.gameObject.AddComponent<Outline>();
-                tileOutline.effectColor = new Color(
-                    accent.r,
-                    accent.g,
-                    accent.b,
-                    0.82f);
-                tileOutline.effectDistance = new Vector2(2.5f, -2.5f);
-                Image topAccent = CreateImage(
+                Image restingAura = CreateImage(
                     button.transform,
-                    "Faixa de energia",
-                    new Color(accent.r, accent.g, accent.b, 0.28f),
-                    new Vector2(0.04f, 0.88f),
+                    "Aura discreta",
+                    new Color(0.002f, 0.009f, 0.025f, 0.88f),
+                    new Vector2(0.04f, 0.04f),
                     new Vector2(0.96f, 0.96f));
-                topAccent.raycastTarget = false;
+                restingAura.sprite = softAuraSprite;
+                Stretch(restingAura.rectTransform,
+                    new Vector2(0.04f, 0.04f),
+                    new Vector2(0.96f, 0.96f));
+                restingAura.transform.SetAsFirstSibling();
+                Image selectionAura = CreateImage(
+                    button.transform,
+                    "Aura da escolha confirmada",
+                    new Color(accent.r, accent.g, accent.b, 0.54f),
+                    Vector2.zero,
+                    Vector2.one);
+                selectionAura.sprite = softAuraSprite;
+                selectionAura.transform.SetAsFirstSibling();
+                selectionAura.gameObject.SetActive(false);
                 Image icon = CreateImage(
                     button.transform,
                     $"Símbolo {captured}",
                     Color.white,
-                    new Vector2(0.12f, 0.12f),
-                    new Vector2(0.88f, 0.86f));
+                    new Vector2(0.16f, 0.12f),
+                    new Vector2(0.84f, 0.88f));
                 icon.sprite = PreludeChoiceIcon(captured);
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
                 Shadow iconShadow = icon.gameObject.AddComponent<Shadow>();
                 iconShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
                 iconShadow.effectDistance = new Vector2(5f, -5f);
-                Image lowerAccent = CreateImage(
-                    button.transform,
-                    "Selo de escolha",
-                    accent,
-                    new Vector2(0.16f, 0.055f),
-                    new Vector2(0.84f, 0.075f));
-                lowerAccent.raycastTarget = false;
                 button.onClick.AddListener(() =>
                 {
                     foreach (Button item in choiceButtons)
+                    {
                         item.interactable = false;
+                        Transform activeAura = item.transform.Find(
+                            "Aura da escolha confirmada");
+                        if (activeAura != null)
+                            activeAura.gameObject.SetActive(item == button);
+                    }
                     Action<DuelPreludeChoice> callback = choiceAction;
                     callback?.Invoke(captured);
                 });
