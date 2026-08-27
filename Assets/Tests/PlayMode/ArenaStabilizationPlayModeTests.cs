@@ -999,7 +999,49 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator EquipMetadataKeepsCardArtworkFreeOfDebugText()
+        public IEnumerator PassiveRefreshRepairsAStaleWorldCardWithoutANewEvent()
+        {
+            SceneManager.LoadScene(ProjectIdentity.DuelScene);
+            yield return null;
+            yield return null;
+            yield return null;
+
+            MonoBehaviour arena = FindArena();
+            Assert.That(arena, Is.Not.Null);
+            yield return WaitForPresentationReady(arena);
+            DuelArenaController controller =
+                arena.GetComponent<DuelArenaController>();
+            Assert.That(controller, Is.Not.Null);
+            Component zone = FindZone("PlayerOne", "Monster", 4);
+            Assert.That(zone, Is.Not.Null);
+            Assert.That(
+                controller.PresentationState.Players[0].MonsterZones[4],
+                Is.EqualTo(0U),
+                "O cenário de recuperação exige uma zona autoritativamente vazia.");
+
+            Transform anchor = zone.GetType()
+                .GetProperty("CardPresentationAnchor")
+                ?.GetValue(zone) as Transform;
+            Assert.That(anchor, Is.Not.Null);
+            var stale = new GameObject("Carta Invocada");
+            stale.transform.SetParent(anchor, false);
+            Assert.That(FindPresentedCard(zone), Is.Not.Null);
+
+            arena.GetType().GetMethod(
+                    "RefreshEverything",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, new object[] { false });
+            yield return null;
+
+            Assert.That(
+                FindPresentedCard(zone),
+                Is.Null,
+                "A verificação passiva deve limpar uma View órfã mesmo sem " +
+                "receber um novo evento do Core.");
+        }
+
+        [UnityTest]
+        public IEnumerator EquipRelationshipUsesATacticalLineWithoutDebugText()
         {
             SceneManager.LoadScene(ProjectIdentity.DuelScene);
             yield return null;
@@ -1041,6 +1083,11 @@ namespace ArcaneDuel.Tests.PlayMode
                     "ReconcileField",
                     BindingFlags.Instance | BindingFlags.NonPublic)
                 ?.Invoke(arena, null);
+            MethodInfo refreshRelations = arena.GetType().GetMethod(
+                "RefreshFieldRelationPresentation",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(refreshRelations, Is.Not.Null);
+            refreshRelations.Invoke(arena, new object[] { true });
             yield return null;
 
             Component zone = FindZone("PlayerOne", "SpellTrap", 0);
@@ -1055,6 +1102,37 @@ namespace ArcaneDuel.Tests.PlayMode
                 !indicator.text.Contains("EQUIP"),
                 Is.True,
                 "O vínculo de equipamento não deve virar texto técnico sobre a arte.");
+
+            Transform relationRoot = arena.transform.Find(
+                "Conexões táticas do campo");
+            Assert.That(relationRoot, Is.Not.Null);
+            Assert.That(
+                relationRoot.GetComponentsInChildren<LineRenderer>(true)
+                    .Count(line => line.gameObject.activeInHierarchy),
+                Is.EqualTo(1),
+                "Um equipamento público deve ser apresentado como uma conexão " +
+                "tática entre as duas cartas do campo.");
+
+            state.Apply(MoveEvent(
+                DarkMagicalCircle,
+                0,
+                (byte)DuelLocation.SpellTrapZone,
+                0,
+                0,
+                (byte)DuelLocation.Graveyard,
+                0,
+                1));
+            arena.GetType().GetMethod(
+                    "ReconcileField",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, null);
+            refreshRelations.Invoke(arena, new object[] { true });
+            yield return null;
+            Assert.That(
+                relationRoot.GetComponentsInChildren<LineRenderer>(true)
+                    .Count(line => line.gameObject.activeInHierarchy),
+                Is.EqualTo(0),
+                "A conexão precisa desaparecer quando uma das cartas deixa o campo.");
         }
 
         [UnityTest]

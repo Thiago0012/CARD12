@@ -233,6 +233,7 @@ namespace ArcaneArena
                 core.DuelCompleted -= OnDuelCompleted;
             }
             DisposeArenaPresentation();
+            DisposeFieldRelationPresentation();
             ResetCardSoundPresentation();
             ResetHandCardDragPresentation();
             if (automaticPromptRoutine != null)
@@ -378,6 +379,7 @@ namespace ArcaneArena
                 actionPanel.transform.SetAsLastSibling();
             }
             UpdateFieldActionMenuPosition();
+            UpdateFieldRelationPresentation();
             if (choiceModal?.activeInHierarchy == true)
                 choiceModal.transform.SetAsLastSibling();
             else if (compactResponseBar?.activeInHierarchy == true)
@@ -898,12 +900,18 @@ namespace ArcaneArena
             }
 
             ulong fieldSignature = BuildFieldSignature();
-            if (force || fieldSignature != observedFieldSignature)
+            bool fieldPresentationDrifted = HasWorldPresentationDrift();
+            bool fieldStateChanged = fieldSignature != observedFieldSignature;
+            bool refreshFieldPresentation = force || fieldStateChanged ||
+                                            fieldPresentationDrifted;
+            if (refreshFieldPresentation)
             {
                 observedFieldSignature = fieldSignature;
                 ReconcileField();
             }
             RefreshAuthoritativeZoneState();
+            RefreshFieldRelationPresentation(
+                refreshFieldPresentation);
             if (force)
                 RefreshInspectedCombatStats();
 
@@ -2741,7 +2749,17 @@ namespace ArcaneArena
                 CardInstanceState instance = InstanceAt(zone);
                 bool occupied = code != 0 || instance != null;
                 if (!occupied)
+                {
+                    if (zone.FindPresentedCard() != null)
+                    {
+                        problems.Add(
+                            $"{zone.StableId} has a stale world view without " +
+                            "an authoritative card.");
+                        if (repair)
+                            renderedZones.Remove(zone.StableId);
+                    }
                     continue;
+                }
                 CardInstanceKey key = instance != null
                     ? instance.Key
                     : new CardInstanceKey(
@@ -2791,6 +2809,46 @@ namespace ArcaneArena
                     this);
             }
             return problems.ToArray();
+        }
+
+        private bool HasWorldPresentationDrift()
+        {
+            if (state == null)
+                return false;
+            foreach (DuelZone3D zone in AllZones())
+            {
+                if (zone == null || !zone.HasValidIdentity ||
+                    zone.Kind == DuelZoneKind.MainDeck ||
+                    zone.Kind == DuelZoneKind.ExtraDeck ||
+                    IsConcealedSpecialPile(zone))
+                {
+                    continue;
+                }
+
+                uint code = CodeAt(zone);
+                CardInstanceState instance = InstanceAt(zone);
+                bool occupied = code != 0 || instance != null;
+                if (!occupied)
+                {
+                    if (zone.FindPresentedCard() != null)
+                        return true;
+                    continue;
+                }
+
+                CardInstanceKey key = instance != null
+                    ? instance.Key
+                    : new CardInstanceKey(
+                        SyntheticZoneRuntimeId(zone),
+                        code,
+                        StatePlayerForZone(zone),
+                        StatePlayerForZone(zone),
+                        LocationFor(zone.Kind),
+                        (uint)Mathf.Max(0, SequenceFor(zone)),
+                        PositionAt(zone));
+                if (!HasWorldCardRepresentation(zone, key, code, true))
+                    return true;
+            }
+            return false;
         }
 
         private void CreateWorldCard(
