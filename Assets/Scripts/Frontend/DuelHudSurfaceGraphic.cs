@@ -198,8 +198,10 @@ namespace ArcaneArena.Frontend
     }
 
     /// <summary>
-    /// Névoa extremamente leve que comunica de quem é o turno sem ocultar o
-    /// tabuleiro. A intensidade fica concentrada nas bordas da metade ativa.
+    /// Camada de posse do turno recortada pela geometria interna da arena.
+    /// A arte do campo e a moldura universal usam a mesma proporção 16:9,
+    /// portanto os pontos são medidos no espaço normalizado do tabuleiro,
+    /// e não no retângulo inteiro da tela.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class DuelTurnFieldGlowGraphic : MaskableGraphic
@@ -221,64 +223,274 @@ namespace ArcaneArena.Frontend
             if (rect.width <= 0f || rect.height <= 0f)
                 return;
 
-            float halfMin = localTurn ? 0.06f : 0.52f;
-            float halfMax = localTurn ? 0.48f : 0.94f;
-            float outerY = Mathf.Lerp(rect.yMin, rect.yMax, localTurn ? halfMin : halfMax);
-            float innerY = Mathf.Lerp(rect.yMin, rect.yMax, localTurn ? halfMax : halfMin);
-            Color outer = new(activeColor.r, activeColor.g, activeColor.b, 0.14f);
-            Color inner = new(activeColor.r, activeColor.g, activeColor.b, 0f);
-            AddGradientQuad(helper, rect.xMin, rect.xMax, outerY, innerY, outer, inner);
+            Vector2[] fieldHalf = FieldHalfPoints(rect, localTurn);
+            AddFilledPolygon(helper, fieldHalf, point => FillColor(rect, point));
 
-            float edge = Mathf.Max(5f, rect.width * 0.006f);
-            Color rim = new(activeColor.r, activeColor.g, activeColor.b, 0.20f);
-            AddSolidQuad(helper, rect.xMin, rect.xMin + edge, outerY, innerY, rim);
-            AddSolidQuad(helper, rect.xMax - edge, rect.xMax, outerY, innerY, rim);
-            float boundary = Mathf.Max(2f, rect.height * 0.0035f);
-            Color boundaryColor = new(
+            // O último segmento fecha junto ao divisor central. Ele fica sem
+            // contorno para que a faixa central e seus avisos permaneçam
+            // neutros e legíveis.
+            AddOuterRim(
+                helper,
+                fieldHalf,
+                Mathf.Clamp(rect.height * 0.0070f, 3.0f, 8.5f),
+                new Color(activeColor.r, activeColor.g, activeColor.b, 0.075f));
+            AddOuterRim(
+                helper,
+                fieldHalf,
+                Mathf.Clamp(rect.height * 0.0022f, 1.2f, 3.0f),
+                new Color(activeColor.r, activeColor.g, activeColor.b, 0.34f));
+        }
+
+        private Color FillColor(Rect rect, Vector2 position)
+        {
+            float normalizedY = Mathf.InverseLerp(
+                rect.yMin,
+                rect.yMax,
+                position.y);
+            float fromCenter = localTurn
+                ? 1f - Mathf.InverseLerp(0.09f, 0.52f, normalizedY)
+                : Mathf.InverseLerp(0.48f, 0.91f, normalizedY);
+            float strength = Mathf.Pow(Mathf.Clamp01(fromCenter), 1.28f);
+            return new Color(
                 activeColor.r,
                 activeColor.g,
                 activeColor.b,
-                0.24f);
-            AddSolidQuad(
-                helper,
-                rect.xMin,
-                rect.xMax,
-                innerY - boundary,
-                innerY + boundary,
-                boundaryColor);
+                Mathf.Lerp(0.006f, 0.175f, strength));
         }
 
-        private static void AddGradientQuad(
-            VertexHelper helper,
-            float xMin,
-            float xMax,
-            float outerY,
-            float innerY,
-            Color outer,
-            Color inner)
+        private static Vector2[] FieldHalfPoints(Rect rect, bool lowerHalf)
         {
-            int start = helper.currentVertCount;
-            AddVertex(helper, new Vector2(xMin, outerY), outer);
-            AddVertex(helper, new Vector2(xMax, outerY), outer);
-            AddVertex(helper, new Vector2(xMax, innerY), inner);
-            AddVertex(helper, new Vector2(xMin, innerY), inner);
-            helper.AddTriangle(start, start + 1, start + 2);
-            helper.AddTriangle(start, start + 2, start + 3);
+            Vector2[] source = lowerHalf
+                ? MirroredLowerSourcePoints()
+                : UpperSourcePoints();
+            Vector2[] result = new Vector2[source.Length];
+            for (int index = 0; index < source.Length; index++)
+            {
+                // A arte usa origem no topo; RectTransform usa origem embaixo.
+                result[index] = new Vector2(
+                    Mathf.Lerp(rect.xMin, rect.xMax, source[index].x),
+                    Mathf.Lerp(rect.yMax, rect.yMin, source[index].y));
+            }
+            return result;
         }
 
-        private static void AddSolidQuad(
+        private static Vector2[] UpperSourcePoints()
+        {
+            // Delineamento interno da metade superior de field1.png. Os
+            // pontos ficam ligeiramente dentro do filete ciano da arena.
+            return new[]
+            {
+                new Vector2(0.184f, 0.462f),
+                new Vector2(0.181f, 0.380f),
+                new Vector2(0.182f, 0.297f),
+                new Vector2(0.185f, 0.235f),
+                new Vector2(0.209f, 0.174f),
+                new Vector2(0.219f, 0.162f),
+                new Vector2(0.286f, 0.128f),
+                new Vector2(0.292f, 0.116f),
+                new Vector2(0.708f, 0.116f),
+                new Vector2(0.714f, 0.128f),
+                new Vector2(0.781f, 0.162f),
+                new Vector2(0.791f, 0.174f),
+                new Vector2(0.815f, 0.235f),
+                new Vector2(0.818f, 0.297f),
+                new Vector2(0.819f, 0.380f),
+                new Vector2(0.816f, 0.462f)
+            };
+        }
+
+        private static Vector2[] MirroredLowerSourcePoints()
+        {
+            Vector2[] upper = UpperSourcePoints();
+            Vector2[] lower = new Vector2[upper.Length];
+            for (int index = 0; index < upper.Length; index++)
+            {
+                Vector2 source = upper[upper.Length - 1 - index];
+                lower[index] = new Vector2(1f - source.x, 1f - source.y);
+            }
+            return lower;
+        }
+
+        private static void AddFilledPolygon(
             VertexHelper helper,
-            float xMin,
-            float xMax,
-            float yA,
-            float yB,
+            Vector2[] polygon,
+            System.Func<Vector2, Color> colorAt)
+        {
+            if (polygon == null || polygon.Length < 3)
+                return;
+
+            int vertexStart = helper.currentVertCount;
+            for (int index = 0; index < polygon.Length; index++)
+                AddVertex(helper, polygon[index], colorAt(polygon[index]));
+
+            var remaining = new System.Collections.Generic.List<int>(
+                polygon.Length);
+            for (int index = 0; index < polygon.Length; index++)
+                remaining.Add(index);
+
+            bool counterClockwise = SignedArea(polygon) > 0f;
+            int safety = polygon.Length * polygon.Length;
+            while (remaining.Count > 3 && safety-- > 0)
+            {
+                bool clipped = false;
+                for (int index = 0; index < remaining.Count; index++)
+                {
+                    int previous = remaining[
+                        (index - 1 + remaining.Count) % remaining.Count];
+                    int current = remaining[index];
+                    int next = remaining[(index + 1) % remaining.Count];
+                    if (!IsEar(
+                            polygon,
+                            remaining,
+                            previous,
+                            current,
+                            next,
+                            counterClockwise))
+                    {
+                        continue;
+                    }
+
+                    AddTriangle(
+                        helper,
+                        vertexStart,
+                        previous,
+                        current,
+                        next,
+                        counterClockwise);
+                    remaining.RemoveAt(index);
+                    clipped = true;
+                    break;
+                }
+                if (!clipped)
+                    return;
+            }
+
+            if (remaining.Count == 3)
+            {
+                AddTriangle(
+                    helper,
+                    vertexStart,
+                    remaining[0],
+                    remaining[1],
+                    remaining[2],
+                    counterClockwise);
+            }
+        }
+
+        private static bool IsEar(
+            Vector2[] polygon,
+            System.Collections.Generic.List<int> remaining,
+            int previous,
+            int current,
+            int next,
+            bool counterClockwise)
+        {
+            float cross = Cross(
+                polygon[current] - polygon[previous],
+                polygon[next] - polygon[current]);
+            if (counterClockwise ? cross <= 0.0001f : cross >= -0.0001f)
+                return false;
+
+            for (int index = 0; index < remaining.Count; index++)
+            {
+                int point = remaining[index];
+                if (point == previous || point == current || point == next)
+                    continue;
+                if (InsideTriangle(
+                        polygon[point],
+                        polygon[previous],
+                        polygon[current],
+                        polygon[next]))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static void AddTriangle(
+            VertexHelper helper,
+            int vertexStart,
+            int first,
+            int second,
+            int third,
+            bool counterClockwise)
+        {
+            if (counterClockwise)
+                helper.AddTriangle(
+                    vertexStart + first,
+                    vertexStart + second,
+                    vertexStart + third);
+            else
+                helper.AddTriangle(
+                    vertexStart + first,
+                    vertexStart + third,
+                    vertexStart + second);
+        }
+
+        private static float SignedArea(Vector2[] polygon)
+        {
+            float area = 0f;
+            for (int index = 0; index < polygon.Length; index++)
+            {
+                Vector2 current = polygon[index];
+                Vector2 next = polygon[(index + 1) % polygon.Length];
+                area += current.x * next.y - next.x * current.y;
+            }
+            return area * 0.5f;
+        }
+
+        private static float Cross(Vector2 left, Vector2 right)
+        {
+            return left.x * right.y - left.y * right.x;
+        }
+
+        private static bool InsideTriangle(
+            Vector2 point,
+            Vector2 first,
+            Vector2 second,
+            Vector2 third)
+        {
+            float firstSide = Cross(second - first, point - first);
+            float secondSide = Cross(third - second, point - second);
+            float thirdSide = Cross(first - third, point - third);
+            bool hasNegative = firstSide < -0.0001f ||
+                secondSide < -0.0001f || thirdSide < -0.0001f;
+            bool hasPositive = firstSide > 0.0001f ||
+                secondSide > 0.0001f || thirdSide > 0.0001f;
+            return !(hasNegative && hasPositive);
+        }
+
+        private static void AddOuterRim(
+            VertexHelper helper,
+            Vector2[] polygon,
+            float width,
+            Color rim)
+        {
+            if (polygon == null || polygon.Length < 3 || width <= 0f)
+                return;
+
+            for (int index = 0; index < polygon.Length - 1; index++)
+                AddLineSegment(helper, polygon[index], polygon[index + 1], width, rim);
+        }
+
+        private static void AddLineSegment(
+            VertexHelper helper,
+            Vector2 startPoint,
+            Vector2 endPoint,
+            float width,
             Color value)
         {
+            Vector2 direction = endPoint - startPoint;
+            if (direction.sqrMagnitude < 0.0001f)
+                return;
+            Vector2 perpendicular = new Vector2(-direction.y, direction.x)
+                .normalized * (width * 0.5f);
             int start = helper.currentVertCount;
-            AddVertex(helper, new Vector2(xMin, yA), value);
-            AddVertex(helper, new Vector2(xMax, yA), value);
-            AddVertex(helper, new Vector2(xMax, yB), value);
-            AddVertex(helper, new Vector2(xMin, yB), value);
+            AddVertex(helper, startPoint - perpendicular, value);
+            AddVertex(helper, startPoint + perpendicular, value);
+            AddVertex(helper, endPoint + perpendicular, value);
+            AddVertex(helper, endPoint - perpendicular, value);
             helper.AddTriangle(start, start + 1, start + 2);
             helper.AddTriangle(start, start + 2, start + 3);
         }
