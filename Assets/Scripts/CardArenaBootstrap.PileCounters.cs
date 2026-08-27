@@ -14,13 +14,15 @@ namespace ArcaneArena
     /// </summary>
     public sealed partial class CardArenaBootstrap
     {
+        private static readonly Color PileCounterColor =
+            new(0.96f, 0.93f, 0.84f, 1f);
+
         private sealed class PileCounterVisual
         {
             public DuelZone3D Zone;
             public RectTransform Rect;
             public CanvasGroup Group;
             public Text Count;
-            public Color Accent;
             public bool IsExtraDeck;
             public bool Hovered;
             public bool Visible;
@@ -52,10 +54,6 @@ namespace ArcaneArena
                 }
 
                 bool extra = zone.Kind == DuelZoneKind.ExtraDeck;
-                byte owner = StatePlayerForZone(zone);
-                Color accent = extra
-                    ? Gold
-                    : owner == 0 ? Cyan : Red;
                 var root = new GameObject(
                     extra ? "Contador do Deck Adicional" : "Contador do Deck",
                     typeof(RectTransform),
@@ -77,7 +75,7 @@ namespace ArcaneArena
                     "0",
                     27,
                     FontStyle.Bold,
-                    accent,
+                    PileCounterColor,
                     Vector2.zero,
                     Vector2.one,
                     TextAnchor.MiddleCenter);
@@ -95,7 +93,6 @@ namespace ArcaneArena
                     Rect = rect,
                     Group = group,
                     Count = count,
-                    Accent = accent,
                     IsExtraDeck = extra
                 };
             }
@@ -169,7 +166,7 @@ namespace ArcaneArena
                                visual.DisplayedCount != count;
                 visual.DisplayedCount = count;
                 visual.Count.text = count.ToString();
-                UpdatePileCounterStyle(visual, count);
+                UpdatePileCounterStyle(visual);
                 if (changed)
                     visual.PulseUntil = Time.unscaledTime + 0.28f;
             }
@@ -200,15 +197,9 @@ namespace ArcaneArena
                 }
 
                 Vector2 screen = screenPoint;
-                Vector2 center = new(
-                    Screen.width * 0.5f,
-                    Screen.height * 0.5f);
-                Vector2 direction = (screen - center).normalized;
-                if (direction.sqrMagnitude < 0.001f)
-                    direction = StatePlayerForZone(visual.Zone) == 0
-                        ? new Vector2(0.8f, -0.6f)
-                        : new Vector2(-0.8f, 0.6f);
-                screen += direction * (visual.IsExtraDeck ? 18f : 22f);
+                // O número fica imediatamente acima da pilha. Não há placa
+                // nem deslocamento lateral para competir com as cartas.
+                screen += Vector2.up * 34f;
 
                 if (!TryScreenToFrameLocal(screen, out Vector2 local))
                 {
@@ -274,21 +265,10 @@ namespace ArcaneArena
             visual.Group.alpha = visible ? 0.86f : 0f;
         }
 
-        private void UpdatePileCounterStyle(
-            PileCounterVisual visual,
-            int count)
+        private static void UpdatePileCounterStyle(PileCounterVisual visual)
         {
-            bool emptyMainDeck = !visual.IsExtraDeck && count == 0;
-            Color accent = emptyMainDeck
-                ? Red
-                : visual.Accent;
-            Color numberColor = emptyMainDeck
-                ? new Color(1f, 0.43f, 0.49f, 1f)
-                : visual.IsExtraDeck && count == 0
-                    ? Muted
-                    : accent;
             if (visual.Count != null)
-                visual.Count.color = numberColor;
+                visual.Count.color = PileCounterColor;
         }
     }
 }
