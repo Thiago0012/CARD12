@@ -46,7 +46,12 @@ namespace ArcaneArena.Multiplayer
         private GameObject choicePanel;
         private GameObject resultPanel;
         private Text resultLabel;
+        private Image resultLocalChoiceIcon;
+        private Image resultOpponentChoiceIcon;
+        private Text resultVersusLabel;
         private readonly List<Button> choiceButtons = new();
+        private readonly Dictionary<DuelPreludeChoice, Sprite>
+            preludeChoiceIcons = new();
         private readonly List<RectTransform> lightStreaks = new();
         private readonly List<Image> lightStreakImages = new();
         private readonly List<Color> lightStreakBaseColors = new();
@@ -216,9 +221,12 @@ namespace ArcaneArena.Multiplayer
                 ? "As escolhas foram iguais. Uma nova rodada será iniciada."
                 : "Resultado confirmado · preparando os dois campos.";
             secondaryLabel.gameObject.SetActive(true);
-            resultLabel.text =
-                $"{DuelPreludeRules.Label(localChoice)}   ×   " +
-                DuelPreludeRules.Label(opponentChoice);
+            if (resultLocalChoiceIcon != null)
+                resultLocalChoiceIcon.sprite = PreludeChoiceIcon(localChoice);
+            if (resultOpponentChoiceIcon != null)
+                resultOpponentChoiceIcon.sprite = PreludeChoiceIcon(opponentChoice);
+            if (resultVersusLabel != null)
+                resultVersusLabel.text = tie ? "=" : "VS";
         }
 
         public void FadeThroughBlack(Action action)
@@ -1835,51 +1843,84 @@ namespace ArcaneArena.Multiplayer
         {
             Image panel = CreateImage(
                 parent,
-                "Pedra Papel Tesoura",
-                new Color(0.025f, 0.045f, 0.095f, 0.94f),
-                new Vector2(0.24f, 0.48f),
-                new Vector2(0.76f, 0.73f));
+                "Escolha de Símbolo",
+                new Color(0.012f, 0.034f, 0.078f, 0.96f),
+                new Vector2(0.20f, 0.455f),
+                new Vector2(0.80f, 0.75f));
             choicePanel = panel.gameObject;
+            Outline panelOutline = panel.gameObject.AddComponent<Outline>();
+            panelOutline.effectColor = new Color(0.14f, 0.82f, 1f, 0.78f);
+            panelOutline.effectDistance = new Vector2(2f, -2f);
+            Text instruction = CreateText(
+                panel.transform,
+                "Selecione um símbolo",
+                font,
+                13,
+                FontStyle.Bold,
+                new Vector2(0.06f, 0.89f),
+                new Vector2(0.94f, 0.99f));
+            instruction.text = "ESCOLHA SEU SÍMBOLO";
+            instruction.color = new Color(0.66f, 0.93f, 1f, 0.92f);
             DuelPreludeChoice[] choices =
             {
                 DuelPreludeChoice.Rock,
                 DuelPreludeChoice.Paper,
                 DuelPreludeChoice.Scissors
             };
-            string[] labels = { "PEDRA", "PAPEL", "TESOURA" };
             for (int index = 0; index < choices.Length; index++)
             {
-                float xMin = 0.035f + index * 0.325f;
+                float xMin = 0.045f + index * 0.323f;
                 DuelPreludeChoice captured = choices[index];
+                Color accent = PreludeChoiceAccent(captured);
                 Button button = CreateButton(
                     panel.transform,
                     captured.ToString(),
-                    labels[index],
+                    string.Empty,
                     font,
-                    new Vector2(xMin, 0.12f),
-                    new Vector2(xMin + 0.28f, 0.88f),
-                    index == 1
-                        ? new Color(0.20f, 0.62f, 0.94f, 0.90f)
-                        : new Color(0.36f, 0.18f, 0.74f, 0.90f),
+                    new Vector2(xMin, 0.115f),
+                    new Vector2(xMin + 0.275f, 0.84f),
+                    new Color(
+                        accent.r * 0.17f,
+                        accent.g * 0.17f,
+                        accent.b * 0.23f,
+                        0.98f),
                     Color.white);
                 Text label = button.GetComponentInChildren<Text>(true);
                 if (label != null)
-                {
-                    Stretch(
-                        label.rectTransform,
-                        new Vector2(0.04f, 0.035f),
-                        new Vector2(0.96f, 0.30f));
-                    label.fontSize = 19;
-                }
+                    label.gameObject.SetActive(false);
+                Outline tileOutline = button.gameObject.AddComponent<Outline>();
+                tileOutline.effectColor = new Color(
+                    accent.r,
+                    accent.g,
+                    accent.b,
+                    0.82f);
+                tileOutline.effectDistance = new Vector2(2.5f, -2.5f);
+                Image topAccent = CreateImage(
+                    button.transform,
+                    "Faixa de energia",
+                    new Color(accent.r, accent.g, accent.b, 0.28f),
+                    new Vector2(0.04f, 0.88f),
+                    new Vector2(0.96f, 0.96f));
+                topAccent.raycastTarget = false;
                 Image icon = CreateImage(
                     button.transform,
-                    $"Ícone {labels[index]}",
+                    $"Símbolo {captured}",
                     Color.white,
-                    new Vector2(0.18f, 0.31f),
-                    new Vector2(0.82f, 0.93f));
-                icon.sprite = CreatePreludeChoiceIconSprite(captured);
+                    new Vector2(0.12f, 0.12f),
+                    new Vector2(0.88f, 0.86f));
+                icon.sprite = PreludeChoiceIcon(captured);
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
+                Shadow iconShadow = icon.gameObject.AddComponent<Shadow>();
+                iconShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
+                iconShadow.effectDistance = new Vector2(5f, -5f);
+                Image lowerAccent = CreateImage(
+                    button.transform,
+                    "Selo de escolha",
+                    accent,
+                    new Vector2(0.16f, 0.055f),
+                    new Vector2(0.84f, 0.075f));
+                lowerAccent.raycastTarget = false;
                 button.onClick.AddListener(() =>
                 {
                     foreach (Button item in choiceButtons)
@@ -1892,48 +1933,116 @@ namespace ArcaneArena.Multiplayer
             choicePanel.SetActive(false);
         }
 
+        private Sprite PreludeChoiceIcon(DuelPreludeChoice choice)
+        {
+            if (!preludeChoiceIcons.TryGetValue(choice, out Sprite icon) ||
+                icon == null)
+            {
+                icon = CreatePreludeChoiceIconSprite(choice);
+                preludeChoiceIcons[choice] = icon;
+            }
+            return icon;
+        }
+
+        private static Color PreludeChoiceAccent(DuelPreludeChoice choice)
+        {
+            return choice switch
+            {
+                DuelPreludeChoice.Rock => new Color(0.14f, 0.80f, 1f, 1f),
+                DuelPreludeChoice.Paper => new Color(1f, 0.78f, 0.30f, 1f),
+                _ => new Color(0.78f, 0.40f, 1f, 1f)
+            };
+        }
+
         private static Sprite CreatePreludeChoiceIconSprite(
             DuelPreludeChoice choice)
         {
-            const int size = 128;
+            const int size = 256;
             var pixels = new Color32[size * size];
             Color32 cyan = new Color32(112, 226, 255, 255);
-            Color32 pale = new Color32(226, 246, 255, 255);
+            Color32 pale = new Color32(235, 247, 255, 255);
+            Color32 steel = new Color32(116, 153, 177, 255);
             Color32 blue = new Color32(37, 111, 196, 255);
-            Color32 violet = new Color32(135, 70, 220, 255);
-            Color32 dark = new Color32(17, 32, 58, 255);
+            Color32 violet = new Color32(165, 89, 238, 255);
+            Color32 gold = new Color32(255, 202, 89, 255);
+            Color32 parchment = new Color32(241, 231, 186, 255);
+            Color32 dark = new Color32(11, 21, 39, 255);
 
             switch (choice)
             {
                 case DuelPreludeChoice.Rock:
-                    FillIconEllipse(pixels, size, 64, 53, 43, 33, dark);
-                    FillIconEllipse(pixels, size, 64, 60, 38, 31, blue);
-                    FillIconEllipse(pixels, size, 49, 72, 20, 13, cyan);
-                    DrawIconLine(pixels, size, 35, 50, 51, 32, 5, pale);
-                    DrawIconLine(pixels, size, 52, 32, 76, 29, 5, pale);
-                    DrawIconLine(pixels, size, 76, 29, 94, 48, 5, pale);
+                    FillIconPolygon(pixels, size, new[]
+                    {
+                        new Vector2Int(30, 95), new Vector2Int(55, 50),
+                        new Vector2Int(112, 28), new Vector2Int(174, 45),
+                        new Vector2Int(222, 98), new Vector2Int(201, 165),
+                        new Vector2Int(139, 220), new Vector2Int(67, 197),
+                        new Vector2Int(28, 149)
+                    }, dark);
+                    FillIconPolygon(pixels, size, new[]
+                    {
+                        new Vector2Int(40, 101), new Vector2Int(63, 61),
+                        new Vector2Int(113, 41), new Vector2Int(166, 57),
+                        new Vector2Int(208, 103), new Vector2Int(189, 157),
+                        new Vector2Int(136, 204), new Vector2Int(75, 184),
+                        new Vector2Int(43, 146)
+                    }, steel);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(63, 61), new Vector2Int(113, 41),
+                        new Vector2Int(105, 123), cyan);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(113, 41), new Vector2Int(166, 57),
+                        new Vector2Int(105, 123), pale);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(166, 57), new Vector2Int(208, 103),
+                        new Vector2Int(105, 123), blue);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(43, 146), new Vector2Int(105, 123),
+                        new Vector2Int(75, 184), blue);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(105, 123), new Vector2Int(189, 157),
+                        new Vector2Int(136, 204), dark);
+                    DrawIconLine(pixels, size, 105, 123, 189, 157, 4, cyan);
+                    DrawIconLine(pixels, size, 105, 123, 75, 184, 4, pale);
                     break;
                 case DuelPreludeChoice.Paper:
-                    FillIconRect(pixels, size, 31, 19, 96, 109, dark);
-                    FillIconRect(pixels, size, 35, 23, 92, 105, pale);
-                    FillIconTriangle(
-                        pixels,
-                        size,
-                        new Vector2Int(72, 105),
-                        new Vector2Int(92, 105),
-                        new Vector2Int(92, 84),
-                        cyan);
-                    DrawIconLine(pixels, size, 45, 73, 82, 73, 4, blue);
-                    DrawIconLine(pixels, size, 45, 59, 82, 59, 4, blue);
-                    DrawIconLine(pixels, size, 45, 45, 72, 45, 4, blue);
+                    FillIconPolygon(pixels, size, new[]
+                    {
+                        new Vector2Int(57, 30), new Vector2Int(171, 30),
+                        new Vector2Int(211, 70), new Vector2Int(211, 220),
+                        new Vector2Int(57, 220)
+                    }, dark);
+                    FillIconPolygon(pixels, size, new[]
+                    {
+                        new Vector2Int(66, 39), new Vector2Int(167, 39),
+                        new Vector2Int(201, 73), new Vector2Int(201, 211),
+                        new Vector2Int(66, 211)
+                    }, parchment);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(167, 39), new Vector2Int(201, 73),
+                        new Vector2Int(167, 73), gold);
+                    DrawIconLine(pixels, size, 91, 158, 176, 158, 6, blue);
+                    DrawIconLine(pixels, size, 91, 128, 176, 128, 6, blue);
+                    DrawIconLine(pixels, size, 91, 98, 152, 98, 6, blue);
+                    DrawIconLine(pixels, size, 91, 68, 128, 68, 5, cyan);
                     break;
                 default:
-                    DrawIconLine(pixels, size, 45, 38, 91, 99, 8, pale);
-                    DrawIconLine(pixels, size, 82, 29, 48, 91, 8, pale);
-                    DrawIconLine(pixels, size, 47, 39, 92, 98, 3, cyan);
-                    DrawIconLine(pixels, size, 81, 30, 48, 91, 3, cyan);
-                    FillIconRing(pixels, size, 38, 31, 19, 10, violet);
-                    FillIconRing(pixels, size, 37, 89, 19, 10, violet);
+                    // As lâminas são desenhadas antes dos aros para que a
+                    // tesoura tenha silhueta clara mesmo em tela pequena.
+                    DrawIconLine(pixels, size, 103, 119, 207, 204, 18, dark);
+                    DrawIconLine(pixels, size, 103, 119, 207, 204, 11, pale);
+                    DrawIconLine(pixels, size, 142, 114, 207, 47, 18, dark);
+                    DrawIconLine(pixels, size, 142, 114, 207, 47, 11, pale);
+                    DrawIconLine(pixels, size, 112, 123, 199, 196, 4, cyan);
+                    DrawIconLine(pixels, size, 148, 108, 199, 55, 4, cyan);
+                    FillIconRing(pixels, size, 78, 82, 39, 20, dark);
+                    FillIconRing(pixels, size, 78, 82, 31, 15, violet);
+                    FillIconEllipse(pixels, size, 78, 82, 14, 8, dark);
+                    FillIconRing(pixels, size, 83, 164, 39, 20, dark);
+                    FillIconRing(pixels, size, 83, 164, 31, 15, violet);
+                    FillIconEllipse(pixels, size, 83, 164, 14, 8, dark);
+                    FillIconEllipse(pixels, size, 122, 119, 12, 12, gold);
+                    FillIconEllipse(pixels, size, 122, 119, 5, 5, pale);
                     break;
             }
 
@@ -1958,6 +2067,39 @@ namespace ArcaneArena.Multiplayer
             sprite.name = texture.name;
             sprite.hideFlags = HideFlags.HideAndDontSave;
             return sprite;
+        }
+
+        private static void FillIconPolygon(
+            Color32[] pixels,
+            int size,
+            IReadOnlyList<Vector2Int> vertices,
+            Color32 color)
+        {
+            if (vertices == null || vertices.Count < 3)
+                return;
+            int minX = Mathf.Max(0, vertices.Min(vertex => vertex.x));
+            int maxX = Mathf.Min(size - 1, vertices.Max(vertex => vertex.x));
+            int minY = Mathf.Max(0, vertices.Min(vertex => vertex.y));
+            int maxY = Mathf.Min(size - 1, vertices.Max(vertex => vertex.y));
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                bool inside = false;
+                for (int current = 0, previous = vertices.Count - 1;
+                     current < vertices.Count;
+                     previous = current++)
+                {
+                    Vector2Int a = vertices[current];
+                    Vector2Int b = vertices[previous];
+                    bool crosses = (a.y > y) != (b.y > y) &&
+                        x < (b.x - a.x) * (y - a.y) /
+                        (float)(b.y - a.y) + a.x;
+                    if (crosses)
+                        inside = !inside;
+                }
+                if (inside)
+                    pixels[y * size + x] = color;
+            }
         }
 
         private static void FillIconRect(
@@ -2087,10 +2229,13 @@ namespace ArcaneArena.Multiplayer
             Image panel = CreateImage(
                 parent,
                 "Resultado da Escolha",
-                new Color(0.025f, 0.045f, 0.095f, 0.94f),
-                new Vector2(0.31f, 0.51f),
-                new Vector2(0.69f, 0.68f));
+                new Color(0.012f, 0.034f, 0.078f, 0.96f),
+                new Vector2(0.31f, 0.48f),
+                new Vector2(0.69f, 0.70f));
             resultPanel = panel.gameObject;
+            Outline outline = panel.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0.14f, 0.82f, 1f, 0.78f);
+            outline.effectDistance = new Vector2(2f, -2f);
             resultLabel = CreateText(
                 panel.transform,
                 "Resultado",
@@ -2100,7 +2245,46 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.04f, 0.08f),
                 new Vector2(0.96f, 0.92f));
             resultLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
+            resultLabel.gameObject.SetActive(false);
+            CreatePreludeResultCaption(
+                panel.transform, "VOCÊ", new Vector2(0.08f, 0.82f),
+                new Vector2(0.42f, 0.96f), font);
+            CreatePreludeResultCaption(
+                panel.transform, "RIVAL", new Vector2(0.58f, 0.82f),
+                new Vector2(0.92f, 0.96f), font);
+            resultLocalChoiceIcon = CreateImage(
+                panel.transform, "Seu símbolo", Color.white,
+                new Vector2(0.08f, 0.12f), new Vector2(0.42f, 0.80f));
+            resultLocalChoiceIcon.preserveAspect = true;
+            resultOpponentChoiceIcon = CreateImage(
+                panel.transform, "Símbolo rival", Color.white,
+                new Vector2(0.58f, 0.12f), new Vector2(0.92f, 0.80f));
+            resultOpponentChoiceIcon.preserveAspect = true;
+            resultVersusLabel = CreateText(
+                panel.transform, "Versus", font, 22, FontStyle.Bold,
+                new Vector2(0.42f, 0.38f), new Vector2(0.58f, 0.60f));
+            resultVersusLabel.text = "VS";
+            resultVersusLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
             resultPanel.SetActive(false);
+        }
+
+        private static void CreatePreludeResultCaption(
+            Transform parent,
+            string value,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            Font font)
+        {
+            Text caption = CreateText(
+                parent,
+                value,
+                font,
+                11,
+                FontStyle.Bold,
+                anchorMin,
+                anchorMax);
+            caption.text = value;
+            caption.color = new Color(0.66f, 0.93f, 1f, 0.92f);
         }
 
         private void ApplySafeArea()
