@@ -1938,7 +1938,27 @@ namespace ArcaneArena.Multiplayer
             if (!preludeChoiceIcons.TryGetValue(choice, out Sprite icon) ||
                 icon == null)
             {
-                icon = CreatePreludeChoiceIconSprite(choice);
+                string assetPath = choice switch
+                {
+                    DuelPreludeChoice.Rock => "PreludeSymbols/prelude_rock_3d",
+                    DuelPreludeChoice.Paper => "PreludeSymbols/prelude_paper_3d",
+                    _ => "PreludeSymbols/prelude_scissors_3d"
+                };
+                Texture2D texture = Resources.Load<Texture2D>(assetPath);
+                if (texture == null)
+                {
+                    Debug.LogError(
+                        $"Não foi possível carregar a ilustração 3D de {choice} " +
+                        $"em Resources/{assetPath}.");
+                    return null;
+                }
+
+                icon = Sprite.Create(
+                    texture,
+                    new Rect(0f, 0f, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f),
+                    100f);
+                icon.name = $"Ilustração 3D {choice}";
                 preludeChoiceIcons[choice] = icon;
             }
             return icon;
