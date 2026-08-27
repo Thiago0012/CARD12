@@ -380,6 +380,7 @@ namespace ArcaneArena
             }
             UpdateFieldActionMenuPosition();
             UpdateFieldRelationPresentation();
+            UpdatePileCounterPresentation();
             if (choiceModal?.activeInHierarchy == true)
                 choiceModal.transform.SetAsLastSibling();
             else if (compactResponseBar?.activeInHierarchy == true)
@@ -2428,6 +2429,7 @@ namespace ArcaneArena
 
         public void HandleZoneHover(DuelZone3D zone, bool hovered)
         {
+            SetPileCounterHovered(zone, hovered);
             if (zone != null && UpdateAttackTargetHover(zone, hovered))
                 return;
             if (!hovered || zone == null || !presentationReady)
@@ -2530,6 +2532,7 @@ namespace ArcaneArena
 
         private void ReconcileField()
         {
+            EnsurePileCounterPresentation();
             foreach (DuelZone3D zone in AllZones())
             {
                 if (zone == null)
@@ -2628,6 +2631,7 @@ namespace ArcaneArena
                 }
                 CreateWorldCard(zone, key, sprite, position, instance);
             }
+            RefreshPileCounterPresentation(false);
         }
 
         private bool UsesAuthoredPilePresentation(DuelZone3D zone)
