@@ -207,6 +207,12 @@ namespace ArcaneArena
                 // Correção fina de -10 px solicitada para a leitura permanecer
                 // presa à perspectiva do verso da carta, não à tela inteira.
                 screen.y -= 10f;
+                // No lado inferior, a carta é vista de frente e precisa de
+                // uma elevação adicional para o número ficar imediatamente
+                // fora da borda superior — espelhando o acabamento já usado
+                // nos montes do adversário.
+                if (StatePlayerForZone(visual.Zone) == 0)
+                    screen += Vector2.up * 58f;
 
                 if (!TryScreenToFrameLocal(screen, out Vector2 local))
                 {
