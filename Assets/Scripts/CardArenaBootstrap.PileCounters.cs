@@ -188,8 +188,20 @@ namespace ArcaneArena
                 }
 
                 Transform anchor = visual.Zone.CardPresentationAnchor;
+                // O ponto de leitura parte do centro da carta e segue sua
+                // orientação: avança para a borda superior e para dentro do
+                // campo. Como os montes do adversário são rotacionados, essa
+                // mesma conta espelha automaticamente os quatro cantos.
+                float inwardSideOffset = visual.Zone.Kind ==
+                    DuelZoneKind.MainDeck
+                    ? -0.34f
+                    : 0.34f;
+                Vector3 numberWorldPosition = anchor.position +
+                    anchor.forward * 0.55f +
+                    anchor.right * inwardSideOffset +
+                    Vector3.up * 0.22f;
                 Vector3 screenPoint = camera.WorldToScreenPoint(
-                    anchor.position + Vector3.up * 0.34f);
+                    numberWorldPosition);
                 if (screenPoint.z <= 0.01f)
                 {
                     SetPileCounterVisible(visual, false);
@@ -197,9 +209,9 @@ namespace ArcaneArena
                 }
 
                 Vector2 screen = screenPoint;
-                // O número fica imediatamente acima da pilha. Não há placa
-                // nem deslocamento lateral para competir com as cartas.
-                screen += Vector2.up * 34f;
+                // Correção fina de -10 px solicitada para a leitura permanecer
+                // presa à perspectiva do verso da carta, não à tela inteira.
+                screen.y -= 10f;
 
                 if (!TryScreenToFrameLocal(screen, out Vector2 local))
                 {
