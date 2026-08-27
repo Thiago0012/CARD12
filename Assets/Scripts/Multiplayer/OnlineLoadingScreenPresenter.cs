@@ -102,6 +102,12 @@ namespace ArcaneArena.Multiplayer
         private Image burstFlashVertical;
         private Image transitionVoidLayer;
         private GameObject preludeBackdrop;
+        private readonly List<RectTransform> preludeMistLayers = new();
+        private readonly List<Image> preludeMistImages = new();
+        private readonly List<Vector2> preludeMistOrigins = new();
+        private readonly List<float> preludeMistSpeeds = new();
+        private readonly List<float> preludeMistPhases = new();
+        private readonly List<Color> preludeMistBaseColors = new();
         private Color motionAccentA = new Color(0.12f, 0.76f, 1f, 1f);
         private Color motionAccentB = new Color(0.50f, 0.18f, 0.98f, 1f);
 
@@ -494,6 +500,7 @@ namespace ArcaneArena.Multiplayer
             float burstElapsed = Mathf.Max(0f, now - cardBurstStartedAt);
             UpdateBurstEnergyField(burstElapsed);
             UpdateBackdropColorGrade(burstElapsed, now);
+            UpdatePreludeMist(now);
             UpdateTypographyReveal(burstElapsed);
             for (int index = 0; index < lightStreaks.Count; index++)
             {
@@ -762,44 +769,144 @@ namespace ArcaneArena.Multiplayer
 
         private void BuildPreludeBackdrop(Transform parent)
         {
-            Image veil = CreateImage(
+            Image stage = CreateImage(
                 parent,
-                "Cenário de decisão",
-                new Color(0.001f, 0.006f, 0.018f, 0.93f),
+                "Arena da decisão",
+                Color.clear,
                 Vector2.zero,
                 Vector2.one);
-            veil.raycastTarget = false;
-            preludeBackdrop = veil.gameObject;
+            stage.raycastTarget = false;
+            preludeBackdrop = stage.gameObject;
 
-            Sprite auraSprite = CreateProceduralBurstSprite(false);
-            Sprite ringSprite = CreateProceduralBurstSprite(true);
-            Image centralLight = CreateImage(
-                veil.transform,
-                "Luz central da decisão",
-                new Color(0.035f, 0.22f, 0.31f, 0.46f),
-                new Vector2(0.5f, 0.5f),
-                new Vector2(0.5f, 0.5f));
-            centralLight.sprite = auraSprite;
-            centralLight.rectTransform.sizeDelta = new Vector2(1380f, 650f);
-            Image centralRing = CreateImage(
-                veil.transform,
-                "Órbita da decisão",
-                new Color(0.17f, 0.79f, 1f, 0.17f),
-                new Vector2(0.5f, 0.5f),
-                new Vector2(0.5f, 0.5f));
-            centralRing.sprite = ringSprite;
-            centralRing.rectTransform.sizeDelta = new Vector2(920f, 920f);
-            centralRing.preserveAspect = true;
-            Image innerRing = CreateImage(
-                veil.transform,
-                "Órbita interna da decisão",
-                new Color(0.52f, 0.27f, 1f, 0.12f),
-                new Vector2(0.5f, 0.5f),
-                new Vector2(0.5f, 0.5f));
-            innerRing.sprite = ringSprite;
-            innerRing.rectTransform.sizeDelta = new Vector2(560f, 560f);
-            innerRing.preserveAspect = true;
+            Texture2D arenaTexture = Resources.Load<Texture2D>(
+                "PreludeArena/decision_ritual_arena");
+            if (arenaTexture == null)
+            {
+                Debug.LogError(
+                    "A arte da arena de decisão não foi encontrada em " +
+                    "Resources/PreludeArena/decision_ritual_arena.");
+            }
+            else
+            {
+                Image arena = CreateImage(
+                    stage.transform,
+                    "Arte da arena de decisão",
+                    Color.white,
+                    Vector2.zero,
+                    Vector2.one);
+                arena.sprite = Sprite.Create(
+                    arenaTexture,
+                    new Rect(0f, 0f, arenaTexture.width, arenaTexture.height),
+                    new Vector2(0.5f, 0.5f),
+                    100f);
+                AspectRatioFitter arenaFit = arena.gameObject
+                    .AddComponent<AspectRatioFitter>();
+                arenaFit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+                arenaFit.aspectRatio = arenaTexture.width /
+                                       (float)arenaTexture.height;
+            }
+
+            Image grading = CreateImage(
+                stage.transform,
+                "Véu da arena de decisão",
+                new Color(0.001f, 0.007f, 0.022f, 0.52f),
+                Vector2.zero,
+                Vector2.one);
+            grading.raycastTarget = false;
+
+            Texture2D mistTexture = Resources.Load<Texture2D>(
+                "PreludeArena/decision_mist_layer");
+            if (mistTexture == null)
+            {
+                Debug.LogError(
+                    "A névoa da arena de decisão não foi encontrada em " +
+                    "Resources/PreludeArena/decision_mist_layer.");
+            }
+            else
+            {
+                Sprite mistSprite = Sprite.Create(
+                    mistTexture,
+                    new Rect(0f, 0f, mistTexture.width, mistTexture.height),
+                    new Vector2(0.5f, 0.5f),
+                    100f);
+                Vector2[] origins =
+                {
+                    new Vector2(-170f, -240f),
+                    new Vector2(210f, -92f),
+                    new Vector2(-95f, 92f)
+                };
+                Vector2[] sizes =
+                {
+                    new Vector2(1720f, 573f),
+                    new Vector2(1940f, 647f),
+                    new Vector2(1480f, 493f)
+                };
+                Color[] colors =
+                {
+                    new Color(0.48f, 0.78f, 1f, 0.18f),
+                    new Color(0.42f, 0.56f, 0.92f, 0.13f),
+                    new Color(0.70f, 0.50f, 1f, 0.09f)
+                };
+                float[] speeds = { 0.09f, -0.065f, 0.045f };
+                for (int index = 0; index < origins.Length; index++)
+                {
+                    Image mist = CreateImage(
+                        stage.transform,
+                        $"Névoa móvel {index + 1}",
+                        colors[index],
+                        new Vector2(0.5f, 0.5f),
+                        new Vector2(0.5f, 0.5f));
+                    mist.sprite = mistSprite;
+                    mist.preserveAspect = true;
+                    mist.rectTransform.sizeDelta = sizes[index];
+                    mist.rectTransform.anchoredPosition = origins[index];
+                    preludeMistLayers.Add(mist.rectTransform);
+                    preludeMistImages.Add(mist);
+                    preludeMistOrigins.Add(origins[index]);
+                    preludeMistSpeeds.Add(speeds[index]);
+                    preludeMistPhases.Add(index * 1.79f);
+                    preludeMistBaseColors.Add(colors[index]);
+                }
+            }
             preludeBackdrop.SetActive(false);
+        }
+
+        private void UpdatePreludeMist(float now)
+        {
+            if (preludeBackdrop == null || !preludeBackdrop.activeInHierarchy)
+                return;
+            for (int index = 0; index < preludeMistLayers.Count; index++)
+            {
+                RectTransform mist = preludeMistLayers[index];
+                Image mistImage = index < preludeMistImages.Count
+                    ? preludeMistImages[index]
+                    : null;
+                if (mist == null || mistImage == null)
+                    continue;
+                float speed = index < preludeMistSpeeds.Count
+                    ? preludeMistSpeeds[index]
+                    : 0.05f;
+                float phase = index < preludeMistPhases.Count
+                    ? preludeMistPhases[index]
+                    : index;
+                Vector2 origin = index < preludeMistOrigins.Count
+                    ? preludeMistOrigins[index]
+                    : Vector2.zero;
+                float horizontal = Mathf.Sin(now * speed + phase) * 180f;
+                float vertical = Mathf.Sin(now * (Mathf.Abs(speed) * 1.7f) +
+                                           phase * 1.37f) * 16f;
+                mist.anchoredPosition = origin +
+                                        new Vector2(horizontal, vertical);
+                float pulse = 0.82f + 0.18f * Mathf.Sin(
+                    now * 0.42f + phase);
+                mist.localScale = Vector3.one *
+                                  (0.98f + 0.025f * pulse);
+                Color color = index < preludeMistBaseColors.Count
+                    ? preludeMistBaseColors[index]
+                    : Color.white;
+                color.a *= pulse;
+                mistImage.color = color;
+            }
         }
 
         private void BuildWarpBackdrop(Transform parent)
@@ -1930,15 +2037,6 @@ namespace ArcaneArena.Multiplayer
                 DuelPreludeChoice.Paper,
                 DuelPreludeChoice.Scissors
             };
-            Sprite softAuraSprite = CreateProceduralBurstSprite(false);
-            Sprite sealRingSprite = CreateProceduralBurstSprite(true);
-            Image trail = CreateImage(
-                panel.transform,
-                "Trilha entre os selos",
-                new Color(0.17f, 0.80f, 1f, 0.16f),
-                new Vector2(0.12f, 0.475f),
-                new Vector2(0.88f, 0.49f));
-            trail.transform.SetAsFirstSibling();
             for (int index = 0; index < choices.Length; index++)
             {
                 float xMin = 0.05f + index * 0.315f;
@@ -1957,70 +2055,25 @@ namespace ArcaneArena.Multiplayer
                 Text label = button.GetComponentInChildren<Text>(true);
                 if (label != null)
                     label.gameObject.SetActive(false);
-                Image restingAura = CreateImage(
+                Image selectionMark = CreateImage(
                     button.transform,
-                    "Núcleo sombreado do selo",
-                    new Color(0.001f, 0.006f, 0.018f, 0.94f),
-                    new Vector2(0.03f, 0.03f),
-                    new Vector2(0.97f, 0.97f));
-                restingAura.sprite = softAuraSprite;
-                AspectRatioFitter restingAuraFit = restingAura.gameObject
-                    .AddComponent<AspectRatioFitter>();
-                restingAuraFit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-                restingAuraFit.aspectRatio = 1f;
-                restingAura.transform.SetAsFirstSibling();
-                Image restingRing = CreateImage(
-                    button.transform,
-                    "Aro discreto do selo",
-                    new Color(accent.r, accent.g, accent.b, 0.24f),
-                    new Vector2(0.03f, 0.03f),
-                    new Vector2(0.97f, 0.97f));
-                restingRing.sprite = sealRingSprite;
-                AspectRatioFitter restingRingFit = restingRing.gameObject
-                    .AddComponent<AspectRatioFitter>();
-                restingRingFit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-                restingRingFit.aspectRatio = 1f;
-                restingRing.transform.SetAsFirstSibling();
-                Image selectionAura = CreateImage(
-                    button.transform,
-                    "Aura da escolha confirmada",
-                    new Color(accent.r, accent.g, accent.b, 0.33f),
-                    new Vector2(0.01f, 0.01f),
-                    new Vector2(0.99f, 0.99f));
-                selectionAura.sprite = softAuraSprite;
-                AspectRatioFitter selectionAuraFit = selectionAura.gameObject
-                    .AddComponent<AspectRatioFitter>();
-                selectionAuraFit.aspectMode =
-                    AspectRatioFitter.AspectMode.FitInParent;
-                selectionAuraFit.aspectRatio = 1f;
-                selectionAura.transform.SetAsFirstSibling();
-                selectionAura.gameObject.SetActive(false);
-                Image selectionRing = CreateImage(
-                    button.transform,
-                    "Aro da escolha confirmada",
-                    new Color(accent.r, accent.g, accent.b, 0.92f),
-                    Vector2.zero,
-                    Vector2.one);
-                selectionRing.sprite = sealRingSprite;
-                AspectRatioFitter selectionRingFit = selectionRing.gameObject
-                    .AddComponent<AspectRatioFitter>();
-                selectionRingFit.aspectMode =
-                    AspectRatioFitter.AspectMode.FitInParent;
-                selectionRingFit.aspectRatio = 1f;
-                selectionRing.transform.SetAsFirstSibling();
-                selectionRing.gameObject.SetActive(false);
+                    "Marca da escolha confirmada",
+                    new Color(accent.r, accent.g, accent.b, 0.90f),
+                    new Vector2(0.28f, 0.075f),
+                    new Vector2(0.72f, 0.092f));
+                selectionMark.gameObject.SetActive(false);
                 Image icon = CreateImage(
                     button.transform,
                     $"Símbolo {captured}",
                     Color.white,
-                    new Vector2(0.20f, 0.18f),
-                    new Vector2(0.80f, 0.82f));
+                    new Vector2(0.16f, 0.15f),
+                    new Vector2(0.84f, 0.87f));
                 icon.sprite = PreludeChoiceIcon(captured);
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
                 Shadow iconShadow = icon.gameObject.AddComponent<Shadow>();
                 iconShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
-                iconShadow.effectDistance = new Vector2(5f, -5f);
+                iconShadow.effectDistance = new Vector2(7f, -8f);
                 button.onClick.AddListener(() =>
                 {
                     foreach (Button item in choiceButtons)
@@ -2042,17 +2095,12 @@ namespace ArcaneArena.Multiplayer
         {
             if (button == null)
                 return;
-            string[] selectionParts =
-            {
-                "Aura da escolha confirmada",
-                "Aro da escolha confirmada"
-            };
-            foreach (string partName in selectionParts)
-            {
-                Transform part = button.transform.Find(partName);
-                if (part != null)
-                    part.gameObject.SetActive(selected);
-            }
+            Transform mark = button.transform.Find("Marca da escolha confirmada");
+            if (mark != null)
+                mark.gameObject.SetActive(selected);
+            button.transform.localScale = selected
+                ? new Vector3(1.06f, 1.06f, 1f)
+                : Vector3.one;
         }
 
         private Sprite PreludeChoiceIcon(DuelPreludeChoice choice)
@@ -2385,29 +2433,6 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.96f, 0.92f));
             resultLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
             resultLabel.gameObject.SetActive(false);
-            Sprite auraSprite = CreateProceduralBurstSprite(false);
-            Sprite ringSprite = CreateProceduralBurstSprite(true);
-            Image resultTrail = CreateImage(
-                panel.transform,
-                "Trilha do confronto",
-                new Color(0.20f, 0.82f, 1f, 0.18f),
-                new Vector2(0.14f, 0.47f),
-                new Vector2(0.86f, 0.485f));
-            resultTrail.transform.SetAsFirstSibling();
-            CreatePreludeResultSeal(
-                panel.transform,
-                auraSprite,
-                ringSprite,
-                new Color(0.14f, 0.80f, 1f, 1f),
-                new Vector2(0.06f, 0.10f),
-                new Vector2(0.44f, 0.84f));
-            CreatePreludeResultSeal(
-                panel.transform,
-                auraSprite,
-                ringSprite,
-                new Color(0.92f, 0.32f, 0.54f, 1f),
-                new Vector2(0.56f, 0.10f),
-                new Vector2(0.94f, 0.84f));
             CreatePreludeResultCaption(
                 panel.transform, "VOCÊ", new Vector2(0.10f, 0.84f),
                 new Vector2(0.40f, 0.96f), font);
@@ -2416,50 +2441,26 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.90f, 0.96f), font);
             resultLocalChoiceIcon = CreateImage(
                 panel.transform, "Seu símbolo", Color.white,
-                new Vector2(0.14f, 0.17f), new Vector2(0.36f, 0.78f));
+                new Vector2(0.10f, 0.16f), new Vector2(0.40f, 0.80f));
             resultLocalChoiceIcon.preserveAspect = true;
+            Shadow localShadow = resultLocalChoiceIcon.gameObject
+                .AddComponent<Shadow>();
+            localShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
+            localShadow.effectDistance = new Vector2(8f, -9f);
             resultOpponentChoiceIcon = CreateImage(
                 panel.transform, "Símbolo rival", Color.white,
-                new Vector2(0.64f, 0.17f), new Vector2(0.86f, 0.78f));
+                new Vector2(0.60f, 0.16f), new Vector2(0.90f, 0.80f));
             resultOpponentChoiceIcon.preserveAspect = true;
+            Shadow opponentShadow = resultOpponentChoiceIcon.gameObject
+                .AddComponent<Shadow>();
+            opponentShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
+            opponentShadow.effectDistance = new Vector2(8f, -9f);
             resultVersusLabel = CreateText(
                 panel.transform, "Versus", font, 25, FontStyle.Bold,
                 new Vector2(0.43f, 0.38f), new Vector2(0.57f, 0.60f));
             resultVersusLabel.text = "VS";
             resultVersusLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
             resultPanel.SetActive(false);
-        }
-
-        private static void CreatePreludeResultSeal(
-            Transform parent,
-            Sprite auraSprite,
-            Sprite ringSprite,
-            Color accent,
-            Vector2 anchorMin,
-            Vector2 anchorMax)
-        {
-            Image core = CreateImage(
-                parent,
-                "Núcleo sombreado do resultado",
-                new Color(0.001f, 0.006f, 0.018f, 0.94f),
-                anchorMin,
-                anchorMax);
-            core.sprite = auraSprite;
-            AspectRatioFitter coreFit = core.gameObject
-                .AddComponent<AspectRatioFitter>();
-            coreFit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            coreFit.aspectRatio = 1f;
-            Image ring = CreateImage(
-                parent,
-                "Aro do resultado",
-                new Color(accent.r, accent.g, accent.b, 0.62f),
-                anchorMin,
-                anchorMax);
-            ring.sprite = ringSprite;
-            AspectRatioFitter ringFit = ring.gameObject
-                .AddComponent<AspectRatioFitter>();
-            ringFit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            ringFit.aspectRatio = 1f;
         }
 
         private static void CreatePreludeResultCaption(
