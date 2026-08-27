@@ -1850,13 +1850,10 @@ namespace ArcaneArena.Multiplayer
             Image panel = CreateImage(
                 parent,
                 "Escolha de Símbolo",
-                new Color(0.012f, 0.034f, 0.078f, 0.96f),
+                Color.clear,
                 new Vector2(0.20f, 0.455f),
                 new Vector2(0.80f, 0.75f));
             choicePanel = panel.gameObject;
-            Outline panelOutline = panel.gameObject.AddComponent<Outline>();
-            panelOutline.effectColor = new Color(0.14f, 0.82f, 1f, 0.78f);
-            panelOutline.effectDistance = new Vector2(2f, -2f);
             Text instruction = CreateText(
                 panel.transform,
                 "Selecione um símbolo",
@@ -1895,20 +1892,17 @@ namespace ArcaneArena.Multiplayer
                 Image restingAura = CreateImage(
                     button.transform,
                     "Aura discreta",
-                    new Color(0.002f, 0.009f, 0.025f, 0.88f),
-                    new Vector2(0.04f, 0.04f),
-                    new Vector2(0.96f, 0.96f));
+                    new Color(0.002f, 0.009f, 0.025f, 0.96f),
+                    new Vector2(-0.12f, -0.10f),
+                    new Vector2(1.12f, 1.10f));
                 restingAura.sprite = softAuraSprite;
-                Stretch(restingAura.rectTransform,
-                    new Vector2(0.04f, 0.04f),
-                    new Vector2(0.96f, 0.96f));
                 restingAura.transform.SetAsFirstSibling();
                 Image selectionAura = CreateImage(
                     button.transform,
                     "Aura da escolha confirmada",
-                    new Color(accent.r, accent.g, accent.b, 0.54f),
-                    Vector2.zero,
-                    Vector2.one);
+                    new Color(accent.r, accent.g, accent.b, 0.48f),
+                    new Vector2(-0.05f, -0.04f),
+                    new Vector2(1.05f, 1.04f));
                 selectionAura.sprite = softAuraSprite;
                 selectionAura.transform.SetAsFirstSibling();
                 selectionAura.gameObject.SetActive(false);
