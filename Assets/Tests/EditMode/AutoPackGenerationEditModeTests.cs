@@ -122,6 +122,23 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void StrictPreBuildValidationAcceptsThematicCatalog()
+        {
+            Type validationType = FindType(
+                "ArcaneArena.Editor.AutoPacks.AutoPackValidation");
+            MethodInfo runStrict = validationType.GetMethod(
+                "RunStrict",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(runStrict, Is.Not.Null);
+
+            object result = runStrict.Invoke(null, null);
+            string message = result.GetType().GetMethod("ToMessage")
+                ?.Invoke(result, null) as string;
+            Assert.That((bool)Property(result, "IsValid"), Is.True,
+                message);
+        }
+
+        [Test]
         public void GladiatorStarterDeckUsesApprovedThematicReplacement()
         {
             StarterDeckDefinition deck =

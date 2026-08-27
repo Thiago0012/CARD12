@@ -94,6 +94,7 @@ namespace ArcaneArena.Frontend
         private static RankedMatchSnapshot _activeRankedBotMatch;
         private static BotProfile _activeRankedBotProfile;
         private static bool _activeRankedBotResultCommitted;
+        private static bool _accountSessionBootstrapCompleted;
         private static string _activeDuelStatisticsId = string.Empty;
         private static bool _activeDuelStatisticsRanked;
         public static string ActiveDuelStatisticsId =>
@@ -134,6 +135,7 @@ namespace ArcaneArena.Frontend
         private DeckRecord _editingDeck;
         private bool _duelPresentationVisible;
         private bool _editorRefreshQueued;
+        private bool _accountBootstrapPending;
         private string _catalogSearch = string.Empty;
         private string _shopFeedback = string.Empty;
         private bool _shopFeedbackIsError;
@@ -197,6 +199,12 @@ namespace ArcaneArena.Frontend
             root.AddComponent<GameFrontendBootstrap>();
         }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetAccountSessionBootstrap()
+        {
+            _accountSessionBootstrapCompleted = false;
+        }
+
         private void Awake()
         {
             if (!Application.isPlaying)
@@ -221,9 +229,15 @@ namespace ArcaneArena.Frontend
             _repository = new DeckRepository();
             _repository.Load(_catalog);
             PlayerCloudSaveRuntime.Attach(_repository);
+            _accountBootstrapPending = !IsDuelSceneName(
+                                           SceneManager.GetActiveScene().name) &&
+                                       !_accountSessionBootstrapCompleted;
             InitializePlayerIdAccess();
             InitializeCoinRewardAuthorization();
-            InitializeScenePresentation();
+            if (_accountBootstrapPending)
+                ShowAccountBootstrapScreen();
+            else
+                InitializeScenePresentation();
             if (!IsActiveScene(DuelArenaSceneName) &&
                 !HasCommandArgument("-arcaneSkipTitle"))
             {
@@ -778,6 +792,18 @@ namespace ArcaneArena.Frontend
             if (IsDuelSceneName(sceneName))
             {
                 StartCoroutine(StartRequestedDuelAfterArenaReset());
+                return;
+            }
+
+            if (_accountBootstrapPending)
+            {
+                ShowAccountBootstrapScreen();
+                return;
+            }
+
+            if (PlayerAccountRuntime.ConsumeRestoreRequest())
+            {
+                ShowAccountCredentials(true);
                 return;
             }
 

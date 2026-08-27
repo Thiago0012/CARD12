@@ -35,7 +35,8 @@ namespace ArcaneDuel.Editor.Validation
             "ArcaneDuel.Tests.EditMode.TournamentManagerEditModeTests",
             "ArcaneDuel.Tests.EditMode.PlayerFriendsDomainEditModeTests",
             "ArcaneDuel.Tests.EditMode.PlayerIdAccessEditModeTests",
-            "ArcaneDuel.Tests.EditMode.AccountAndUpdateInfrastructureEditModeTests"
+            "ArcaneDuel.Tests.EditMode.AccountAndUpdateInfrastructureEditModeTests",
+            "ArcaneDuel.Tests.EditMode.AutoPackGenerationEditModeTests"
         };
 
         private static readonly string[] PlayModeGateTests =

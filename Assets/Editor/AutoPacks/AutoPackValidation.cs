@@ -163,8 +163,11 @@ namespace ArcaneArena.Editor.AutoPacks
             var known = new HashSet<string>(
                 snapshot.KnownCardIds,
                 StringComparer.Ordinal);
+            IReadOnlyCollection<string> expectedCatalogCards = thematicCatalog
+                ? snapshot.CollectibleCardIds
+                : snapshot.EligibleCardIds;
             var eligible = new HashSet<string>(
-                snapshot.EligibleCardIds,
+                expectedCatalogCards,
                 StringComparer.Ordinal);
             var metadataByPack = AssetDatabase.FindAssets(
                     "t:AutoPackMetadata",
@@ -274,7 +277,7 @@ namespace ArcaneArena.Editor.AutoPacks
                 : new HashSet<string>(
                     manifest.PendingCardIds,
                     StringComparer.Ordinal);
-            string[] uncovered = snapshot.EligibleCardIds
+            string[] uncovered = expectedCatalogCards
                 .Where(id => !coverage.Contains(id) && !pending.Contains(id))
                 .ToArray();
             if (uncovered.Length > 0)

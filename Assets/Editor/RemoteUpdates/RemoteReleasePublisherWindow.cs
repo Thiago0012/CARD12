@@ -18,12 +18,18 @@ namespace ArcaneDuel.Editor.RemoteUpdates
     /// </summary>
     public sealed class RemoteReleasePublisherWindow : EditorWindow
     {
+        [Serializable]
+        private sealed class YgoPatchArchiveManifest
+        {
+            public int schemaVersion = 1;
+            public string[] files = Array.Empty<string>();
+            public string[] deletedFiles = Array.Empty<string>();
+        }
+
         private const string MenuPath =
             "Master Duel 2 Plus Ultra/Atualizações/Central de Publicação";
         private const string DefaultPackageBaseUrl =
-            "https://raw.githubusercontent.com/Thiago0012/CARD12/" +
-            "refs/heads/main/" +
-            "ContentStaging/production/packages";
+            "https://github.com/Thiago0012/CARD12/releases/download/{tag}";
 
         private static readonly string[] IgnoredReleasePrefixes =
         {
@@ -44,6 +50,7 @@ namespace ArcaneDuel.Editor.RemoteUpdates
         private readonly List<string> _outsideChanges = new List<string>();
         private string _latestClientVersion = "1.2.0";
         private int _androidVersionCode = 1;
+        private int _protocolVersion = 1;
         private string _contentVersion = "0.0.0";
         private string _windowsUrl = string.Empty;
         private string _androidUrl = string.Empty;
@@ -159,6 +166,9 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                 _androidVersionCode = EditorGUILayout.IntField(
                     "Código Android",
                     _androidVersionCode);
+                _protocolVersion = EditorGUILayout.IntField(
+                    "Protocolo online",
+                    _protocolVersion);
                 EditorGUILayout.LabelField(
                     "Versão instalada no projeto: " + Application.version +
                     "  •  código Android atual: " +
@@ -178,6 +188,17 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                 _fallbackUrl = EditorGUILayout.TextField(
                     "Alternativo",
                     _fallbackUrl);
+                EditorGUILayout.LabelField(
+                    "Artefatos locais esperados:",
+                    EditorStyles.miniBoldLabel);
+                EditorGUILayout.SelectableLabel(
+                    Path.GetFullPath(ExpectedWindowsArtifactPath()),
+                    EditorStyles.miniLabel,
+                    GUILayout.Height(18f));
+                EditorGUILayout.SelectableLabel(
+                    Path.GetFullPath(ExpectedAndroidArtifactPath()),
+                    EditorStyles.miniLabel,
+                    GUILayout.Height(18f));
 
                 EditorGUILayout.Space(12f);
                 EditorGUILayout.LabelField(
@@ -187,7 +208,7 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                     "Versão do conteúdo",
                     _contentVersion);
                 _packageBaseUrl = EditorGUILayout.TextField(
-                    "Endereço dos pacotes",
+                    "Endereço dos pacotes ({tag} automático)",
                     _packageBaseUrl);
 
                 EditorGUILayout.Space(12f);
@@ -220,6 +241,12 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                     GeneratePublication();
                 }
             }
+            if (GUILayout.Button(
+                    "APLICAR VERSÃO ÀS PRÓXIMAS BUILDS",
+                    GUILayout.Height(32f)))
+            {
+                ApplyVersionToBuilds();
+            }
         }
 
         private void LoadPublishedDefaults()
@@ -244,11 +271,19 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                 _androidUrl = manifest.androidUpdateUrl ?? string.Empty;
                 _fallbackUrl = manifest.fallbackUpdateUrl ?? string.Empty;
                 _androidVersionCode = Math.Max(
+                    manifest.android?.versionCode ??
                     PlayerSettings.Android.bundleVersionCode,
-                    1);
+                    PlayerSettings.Android.bundleVersionCode);
+                _protocolVersion = Math.Max(1, manifest.protocolVersion);
                 _packageBaseUrl = EditorPrefs.GetString(
                     PackageUrlPreference,
                     DefaultPackageBaseUrl);
+                if (_packageBaseUrl.StartsWith(
+                        "https://raw.githubusercontent.com/Thiago0012/CARD12/",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    _packageBaseUrl = DefaultPackageBaseUrl;
+                }
             }
             catch (Exception exception)
             {
@@ -327,25 +362,49 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                 return "Não existem alterações do jogo para publicar.";
             if (!IsVersion(_latestClientVersion))
                 return "Informe uma versão pública numérica, como 1.3.0.";
+            if (_protocolVersion <= 0)
+                return "O protocolo online deve ser maior que zero.";
+            RemoteReleaseManifest publishedManifest =
+                ReadProductionManifest();
             if (_clientChanges.Count > 0 &&
                 RemoteUpdateRuntime.SemanticVersion.Compare(
                     _latestClientVersion,
-                    Application.version) <= 0)
+                    publishedManifest?.latestClientVersion ?? "0.0.0") <= 0)
             {
                 return "Mudanças de aplicativo exigem uma versão maior que " +
-                       Application.version + ".";
+                       (publishedManifest?.latestClientVersion ?? "0.0.0") + ".";
             }
             if (_clientChanges.Count > 0 &&
                 _androidVersionCode <=
-                PlayerSettings.Android.bundleVersionCode)
+                (publishedManifest?.android?.versionCode ?? 0))
             {
                 return "O código Android deve ser maior que " +
-                       PlayerSettings.Android.bundleVersionCode + ".";
+                       (publishedManifest?.android?.versionCode ?? 0) + ".";
             }
-            if (_clientChanges.Count > 0 && !IsWebUrl(_windowsUrl))
-                return "Informe o endereço HTTPS da build para Windows.";
-            if (_clientChanges.Count > 0 && !IsWebUrl(_androidUrl))
-                return "Informe o endereço HTTPS da build para Android.";
+            if (_clientChanges.Count > 0 &&
+                !string.Equals(
+                    PlayerSettings.bundleVersion,
+                    _latestClientVersion.Trim(),
+                    StringComparison.Ordinal))
+                return "Aplique a versão às builds antes de construí-las.";
+            if (_clientChanges.Count > 0 &&
+                PlayerSettings.Android.bundleVersionCode != _androidVersionCode)
+                return "Aplique o código Android às builds antes de construí-las.";
+            if (_clientChanges.Count > 0 &&
+                !IsDirectArtifactUrl(_windowsUrl, ".zip"))
+                return "Informe o link HTTPS direto do ZIP para Windows.";
+            if (_clientChanges.Count > 0 &&
+                !IsDirectArtifactUrl(_androidUrl, ".apk"))
+                return "Informe o link HTTPS direto do APK para Android.";
+            if (_clientChanges.Count > 0 &&
+                !File.Exists(ExpectedWindowsArtifactPath()))
+                return "Construa o pacote Windows esperado antes de publicar.";
+            if (_clientChanges.Count > 0 &&
+                !File.Exists(ExpectedAndroidArtifactPath()))
+                return "Construa o APK Android esperado antes de publicar.";
+            if (_clientChanges.Count > 0 &&
+                ReleaseSigningConfiguration.AndroidCertificateSha256().Length != 64)
+                return "O certificado Android local não possui SHA-256 válido.";
             if (_contentChanges.Count > 0)
             {
                 if (!IsVersion(_contentVersion))
@@ -380,15 +439,26 @@ namespace ArcaneDuel.Editor.RemoteUpdates
 
             try
             {
+                RemoteReleaseManifest previous = ReadProductionManifest();
+                long sequence = Math.Max(
+                    1,
+                    (previous?.sequenceNumber ?? 0) + 1);
+                string clientVersion = _latestClientVersion.Trim();
+                string contentReleaseTag = ContentReleaseTag(
+                    clientVersion,
+                    sequence);
                 RemoteContentPackage[] packages =
                     Array.Empty<RemoteContentPackage>();
-                if (_contentChanges.Count > 0)
-                    packages = new[] { BuildYgoPackage() };
+                if (_contentChanges.Count > 0 && _clientChanges.Count == 0)
+                {
+                    packages = new[] { BuildYgoPackage(
+                        ResolvePackageBaseUrl(contentReleaseTag),
+                        _contentChanges) };
+                }
 
                 string effectiveContentVersion = _contentChanges.Count > 0
                     ? _contentVersion.Trim()
-                    : ReadProductionManifest()?.contentVersion ?? "0.0.0";
-                string clientVersion = _latestClientVersion.Trim();
+                    : previous?.contentVersion ?? "0.0.0";
                 string timestamp = DateTime.UtcNow.ToString(
                     "yyyy-MM-ddTHH:mm:ssZ");
                 string releaseId = "release-" +
@@ -402,51 +472,82 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                     .Distinct()
                     .ToArray();
 
+                RemoteClientArtifact windowsArtifact =
+                    _clientChanges.Count > 0
+                        ? BuildClientArtifact(
+                            "windows",
+                            clientVersion,
+                            0,
+                            _windowsUrl,
+                            ExpectedWindowsArtifactPath(),
+                            "MasterDuel2PlusUltra.exe")
+                        : previous?.windows ?? new RemoteClientArtifact();
+                RemoteClientArtifact androidArtifact =
+                    _clientChanges.Count > 0
+                        ? BuildClientArtifact(
+                            "android",
+                            clientVersion,
+                            _androidVersionCode,
+                            _androidUrl,
+                            ExpectedAndroidArtifactPath(),
+                            string.Empty)
+                        : previous?.android ?? new RemoteClientArtifact();
+                if (_clientChanges.Count > 0)
+                    androidArtifact.signingCertificateSha256 =
+                        ReleaseSigningConfiguration.AndroidCertificateSha256();
+
                 var envelope = new RemoteReleaseEnvelope
                 {
-                    schemaVersion = 1,
-                    keyId = "development-unsigned",
-                    signatureBase64 = string.Empty,
+                    schemaVersion = 2,
                     payload = new RemoteReleaseManifest
                     {
-                        schemaVersion = 1,
+                        schemaVersion = 2,
                         releaseId = releaseId,
                         publishedUtc = timestamp,
+                        sequenceNumber = sequence,
+                        channel = "production",
+                        expiresUtc = DateTime.UtcNow.AddDays(365).ToString(
+                            "yyyy-MM-ddTHH:mm:ssZ"),
+                        protocolVersion = _protocolVersion,
                         minimumClientVersion = clientVersion,
                         latestClientVersion = clientVersion,
                         requiredClientUpdate = true,
                         title = "ATUALIZAÇÃO DO MASTER DUEL 2 PLUS ULTRA",
-                        summary = "Nova versão disponível para entrar no jogo.",
+                        summary = _clientChanges.Count > 0
+                            ? "Nova versão disponível para entrar no jogo."
+                            : "Conteúdo atualizado dentro do jogo.",
                         changes = notes,
                         windowsUpdateUrl = _windowsUrl.Trim(),
                         androidUpdateUrl = _androidUrl.Trim(),
                         fallbackUpdateUrl = string.IsNullOrWhiteSpace(_fallbackUrl)
                             ? _windowsUrl.Trim()
                             : _fallbackUrl.Trim(),
+                        windows = windowsArtifact,
+                        android = androidArtifact,
                         contentVersion = effectiveContentVersion,
                         requiredContentUpdate = true,
                         packages = packages
                     }
                 };
 
+                ReleaseSigningConfiguration.SignEnvelope(envelope);
+
                 WriteTextAtomically(
                     ProductionEnvelopePath,
                     JsonUtility.ToJson(envelope, true) + Environment.NewLine);
-                if (_clientChanges.Count > 0)
-                {
-                    PlayerSettings.bundleVersion = clientVersion;
-                    PlayerSettings.Android.bundleVersionCode =
-                        _androidVersionCode;
-                    AssetDatabase.SaveAssets();
-                }
+                WriteTextAtomically(
+                    BundledEnvelopePath,
+                    JsonUtility.ToJson(envelope, true) + Environment.NewLine);
                 EditorPrefs.SetString(
                     PackageUrlPreference,
                     _packageBaseUrl.TrimEnd('/'));
                 AssetDatabase.Refresh();
                 SetStatus(
-                    "PUBLICAÇÃO PREPARADA • envie o manifesto, o pacote e as " +
-                    "builds ao GitHub. O jogo bloqueará a entrada até detectar " +
-                    "e instalar esta versão.",
+                    _clientChanges.Count > 0
+                        ? "PUBLICAÇÃO PREPARADA • envie o manifesto, o pacote " +
+                          "e as builds ao GitHub."
+                        : "PACOTE INCREMENTAL PREPARADO • publique o manifesto " +
+                          "e o ZIP; o jogo baixará apenas as alterações.",
                     MessageType.Info);
                 EditorUtility.RevealInFinder(ProductionEnvelopePath);
             }
@@ -459,7 +560,63 @@ namespace ArcaneDuel.Editor.RemoteUpdates
             }
         }
 
-        private RemoteContentPackage BuildYgoPackage()
+        private void ApplyVersionToBuilds()
+        {
+            if (!IsVersion(_latestClientVersion) || _androidVersionCode <= 0)
+            {
+                SetStatus(
+                    "Informe versão e código Android válidos.",
+                    MessageType.Error);
+                return;
+            }
+            PlayerSettings.bundleVersion = _latestClientVersion.Trim();
+            PlayerSettings.Android.bundleVersionCode = _androidVersionCode;
+            if (!IsDirectArtifactUrl(_windowsUrl, ".zip"))
+                _windowsUrl = DefaultReleaseAssetUrl(
+                    Path.GetFileName(ExpectedWindowsArtifactPath()));
+            if (!IsDirectArtifactUrl(_androidUrl, ".apk"))
+                _androidUrl = DefaultReleaseAssetUrl(
+                    Path.GetFileName(ExpectedAndroidArtifactPath()));
+            if (string.IsNullOrWhiteSpace(_fallbackUrl) ||
+                _fallbackUrl.Contains("/releases/latest"))
+            {
+                _fallbackUrl =
+                    "https://github.com/Thiago0012/CARD12/releases/tag/v" +
+                    _latestClientVersion.Trim();
+            }
+            AssetDatabase.SaveAssets();
+            SetStatus(
+                "VERSÃO APLICADA • construa Android e Windows antes de gerar " +
+                "o manifesto.",
+                MessageType.Info);
+        }
+
+        private RemoteClientArtifact BuildClientArtifact(
+            string platform,
+            string version,
+            int versionCode,
+            string url,
+            string localPath,
+            string executableName)
+        {
+            var file = new FileInfo(localPath);
+            return new RemoteClientArtifact
+            {
+                platform = platform,
+                versionName = version,
+                versionCode = versionCode,
+                minimumVersionCode = versionCode,
+                protocolVersion = _protocolVersion,
+                url = url.Trim(),
+                sizeBytes = file.Length,
+                sha256 = ComputeSha256(file.FullName),
+                executableName = executableName
+            };
+        }
+
+        private RemoteContentPackage BuildYgoPackage(
+            string packageBaseUrl,
+            IEnumerable<string> changedFiles)
         {
             string packagesDirectory = Path.Combine(
                 ProjectRoot,
@@ -467,17 +624,56 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                 "production",
                 "packages");
             Directory.CreateDirectory(packagesDirectory);
-            string fileName = "ygo-" + _contentVersion.Trim() + ".zip";
+            string fileName = "ygo-patch-" + _contentVersion.Trim() + ".zip";
             string destination = Path.Combine(packagesDirectory, fileName);
             string temporary = destination + ".tmp";
             if (File.Exists(temporary))
                 File.Delete(temporary);
 
-            string source = Path.Combine(
+            string sourceRoot = Path.Combine(
                 ProjectRoot,
                 "Assets",
                 "StreamingAssets",
                 "Ygo");
+            var files = new List<string>();
+            var deletedFiles = new List<string>();
+            foreach (string changed in changedFiles ?? Array.Empty<string>())
+            {
+                string normalized = NormalizePath(changed);
+                const string prefix = "Assets/StreamingAssets/Ygo/";
+                if (!normalized.StartsWith(
+                        prefix,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                string relative = normalized.Substring(prefix.Length).Trim('/');
+                if (!IsSafePatchPath(relative))
+                    throw new InvalidDataException(
+                        "O patch contém um caminho de conteúdo inválido: " +
+                        relative);
+                string source = Path.Combine(
+                    sourceRoot,
+                    relative.Replace('/', Path.DirectorySeparatorChar));
+                if (File.Exists(source))
+                    files.Add(relative);
+                else
+                    deletedFiles.Add(relative);
+            }
+            files = files.Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            deletedFiles = deletedFiles.Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(path => !files.Contains(path,
+                    StringComparer.OrdinalIgnoreCase))
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (files.Count == 0 && deletedFiles.Count == 0)
+            {
+                throw new InvalidDataException(
+                    "Nenhuma alteração de conteúdo válida foi encontrada.");
+            }
+
             using (var stream = new FileStream(
                        temporary,
                        FileMode.CreateNew,
@@ -488,24 +684,28 @@ namespace ArcaneDuel.Editor.RemoteUpdates
                        ZipArchiveMode.Create,
                        false))
             {
-                foreach (string file in Directory.GetFiles(
-                             source,
-                             "*",
-                             SearchOption.AllDirectories))
+                foreach (string relative in files)
                 {
-                    if (file.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    string relative = NormalizePath(
-                        file.Substring(source.Length)
-                            .TrimStart(Path.DirectorySeparatorChar,
-                                Path.AltDirectorySeparatorChar));
+                    string source = Path.Combine(
+                        sourceRoot,
+                        relative.Replace('/', Path.DirectorySeparatorChar));
                     ZipArchiveEntry entry = zip.CreateEntry(
                         relative,
                         System.IO.Compression.CompressionLevel.Optimal);
-                    using Stream input = File.OpenRead(file);
+                    using Stream input = File.OpenRead(source);
                     using Stream output = entry.Open();
                     input.CopyTo(output);
                 }
+                ZipArchiveEntry manifestEntry = zip.CreateEntry(
+                    "patch-manifest.json",
+                    System.IO.Compression.CompressionLevel.Optimal);
+                using Stream manifestOutput = manifestEntry.Open();
+                using var writer = new StreamWriter(manifestOutput);
+                writer.Write(JsonUtility.ToJson(new YgoPatchArchiveManifest
+                {
+                    files = files.ToArray(),
+                    deletedFiles = deletedFiles.ToArray()
+                }, true));
             }
             if (File.Exists(destination))
                 File.Delete(destination);
@@ -513,11 +713,11 @@ namespace ArcaneDuel.Editor.RemoteUpdates
 
             return new RemoteContentPackage
             {
-                packageId = "ygo-core-" + _contentVersion.Trim(),
+                packageId = "ygo-patch-" + _contentVersion.Trim(),
                 version = _contentVersion.Trim(),
                 platform = "any",
-                target = "ygo",
-                url = _packageBaseUrl.TrimEnd('/') + "/" + fileName,
+                target = "ygo-patch",
+                url = packageBaseUrl.TrimEnd('/') + "/" + fileName,
                 sizeBytes = new FileInfo(destination).Length,
                 sha256 = ComputeSha256(destination)
             };
@@ -579,7 +779,34 @@ namespace ArcaneDuel.Editor.RemoteUpdates
         {
             return path.StartsWith(
                 "Assets/StreamingAssets/Ygo/",
-                StringComparison.OrdinalIgnoreCase);
+                StringComparison.OrdinalIgnoreCase) &&
+                   !path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string ResolvePackageBaseUrl(string tag)
+        {
+            return (_packageBaseUrl ?? string.Empty).Trim()
+                .Replace("{tag}", tag)
+                .TrimEnd('/');
+        }
+
+        private static string ContentReleaseTag(
+            string clientVersion,
+            long sequence)
+        {
+            return "content-" + clientVersion.Trim() + "-s" + sequence;
+        }
+
+        private static bool IsSafePatchPath(string value)
+        {
+            string clean = (value ?? string.Empty).Replace('\\', '/').Trim('/');
+            return clean.Length > 0 &&
+                   !clean.Equals("patch-manifest.json",
+                       StringComparison.OrdinalIgnoreCase) &&
+                   clean.IndexOf("..", StringComparison.Ordinal) < 0 &&
+                   !Path.IsPathRooted(clean) &&
+                   clean.Split('/').All(segment =>
+                       !string.IsNullOrWhiteSpace(segment));
         }
 
         private static bool IsOutsidePlayerBuild(string path)
@@ -604,9 +831,22 @@ namespace ArcaneDuel.Editor.RemoteUpdates
 
         private static bool IsWebUrl(string value)
         {
-            return Uri.TryCreate(value?.Trim(), UriKind.Absolute, out Uri uri) &&
-                   (uri.Scheme == Uri.UriSchemeHttps ||
-                    uri.Scheme == Uri.UriSchemeHttp);
+            string candidate = (value ?? string.Empty).Trim().Replace(
+                "{tag}",
+                "release-test");
+            return Uri.TryCreate(candidate, UriKind.Absolute, out Uri uri) &&
+                   uri.Scheme == Uri.UriSchemeHttps;
+        }
+
+        private static bool IsDirectArtifactUrl(
+            string value,
+            string extension)
+        {
+            return IsWebUrl(value) &&
+                   Uri.TryCreate(value.Trim(), UriKind.Absolute, out Uri uri) &&
+                   uri.AbsolutePath.EndsWith(
+                       extension,
+                       StringComparison.OrdinalIgnoreCase);
         }
 
         private static string ComputeSha256(string path)
@@ -661,7 +901,43 @@ namespace ArcaneDuel.Editor.RemoteUpdates
             ProjectRoot,
             "ContentStaging",
             "production",
+            "v2",
             "release-envelope.json");
+
+        private static string BundledEnvelopePath => Path.Combine(
+            ProjectRoot,
+            "Assets",
+            "Resources",
+            "RemoteUpdates",
+            "BundledReleaseEnvelope.json");
+
+        private string ExpectedWindowsArtifactPath()
+        {
+            return Path.Combine(
+                ProjectRoot,
+                "ContentStaging",
+                "production",
+                "artifacts",
+                "MasterDuel2PlusUltra-Windows-v" +
+                _latestClientVersion.Trim() + ".zip");
+        }
+
+        private string ExpectedAndroidArtifactPath()
+        {
+            return Path.Combine(
+                ProjectRoot,
+                "ContentStaging",
+                "production",
+                "artifacts",
+                "MasterDuel2PlusUltra-Android-v" +
+                _latestClientVersion.Trim() + ".apk");
+        }
+
+        private string DefaultReleaseAssetUrl(string fileName)
+        {
+            return "https://github.com/Thiago0012/CARD12/releases/download/v" +
+                   _latestClientVersion.Trim() + "/" + fileName;
+        }
 
         private static string PackageUrlPreference =>
             "MasterDuel2PlusUltra.RemoteUpdates.PackageBaseUrl." +

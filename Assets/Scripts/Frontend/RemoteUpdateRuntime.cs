@@ -20,7 +20,7 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class RemoteReleaseEnvelope
     {
-        public int schemaVersion = 1;
+        public int schemaVersion = 2;
         public string keyId;
         public string signatureBase64;
         public RemoteReleaseManifest payload = new RemoteReleaseManifest();
@@ -29,9 +29,13 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class RemoteReleaseManifest
     {
-        public int schemaVersion = 1;
+        public int schemaVersion = 2;
         public string releaseId;
         public string publishedUtc;
+        public long sequenceNumber = 1;
+        public string channel = "production";
+        public string expiresUtc;
+        public int protocolVersion = 1;
         public string minimumClientVersion;
         public string latestClientVersion;
         public bool requiredClientUpdate;
@@ -41,10 +45,32 @@ namespace ArcaneArena.Frontend
         public string windowsUpdateUrl;
         public string androidUpdateUrl;
         public string fallbackUpdateUrl;
+        public RemoteClientArtifact windows = new RemoteClientArtifact();
+        public RemoteClientArtifact android = new RemoteClientArtifact();
         public string contentVersion;
         public bool requiredContentUpdate;
         public RemoteContentPackage[] packages =
             Array.Empty<RemoteContentPackage>();
+    }
+
+    [Serializable]
+    public sealed class RemoteClientArtifact
+    {
+        public string platform;
+        public string versionName;
+        public int versionCode;
+        public int minimumVersionCode;
+        public int protocolVersion = 1;
+        public string url;
+        public long sizeBytes;
+        public string sha256;
+        public string signingCertificateSha256;
+        public string executableName;
+
+        public bool HasInstallableArtifact =>
+            !string.IsNullOrWhiteSpace(url) &&
+            sizeBytes > 0 &&
+            !string.IsNullOrWhiteSpace(sha256);
     }
 
     [Serializable]
@@ -73,11 +99,15 @@ namespace ArcaneArena.Frontend
             public int schemaVersion = 1;
             public bool enabled = true;
             public string manifestUrl;
+            public string releaseChannel = "production";
             public int requestTimeoutSeconds = 15;
             public bool failOpenWhenUnavailable;
             public bool allowBundledManifestInEditor = true;
             public bool requireSignature;
+            public string expectedKeyId;
             public string rsaPublicKeyPem;
+            public string rsaModulusBase64;
+            public string rsaExponentBase64;
             public string bundledEnvelopeResource =
                 "RemoteUpdates/BundledReleaseEnvelope";
 
@@ -85,11 +115,19 @@ namespace ArcaneArena.Frontend
             {
                 schemaVersion = Math.Max(1, schemaVersion);
                 manifestUrl = (manifestUrl ?? string.Empty).Trim();
+                releaseChannel = string.IsNullOrWhiteSpace(releaseChannel)
+                    ? "production"
+                    : releaseChannel.Trim().ToLowerInvariant();
                 requestTimeoutSeconds = Mathf.Clamp(
                     requestTimeoutSeconds,
                     5,
                     60);
                 rsaPublicKeyPem = (rsaPublicKeyPem ?? string.Empty).Trim();
+                rsaModulusBase64 =
+                    (rsaModulusBase64 ?? string.Empty).Trim();
+                rsaExponentBase64 =
+                    (rsaExponentBase64 ?? string.Empty).Trim();
+                expectedKeyId = (expectedKeyId ?? string.Empty).Trim();
                 bundledEnvelopeResource = string.IsNullOrWhiteSpace(
                     bundledEnvelopeResource)
                     ? "RemoteUpdates/BundledReleaseEnvelope"
@@ -106,6 +144,33 @@ namespace ArcaneArena.Frontend
             public long installedUtcTicks;
         }
 
+        [Serializable]
+        private sealed class ActivePatchPointer
+        {
+            public int schemaVersion = 1;
+            public string contentVersion;
+            public string[] patchDirectories = Array.Empty<string>();
+            public long installedUtcTicks;
+        }
+
+        [Serializable]
+        private sealed class YgoPatchArchiveManifest
+        {
+            public int schemaVersion = 1;
+            public string[] files = Array.Empty<string>();
+            public string[] deletedFiles = Array.Empty<string>();
+        }
+
+        [Serializable]
+        private sealed class TrustedReleaseState
+        {
+            public int schemaVersion = 1;
+            public string channel;
+            public long highestSequenceNumber;
+            public string releaseId;
+            public long acceptedUtcTicks;
+        }
+
         private enum GateState
         {
             Checking,
@@ -119,6 +184,15 @@ namespace ArcaneArena.Frontend
         private const string SettingsResourcePath =
             "RemoteUpdates/RemoteUpdateSettings";
         private const string CacheFileName = "last-release-envelope.json";
+        private const string TrustedStateFileName =
+            "trusted-release-state.json";
+        private const string ClientContentBaselineFile =
+            "bundled-content-baseline.txt";
+        // Keep a single active overlay after every content delivery.  This is
+        // deliberately stricter than a "keep the last N patches" policy: a
+        // player who installs many small revisions must not retain every
+        // superseded copy of an art, card or script file.
+        private const int MaximumActiveYgoPatchDirectories = 1;
         private static RemoteUpdateRuntime _instance;
 
         private Settings _settings;
@@ -132,6 +206,8 @@ namespace ArcaneArena.Frontend
         private Image _progressFill;
         private RectTransform _actions;
         private RemoteReleaseManifest _manifest;
+        private RemoteClientArtifact _activeArtifact;
+        private string _activeArtifactPath;
         private List<RemoteContentPackage> _pendingPackages =
             new List<RemoteContentPackage>();
         private bool _mandatory;
@@ -176,6 +252,9 @@ namespace ArcaneArena.Frontend
         private async Task CheckForUpdatesAsync()
         {
             _state = GateState.Checking;
+            PlatformApplicationUpdater.CleanupAbandonedDownloads();
+            RefreshBundledContentBaseline();
+            CleanupYgoPatchStorage();
             SetCopy(
                 "CONECTANDO À ARENA",
                 "VERIFICANDO A VERSÃO MAIS RECENTE...",
@@ -192,6 +271,8 @@ namespace ArcaneArena.Frontend
                     envelope = await DownloadEnvelopeAsync(
                         _settings.manifestUrl);
                     ValidateEnvelope(envelope, true);
+                    NormalizeManifest(envelope.payload);
+                    ValidateAndTrustRemoteManifest(envelope.payload);
                     SaveCachedEnvelope(envelope);
                 }
                 catch (Exception exception)
@@ -232,13 +313,8 @@ namespace ArcaneArena.Frontend
             NormalizeManifest(_manifest);
             SetProgress(0.35f, "VERSÃO LOCAL  " + Application.version);
 
-            int minimumComparison = SemanticVersion.Compare(
-                Application.version,
-                _manifest.minimumClientVersion);
-            int latestComparison = SemanticVersion.Compare(
-                Application.version,
-                _manifest.latestClientVersion);
-            if (minimumComparison < 0 || latestComparison < 0)
+            _activeArtifact = SelectClientArtifactForCurrentPlatform(_manifest);
+            if (RequiresApplicationUpdate(_manifest, _activeArtifact))
             {
                 // Every published client version is mandatory. The legacy
                 // manifest flag remains serialized for compatibility, but it
@@ -305,13 +381,28 @@ namespace ArcaneArena.Frontend
             RemoteReleaseEnvelope envelope,
             bool remote)
         {
-            if (envelope?.payload == null || envelope.schemaVersion != 1)
+            _settings ??= LoadSettings();
+            if (envelope?.payload == null ||
+                envelope.schemaVersion < 1 || envelope.schemaVersion > 2)
                 throw new InvalidDataException(
                     "Envelope de atualização incompatível.");
             if (!_settings.requireSignature)
                 return;
+            if (!string.IsNullOrWhiteSpace(_settings.expectedKeyId) &&
+                !string.Equals(
+                    envelope.keyId?.Trim(),
+                    _settings.expectedKeyId,
+                    StringComparison.Ordinal))
+            {
+                throw new CryptographicException(
+                    "O manifesto foi assinado por uma chave não autorizada.");
+            }
+            bool hasPortablePublicKey =
+                !string.IsNullOrWhiteSpace(_settings.rsaModulusBase64) &&
+                !string.IsNullOrWhiteSpace(_settings.rsaExponentBase64);
             if (string.IsNullOrWhiteSpace(envelope.signatureBase64) ||
-                string.IsNullOrWhiteSpace(_settings.rsaPublicKeyPem))
+                (!hasPortablePublicKey &&
+                 string.IsNullOrWhiteSpace(_settings.rsaPublicKeyPem)))
             {
                 throw new CryptographicException(
                     remote
@@ -324,14 +415,27 @@ namespace ArcaneArena.Frontend
             byte[] signature = Convert.FromBase64String(
                 envelope.signatureBase64);
             using RSA rsa = RSA.Create();
-            string publicKey = _settings.rsaPublicKeyPem
-                .Replace("-----BEGIN PUBLIC KEY-----", string.Empty)
-                .Replace("-----END PUBLIC KEY-----", string.Empty)
-                .Replace("\r", string.Empty)
-                .Replace("\n", string.Empty)
-                .Trim();
-            byte[] publicKeyBytes = Convert.FromBase64String(publicKey);
-            rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            if (hasPortablePublicKey)
+            {
+                rsa.ImportParameters(new RSAParameters
+                {
+                    Modulus = Convert.FromBase64String(
+                        _settings.rsaModulusBase64),
+                    Exponent = Convert.FromBase64String(
+                        _settings.rsaExponentBase64)
+                });
+            }
+            else
+            {
+                string publicKey = _settings.rsaPublicKeyPem
+                    .Replace("-----BEGIN PUBLIC KEY-----", string.Empty)
+                    .Replace("-----END PUBLIC KEY-----", string.Empty)
+                    .Replace("\r", string.Empty)
+                    .Replace("\n", string.Empty)
+                    .Trim();
+                byte[] publicKeyBytes = Convert.FromBase64String(publicKey);
+                rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            }
             if (!rsa.VerifyData(
                     payload,
                     signature,
@@ -346,7 +450,221 @@ namespace ArcaneArena.Frontend
         private void ShowApplicationUpdate()
         {
             _state = GateState.AppUpdate;
-            PresentUpdateShortcut(OpenApplicationUpdate, _mandatory);
+            PresentUpdateShortcut(BeginApplicationUpdate, _mandatory);
+        }
+
+        private async void BeginApplicationUpdate()
+        {
+            if (_state == GateState.Downloading)
+                return;
+
+            if (_activeArtifact == null ||
+                !_activeArtifact.HasInstallableArtifact ||
+                Application.isEditor)
+            {
+                OpenApplicationUpdatePage();
+                return;
+            }
+
+            _state = GateState.Downloading;
+            ClearActions();
+            try
+            {
+                string artifactPath = await PlatformApplicationUpdater
+                    .DownloadAndVerifyAsync(
+                        _activeArtifact,
+                        _settings.requestTimeoutSeconds,
+                        (progress, status) => SetProgress(progress, status));
+                _activeArtifactPath = artifactPath;
+                ApplicationUpdateLaunchResult launchResult =
+                    PlatformApplicationUpdater.BeginInstall(
+                        _activeArtifact,
+                        artifactPath);
+                if (launchResult == ApplicationUpdateLaunchResult
+                        .PermissionRequested)
+                {
+                    _state = GateState.AppUpdate;
+                    SetCopy(
+                        "AUTORIZAR ATUALIZAÇÃO",
+                        "PERMITA A INSTALAÇÃO DESTA FONTE",
+                        "Ao voltar ao jogo, pressione continuar. O pacote já " +
+                        "foi baixado e validado.");
+                    PresentUpdateShortcut(
+                        BeginApplicationUpdate,
+                        true,
+                        "CONTINUAR INSTALAÇÃO");
+                    return;
+                }
+
+                if (launchResult == ApplicationUpdateLaunchResult.Preparing)
+                {
+                    await MonitorAndroidInstallerAsync();
+                    return;
+                }
+
+                SetCopy(
+                    "ATUALIZAÇÃO PRONTA",
+                    "CONCLUA A INSTALAÇÃO NO SISTEMA",
+                    Application.platform == RuntimePlatform.Android
+                        ? "O Android exibirá a confirmação oficial do pacote."
+                        : "O jogo será reiniciado quando os arquivos forem trocados.");
+                SetProgress(1f, "PACOTE VALIDADO");
+                SetUpdateShortcutStatus("CONFIRME NO ANDROID", false);
+            }
+            catch (Exception exception)
+            {
+                PlatformApplicationUpdater.DiscardDownloadedArtifact(
+                    _activeArtifactPath);
+                _activeArtifactPath = null;
+                _state = GateState.Failed;
+                Debug.LogWarning(
+                    "[Atualização do aplicativo] " +
+                    exception.GetBaseException().Message);
+                SetCopy(
+                    "ATUALIZAÇÃO INTERROMPIDA",
+                    "NÃO FOI POSSÍVEL INSTALAR A NOVA VERSÃO",
+                    exception.GetBaseException().Message);
+                PresentUpdateShortcut(
+                    BeginApplicationUpdate,
+                    true,
+                    "TENTAR NOVAMENTE");
+            }
+        }
+
+        private async Task MonitorAndroidInstallerAsync()
+        {
+            DateTimeOffset deadline = DateTimeOffset.UtcNow.AddMinutes(30);
+            DateTimeOffset? committedSince = null;
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                AndroidInstallSnapshot snapshot = PlatformApplicationUpdater
+                    .GetAndroidInstallSnapshot();
+                string state = (snapshot.State ?? string.Empty)
+                    .Trim()
+                    .ToUpperInvariant();
+                switch (state)
+                {
+                    case "PREPARING":
+                        SetCopy(
+                            "PREPARANDO ATUALIZAÇÃO",
+                            "VALIDANDO O PACOTE NO ANDROID",
+                            snapshot.Message);
+                        SetUpdateShortcutStatus("VALIDANDO PACOTE", false);
+                        break;
+                    case "COPYING":
+                        int percentage = Mathf.RoundToInt(
+                            snapshot.Progress * 100f);
+                        SetCopy(
+                            "PREPARANDO ATUALIZAÇÃO",
+                            "ENVIANDO O APK AO INSTALADOR",
+                            "Esta etapa ocorre no aparelho e pode demorar " +
+                            "alguns minutos.");
+                        SetUpdateShortcutStatus(
+                            "PREPARANDO  " + percentage + "%",
+                            false);
+                        break;
+                    case "COMMITTING":
+                    case "COMMITTED":
+                        committedSince ??= DateTimeOffset.UtcNow;
+                        SetCopy(
+                            "ABRINDO INSTALADOR",
+                            "AGUARDANDO O ANDROID",
+                            snapshot.Message);
+                        SetUpdateShortcutStatus("ABRINDO INSTALADOR", false);
+                        if (DateTimeOffset.UtcNow - committedSince.Value >
+                            TimeSpan.FromMinutes(3))
+                        {
+                            throw new TimeoutException(
+                                "O Android não abriu a confirmação. Toque em " +
+                                "tentar novamente.");
+                        }
+                        break;
+                    case "AWAITING_CONFIRMATION":
+                        _state = GateState.AppUpdate;
+                        SetCopy(
+                            "CONFIRMAR ATUALIZAÇÃO",
+                            "CONCLUA A INSTALAÇÃO NO ANDROID",
+                            snapshot.Message);
+                        PresentUpdateShortcut(
+                            ReopenAndroidInstaller,
+                            true,
+                            "ABRIR INSTALADOR");
+                        return;
+                    case "SUCCESS":
+                        PlatformApplicationUpdater.DiscardDownloadedArtifact(
+                            _activeArtifactPath);
+                        _activeArtifactPath = null;
+                        _state = GateState.AppUpdate;
+                        SetCopy(
+                            "ATUALIZAÇÃO INSTALADA",
+                            "REABRA O MASTER DUEL 2 PLUS ULTRA",
+                            snapshot.Message);
+                        SetUpdateShortcutStatus("ATUALIZAÇÃO CONCLUÍDA", false);
+                        return;
+                    case "FAILED":
+                        throw new InvalidOperationException(
+                            string.IsNullOrWhiteSpace(snapshot.Message)
+                                ? "O Android recusou a instalação."
+                                : snapshot.Message);
+                    case "IDLE":
+                        SetUpdateShortcutStatus("INICIANDO INSTALADOR", false);
+                        break;
+                    default:
+                        throw new InvalidOperationException(
+                            "Estado inesperado do instalador: " + state);
+                }
+
+                float waitUntil = Time.realtimeSinceStartup + 0.35f;
+                while (Time.realtimeSinceStartup < waitUntil)
+                    await Task.Yield();
+            }
+            throw new TimeoutException(
+                "O Android excedeu o tempo de preparação da instalação.");
+        }
+
+        private void ReopenAndroidInstaller()
+        {
+            AndroidInstallSnapshot snapshot = PlatformApplicationUpdater
+                .GetAndroidInstallSnapshot();
+            if (string.Equals(
+                    snapshot.State,
+                    "FAILED",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                _state = GateState.AppUpdate;
+                PlatformApplicationUpdater.DiscardDownloadedArtifact(
+                    _activeArtifactPath);
+                _activeArtifactPath = null;
+                PresentUpdateShortcut(
+                    BeginApplicationUpdate,
+                    true,
+                    "TENTAR INSTALAÇÃO");
+                return;
+            }
+            if (PlatformApplicationUpdater
+                .ReopenAndroidInstallerConfirmation())
+            {
+                SetUpdateShortcutStatus("CONFIRME NO ANDROID", false);
+                return;
+            }
+
+            _state = GateState.AppUpdate;
+            PlatformApplicationUpdater.DiscardDownloadedArtifact(
+                _activeArtifactPath);
+            _activeArtifactPath = null;
+            PresentUpdateShortcut(
+                BeginApplicationUpdate,
+                true,
+                "TENTAR INSTALAÇÃO");
+        }
+
+        private static void SetUpdateShortcutStatus(
+            string label,
+            bool interactable)
+        {
+            LoginIntroController intro = FindAnyObjectByType<
+                LoginIntroController>(FindObjectsInactive.Include);
+            intro?.SetUpdateStatus(label, interactable);
         }
 
         private void ShowContentUpdate(string installedVersion)
@@ -404,70 +722,89 @@ namespace ArcaneArena.Frontend
             string temporary = Path.Combine(
                 downloadRoot,
                 safePackage + ".download");
+            if (File.Exists(temporary))
+                File.Delete(temporary);
 
-            using (UnityWebRequest request = UnityWebRequest.Get(package.url))
+            try
             {
-                request.timeout = Math.Max(
-                    30,
-                    _settings.requestTimeoutSeconds);
-                request.downloadHandler = new DownloadHandlerFile(temporary)
+                using (UnityWebRequest request = UnityWebRequest.Get(package.url))
                 {
-                    removeFileOnAbort = true
-                };
-                UnityWebRequestAsyncOperation operation =
-                    request.SendWebRequest();
-                while (!operation.isDone)
-                {
-                    float overall =
-                        (packageIndex + request.downloadProgress) /
-                        Math.Max(1f, packageCount);
-                    SetProgress(
-                        overall * 0.86f,
-                        $"BAIXANDO {packageIndex + 1}/{packageCount}  " +
-                        FormatBytes((long)request.downloadedBytes));
-                    await Task.Yield();
+                    request.timeout = Math.Max(
+                        30,
+                        _settings.requestTimeoutSeconds);
+                    request.downloadHandler = new DownloadHandlerFile(temporary)
+                    {
+                        removeFileOnAbort = true
+                    };
+                    UnityWebRequestAsyncOperation operation =
+                        request.SendWebRequest();
+                    while (!operation.isDone)
+                    {
+                        float overall =
+                            (packageIndex + request.downloadProgress) /
+                            Math.Max(1f, packageCount);
+                        SetProgress(
+                            overall * 0.86f,
+                            $"BAIXANDO {packageIndex + 1}/{packageCount}  " +
+                            FormatBytes((long)request.downloadedBytes));
+                        await Task.Yield();
+                    }
+                    if (request.result != UnityWebRequest.Result.Success)
+                    {
+                        throw new IOException(
+                            $"Falha ao baixar {package.packageId}: " +
+                            request.error);
+                    }
                 }
-                if (request.result != UnityWebRequest.Result.Success)
+
+                SetProgress(
+                    (packageIndex + 0.90f) / Math.Max(1f, packageCount),
+                    "VERIFICANDO INTEGRIDADE");
+                string actualHash = ComputeSha256(temporary);
+                if (!string.IsNullOrWhiteSpace(package.sha256) &&
+                    !string.Equals(
+                        actualHash,
+                        package.sha256.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new IOException(
-                        $"Falha ao baixar {package.packageId}: " +
-                        request.error);
+                    throw new CryptographicException(
+                        $"O pacote {package.packageId} falhou na verificação SHA-256.");
+                }
+                if (package.sizeBytes > 0 &&
+                    new FileInfo(temporary).Length != package.sizeBytes)
+                {
+                    throw new InvalidDataException(
+                        $"O pacote {package.packageId} chegou com tamanho diferente.");
+                }
+
+                if (string.Equals(
+                        package.target,
+                        "ygo",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    // Compatibility path for older full-content snapshots.
+                    InstallYgoArchive(package, temporary);
+                }
+                else if (string.Equals(
+                             package.target,
+                             "ygo-patch",
+                             StringComparison.OrdinalIgnoreCase))
+                {
+                    InstallYgoPatchArchive(package, temporary);
+                }
+                else
+                {
+                    throw new NotSupportedException(
+                        $"Destino remoto não suportado: {package.target}");
                 }
             }
-
-            SetProgress(
-                (packageIndex + 0.90f) / Math.Max(1f, packageCount),
-                "VERIFICANDO INTEGRIDADE");
-            string actualHash = ComputeSha256(temporary);
-            if (!string.IsNullOrWhiteSpace(package.sha256) &&
-                !string.Equals(
-                    actualHash,
-                    package.sha256.Trim(),
-                    StringComparison.OrdinalIgnoreCase))
+            finally
             {
-                File.Delete(temporary);
-                throw new CryptographicException(
-                    $"O pacote {package.packageId} falhou na verificação SHA-256.");
+                // A content patch is staged atomically before reaching the
+                // active pointer, so its downloaded ZIP is never needed again.
+                if (File.Exists(temporary))
+                    File.Delete(temporary);
             }
-            if (package.sizeBytes > 0 &&
-                new FileInfo(temporary).Length != package.sizeBytes)
-            {
-                File.Delete(temporary);
-                throw new InvalidDataException(
-                    $"O pacote {package.packageId} chegou com tamanho diferente.");
-            }
-
-            if (!string.Equals(
-                    package.target,
-                    "ygo",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                File.Delete(temporary);
-                throw new NotSupportedException(
-                    $"Destino remoto não suportado: {package.target}");
-            }
-            InstallYgoArchive(package, temporary);
-            File.Delete(temporary);
         }
 
         private void InstallYgoArchive(
@@ -559,21 +896,544 @@ namespace ArcaneArena.Frontend
             }
         }
 
-        private void OpenApplicationUpdate()
+        private void InstallYgoPatchArchive(
+            RemoteContentPackage package,
+            string archivePath)
         {
-            string url = Application.platform switch
+            string container = GetYgoRemoteContainer();
+            string patches = Path.Combine(container, "patches");
+            Directory.CreateDirectory(patches);
+            string patchDirectory = SafeFileName(
+                _manifest.releaseId + "-" + package.packageId + "-" +
+                package.version);
+            string staging = Path.GetFullPath(Path.Combine(
+                patches,
+                patchDirectory + ".staging"));
+            string final = Path.GetFullPath(Path.Combine(
+                patches,
+                patchDirectory));
+            EnsureChildPath(patches, staging);
+            EnsureChildPath(patches, final);
+            if (Directory.Exists(staging))
+                Directory.Delete(staging, true);
+            Directory.CreateDirectory(staging);
+
+            try
             {
-                RuntimePlatform.Android => _manifest.androidUpdateUrl,
-                RuntimePlatform.WindowsPlayer => _manifest.windowsUpdateUrl,
-                RuntimePlatform.WindowsEditor => _manifest.windowsUpdateUrl,
-                _ => _manifest.fallbackUpdateUrl
-            };
+                ExtractYgoPatchSafely(archivePath, staging);
+                ValidateYgoPatchDirectory(staging);
+                if (Directory.Exists(final))
+                    Directory.Delete(final, true);
+                Directory.Move(staging, final);
+
+                ActivePatchPointer pointer = ReadActivePatchPointer(container);
+                var directories = (pointer.patchDirectories ??
+                                   Array.Empty<string>())
+                    .Where(IsSafePatchDirectory)
+                    .Where(directory => Directory.Exists(Path.Combine(
+                        patches,
+                        directory)))
+                    .Where(directory => !string.Equals(
+                        directory,
+                        patchDirectory,
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                directories.Add(patchDirectory);
+                directories = CompactYgoPatchDirectoriesIfNeeded(
+                    patches,
+                    directories,
+                    package.version);
+                pointer.contentVersion = package.version;
+                pointer.patchDirectories = directories.ToArray();
+                pointer.installedUtcTicks = DateTime.UtcNow.Ticks;
+                WriteTextAtomically(
+                    Path.Combine(container, "patches.json"),
+                    JsonUtility.ToJson(pointer, true));
+                CleanupInactiveYgoPatchDirectories(patches, directories);
+                YgoContentLocator.InvalidateCachedRoot();
+            }
+            catch
+            {
+                if (Directory.Exists(staging))
+                    Directory.Delete(staging, true);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Merges the active overlay into one patch directory.  Only the last
+        /// state of each changed path is copied, therefore a file replaced ten
+        /// times consumes the space of one replacement, not ten.  The pointer
+        /// is changed by the caller only after the compact patch is complete.
+        /// </summary>
+        private static List<string> CompactYgoPatchDirectoriesIfNeeded(
+            string patches,
+            List<string> directories,
+            string contentVersion)
+        {
+            if (directories == null ||
+                directories.Count <= MaximumActiveYgoPatchDirectories)
+            {
+                return directories ?? new List<string>();
+            }
+
+            try
+            {
+                string compactDirectory = BuildCompactedYgoPatchDirectory(
+                    patches,
+                    directories,
+                    contentVersion);
+                return new List<string> { compactDirectory };
+            }
+            catch (Exception exception)
+            {
+                // The original patches remain valid.  Prefer a retry on the
+                // next launch over losing a playable content revision when a
+                // device runs out of storage during compaction.
+                Debug.LogWarning(
+                    "[Atualização] A compactação do conteúdo será tentada " +
+                    "novamente: " + exception.GetBaseException().Message);
+                return directories;
+            }
+        }
+
+        private static string BuildCompactedYgoPatchDirectory(
+            string patches,
+            IEnumerable<string> sourceDirectories,
+            string contentVersion)
+        {
+            var activeFiles = new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase);
+            var deletedFiles = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+            foreach (string directory in sourceDirectories ??
+                     Array.Empty<string>())
+            {
+                if (!IsSafePatchDirectory(directory))
+                    throw new InvalidDataException(
+                        "O histórico de patches contém uma pasta inválida.");
+                string root = Path.GetFullPath(Path.Combine(patches, directory));
+                YgoPatchArchiveManifest manifest = ReadYgoPatchArchiveManifest(
+                    root);
+                foreach (string relative in manifest.files ?? Array.Empty<string>())
+                {
+                    string normalized = NormalizePatchRelativePath(relative);
+                    string source = Path.GetFullPath(Path.Combine(
+                        root,
+                        normalized.Replace('/', Path.DirectorySeparatorChar)));
+                    EnsureChildPath(root, source);
+                    if (!File.Exists(source))
+                    {
+                        throw new FileNotFoundException(
+                            "O patch ativo não contém o arquivo declarado.",
+                            source);
+                    }
+                    activeFiles[normalized] = source;
+                    deletedFiles.Remove(normalized);
+                }
+                foreach (string relative in manifest.deletedFiles ??
+                         Array.Empty<string>())
+                {
+                    string normalized = NormalizePatchRelativePath(relative);
+                    activeFiles.Remove(normalized);
+                    deletedFiles.Add(normalized);
+                }
+            }
+
+            if (activeFiles.Count == 0 && deletedFiles.Count == 0)
+            {
+                throw new InvalidDataException(
+                    "Não há alterações ativas para compactar.");
+            }
+
+            string compactDirectory = "compact-" +
+                                      SafeFileName(contentVersion) + "-" +
+                                      DateTime.UtcNow.Ticks.ToString(
+                                          CultureInfo.InvariantCulture);
+            string staging = Path.GetFullPath(Path.Combine(
+                patches,
+                compactDirectory + ".staging"));
+            string final = Path.GetFullPath(Path.Combine(
+                patches,
+                compactDirectory));
+            EnsureChildPath(patches, staging);
+            EnsureChildPath(patches, final);
+            if (Directory.Exists(staging))
+                Directory.Delete(staging, true);
+            Directory.CreateDirectory(staging);
+
+            try
+            {
+                foreach (KeyValuePair<string, string> file in activeFiles
+                             .OrderBy(pair => pair.Key,
+                                 StringComparer.OrdinalIgnoreCase))
+                {
+                    string destination = Path.GetFullPath(Path.Combine(
+                        staging,
+                        file.Key.Replace('/', Path.DirectorySeparatorChar)));
+                    EnsureChildPath(staging, destination);
+                    Directory.CreateDirectory(
+                        Path.GetDirectoryName(destination) ?? staging);
+                    File.Copy(file.Value, destination, true);
+                }
+                WriteTextAtomically(
+                    Path.Combine(staging, "patch-manifest.json"),
+                    JsonUtility.ToJson(new YgoPatchArchiveManifest
+                    {
+                        files = activeFiles.Keys
+                            .OrderBy(path => path,
+                                StringComparer.OrdinalIgnoreCase)
+                            .ToArray(),
+                        deletedFiles = deletedFiles
+                            .OrderBy(path => path,
+                                StringComparer.OrdinalIgnoreCase)
+                            .ToArray()
+                    }, true));
+                ValidateYgoPatchDirectory(staging);
+                if (Directory.Exists(final))
+                    Directory.Delete(final, true);
+                Directory.Move(staging, final);
+                return compactDirectory;
+            }
+            catch
+            {
+                if (Directory.Exists(staging))
+                    Directory.Delete(staging, true);
+                throw;
+            }
+        }
+
+        private static void CleanupYgoPatchStorage()
+        {
+            try
+            {
+                string container = GetYgoRemoteContainer();
+                string patches = Path.Combine(container, "patches");
+                if (!Directory.Exists(patches))
+                    return;
+
+                string pointerPath = Path.Combine(container, "patches.json");
+                if (!File.Exists(pointerPath))
+                {
+                    // No pointer means no patch has ever become active. Only
+                    // interrupted staging folders may be discarded here.
+                    CleanupInactiveYgoPatchDirectories(
+                        patches,
+                        Array.Empty<string>());
+                    return;
+                }
+                ActivePatchPointer pointer = JsonUtility.FromJson<
+                    ActivePatchPointer>(File.ReadAllText(pointerPath));
+                if (pointer == null || pointer.schemaVersion != 1)
+                {
+                    throw new InvalidDataException(
+                        "O índice de conteúdo remoto é incompatível.");
+                }
+                List<string> directories = (pointer.patchDirectories ??
+                                             Array.Empty<string>())
+                    .Where(IsSafePatchDirectory)
+                    .Where(directory => Directory.Exists(Path.Combine(
+                        patches,
+                        directory)))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                if (directories.Count > MaximumActiveYgoPatchDirectories)
+                {
+                    directories = CompactYgoPatchDirectoriesIfNeeded(
+                        patches,
+                        directories,
+                        pointer.contentVersion);
+                    pointer.patchDirectories = directories.ToArray();
+                    pointer.installedUtcTicks = DateTime.UtcNow.Ticks;
+                    WriteTextAtomically(
+                        Path.Combine(container, "patches.json"),
+                        JsonUtility.ToJson(pointer, true));
+                    YgoContentLocator.InvalidateCachedRoot();
+                }
+                CleanupInactiveYgoPatchDirectories(patches, directories);
+            }
+            catch (Exception exception)
+            {
+                // Storage maintenance must never block a player from reaching
+                // a known-good installed content revision.
+                Debug.LogWarning(
+                    "[Atualização] A manutenção de conteúdo foi adiada: " +
+                    exception.GetBaseException().Message);
+            }
+        }
+
+        /// <summary>
+        /// A full APK/Windows build already ships a complete content baseline.
+        /// When that baseline changes, old remote overlays must not survive and
+        /// override the newly installed files. This also reclaims historic
+        /// snapshot folders left by earlier updater versions.
+        /// </summary>
+        private static void RefreshBundledContentBaseline()
+        {
+            try
+            {
+                string container = GetYgoRemoteContainer();
+                string markerPath = Path.Combine(
+                    container,
+                    ClientContentBaselineFile);
+                string identity = Application.identifier + ":" +
+                                  Application.version + ":" +
+                                  (string.IsNullOrWhiteSpace(Application.buildGUID)
+                                      ? "no-build-guid"
+                                      : Application.buildGUID);
+                if (File.Exists(markerPath) &&
+                    string.Equals(File.ReadAllText(markerPath), identity,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                Directory.CreateDirectory(container);
+                foreach (string directory in new[]
+                         {
+                             "patches",
+                             "releases",
+                             "runtime-core",
+                             "runtime-core.staging"
+                         })
+                {
+                    string candidate = Path.GetFullPath(Path.Combine(
+                        container,
+                        directory));
+                    EnsureChildPath(container, candidate);
+                    if (Directory.Exists(candidate))
+                        Directory.Delete(candidate, true);
+                }
+                string activeSnapshot = Path.Combine(container, "active.json");
+                string activePatches = Path.Combine(container, "patches.json");
+                if (File.Exists(activeSnapshot)) File.Delete(activeSnapshot);
+                if (File.Exists(activePatches)) File.Delete(activePatches);
+                WriteTextAtomically(markerPath, identity);
+                YgoContentLocator.InvalidateCachedRoot();
+            }
+            catch (Exception exception)
+            {
+                // Keeping an old, verified overlay is safer than blocking the
+                // application if storage is temporarily unavailable.
+                Debug.LogWarning(
+                    "[Atualização] A base de conteúdo será renovada depois: " +
+                    exception.GetBaseException().Message);
+            }
+        }
+
+        private static void CleanupInactiveYgoPatchDirectories(
+            string patches,
+            IEnumerable<string> activeDirectories)
+        {
+            if (!Directory.Exists(patches))
+                return;
+            var active = new HashSet<string>(
+                (activeDirectories ?? Array.Empty<string>())
+                    .Where(IsSafePatchDirectory),
+                StringComparer.OrdinalIgnoreCase);
+            foreach (string directoryPath in Directory.GetDirectories(
+                         patches,
+                         "*",
+                         SearchOption.TopDirectoryOnly))
+            {
+                string directory = Path.GetFileName(directoryPath);
+                bool isStaging = directory.EndsWith(
+                    ".staging",
+                    StringComparison.OrdinalIgnoreCase);
+                if (!isStaging && active.Contains(directory))
+                    continue;
+                if (!isStaging && !IsSafePatchDirectory(directory))
+                    continue;
+                Directory.Delete(directoryPath, true);
+            }
+        }
+
+        private static void ExtractYgoPatchSafely(
+            string archivePath,
+            string destination)
+        {
+            string prefix = Path.GetFullPath(destination).TrimEnd(
+                                Path.DirectorySeparatorChar,
+                                Path.AltDirectorySeparatorChar) +
+                            Path.DirectorySeparatorChar;
+            const long maxUnpackedBytes = 1024L * 1024L * 1024L;
+            const int maxFiles = 10000;
+            long unpackedBytes = 0;
+            int fileCount = 0;
+            using var stream = new FileStream(
+                archivePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+            using var zip = new ZipArchive(stream, ZipArchiveMode.Read, false);
+            foreach (ZipArchiveEntry entry in zip.Entries)
+            {
+                string name = entry.FullName.Replace(
+                    '/',
+                    Path.DirectorySeparatorChar);
+                string output = Path.GetFullPath(Path.Combine(destination, name));
+                if (!output.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException(
+                        "O pacote tentou gravar fora da área segura.");
+                }
+                if (string.IsNullOrEmpty(entry.Name))
+                {
+                    Directory.CreateDirectory(output);
+                    continue;
+                }
+                fileCount++;
+                unpackedBytes += entry.Length;
+                if (fileCount > maxFiles || unpackedBytes > maxUnpackedBytes)
+                {
+                    throw new InvalidDataException(
+                        "O pacote de conteúdo excede o limite seguro.");
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(output) ??
+                                          destination);
+                using Stream source = entry.Open();
+                using var target = new FileStream(
+                    output,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None);
+                source.CopyTo(target);
+            }
+        }
+
+        private static void ValidateYgoPatchDirectory(string root)
+        {
+            YgoPatchArchiveManifest manifest = ReadYgoPatchArchiveManifest(root);
+
+            var files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string relative in manifest.files ?? Array.Empty<string>())
+            {
+                string safe = ValidatePatchRelativePath(relative);
+                if (!files.Add(safe))
+                    throw new InvalidDataException(
+                        "O pacote incremental repete um arquivo.");
+                string candidate = Path.GetFullPath(Path.Combine(root, safe));
+                EnsureChildPath(root, candidate);
+                if (!File.Exists(candidate))
+                {
+                    throw new FileNotFoundException(
+                        "O pacote incremental não contém o arquivo declarado.",
+                        candidate);
+                }
+            }
+            foreach (string relative in manifest.deletedFiles ??
+                     Array.Empty<string>())
+            {
+                string safe = ValidatePatchRelativePath(relative);
+                if (files.Contains(safe))
+                {
+                    throw new InvalidDataException(
+                        "Um arquivo não pode ser incluído e removido no mesmo pacote.");
+                }
+            }
+            if (files.Count == 0 &&
+                !(manifest.deletedFiles ?? Array.Empty<string>()).Any())
+            {
+                throw new InvalidDataException(
+                    "O pacote incremental não possui alterações.");
+            }
+        }
+
+        private static YgoPatchArchiveManifest ReadYgoPatchArchiveManifest(
+            string root)
+        {
+            string manifestPath = Path.Combine(root, "patch-manifest.json");
+            if (!File.Exists(manifestPath))
+            {
+                throw new InvalidDataException(
+                    "O pacote incremental não possui patch-manifest.json.");
+            }
+            YgoPatchArchiveManifest manifest = JsonUtility.FromJson<
+                YgoPatchArchiveManifest>(File.ReadAllText(manifestPath));
+            if (manifest == null || manifest.schemaVersion != 1)
+            {
+                throw new InvalidDataException(
+                    "O manifesto do pacote incremental é incompatível.");
+            }
+            return manifest;
+        }
+
+        private static ActivePatchPointer ReadActivePatchPointer(string container)
+        {
+            try
+            {
+                string path = Path.Combine(container, "patches.json");
+                if (!File.Exists(path))
+                    return new ActivePatchPointer();
+                ActivePatchPointer pointer = JsonUtility.FromJson<
+                    ActivePatchPointer>(File.ReadAllText(path));
+                return pointer ?? new ActivePatchPointer();
+            }
+            catch
+            {
+                return new ActivePatchPointer();
+            }
+        }
+
+        private static string GetYgoRemoteContainer()
+        {
+            return Path.GetFullPath(Path.Combine(
+                Application.persistentDataPath,
+                "ArcaneArena",
+                "RemoteContent",
+                "Ygo"));
+        }
+
+        private static bool IsSafePatchDirectory(string value)
+        {
+            return !string.IsNullOrWhiteSpace(value) &&
+                   value.IndexOf("..", StringComparison.Ordinal) < 0 &&
+                   value.IndexOfAny(new[] { '/', '\\' }) < 0;
+        }
+
+        private static string ValidatePatchRelativePath(string value)
+        {
+            string safe = (value ?? string.Empty).Replace('\\', '/').Trim('/');
+            if (safe.Length == 0 ||
+                safe.Equals("patch-manifest.json", StringComparison.OrdinalIgnoreCase) ||
+                safe.IndexOf("..", StringComparison.Ordinal) >= 0 ||
+                safe.StartsWith("/", StringComparison.Ordinal) ||
+                Path.IsPathRooted(safe) ||
+                safe.Split('/').Any(string.IsNullOrWhiteSpace))
+            {
+                throw new InvalidDataException(
+                    "O pacote incremental contém um caminho inválido.");
+            }
+            return safe.Replace('/', Path.DirectorySeparatorChar);
+        }
+
+        private static string NormalizePatchRelativePath(string value)
+        {
+            return ValidatePatchRelativePath(value).Replace(
+                Path.DirectorySeparatorChar,
+                '/');
+        }
+
+        private void OpenApplicationUpdatePage()
+        {
+            string url = _activeArtifact?.url;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                url = Application.platform switch
+                {
+                    RuntimePlatform.Android => _manifest.androidUpdateUrl,
+                    RuntimePlatform.WindowsPlayer => _manifest.windowsUpdateUrl,
+                    RuntimePlatform.WindowsEditor => _manifest.windowsUpdateUrl,
+                    _ => _manifest.fallbackUpdateUrl
+                };
+            }
             if (string.IsNullOrWhiteSpace(url))
                 url = _manifest.fallbackUpdateUrl;
             if (string.IsNullOrWhiteSpace(url))
             {
-                _message.text =
-                    "O endereço da atualização ainda não foi publicado.";
+                if (_message != null)
+                    _message.text =
+                        "O endereço da atualização ainda não foi publicado.";
                 return;
             }
             Application.OpenURL(url);
@@ -600,7 +1460,26 @@ namespace ArcaneArena.Frontend
             {
                 Debug.LogWarning(
                     "[Atualização] A oferta existe, mas a cena de abertura " +
-                    "não está ativa. Inicie o jogo pela cena Login.");
+                    "não está ativa. Exibindo o painel de segurança.");
+                if (_canvas == null)
+                    BuildGate();
+                SetCopy(
+                    _manifest?.title ?? "ATUALIZAÇÃO OBRIGATÓRIA",
+                    label,
+                    (_manifest?.summary ?? string.Empty) +
+                    FormatChanges(_manifest?.changes));
+                ClearActions();
+                CreateActionButton(
+                    label,
+                    new Color(0.08f, 0.78f, 0.98f, 1f),
+                    action);
+                if (!blocksEntry)
+                {
+                    CreateActionButton(
+                        "CONTINUAR",
+                        new Color(0.62f, 0.78f, 0.22f, 1f),
+                        CompleteEntry);
+                }
                 return;
             }
             intro.ShowUpdateOffer(action, blocksEntry, label);
@@ -921,6 +1800,115 @@ namespace ArcaneArena.Frontend
             }
         }
 
+        private void ValidateAndTrustRemoteManifest(
+            RemoteReleaseManifest manifest)
+        {
+            if (manifest == null)
+                throw new InvalidDataException("Manifesto remoto ausente.");
+            if (!string.Equals(
+                    manifest.channel,
+                    _settings.releaseChannel,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException(
+                    "O manifesto pertence a outro canal de atualização.");
+            }
+            if (manifest.sequenceNumber <= 0)
+                throw new InvalidDataException(
+                    "O manifesto não possui uma sequência de segurança válida.");
+            if (!DateTimeOffset.TryParse(
+                    manifest.publishedUtc,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal |
+                    DateTimeStyles.AdjustToUniversal,
+                    out DateTimeOffset publishedUtc))
+            {
+                throw new InvalidDataException(
+                    "A data de publicação do manifesto é inválida.");
+            }
+            if (!DateTimeOffset.TryParse(
+                    manifest.expiresUtc,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal |
+                    DateTimeStyles.AdjustToUniversal,
+                    out DateTimeOffset expiresUtc))
+            {
+                throw new InvalidDataException(
+                    "O manifesto não possui uma validade verificável.");
+            }
+
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            if (publishedUtc > now.AddHours(24))
+                throw new InvalidDataException(
+                    "A data do manifesto está adiantada em relação ao dispositivo.");
+            if (expiresUtc <= now || expiresUtc <= publishedUtc)
+                throw new InvalidDataException(
+                    "O manifesto de atualização expirou ou possui validade inválida.");
+
+            TrustedReleaseState trusted = LoadTrustedReleaseState();
+            if (trusted != null &&
+                string.Equals(
+                    trusted.channel,
+                    manifest.channel,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                if (manifest.sequenceNumber < trusted.highestSequenceNumber)
+                {
+                    throw new CryptographicException(
+                        "Uma versão antiga do catálogo de atualização foi bloqueada.");
+                }
+                if (manifest.sequenceNumber == trusted.highestSequenceNumber &&
+                    !string.Equals(
+                        manifest.releaseId,
+                        trusted.releaseId,
+                        StringComparison.Ordinal))
+                {
+                    throw new CryptographicException(
+                        "A sequência do catálogo foi reutilizada por outra versão.");
+                }
+            }
+
+            if (trusted == null ||
+                manifest.sequenceNumber > trusted.highestSequenceNumber)
+            {
+                SaveTrustedReleaseState(new TrustedReleaseState
+                {
+                    channel = manifest.channel,
+                    highestSequenceNumber = manifest.sequenceNumber,
+                    releaseId = manifest.releaseId,
+                    acceptedUtcTicks = now.UtcDateTime.Ticks
+                });
+            }
+        }
+
+        private static TrustedReleaseState LoadTrustedReleaseState()
+        {
+            try
+            {
+                string path = TrustedStatePath();
+                if (!File.Exists(path))
+                    return null;
+                TrustedReleaseState state = JsonUtility.FromJson<
+                    TrustedReleaseState>(File.ReadAllText(path));
+                return state != null && state.highestSequenceNumber > 0
+                    ? state
+                    : null;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Atualização] O estado de confiança foi ignorado: " +
+                    exception.Message);
+                return null;
+            }
+        }
+
+        private static void SaveTrustedReleaseState(TrustedReleaseState state)
+        {
+            string path = TrustedStatePath();
+            WriteTextAtomically(path, JsonUtility.ToJson(state, true));
+        }
+
         private RemoteReleaseEnvelope LoadCachedEnvelope()
         {
             try
@@ -951,6 +1939,10 @@ namespace ArcaneArena.Frontend
             if (manifest == null)
                 throw new InvalidDataException("Manifesto ausente.");
             manifest.releaseId = SafeFileName(manifest.releaseId);
+            manifest.channel = string.IsNullOrWhiteSpace(manifest.channel)
+                ? "production"
+                : manifest.channel.Trim().ToLowerInvariant();
+            manifest.expiresUtc = (manifest.expiresUtc ?? string.Empty).Trim();
             manifest.minimumClientVersion = string.IsNullOrWhiteSpace(
                 manifest.minimumClientVersion)
                 ? Application.version
@@ -969,6 +1961,95 @@ namespace ArcaneArena.Frontend
             manifest.summary = (manifest.summary ?? string.Empty).Trim();
             manifest.changes ??= Array.Empty<string>();
             manifest.packages ??= Array.Empty<RemoteContentPackage>();
+            manifest.windows ??= new RemoteClientArtifact();
+            manifest.android ??= new RemoteClientArtifact();
+            NormalizeClientArtifact(
+                manifest.windows,
+                "windows",
+                manifest.latestClientVersion,
+                manifest.windowsUpdateUrl,
+                manifest.protocolVersion);
+            NormalizeClientArtifact(
+                manifest.android,
+                "android",
+                manifest.latestClientVersion,
+                manifest.androidUpdateUrl,
+                manifest.protocolVersion);
+        }
+
+        private static void NormalizeClientArtifact(
+            RemoteClientArtifact artifact,
+            string platform,
+            string legacyVersion,
+            string legacyUrl,
+            int protocolVersion)
+        {
+            artifact.platform = platform;
+            artifact.versionName = string.IsNullOrWhiteSpace(
+                artifact.versionName)
+                ? legacyVersion
+                : artifact.versionName.Trim();
+            artifact.url = string.IsNullOrWhiteSpace(artifact.url)
+                ? (legacyUrl ?? string.Empty).Trim()
+                : artifact.url.Trim();
+            artifact.sha256 = (artifact.sha256 ?? string.Empty)
+                .Replace("-", string.Empty)
+                .Trim()
+                .ToLowerInvariant();
+            artifact.signingCertificateSha256 =
+                (artifact.signingCertificateSha256 ?? string.Empty)
+                .Replace(":", string.Empty)
+                .Replace("-", string.Empty)
+                .Trim()
+                .ToLowerInvariant();
+            artifact.executableName = (artifact.executableName ?? string.Empty)
+                .Trim();
+            artifact.protocolVersion = Math.Max(
+                1,
+                artifact.protocolVersion > 0
+                    ? artifact.protocolVersion
+                    : protocolVersion);
+        }
+
+        private static RemoteClientArtifact
+            SelectClientArtifactForCurrentPlatform(
+                RemoteReleaseManifest manifest)
+        {
+            return Application.platform switch
+            {
+                RuntimePlatform.Android => manifest.android,
+                RuntimePlatform.WindowsPlayer => manifest.windows,
+                RuntimePlatform.WindowsEditor => manifest.windows,
+                _ => null
+            };
+        }
+
+        private static bool RequiresApplicationUpdate(
+            RemoteReleaseManifest manifest,
+            RemoteClientArtifact artifact)
+        {
+            if (Application.platform == RuntimePlatform.Android &&
+                artifact != null && artifact.versionCode > 0)
+            {
+                long installedCode = PlatformApplicationUpdater
+                    .GetInstalledAndroidVersionCode();
+                int minimumCode = artifact.minimumVersionCode > 0
+                    ? artifact.minimumVersionCode
+                    : artifact.versionCode;
+                if (installedCode > 0)
+                    return installedCode < minimumCode ||
+                           installedCode < artifact.versionCode;
+            }
+
+            string latest = string.IsNullOrWhiteSpace(artifact?.versionName)
+                ? manifest.latestClientVersion
+                : artifact.versionName;
+            return SemanticVersion.Compare(
+                       Application.version,
+                       manifest.minimumClientVersion) < 0 ||
+                   SemanticVersion.Compare(
+                       Application.version,
+                       latest) < 0;
         }
 
         private static IEnumerable<RemoteContentPackage>
@@ -996,14 +2077,21 @@ namespace ArcaneArena.Frontend
         {
             try
             {
-                string path = Path.Combine(
+                string container = Path.Combine(
                     Application.persistentDataPath,
                     "ArcaneArena",
                     "RemoteContent",
-                    "Ygo",
-                    "active.json");
-                if (!File.Exists(path))
-                    return "0.0.0";
+                    "Ygo");
+                string patchPath = Path.Combine(container, "patches.json");
+                if (File.Exists(patchPath))
+                {
+                    ActivePatchPointer patches = JsonUtility.FromJson<
+                        ActivePatchPointer>(File.ReadAllText(patchPath));
+                    if (!string.IsNullOrWhiteSpace(patches?.contentVersion))
+                        return patches.contentVersion;
+                }
+                string path = Path.Combine(container, "active.json");
+                if (!File.Exists(path)) return "0.0.0";
                 ActiveContentPointer pointer = JsonUtility.FromJson<
                     ActiveContentPointer>(File.ReadAllText(path));
                 return string.IsNullOrWhiteSpace(pointer?.contentVersion)
@@ -1120,6 +2208,15 @@ namespace ArcaneArena.Frontend
                 "ArcaneArena",
                 "RemoteUpdates",
                 CacheFileName);
+        }
+
+        private static string TrustedStatePath()
+        {
+            return Path.Combine(
+                Application.persistentDataPath,
+                "ArcaneArena",
+                "RemoteUpdates",
+                TrustedStateFileName);
         }
 
         private static Settings LoadSettings()

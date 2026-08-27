@@ -539,6 +539,7 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(manager.NetworkConfig.TickRate, Is.EqualTo(20));
             Assert.That(transport.HeartbeatTimeoutMS, Is.EqualTo(1000));
             Assert.That(transport.DisconnectTimeoutMS, Is.EqualTo(120000));
+            Assert.That(transport.UseWebSockets, Is.True);
             Assert.That(manager.NetworkConfig.ConnectionApproval, Is.True);
             Assert.That(manager.NetworkConfig.ForceSamePrefabs, Is.False);
             Assert.That(manager.NetworkConfig.EnableSceneManagement, Is.False);

@@ -4,6 +4,9 @@ const PUBLIC_ID_PATTERN = /^\d{12}$/;
 const KEY_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const SESSION_TTL_SECONDS = 180;
 const ACCESS_SNAPSHOT_SECONDS = 600;
+const CHALLENGE_TTL_SECONDS = 180;
+const CHALLENGE_READY_TTL_SECONDS = 300;
+const ACTIVE_CHALLENGE_STATUSES = ["pending", "accepted", "ready"];
 let jwksCache = { expiresAt: 0, keys: [] };
 
 export default {
@@ -11,7 +14,7 @@ export default {
     try {
       const url = new URL(request.url);
       if (request.method === "GET" && url.pathname === "/health") {
-        return json({ ok: true, service: "card12-player-directory", schemaVersion: 3 });
+        return json({ ok: true, service: "card12-player-directory", schemaVersion: 4 });
       }
 
       if (url.pathname.startsWith("/v1/admin/")) {
@@ -30,6 +33,24 @@ export default {
       }
       if (request.method === "GET" && url.pathname === "/v1/player/search") {
         return await searchPlayer(env, identity, url.searchParams.get("query") || "");
+      }
+      if (request.method === "GET" &&
+          url.pathname === "/v1/duel/challenges") {
+        return await getDuelChallengeState(env, identity);
+      }
+      if (request.method === "POST" &&
+          url.pathname === "/v1/duel/challenges") {
+        return await createDuelChallenge(request, env, identity);
+      }
+      const challengeAction = url.pathname.match(
+        /^\/v1\/duel\/challenges\/([a-f0-9]{32})\/(accept|decline|cancel|room|joined)$/);
+      if (request.method === "POST" && challengeAction) {
+        return await mutateDuelChallenge(
+          request,
+          env,
+          identity,
+          challengeAction[1],
+          challengeAction[2]);
       }
       return json({ message: "Rota não encontrada." }, 404);
     } catch (error) {
@@ -128,6 +149,353 @@ async function openOrHeartbeat(request, env, identity, operation) {
     "DELETE FROM player_sessions WHERE last_heartbeat_utc < ?")
     .bind(now - SESSION_TTL_SECONDS * 4).run();
   return json(await buildSnapshot(env, identity.playerId, now));
+}
+
+async function getDuelChallengeState(env, identity) {
+  const now = unixNow();
+  await expireDuelChallenges(env, identity.playerId, now);
+  const rows = await env.DB.prepare(
+    `${duelChallengeSelect()}
+     WHERE (c.sender_player_id = ? OR c.recipient_player_id = ?)
+       AND c.status IN ('pending', 'accepted', 'ready')
+     ORDER BY c.updated_utc DESC
+     LIMIT 4`)
+    .bind(identity.playerId, identity.playerId)
+    .all();
+  const challenges = (rows.results || []).map(serializeDuelChallenge);
+  return json({
+    schemaVersion: 1,
+    incoming: challenges.find(value =>
+      value.recipientPlayerId === identity.playerId) || null,
+    outgoing: challenges.find(value =>
+      value.senderPlayerId === identity.playerId) || null,
+    serverUtcUnixSeconds: now,
+    message: challenges.length > 0
+      ? "Desafio de duelo sincronizado."
+      : "Nenhum desafio de duelo ativo."
+  });
+}
+
+async function createDuelChallenge(request, env, identity) {
+  const body = await readJson(request);
+  const recipientPlayerId = cleanShort(body.recipientPlayerId, 128).trim();
+  const duelMode = String(body.duelMode || "").toLowerCase();
+  const clientRequestId = cleanShort(body.clientRequestId, 64)
+    .toLowerCase()
+    .trim();
+  if (!recipientPlayerId) {
+    throw httpError(400, "A conta convidada é inválida.");
+  }
+  if (recipientPlayerId === identity.playerId) {
+    throw httpError(400, "Você não pode desafiar a própria conta.");
+  }
+  if (duelMode !== "casual" && duelMode !== "ranked") {
+    throw httpError(400, "Escolha um duelo Casual ou Ranqueado.");
+  }
+  if (!/^[a-f0-9-]{16,64}$/.test(clientRequestId)) {
+    throw httpError(400, "A identificação do convite é inválida.");
+  }
+
+  const prior = await env.DB.prepare(
+    `${duelChallengeSelect()}
+     WHERE c.sender_player_id = ? AND c.client_request_id = ?
+     LIMIT 1`)
+    .bind(identity.playerId, clientRequestId)
+    .first();
+  if (prior) {
+    return json({
+      challenge: serializeDuelChallenge(prior),
+      message: "Convite já registrado."
+    });
+  }
+
+  const now = unixNow();
+  await expireDuelChallenges(env, identity.playerId, now);
+  await expireDuelChallenges(env, recipientPlayerId, now);
+  const recipient = await env.DB.prepare(
+    "SELECT unity_player_id, blocked FROM players WHERE unity_player_id = ?")
+    .bind(recipientPlayerId)
+    .first();
+  if (!recipient || recipient.blocked === 1) {
+    throw httpError(404, "O jogador convidado não está disponível.");
+  }
+  const online = await env.DB.prepare(
+    `SELECT 1 AS online FROM player_sessions
+     WHERE unity_player_id = ? AND last_heartbeat_utc >= ? LIMIT 1`)
+    .bind(recipientPlayerId, now - SESSION_TTL_SECONDS)
+    .first();
+  if (!online) {
+    throw httpError(409, "O jogador está offline e não pode receber o desafio agora.");
+  }
+  const occupied = await env.DB.prepare(
+    `SELECT challenge_id FROM duel_challenges
+     WHERE (sender_player_id IN (?, ?) OR recipient_player_id IN (?, ?))
+       AND status IN ('pending', 'accepted', 'ready')
+     LIMIT 1`)
+    .bind(
+      identity.playerId,
+      recipientPlayerId,
+      identity.playerId,
+      recipientPlayerId)
+    .first();
+  if (occupied) {
+    throw httpError(409, "Uma das contas já possui um desafio de duelo ativo.");
+  }
+
+  const challengeId = crypto.randomUUID().replace(/-/g, "");
+  await env.DB.prepare(
+    `INSERT INTO duel_challenges
+       (challenge_id, client_request_id, sender_player_id,
+        recipient_player_id, duel_mode, status, room_code,
+        created_utc, updated_utc, expires_utc)
+     VALUES (?, ?, ?, ?, ?, 'pending', '', ?, ?, ?)`)
+    .bind(
+      challengeId,
+      clientRequestId,
+      identity.playerId,
+      recipientPlayerId,
+      duelMode,
+      now,
+      now,
+      now + CHALLENGE_TTL_SECONDS)
+    .run();
+  await writeAudit(
+    env,
+    identity.playerId,
+    "duel-challenge-created",
+    `${challengeId}:${duelMode}`,
+    now);
+  const created = await findDuelChallenge(env, challengeId);
+  return json({
+    challenge: serializeDuelChallenge(created),
+    message: "Desafio enviado. Aguardando a resposta do duelista."
+  }, 201);
+}
+
+async function mutateDuelChallenge(
+  request,
+  env,
+  identity,
+  challengeId,
+  action) {
+  const now = unixNow();
+  await expireDuelChallenges(env, identity.playerId, now);
+  let challenge = await findDuelChallenge(env, challengeId);
+  if (!challenge ||
+      (challenge.sender_player_id !== identity.playerId &&
+       challenge.recipient_player_id !== identity.playerId)) {
+    throw httpError(404, "Desafio de duelo não encontrado.");
+  }
+
+  let message;
+  if (action === "accept") {
+    requireChallengeRole(challenge, identity.playerId, "recipient");
+    if (challenge.status === "pending") {
+      const changed = await transitionDuelChallenge(
+        env,
+        challengeId,
+        "accepted",
+        "",
+        now,
+        now + CHALLENGE_TTL_SECONDS,
+        ["pending"]);
+      if (!changed) challenge = await findDuelChallenge(env, challengeId);
+    }
+    if (challenge.status !== "pending" &&
+        challenge.status !== "accepted" &&
+        challenge.status !== "ready") {
+      throw httpError(409, "Este desafio não está mais disponível.");
+    }
+    message = "Desafio aceito. Preparando a sala privada...";
+  } else if (action === "decline") {
+    requireChallengeRole(challenge, identity.playerId, "recipient");
+    if (challenge.status !== "pending" && challenge.status !== "accepted") {
+      throw httpError(409, "Este desafio não pode mais ser recusado.");
+    }
+    const changed = await transitionDuelChallenge(
+      env,
+      challengeId,
+      "declined",
+      "",
+      now,
+      now,
+      ["pending", "accepted"]);
+    if (!changed) {
+      throw httpError(409, "Este desafio recebeu outra ação primeiro.");
+    }
+    message = "Desafio recusado.";
+  } else if (action === "cancel") {
+    if (!ACTIVE_CHALLENGE_STATUSES.includes(challenge.status)) {
+      throw httpError(409, "Este desafio já foi encerrado.");
+    }
+    const changed = await transitionDuelChallenge(
+      env,
+      challengeId,
+      "cancelled",
+      "",
+      now,
+      now,
+      ACTIVE_CHALLENGE_STATUSES);
+    if (!changed) {
+      throw httpError(409, "Este desafio recebeu outra ação primeiro.");
+    }
+    message = "Desafio cancelado.";
+  } else if (action === "room") {
+    requireChallengeRole(challenge, identity.playerId, "sender");
+    const body = await readJson(request);
+    const roomCode = cleanShort(body.roomCode, 12).trim().toUpperCase();
+    if (!/^[A-Z0-9]{6,12}$/.test(roomCode)) {
+      throw httpError(400, "O código da sala privada é inválido.");
+    }
+    if (challenge.status !== "accepted" && challenge.status !== "ready") {
+      throw httpError(409, "O convidado ainda não aceitou este desafio.");
+    }
+    if (challenge.status === "ready" &&
+        challenge.room_code && challenge.room_code !== roomCode) {
+      throw httpError(409, "Este desafio já possui outra sala privada.");
+    }
+    const changed = await transitionDuelChallenge(
+      env,
+      challengeId,
+      "ready",
+      roomCode,
+      now,
+      now + CHALLENGE_READY_TTL_SECONDS,
+      ["accepted", "ready"]);
+    if (!changed) {
+      throw httpError(409, "Este desafio foi encerrado antes da sala ficar pronta.");
+    }
+    message = "Sala privada liberada para o convidado.";
+  } else if (action === "joined") {
+    requireChallengeRole(challenge, identity.playerId, "recipient");
+    if (challenge.status !== "ready" && challenge.status !== "joined") {
+      throw httpError(409, "A sala deste desafio ainda não está pronta.");
+    }
+    if (challenge.status === "ready") {
+      const changed = await transitionDuelChallenge(
+        env,
+        challengeId,
+        "joined",
+        challenge.room_code,
+        now,
+        now,
+        ["ready"]);
+      if (!changed) {
+        challenge = await findDuelChallenge(env, challengeId);
+        if (challenge?.status !== "joined") {
+          throw httpError(409, "A sala foi encerrada antes da confirmação.");
+        }
+      }
+    }
+    message = "Entrada na sala confirmada.";
+  }
+
+  await writeAudit(
+    env,
+    identity.playerId,
+    `duel-challenge-${action}`,
+    challengeId,
+    now);
+  challenge = await findDuelChallenge(env, challengeId);
+  return json({ challenge: serializeDuelChallenge(challenge), message });
+}
+
+function requireChallengeRole(challenge, playerId, role) {
+  const actual = role === "sender"
+    ? challenge.sender_player_id
+    : challenge.recipient_player_id;
+  if (actual !== playerId) {
+    throw httpError(403, "Esta ação não pertence à sua conta.");
+  }
+}
+
+async function expireDuelChallenges(env, playerId, now) {
+  await env.DB.prepare(
+    `UPDATE duel_challenges
+     SET status = 'expired', updated_utc = ?
+     WHERE (sender_player_id = ? OR recipient_player_id = ?)
+       AND status IN ('pending', 'accepted', 'ready')
+       AND expires_utc <= ?`)
+    .bind(now, playerId, playerId, now)
+    .run();
+}
+
+async function transitionDuelChallenge(
+  env,
+  challengeId,
+  status,
+  roomCode,
+  updatedUtc,
+  expiresUtc,
+  allowedStatuses) {
+  const expected = Array.isArray(allowedStatuses)
+    ? allowedStatuses.filter(value =>
+        ACTIVE_CHALLENGE_STATUSES.includes(value))
+    : [];
+  if (expected.length === 0) {
+    throw new Error("A transição precisa de um estado anterior permitido.");
+  }
+  const placeholders = expected.map(() => "?").join(", ");
+  const result = await env.DB.prepare(
+    `UPDATE duel_challenges
+     SET status = ?, room_code = ?, updated_utc = ?, expires_utc = ?
+     WHERE challenge_id = ? AND status IN (${placeholders})`)
+    .bind(
+      status,
+      roomCode,
+      updatedUtc,
+      expiresUtc,
+      challengeId,
+      ...expected)
+    .run();
+  return result.meta?.changes === 1;
+}
+
+async function findDuelChallenge(env, challengeId) {
+  return await env.DB.prepare(
+    `${duelChallengeSelect()} WHERE c.challenge_id = ? LIMIT 1`)
+    .bind(challengeId)
+    .first();
+}
+
+function duelChallengeSelect() {
+  return `SELECT c.*,
+      sender.public_id AS sender_public_id,
+      sender.display_name AS sender_display_name,
+      sender.equipped_icon_id AS sender_icon_id,
+      sender.ranked_points AS sender_ranked_points,
+      recipient.public_id AS recipient_public_id,
+      recipient.display_name AS recipient_display_name,
+      recipient.equipped_icon_id AS recipient_icon_id,
+      recipient.ranked_points AS recipient_ranked_points
+    FROM duel_challenges c
+    JOIN players sender
+      ON sender.unity_player_id = c.sender_player_id
+    JOIN players recipient
+      ON recipient.unity_player_id = c.recipient_player_id`;
+}
+
+function serializeDuelChallenge(row) {
+  if (!row) return null;
+  return {
+    challengeId: row.challenge_id,
+    senderPlayerId: row.sender_player_id,
+    senderPublicId: row.sender_public_id,
+    senderDisplayName: row.sender_display_name,
+    senderIconId: row.sender_icon_id,
+    senderRankedPoints: row.sender_ranked_points,
+    recipientPlayerId: row.recipient_player_id,
+    recipientPublicId: row.recipient_public_id,
+    recipientDisplayName: row.recipient_display_name,
+    recipientIconId: row.recipient_icon_id,
+    recipientRankedPoints: row.recipient_ranked_points,
+    duelMode: row.duel_mode,
+    status: row.status,
+    roomCode: row.room_code,
+    createdUtcUnixSeconds: row.created_utc,
+    updatedUtcUnixSeconds: row.updated_utc,
+    expiresUtcUnixSeconds: row.expires_utc
+  };
 }
 
 async function createPlayer(env, playerId, preferredPublicId, displayName, now) {

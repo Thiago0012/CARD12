@@ -185,8 +185,12 @@ namespace ArcaneArena
                 return;
             }
 
-            CanvasGroup target = snapshot.HiddenTarget ??
-                                 HideTransitionTarget(snapshot.Current);
+            // A destruição parte da zona anterior. Esconder a zona atual
+            // poderia apagar a carta mais recente do cemitério; o campo já é
+            // reconciliado a partir do estado autoritativo antes da animação.
+            CanvasGroup target = snapshot.HiddenTarget;
+            if (target == null && snapshot.Kind != CardTransitionKind.Destruction)
+                target = HideTransitionTarget(snapshot.Current);
             if (snapshot.Kind == CardTransitionKind.Destruction)
             {
                 StartCoroutine(AnimateCardDestruction(

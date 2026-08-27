@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace ArcaneDuel.Tests.EditMode
 {
@@ -73,6 +75,289 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void ReleaseManifestIsSignedByTheEmbeddedProductionKey()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string settingsJson = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Resources",
+                "RemoteUpdates",
+                "RemoteUpdateSettings.json"));
+            Assert.That(settingsJson, Does.Contain("\"requireSignature\": true"));
+            Assert.That(settingsJson, Does.Contain("\"expectedKeyId\": \"production-2026\""));
+
+            Type runtimeType = FindType(
+                "ArcaneArena.Frontend.RemoteUpdateRuntime");
+            Type envelopeType = FindType(
+                "ArcaneArena.Frontend.RemoteReleaseEnvelope");
+            string envelopeJson = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "ContentStaging",
+                "production",
+                "v2",
+                "release-envelope.json"));
+            object envelope = JsonUtility.FromJson(
+                envelopeJson,
+                envelopeType);
+            var gameObject = new GameObject("Manifest signature test");
+            try
+            {
+                object runtime = gameObject.AddComponent(runtimeType);
+                MethodInfo validate = runtimeType.GetMethod(
+                    "ValidateEnvelope",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.DoesNotThrow(() => validate.Invoke(
+                    runtime,
+                    new[] { envelope, (object)false }));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void ReleaseManifestRejectsPayloadChangedAfterSigning()
+        {
+            Type runtimeType = FindType(
+                "ArcaneArena.Frontend.RemoteUpdateRuntime");
+            Type envelopeType = FindType(
+                "ArcaneArena.Frontend.RemoteReleaseEnvelope");
+            string envelopeJson = File.ReadAllText(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "ContentStaging",
+                "production",
+                "v2",
+                "release-envelope.json"));
+            object envelope = JsonUtility.FromJson(envelopeJson, envelopeType);
+            object payload = envelopeType.GetField("payload").GetValue(envelope);
+            payload.GetType().GetField("summary").SetValue(
+                payload,
+                "manifesto adulterado");
+            var gameObject = new GameObject("Tampered manifest test");
+            try
+            {
+                object runtime = gameObject.AddComponent(runtimeType);
+                MethodInfo validate = runtimeType.GetMethod(
+                    "ValidateEnvelope",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                TargetInvocationException exception = Assert.Throws<
+                    TargetInvocationException>(() => validate.Invoke(
+                    runtime,
+                    new[] { envelope, (object)false }));
+                Assert.That(
+                    exception.InnerException,
+                    Is.TypeOf<System.Security.Cryptography.CryptographicException>());
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void ProductionManifestHasFreshnessAndRollbackMetadata()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string path = Path.Combine(
+                projectRoot,
+                "ContentStaging",
+                "production",
+                "v2",
+                "release-envelope.json");
+            string json = File.ReadAllText(path);
+
+            Assert.That(
+                json,
+                Does.Match("\\\"sequenceNumber\\\"\\s*:\\s*[1-9][0-9]*"));
+            Assert.That(json, Does.Contain("\"channel\": \"production\""));
+            Assert.That(json, Does.Contain("\"expiresUtc\":"));
+
+            string runtime = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "RemoteUpdateRuntime.cs"));
+            Assert.That(runtime, Does.Contain(
+                "manifest.sequenceNumber < trusted.highestSequenceNumber"));
+            Assert.That(runtime, Does.Contain("expiresUtc <= now"));
+        }
+
+        [Test]
+        public void LegacyManifestRemainsAvailableForInstalledVersionMigration()
+        {
+            string json = File.ReadAllText(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "ContentStaging",
+                "production",
+                "release-envelope.json"));
+
+            Assert.That(json, Does.Contain("\"schemaVersion\": 1"));
+            Assert.That(json, Does.Not.Contain("\"sequenceNumber\""));
+        }
+
+        [Test]
+        public void AndroidUpdaterDeclaresInstallerPermissionAndReceiver()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string manifest = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Plugins",
+                "Android",
+                "MasterDuelUpdater.androidlib",
+                "AndroidManifest.xml"));
+
+            Assert.That(manifest, Does.Contain("REQUEST_INSTALL_PACKAGES"));
+            Assert.That(manifest, Does.Contain("UpdateInstallReceiver"));
+            Assert.That(manifest, Does.Contain("android:exported=\"false\""));
+
+            string bridge = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Plugins",
+                "Android",
+                "AndroidUpdateBridge.java"));
+            Assert.That(bridge, Does.Contain(
+                "new Thread(() ->"),
+                "O APK não pode ser copiado na thread visual da Unity.");
+            Assert.That(bridge, Does.Contain("getInstallProgress"));
+            Assert.That(bridge, Does.Contain("runOnUiThread"));
+            Assert.That(bridge, Does.Contain("deleteManagedDownload"));
+            Assert.That(bridge, Does.Contain("reconcileCompletedInstall"));
+            Assert.That(bridge, Does.Contain("KEY_TARGET_VERSION"));
+
+            string runtime = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "RemoteUpdateRuntime.cs"));
+            Assert.That(runtime, Does.Contain("MonitorAndroidInstallerAsync"));
+            Assert.That(runtime, Does.Contain("ABRIR INSTALADOR"));
+            Assert.That(runtime, Does.Contain("DiscardDownloadedArtifact"));
+            Assert.That(runtime, Does.Contain("CleanupAbandonedDownloads"));
+            string updater = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "PlatformApplicationUpdater.cs"));
+            Assert.That(updater, Does.Contain(".download"),
+                "Downloads de conteúdo interrompidos também precisam ser limpos.");
+        }
+
+        [Test]
+        public void ContentUpdatesUseSmallPatchArchivesAndAtomicPointers()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string runtime = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "RemoteUpdateRuntime.cs"));
+            string locator = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "DuelEngine",
+                "Runtime",
+                "Content",
+                "YgoContentLocator.cs"));
+            string publisher = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Editor",
+                "RemoteUpdates",
+                "RemoteReleasePublisherWindow.cs"));
+            string publication = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Tools",
+                "RemoteUpdates",
+                "Publish-GitHubRelease.ps1"));
+
+            Assert.That(runtime, Does.Contain("ygo-patch"));
+            Assert.That(runtime, Does.Contain("patches.json"));
+            Assert.That(runtime, Does.Contain("patch-manifest.json"));
+            Assert.That(runtime, Does.Contain(
+                "CompactYgoPatchDirectoriesIfNeeded"));
+            Assert.That(runtime, Does.Contain(
+                "BuildCompactedYgoPatchDirectory"));
+            Assert.That(runtime, Does.Contain(
+                "CleanupInactiveYgoPatchDirectories"));
+            Assert.That(runtime, Does.Contain(
+                "RefreshBundledContentBaseline"));
+            Assert.That(runtime, Does.Contain(
+                "MaximumActiveYgoPatchDirectories = 1"));
+            Assert.That(locator, Does.Contain("TryResolvePatchedCoreRoot"));
+            Assert.That(locator, Does.Contain("TryResolvePatchedFile"));
+            Assert.That(publisher, Does.Contain("ygo-patch-"));
+            Assert.That(publisher, Does.Contain("deletedFiles"));
+            Assert.That(publication, Does.Contain("content-"));
+            Assert.That(publication, Does.Contain("Get-ContentPackageAssets"));
+        }
+
+        [Test]
+        public void WindowsUpdaterContainsRollbackAndPathContainmentGuards()
+        {
+            string source = File.ReadAllText(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "PlatformApplicationUpdater.cs"));
+
+            Assert.That(source, Does.Contain("backupDirectory"));
+            Assert.That(source, Does.Contain("O pacote tentou gravar fora da instalação"));
+            Assert.That(source, Does.Contain("Copy-Item -LiteralPath $backupFile"));
+        }
+
+        [Test]
+        public void WindowsUpdateExtractorRejectsZipTraversal()
+        {
+            string root = Path.Combine(
+                Path.GetTempPath(),
+                "master-duel-update-test-" + Guid.NewGuid().ToString("N"));
+            string archivePath = Path.Combine(root, "malicious.zip");
+            string destination = Path.Combine(root, "staging");
+            Directory.CreateDirectory(root);
+            try
+            {
+                using (var archive = ZipFile.Open(
+                           archivePath,
+                           ZipArchiveMode.Create))
+                {
+                    ZipArchiveEntry entry = archive.CreateEntry(
+                        "../outside.txt");
+                    using var writer = new StreamWriter(entry.Open());
+                    writer.Write("blocked");
+                }
+
+                Type updater = FindType(
+                    "ArcaneArena.Frontend.PlatformApplicationUpdater");
+                MethodInfo extract = updater.GetMethod(
+                    "ExtractZipSafely",
+                    BindingFlags.NonPublic | BindingFlags.Static);
+                TargetInvocationException exception = Assert.Throws<
+                    TargetInvocationException>(() => extract.Invoke(
+                    null,
+                    new object[] { archivePath, destination }));
+
+                Assert.That(exception.InnerException, Is.TypeOf<IOException>());
+                Assert.That(
+                    File.Exists(Path.Combine(root, "outside.txt")),
+                    Is.False);
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                    Directory.Delete(root, true);
+            }
+        }
+
+        [Test]
         public void CloudProfileRoundTripPreservesNameAndAuthenticatedIdentity()
         {
             string sourcePath = TemporarySave("source");
@@ -84,6 +369,16 @@ namespace ArcaneDuel.Tests.EditMode
                     Is.True, nameError);
                 Assert.That(Bind(source, "unity-player-kim", out string bindError),
                     Is.True, bindError);
+                object sourceState = source.GetType()
+                    .GetProperty("State")
+                    .GetValue(source);
+                SetField(sourceState, "coinBalance", 4321);
+                object sourceRank = GetField(sourceState, "rankData");
+                SetField(sourceRank, "rankedPoints", 180);
+                object sourceStatistics = GetField(sourceState, "statistics");
+                object sourceOverall = GetField(sourceStatistics, "overall");
+                SetField(sourceOverall, "duelsPlayed", 17L);
+                SetField(sourceOverall, "wins", 11L);
                 string json = (string)source.GetType()
                     .GetMethod("ExportJson")
                     .Invoke(source, new object[] { true });
@@ -108,12 +403,123 @@ namespace ArcaneDuel.Tests.EditMode
                     restored.GetType().GetProperty("AuthenticatedPlayerId")
                         .GetValue(restored),
                     Is.EqualTo("unity-player-kim"));
+                object restoredState = restored.GetType()
+                    .GetProperty("State")
+                    .GetValue(restored);
+                Assert.That(GetField(restoredState, "coinBalance"),
+                    Is.GreaterThanOrEqualTo(4321),
+                    "A restauração não pode remover moedas; recompensas de " +
+                    "ranque ainda não processadas podem aumentar o saldo.");
+                Assert.That(
+                    GetField(GetField(restoredState, "rankData"),
+                        "rankedPoints"),
+                    Is.EqualTo(180));
+                object restoredOverall = GetField(
+                    GetField(restoredState, "statistics"),
+                    "overall");
+                Assert.That(GetField(restoredOverall, "duelsPlayed"),
+                    Is.EqualTo(17L));
+                Assert.That(GetField(restoredOverall, "wins"),
+                    Is.EqualTo(11L));
             }
             finally
             {
                 DeleteSave(sourcePath);
                 DeleteSave(restoredPath);
             }
+        }
+
+        [Test]
+        public void TitleAccountRestoreRequestIsConsumedOnlyOnce()
+        {
+            Type account = FindType(
+                "ArcaneArena.Frontend.PlayerAccountRuntime");
+            MethodInfo request = account.GetMethod(
+                "RequestRestoreOnNextMenu",
+                BindingFlags.Public | BindingFlags.Static);
+            MethodInfo consume = account.GetMethod(
+                "ConsumeRestoreRequest",
+                BindingFlags.Public | BindingFlags.Static);
+
+            consume.Invoke(null, null);
+            request.Invoke(null, null);
+
+            Assert.That((bool)consume.Invoke(null, null), Is.True);
+            Assert.That((bool)consume.Invoke(null, null), Is.False);
+        }
+
+        [Test]
+        public void AccountBootstrapBlocksOnlyTheFirstFrontendScenePerSession()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string bootstrap = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "GameFrontendBootstrap.cs"));
+            string playerIdAccess = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "GameFrontendBootstrap.PlayerIdAccess.cs"));
+
+            Assert.That(
+                bootstrap,
+                Does.Contain("_accountSessionBootstrapCompleted"));
+            Assert.That(
+                bootstrap,
+                Does.Contain("!_accountSessionBootstrapCompleted"));
+            Assert.That(
+                playerIdAccess,
+                Does.Contain("bool revealAfterBootstrap = _accountBootstrapPending"));
+            Assert.That(
+                playerIdAccess,
+                Does.Contain("if (revealAfterBootstrap &&"));
+        }
+
+        [Test]
+        public void UniqueUsernameAccessSignsInBeforeCreatingAndPreservesSession()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string runtime = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "PlayerAccountRuntime.cs"));
+            string accountUi = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "GameFrontendBootstrap.AccountUi.cs"));
+
+            int accessMethod = runtime.IndexOf(
+                "AccessOrCreateAccountAsync",
+                StringComparison.Ordinal);
+            int signIn = runtime.IndexOf(
+                "SignInWithUsernamePasswordAsync",
+                accessMethod,
+                StringComparison.Ordinal);
+            int protect = runtime.IndexOf(
+                "ProtectCurrentAccountAsync",
+                signIn,
+                StringComparison.Ordinal);
+
+            Assert.That(accessMethod, Is.GreaterThanOrEqualTo(0));
+            Assert.That(signIn, Is.GreaterThan(accessMethod));
+            Assert.That(
+                protect,
+                Is.GreaterThan(signIn),
+                "O acesso deve tentar a conta existente antes de criar o usuário.");
+            Assert.That(runtime, Does.Contain("RestorePreviousSessionAsync"));
+            Assert.That(runtime, Does.Contain("AccountAlreadyLinked"));
+            Assert.That(runtime, Does.Contain("StringComparison.OrdinalIgnoreCase"));
+            Assert.That(accountUi, Does.Contain("ENTRAR OU CRIAR CONTA"));
+            Assert.That(accountUi, Does.Contain(
+                "Uma senha errada nunca cria uma cópia da conta."));
         }
 
         [Test]
@@ -143,6 +549,29 @@ namespace ArcaneDuel.Tests.EditMode
                 DeleteSave(sourcePath);
                 DeleteSave(targetPath);
             }
+        }
+
+        [Test]
+        public void CloudRestoreRequiresARealPlayerProfile()
+        {
+            Type stateType = FindType(
+                "ArcaneArena.Frontend.DeckCollectionState");
+            object emptyState = Activator.CreateInstance(stateType);
+            object namedState = Activator.CreateInstance(stateType);
+            SetField(namedState, "playerDisplayName", "KimDelas");
+
+            Type runtime = FindType(
+                "ArcaneArena.Frontend.PlayerCloudSaveRuntime");
+            MethodInfo hasProfile = runtime.GetMethod(
+                "HasPlayerProfile",
+                BindingFlags.NonPublic | BindingFlags.Static);
+
+            Assert.That(
+                (bool)hasProfile.Invoke(null, new[] { emptyState }),
+                Is.False);
+            Assert.That(
+                (bool)hasProfile.Invoke(null, new[] { namedState }),
+                Is.True);
         }
 
         private static object CreateRepository(string path)
@@ -179,6 +608,19 @@ namespace ArcaneDuel.Tests.EditMode
                 .Invoke(repository, arguments);
             rejection = arguments[1] as string;
             return result;
+        }
+
+        private static object GetField(object target, string name)
+        {
+            return target.GetType().GetField(name).GetValue(target);
+        }
+
+        private static void SetField(
+            object target,
+            string name,
+            object value)
+        {
+            target.GetType().GetField(name).SetValue(target, value);
         }
 
         private static Type FindType(string fullName)

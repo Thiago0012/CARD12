@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using ArcaneDuel.Editor.RemoteUpdates;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -21,7 +22,7 @@ namespace ArcaneArena.EditorTools
         [MenuItem("Card Game/Build/Android APK (D:\\APK)")]
         public static void BuildFromMenu()
         {
-            BuildApk();
+            BuildApk(BuildOptions.None);
         }
 
         // Command-line entry point:
@@ -31,7 +32,7 @@ namespace ArcaneArena.EditorTools
         {
             try
             {
-                BuildApk();
+                BuildApk(BuildOptions.CleanBuildCache);
             }
             catch (Exception exception)
             {
@@ -40,8 +41,9 @@ namespace ArcaneArena.EditorTools
             }
         }
 
-        private static void BuildApk()
+        private static void BuildApk(BuildOptions buildOptions)
         {
+            ConfigureGradleUserHome();
             if (!BuildPipeline.IsBuildTargetSupported(
                     BuildTargetGroup.Android,
                     BuildTarget.Android))
@@ -73,6 +75,7 @@ namespace ArcaneArena.EditorTools
             // and BuildPipeline later fails with "Target architecture not
             // specified".
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            ReleaseSigningConfiguration.ApplyAndroidSigning(true);
             AssetDatabase.SaveAssets();
 
             string safeVersion = string.IsNullOrWhiteSpace(PlayerSettings.bundleVersion)
@@ -80,7 +83,7 @@ namespace ArcaneArena.EditorTools
                 : PlayerSettings.bundleVersion.Replace(' ', '-');
             string apkPath = Path.Combine(
                 OutputDirectory,
-                $"ArcaneDuel-v{safeVersion}-arm64.apk");
+                $"MasterDuel2PlusUltra-v{safeVersion}-arm64.apk");
 
             var options = new BuildPlayerOptions
             {
@@ -88,7 +91,7 @@ namespace ArcaneArena.EditorTools
                 locationPathName = apkPath,
                 target = BuildTarget.Android,
                 targetGroup = BuildTargetGroup.Android,
-                options = BuildOptions.CleanBuildCache
+                options = buildOptions
             };
             BuildReport report = BuildPipeline.BuildPlayer(options);
             BuildSummary summary = report.summary;
@@ -99,10 +102,42 @@ namespace ArcaneArena.EditorTools
                     $"erros={summary.totalErrors}; avisos={summary.totalWarnings}.");
             }
 
+            string projectRoot =
+                Directory.GetParent(Application.dataPath)?.FullName ??
+                Application.dataPath;
+            string artifacts = Path.Combine(
+                projectRoot,
+                "ContentStaging",
+                "production",
+                "artifacts");
+            Directory.CreateDirectory(artifacts);
+            File.Copy(
+                apkPath,
+                Path.Combine(
+                    artifacts,
+                    "MasterDuel2PlusUltra-Android-v" + safeVersion + ".apk"),
+                true);
+
             Debug.Log(
                 $"ANDROID_APK_READY path={apkPath}; bytes={summary.totalSize}; " +
                 $"duration={summary.totalTime}; scenes={scenes.Length}; " +
                 $"architecture=ARM64; backend=IL2CPP");
+        }
+
+        private static void ConfigureGradleUserHome()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath)?.FullName ??
+                                 Application.dataPath;
+            string gradleUserHome = Path.Combine(
+                projectRoot,
+                "Library",
+                "GradleUserHome");
+            Directory.CreateDirectory(gradleUserHome);
+            Environment.SetEnvironmentVariable(
+                "GRADLE_USER_HOME",
+                gradleUserHome,
+                EnvironmentVariableTarget.Process);
+            Debug.Log("ANDROID_GRADLE_USER_HOME path=" + gradleUserHome);
         }
 
         private static void ValidateAndroidNativeRuntime()

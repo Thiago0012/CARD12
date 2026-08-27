@@ -233,6 +233,7 @@ namespace ArcaneArena
                 core.DuelCompleted -= OnDuelCompleted;
             }
             DisposeArenaPresentation();
+            DisposeFieldRelationPresentation();
             ResetCardSoundPresentation();
             ResetHandCardDragPresentation();
             if (automaticPromptRoutine != null)
@@ -378,6 +379,7 @@ namespace ArcaneArena
                 actionPanel.transform.SetAsLastSibling();
             }
             UpdateFieldActionMenuPosition();
+            UpdateFieldRelationPresentation();
             if (choiceModal?.activeInHierarchy == true)
                 choiceModal.transform.SetAsLastSibling();
             else if (compactResponseBar?.activeInHierarchy == true)
@@ -898,12 +900,18 @@ namespace ArcaneArena
             }
 
             ulong fieldSignature = BuildFieldSignature();
-            if (force || fieldSignature != observedFieldSignature)
+            bool fieldPresentationDrifted = HasWorldPresentationDrift();
+            bool fieldStateChanged = fieldSignature != observedFieldSignature;
+            bool refreshFieldPresentation = force || fieldStateChanged ||
+                                            fieldPresentationDrifted;
+            if (refreshFieldPresentation)
             {
                 observedFieldSignature = fieldSignature;
                 ReconcileField();
             }
             RefreshAuthoritativeZoneState();
+            RefreshFieldRelationPresentation(
+                refreshFieldPresentation);
             if (force)
                 RefreshInspectedCombatStats();
 
@@ -2741,7 +2749,17 @@ namespace ArcaneArena
                 CardInstanceState instance = InstanceAt(zone);
                 bool occupied = code != 0 || instance != null;
                 if (!occupied)
+                {
+                    if (zone.FindPresentedCard() != null)
+                    {
+                        problems.Add(
+                            $"{zone.StableId} has a stale world view without " +
+                            "an authoritative card.");
+                        if (repair)
+                            renderedZones.Remove(zone.StableId);
+                    }
                     continue;
+                }
                 CardInstanceKey key = instance != null
                     ? instance.Key
                     : new CardInstanceKey(
@@ -2791,6 +2809,46 @@ namespace ArcaneArena
                     this);
             }
             return problems.ToArray();
+        }
+
+        private bool HasWorldPresentationDrift()
+        {
+            if (state == null)
+                return false;
+            foreach (DuelZone3D zone in AllZones())
+            {
+                if (zone == null || !zone.HasValidIdentity ||
+                    zone.Kind == DuelZoneKind.MainDeck ||
+                    zone.Kind == DuelZoneKind.ExtraDeck ||
+                    IsConcealedSpecialPile(zone))
+                {
+                    continue;
+                }
+
+                uint code = CodeAt(zone);
+                CardInstanceState instance = InstanceAt(zone);
+                bool occupied = code != 0 || instance != null;
+                if (!occupied)
+                {
+                    if (zone.FindPresentedCard() != null)
+                        return true;
+                    continue;
+                }
+
+                CardInstanceKey key = instance != null
+                    ? instance.Key
+                    : new CardInstanceKey(
+                        SyntheticZoneRuntimeId(zone),
+                        code,
+                        StatePlayerForZone(zone),
+                        StatePlayerForZone(zone),
+                        LocationFor(zone.Kind),
+                        (uint)Mathf.Max(0, SequenceFor(zone)),
+                        PositionAt(zone));
+                if (!HasWorldCardRepresentation(zone, key, code, true))
+                    return true;
+            }
+            return false;
         }
 
         private void CreateWorldCard(
@@ -2951,18 +3009,17 @@ namespace ArcaneArena
         {
             if (card == null)
                 return;
-            Transform existing = card.Find("Estado do Core");
+            Transform existing = card.Find("Indicadores de Campo") ??
+                                 card.Find("Estado do Core");
             int counterTotal = instance?.Counters.Values.Sum(
                 value => checked((int)value)) ?? 0;
-            bool equipped = instance?.EquippedToRuntimeId != 0;
-            bool targeted = instance != null &&
-                            (instance.TargetRuntimeIds.Count > 0 ||
-                             instance.IsTemporaryTarget);
-            bool related = instance?.RelationRuntimeIds.Count > 0;
             bool linked = instance?.LinkRating > 0;
+            // Equipamentos, alvos e relações continuam no estado do Core para
+            // as regras e a sincronização, mas não devem cobrir a arte da
+            // carta com texto técnico. No campo mostramos somente informação
+            // numérica ou estrutural que o jogador precisa ler de imediato.
             bool visible = faceUp &&
-                           (counterTotal > 0 || equipped || targeted ||
-                            related || linked);
+                           (counterTotal > 0 || linked);
             if (!visible)
             {
                 if (existing != null)
@@ -2976,13 +3033,13 @@ namespace ArcaneArena
                 label = CreateText(
                     card,
                     string.Empty,
-                    23,
+                    18,
                     FontStyle.Bold,
                     Color.white,
                     new Vector2(0.52f, 0.68f),
                     new Vector2(0.98f, 0.98f),
                     TextAnchor.UpperRight);
-                label.gameObject.name = "Estado do Core";
+                label.gameObject.name = "Indicadores de Campo";
                 var outline = label.gameObject.AddComponent<Outline>();
                 outline.effectColor = Color.black;
                 outline.effectDistance = new Vector2(2f, -2f);
@@ -2990,12 +3047,13 @@ namespace ArcaneArena
             else
             {
                 existing.gameObject.SetActive(true);
+                existing.gameObject.name = "Indicadores de Campo";
                 label = existing.GetComponent<Text>();
             }
             if (label == null)
                 return;
             var parts = new List<string>();
-            if (counterTotal > 0) parts.Add($"C:{counterTotal}");
+            if (counterTotal > 0) parts.Add($"×{counterTotal}");
             if (linked)
             {
                 string markers = FormatLinkMarkers(instance.LinkMarkers);
@@ -3003,17 +3061,8 @@ namespace ArcaneArena
                     ? $"L:{instance.LinkRating}"
                     : $"L:{instance.LinkRating} {markers}");
             }
-            if (equipped) parts.Add("EQUIP");
-            if (targeted) parts.Add("ALVO");
-            if (related) parts.Add("REL");
             label.text = string.Join("\n", parts);
-            label.color = targeted
-                ? Red
-                : equipped
-                    ? Cyan
-                    : counterTotal > 0
-                        ? Gold
-                        : Lime;
+            label.color = counterTotal > 0 ? Gold : Lime;
         }
 
         private static string FormatLinkMarkers(uint markers)
@@ -4561,13 +4610,11 @@ namespace ArcaneArena
 
             if (code == 0 && IsLocalZone(zone))
             {
+                // A instância do estado ainda pode conter a identidade de
+                // uma carta local face-down. Nunca use a View como fallback:
+                // após uma destruição ela pode ser a representação antiga que
+                // está justamente aguardando remoção do campo.
                 code = InstanceAt(zone)?.DefinitionCode ?? 0;
-                if (code == 0)
-                {
-                    WorldCardInstanceView view = zone.FindPresentedCard()
-                        ?.GetComponent<WorldCardInstanceView>();
-                    code = view?.InstanceKey.DefinitionCode ?? 0;
-                }
             }
             return code;
         }

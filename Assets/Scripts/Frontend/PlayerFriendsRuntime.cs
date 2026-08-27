@@ -32,6 +32,7 @@ namespace ArcaneArena.Frontend
         private bool _busy;
         private bool _profileRefreshInProgress;
         private bool _profileRefreshQueued;
+        private int _identityGeneration;
         private string _status = "Preparando conexões sociais...";
 
         public static event Action Changed;
@@ -78,6 +79,26 @@ namespace ArcaneArena.Frontend
                 _readyTask = _instance.InitializeAsync();
             }
             return _readyTask ?? Task.CompletedTask;
+        }
+
+        public static async Task RebindCurrentAuthenticationAsync()
+        {
+            EnsureExists();
+            if (_readyTask != null)
+            {
+                try
+                {
+                    await _readyTask;
+                }
+                catch
+                {
+                    // O novo login ainda deve poder reiniciar o serviço.
+                }
+            }
+
+            _instance.ResetForIdentityChange();
+            _readyTask = _instance.InitializeAsync();
+            await _readyTask;
         }
 
         public static void SetLocalDisplayName(string displayName)
@@ -238,6 +259,23 @@ namespace ArcaneArena.Frontend
             _instance = this;
             DontDestroyOnLoad(gameObject);
             _readyTask = InitializeAsync();
+        }
+
+        private void ResetForIdentityChange()
+        {
+            _identityGeneration++;
+            _initialized = false;
+            _friendsSdkInitialized = false;
+            _busy = false;
+            _profileRefreshInProgress = false;
+            _profileRefreshQueued = false;
+            _localDisplayName = string.Empty;
+            _friends.Clear();
+            _incoming.Clear();
+            _outgoing.Clear();
+            _catalogProfiles.Clear();
+            _status = "Reconectando a central social à conta restaurada...";
+            NotifyChanged();
         }
 
         private async Task InitializeAsync()
@@ -507,6 +545,7 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
+            int identityGeneration = _identityGeneration;
             _profileRefreshInProgress = true;
             try
             {
@@ -530,6 +569,8 @@ namespace ArcaneArena.Frontend
                             FriendProfileView catalog =
                                 await FetchCatalogProfileAsync(
                                     relationship.publicId);
+                            if (identityGeneration != _identityGeneration)
+                                return;
                             CacheCatalogProfile(catalog);
                         }
                         catch (Exception exception)
@@ -541,13 +582,17 @@ namespace ArcaneArena.Frontend
                                 exception.GetBaseException().Message);
                         }
                     }
-                    RebuildLists();
-                    NotifyChanged();
+                    if (identityGeneration == _identityGeneration)
+                    {
+                        RebuildLists();
+                        NotifyChanged();
+                    }
                 } while (_profileRefreshQueued);
             }
             finally
             {
-                _profileRefreshInProgress = false;
+                if (identityGeneration == _identityGeneration)
+                    _profileRefreshInProgress = false;
             }
         }
 

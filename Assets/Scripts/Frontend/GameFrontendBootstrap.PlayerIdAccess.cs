@@ -16,6 +16,8 @@ namespace ArcaneArena.Frontend
         {
             PlayerIdAccessRuntime.AccessChanged += ApplyPlayerIdAccess;
             PlayerFriendsRuntime.Changed += HandleFriendsRuntimeChanged;
+            FriendDuelChallengeRuntime.Changed +=
+                HandleFriendDuelChallengeChanged;
             if (_repository != null)
             {
                 _repository.LocalSaveCommitted -= HandlePublicProfileChanged;
@@ -26,40 +28,55 @@ namespace ArcaneArena.Frontend
                 _repository?.PlayerDisplayName);
             _ = BindPlayerIdWhenReadyAsync();
             _ = PlayerFriendsRuntime.EnsureReadyAsync();
+            _ = FriendDuelChallengeRuntime.EnsureReadyAsync();
         }
 
         private async Task BindPlayerIdWhenReadyAsync()
         {
-            PlayerIdAccessSnapshot snapshot =
-                await PlayerIdAccessRuntime.EnsureReadyAsync();
-            if (this != null && snapshot != null)
+            try
             {
-                ApplyPlayerIdAccess(snapshot);
-                try
+                PlayerIdAccessSnapshot snapshot =
+                    await PlayerIdAccessRuntime.EnsureReadyAsync();
+                if (this != null && snapshot != null)
                 {
-                    await PlayerCloudSaveRuntime.EnsureSynchronizedAsync();
-                    if (this == null)
-                        return;
-                    PlayerIdAccessRuntime.SetPlayerDisplayName(
-                        _repository?.PlayerDisplayName);
-                    SyncPublicProfileSnapshot(true);
-                    PlayerFriendsRuntime.SetLocalDisplayName(
-                        _repository?.PlayerDisplayName);
-                    if (!IsDuelSceneName(
+                    ApplyPlayerIdAccess(snapshot);
+                    try
+                    {
+                        await PlayerCloudSaveRuntime.EnsureSynchronizedAsync();
+                        if (this == null)
+                            return;
+                        PlayerIdAccessRuntime.SetPlayerDisplayName(
+                            _repository?.PlayerDisplayName);
+                        SyncPublicProfileSnapshot(true);
+                        PlayerFriendsRuntime.SetLocalDisplayName(
+                            _repository?.PlayerDisplayName);
+                        await PlayerIdAccessRuntime.RefreshNowAsync();
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogWarning(
+                            "O nome público será enviado ao catálogo no próximo " +
+                            "heartbeat: " +
+                            exception.GetBaseException().Message);
+                    }
+                }
+            }
+            finally
+            {
+                if (this != null)
+                {
+                    bool revealAfterBootstrap = _accountBootstrapPending;
+                    _accountBootstrapPending = false;
+                    if (revealAfterBootstrap)
+                        _accountSessionBootstrapCompleted = true;
+                    if (revealAfterBootstrap &&
+                        !IsDuelSceneName(
                             UnityEngine.SceneManagement.SceneManager
                                 .GetActiveScene().name) &&
                         !_playerIdAccessScreenVisible)
                     {
                         InitializeScenePresentation();
                     }
-                    await PlayerIdAccessRuntime.RefreshNowAsync();
-                }
-                catch (Exception exception)
-                {
-                    Debug.LogWarning(
-                        "O nome público será enviado ao catálogo no próximo " +
-                        "heartbeat: " +
-                        exception.GetBaseException().Message);
                 }
             }
         }
@@ -206,6 +223,8 @@ namespace ArcaneArena.Frontend
                 _repository.LocalSaveCommitted -= HandlePublicProfileChanged;
             PlayerIdAccessRuntime.AccessChanged -= ApplyPlayerIdAccess;
             PlayerFriendsRuntime.Changed -= HandleFriendsRuntimeChanged;
+            FriendDuelChallengeRuntime.Changed -=
+                HandleFriendDuelChallengeChanged;
         }
 
         private void SyncPublicProfileSnapshot(bool readyForUpload = false)

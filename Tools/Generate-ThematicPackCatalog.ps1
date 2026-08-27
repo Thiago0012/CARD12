@@ -274,7 +274,11 @@ function Format-Theme([string]$theme) {
 }
 
 function Get-ContentHash([string]$packId, [string[]]$ids) {
-    $payload = "$packId|$packPrice|$([string]::Join(',', $ids))"
+    $normalizedIds = @($ids | ForEach-Object {
+        $normalized = $_.Trim().TrimStart('0')
+        if ($normalized.Length -eq 0) { '0' } else { $normalized }
+    })
+    $payload = "$packId|$packPrice|$([string]::Join(',', $normalizedIds))"
     $sha = [Security.Cryptography.SHA256]::Create()
     try {
         $bytes = [Text.Encoding]::UTF8.GetBytes($payload)

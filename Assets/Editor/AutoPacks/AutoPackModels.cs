@@ -37,6 +37,7 @@ namespace ArcaneArena.Editor.AutoPacks
     {
         public string Hash { get; set; } = string.Empty;
         public List<string> KnownCardIds { get; } = new();
+        public List<string> CollectibleCardIds { get; } = new();
         public List<string> EligibleCardIds { get; } = new();
         public List<string> DeferredCardIds { get; } = new();
         public List<string> Warnings { get; } = new();

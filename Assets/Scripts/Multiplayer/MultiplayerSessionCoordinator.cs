@@ -45,6 +45,8 @@ namespace ArcaneArena.Multiplayer
         public bool IsHost => currentSession?.IsHost == true;
         public string Code => currentSession?.Code ?? string.Empty;
         public string SessionId => currentSession?.Id ?? string.Empty;
+        public RelayProtocol ActiveRelayProtocol =>
+            RelayTransportPolicy.Select(Application.platform);
 
         public async Task<IHostSession> CreateAsync(
             DuelDeckLoadout loadout,
@@ -55,7 +57,7 @@ namespace ArcaneArena.Multiplayer
             var options = new SessionOptions
             {
                 Type = SessionType,
-                Name = "Arcane Duel Private 1v1",
+                Name = ProjectIdentity.ProductName + " Private 1v1",
                 MaxPlayers = 2,
                 IsPrivate = true,
                 IsLocked = false,
@@ -68,10 +70,11 @@ namespace ArcaneArena.Multiplayer
             options.WithRelayNetwork();
             options.WithNetworkOptions(new NetworkOptions
             {
-                RelayProtocol = RelayProtocol.DTLS
+                RelayProtocol = ActiveRelayProtocol
             });
 
-            Debug.Log("[MP] stage=session-create transport=relay protocol=dtls capacity=2");
+            Debug.Log("[MP] stage=session-create transport=relay protocol=" +
+                ProtocolLogName(ActiveRelayProtocol) + " capacity=2");
             IHostSession created = await ConnectWithLobbyEventRetryAsync(
                 () => MultiplayerService.Instance.CreateSessionAsync(options),
                 true);
@@ -94,10 +97,11 @@ namespace ArcaneArena.Multiplayer
             };
             options.WithNetworkOptions(new NetworkOptions
             {
-                RelayProtocol = RelayProtocol.DTLS
+                RelayProtocol = ActiveRelayProtocol
             });
 
-            Debug.Log("[MP] stage=session-join transport=relay protocol=dtls");
+            Debug.Log("[MP] stage=session-join transport=relay protocol=" +
+                ProtocolLogName(ActiveRelayProtocol));
             ISession joined = await ConnectWithLobbyEventRetryAsync(
                 () => MultiplayerService.Instance.JoinSessionByCodeAsync(
                     code,
@@ -119,7 +123,7 @@ namespace ArcaneArena.Multiplayer
             var options = new SessionOptions
             {
                 Type = SessionType,
-                Name = "Arcane Duel Ranked 1v1",
+                Name = ProjectIdentity.ProductName + " Ranked 1v1",
                 MaxPlayers = 2,
                 IsPrivate = false,
                 IsLocked = false,
@@ -134,7 +138,7 @@ namespace ArcaneArena.Multiplayer
             options.WithRelayNetwork();
             options.WithNetworkOptions(new NetworkOptions
             {
-                RelayProtocol = RelayProtocol.DTLS
+                RelayProtocol = ActiveRelayProtocol
             });
 
             var quickJoin = new QuickJoinOptions
@@ -169,7 +173,8 @@ namespace ArcaneArena.Multiplayer
 
             Debug.Log(
                 "[MP] stage=ranked-matchmaking transport=relay " +
-                "protocol=dtls capacity=2");
+                "protocol=" + ProtocolLogName(ActiveRelayProtocol) +
+                " capacity=2");
             ISession matched = await ConnectWithLobbyEventRetryAsync(
                 () => MultiplayerService.Instance.MatchmakeSessionAsync(
                     quickJoin,
@@ -219,6 +224,61 @@ namespace ArcaneArena.Multiplayer
         {
             return !string.IsNullOrWhiteSpace(playerId) &&
                 currentSession?.HasPlayer(playerId) == true;
+        }
+
+        /// <summary>
+        /// Lobby membership and the NGO connection can reach the host on
+        /// different frames. Querying the authoritative Lobby closes that
+        /// propagation race instead of rejecting a legitimate mobile client.
+        /// </summary>
+        public async Task<bool> WaitForMemberAsync(
+            string playerId,
+            TimeSpan timeout)
+        {
+            if (string.IsNullOrWhiteSpace(playerId) || currentSession == null)
+                return false;
+            if (HasMember(playerId))
+                return true;
+
+            DateTime deadline = DateTime.UtcNow + timeout;
+            int attempt = 0;
+            while (currentSession != null && DateTime.UtcNow < deadline)
+            {
+                attempt++;
+                try
+                {
+                    var lobby = await LobbyService.Instance.GetLobbyAsync(
+                        SessionId);
+                    if (lobby?.Players != null)
+                    {
+                        foreach (var player in lobby.Players)
+                        {
+                            if (string.Equals(
+                                    player?.Id,
+                                    playerId,
+                                    StringComparison.Ordinal))
+                            {
+                                Debug.Log(
+                                    "[MP] stage=membership-confirmed source=lobby " +
+                                    "attempt=" + attempt);
+                                return true;
+                            }
+                        }
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogWarning(
+                        "[MP] stage=membership-refresh attempt=" + attempt +
+                        " result=" +
+                        exception.GetBaseException().GetType().Name);
+                }
+
+                if (HasMember(playerId))
+                    return true;
+                await Task.Delay(1000);
+            }
+            return HasMember(playerId);
         }
 
         public async Task SetPlayerStateAsync(
@@ -506,7 +566,8 @@ namespace ArcaneArena.Multiplayer
                     StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
-                    "Sala criada por uma versao incompativel do Card12.");
+                    "Sala criada por uma versao incompativel do " +
+                    ProjectIdentity.ProductName + ".");
             }
         }
 
@@ -572,6 +633,11 @@ namespace ArcaneArena.Multiplayer
             return value.Length <= maximumLength
                 ? value
                 : value.Substring(0, maximumLength);
+        }
+
+        private static string ProtocolLogName(RelayProtocol protocol)
+        {
+            return protocol.ToString().ToLowerInvariant();
         }
 
         internal static string ComputeDeckHash(DuelDeckLoadout loadout)

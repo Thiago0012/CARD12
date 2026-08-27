@@ -85,6 +85,8 @@ namespace ArcaneArena.Editor.AutoPacks
                 bool coreExists = uint.TryParse(cardId, out uint code) &&
                     database.TryGet(code, out card);
                 bool token = coreExists && (card.Type & TokenType) != 0;
+                bool collectible = entry.OfficiallyRegistered &&
+                    entry.IsReadyForGameplay && entry.IsCollectible;
                 bool eligible = entry.OfficiallyRegistered &&
                     entry.IsReadyForGameplay && coreExists && !token &&
                     !excludedPath && entry.HasAuthoredArtwork;
@@ -115,6 +117,8 @@ namespace ArcaneArena.Editor.AutoPacks
                     state = "missing-core";
                 }
 
+                if (collectible)
+                    snapshot.CollectibleCardIds.Add(cardId);
                 if (eligible)
                     snapshot.EligibleCardIds.Add(cardId);
                 hashLines.Add(string.Join("|", new[]
@@ -131,6 +135,7 @@ namespace ArcaneArena.Editor.AutoPacks
             }
 
             snapshot.KnownCardIds.Sort(StringComparer.Ordinal);
+            snapshot.CollectibleCardIds.Sort(StringComparer.Ordinal);
             snapshot.EligibleCardIds.Sort(StringComparer.Ordinal);
             snapshot.DeferredCardIds.Sort(StringComparer.Ordinal);
             snapshot.Hash = AutoPackDeterminism.Sha256(

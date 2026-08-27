@@ -21,6 +21,24 @@ namespace ArcaneDuel.Game.Social
         Offline
     }
 
+    public enum FriendDuelMode
+    {
+        Casual,
+        Ranked
+    }
+
+    public enum FriendDuelChallengeStatus
+    {
+        Unknown,
+        Pending,
+        Accepted,
+        Ready,
+        Joined,
+        Declined,
+        Cancelled,
+        Expired
+    }
+
     [Serializable]
     public sealed class FriendProfileView
     {
@@ -120,6 +138,135 @@ namespace ArcaneDuel.Game.Social
                     : FriendPresenceState.Offline,
                 lastSeenUtcUnixSeconds = Math.Max(0, lastSeenUtcUnixSeconds)
             };
+        }
+    }
+
+    [Serializable]
+    public sealed class FriendDuelChallengeView
+    {
+        public string challengeId;
+        public string senderPlayerId;
+        public string senderPublicId;
+        public string senderDisplayName;
+        public string senderIconId;
+        public int senderRankedPoints;
+        public string recipientPlayerId;
+        public string recipientPublicId;
+        public string recipientDisplayName;
+        public string recipientIconId;
+        public int recipientRankedPoints;
+        public string duelMode;
+        public string status;
+        public string roomCode;
+        public long createdUtcUnixSeconds;
+        public long updatedUtcUnixSeconds;
+        public long expiresUtcUnixSeconds;
+
+        public FriendDuelMode Mode =>
+            FriendDuelChallengePolicy.ParseMode(duelMode);
+        public FriendDuelChallengeStatus Status =>
+            FriendDuelChallengePolicy.ParseStatus(status);
+        public bool IsActive =>
+            FriendDuelChallengePolicy.IsActive(Status);
+
+        public FriendDuelChallengeView Copy()
+        {
+            return new FriendDuelChallengeView
+            {
+                challengeId = challengeId ?? string.Empty,
+                senderPlayerId = senderPlayerId ?? string.Empty,
+                senderPublicId = senderPublicId ?? string.Empty,
+                senderDisplayName = senderDisplayName ?? string.Empty,
+                senderIconId = senderIconId ?? string.Empty,
+                senderRankedPoints = Math.Max(0, senderRankedPoints),
+                recipientPlayerId = recipientPlayerId ?? string.Empty,
+                recipientPublicId = recipientPublicId ?? string.Empty,
+                recipientDisplayName = recipientDisplayName ?? string.Empty,
+                recipientIconId = recipientIconId ?? string.Empty,
+                recipientRankedPoints = Math.Max(0, recipientRankedPoints),
+                duelMode = duelMode ?? string.Empty,
+                status = status ?? string.Empty,
+                roomCode = roomCode ?? string.Empty,
+                createdUtcUnixSeconds = Math.Max(0, createdUtcUnixSeconds),
+                updatedUtcUnixSeconds = Math.Max(0, updatedUtcUnixSeconds),
+                expiresUtcUnixSeconds = Math.Max(0, expiresUtcUnixSeconds)
+            };
+        }
+    }
+
+    [Serializable]
+    public sealed class FriendDuelChallengeStateResponse
+    {
+        public int schemaVersion;
+        public FriendDuelChallengeView incoming;
+        public FriendDuelChallengeView outgoing;
+        public long serverUtcUnixSeconds;
+        public string message;
+    }
+
+    [Serializable]
+    public sealed class FriendDuelChallengeMutationResponse
+    {
+        public FriendDuelChallengeView challenge;
+        public string message;
+    }
+
+    public static class FriendDuelChallengePolicy
+    {
+        public static FriendDuelMode ParseMode(string value)
+        {
+            return string.Equals(
+                value,
+                "ranked",
+                StringComparison.OrdinalIgnoreCase)
+                ? FriendDuelMode.Ranked
+                : FriendDuelMode.Casual;
+        }
+
+        public static string SerializeMode(FriendDuelMode mode)
+        {
+            return mode == FriendDuelMode.Ranked ? "ranked" : "casual";
+        }
+
+        public static FriendDuelChallengeStatus ParseStatus(string value)
+        {
+            return (value ?? string.Empty).Trim().ToLowerInvariant() switch
+            {
+                "pending" => FriendDuelChallengeStatus.Pending,
+                "accepted" => FriendDuelChallengeStatus.Accepted,
+                "ready" => FriendDuelChallengeStatus.Ready,
+                "joined" => FriendDuelChallengeStatus.Joined,
+                "declined" => FriendDuelChallengeStatus.Declined,
+                "cancelled" => FriendDuelChallengeStatus.Cancelled,
+                "expired" => FriendDuelChallengeStatus.Expired,
+                _ => FriendDuelChallengeStatus.Unknown
+            };
+        }
+
+        public static bool IsActive(FriendDuelChallengeStatus status)
+        {
+            return status == FriendDuelChallengeStatus.Pending ||
+                   status == FriendDuelChallengeStatus.Accepted ||
+                   status == FriendDuelChallengeStatus.Ready;
+        }
+
+        public static bool CanAccept(
+            FriendDuelChallengeView challenge,
+            string localPlayerId,
+            long nowUtcUnixSeconds)
+        {
+            return challenge != null &&
+                   challenge.Status == FriendDuelChallengeStatus.Pending &&
+                   string.Equals(
+                       challenge.recipientPlayerId,
+                       localPlayerId,
+                       StringComparison.Ordinal) &&
+                   challenge.expiresUtcUnixSeconds > nowUtcUnixSeconds;
+        }
+
+        public static string ModeLabel(FriendDuelMode mode)
+        {
+            return mode == FriendDuelMode.Ranked ? "RANQUEADO" : "CASUAL";
         }
     }
 
