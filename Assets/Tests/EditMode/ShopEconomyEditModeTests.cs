@@ -12,6 +12,59 @@ namespace ArcaneDuel.Tests.EditMode
 {
     public sealed class ShopEconomyEditModeTests
     {
+        [Test]
+        public void NewProfileStartsWithExactlyTwoHundredCoins()
+        {
+            string path = TemporarySave("new-profile-balance");
+            try
+            {
+                UnityEngine.Object catalog =
+                    AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                        "Assets/Cards/CardCatalog.asset");
+                object repository = CreateRepository(path, catalog);
+
+                Assert.That(CoinBalance(repository), Is.EqualTo(200));
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
+        [Test]
+        public void LegacyEditorTestWalletIsRemovedWithoutKeepingFakeCoins()
+        {
+            string path = TemporarySave("legacy-editor-wallet");
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(
+                    path,
+                    "{\"schemaVersion\":13," +
+                    "\"coinBalance\":10040," +
+                    "\"decks\":[],\"unlockedDeckProductIds\":[]," +
+                    "\"processedShopTransactions\":[{" +
+                    "\"transactionId\":\"editor-pack-opening-animation-wallet-v2\"," +
+                    "\"kind\":\"admin-test\",\"coinDelta\":10000," +
+                    "\"balanceAfter\":10040}]}" );
+                UnityEngine.Object catalog =
+                    AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                        "Assets/Cards/CardCatalog.asset");
+                object repository = CreateRepository(path, catalog);
+
+                Assert.That(CoinBalance(repository), Is.EqualTo(200));
+                object state = repository.GetType().GetProperty("State")
+                    .GetValue(repository);
+                Assert.That(
+                    Values(Field(state, "processedShopTransactions")),
+                    Is.Empty);
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
         [TestCase(8000, 6, true, false, 53)]
         [TestCase(8000, 7, true, false, 49)]
         [TestCase(8000, 8, true, false, 45)]

@@ -5,7 +5,7 @@
 - Banlist hash: `946f0c25ca1676397353e93c291d25577daf3bdded6160f9efb26fe715a40260`
 - Runtime HTTP: `disabled` (assets locais)
 
-## Deck Inicial 724579 (`starter_724579`)
+## Fusão do Mecanismo Antigo (`starter_724579`)
 
 - Source: https://ygoprodeck.com/deck/4yretyhrthjtyj-724579
 - Raw: Main 42, Extra 5, Side 15
@@ -35,7 +35,7 @@
 - Sanitized SHA-256: `d40d0eb8eab74dd3e3ba3cb3ac1d458d1421f03773458da67f7fe8f17e93ad4e`
 - Publishable: `True`
 
-## Deck Inicial 724026 (`starter_724026`)
+## Lendas Clássicas (`starter_724026`)
 
 - Source: https://ygoprodeck.com/deck/724026
 - Raw: Main 40, Extra 0, Side 15
@@ -61,4 +61,3 @@
 - Raw SHA-256: `6492f989333630332488ebc0e21bbcb2befc217bb6e93facbbf1935cd64f6e89`
 - Sanitized SHA-256: `6492f989333630332488ebc0e21bbcb2befc217bb6e93facbbf1935cd64f6e89`
 - Publishable: `True`
-

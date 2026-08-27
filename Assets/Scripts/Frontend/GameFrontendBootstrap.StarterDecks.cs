@@ -27,20 +27,28 @@ namespace ArcaneArena.Frontend
             _shopBackAction = null;
             _starterDeckCatalog ??=
                 Resources.Load<StarterDeckCatalog>(StarterCatalogResourcePath);
-            BuildSharedBackground("ESCOLHA SEU DECK INICIAL");
+            BuildShopBackground("ESCOLHA SEU DECK INICIAL");
 
-            CreateText(
+            Image titleSurface = CreateArcaneSurface(
                 _screenRoot,
+                "Faixa da Escolha Inicial",
+                new Vector2(0.19f, 0.885f),
+                new Vector2(0.81f, 0.972f),
+                ArcaneGold,
+                true,
+                0.78f);
+            CreateText(
+                titleSurface.transform,
                 "ESCOLHA SEU DECK INICIAL",
-                36,
+                31,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.08f, 0.89f),
-                new Vector2(0.92f, 0.97f),
+                new Vector2(0.04f, 0.08f),
+                new Vector2(0.96f, 0.92f),
                 TextAnchor.MiddleCenter);
             CreateText(
                 _screenRoot,
-                "A escolha e gratuita, definitiva e acontece uma unica vez neste perfil.",
+                "A escolha é gratuita, definitiva e acontece uma única vez neste perfil.",
                 17,
                 FontStyle.Bold,
                 Cyan,
@@ -98,15 +106,14 @@ namespace ArcaneArena.Frontend
                 return;
 
             Color accent = definition.IsPublishable ? Cyan : Danger;
-            Image tile = CreatePanel(
+            Image tile = CreateArcaneSurface(
                 parent,
                 definition.DisplayName,
                 Vector2.zero,
                 Vector2.one,
-                new Color(0.008f, 0.025f, 0.05f, 0.98f));
-            AddOutline(tile.gameObject,
-                new Color(accent.r, accent.g, accent.b, 0.78f),
-                new Vector2(2f, -2f));
+                accent,
+                true,
+                0.78f);
 
             CreateText(tile.transform, definition.DisplayName, 20,
                 FontStyle.Bold, Color.white,
@@ -126,7 +133,7 @@ namespace ArcaneArena.Frontend
                     new Vector2(left, 0.22f),
                     new Vector2(left + 0.25f, 0.79f),
                     0f,
-                    true);
+                    false);
                 AddBanlistBadge(artwork.transform, cardId);
             }
 
@@ -155,6 +162,11 @@ namespace ArcaneArena.Frontend
                     _starterGalleryScroll = scroll.verticalNormalizedPosition;
                 ShowStarterDeckDetails(definition, "Main");
             });
+            Button tileButton = tile.GetComponent<Button>();
+            ArcanePanelSheenGraphic tileSheen =
+                tile.GetComponentInChildren<ArcanePanelSheenGraphic>();
+            if (tileButton != null && tileSheen != null)
+                tileButton.targetGraphic = tileSheen;
         }
 
         private void ShowStarterDeckDetails(
@@ -170,50 +182,61 @@ namespace ArcaneArena.Frontend
             SetDuelPresentation(false);
             ClearScreen();
             _shopBackAction = ShowStarterDeckSelection;
-            BuildSharedBackground("DETALHES DO DECK INICIAL");
-            BuildHeader(definition.DisplayName, ShowStarterDeckSelection);
-            string sourceName = definition.Raw == null ||
-                string.IsNullOrWhiteSpace(definition.Raw.sourceTitle)
-                    ? "fonte YGOPRODeck"
-                    : definition.Raw.sourceTitle;
+            BuildShopBackground("DETALHES DO DECK INICIAL");
+            BuildProfessionalShopHeader(
+                definition.DisplayName,
+                ShowStarterDeckSelection);
             CreateText(
                 _screenRoot,
-                $"Composicao importada de {sourceName}, validada pelo Core e pela banlist {definition.BanlistVersion}.",
+                $"COMPOSIÇÃO VALIDADA PELO CORE  •  BANLIST {definition.BanlistVersion}",
                 14,
                 FontStyle.Bold,
-                Muted,
+                new Color(0.65f, 0.90f, 0.96f, 0.95f),
                 new Vector2(0.31f, 0.83f),
                 new Vector2(0.965f, 0.885f),
                 TextAnchor.MiddleCenter);
 
-            Image detail = CreatePanel(
+            Image detail = CreateArcaneSurface(
                 _screenRoot,
                 "Detalhes da Carta",
                 new Vector2(0.035f, 0.115f),
                 new Vector2(0.285f, 0.82f),
-                new Color(0.008f, 0.025f, 0.05f, 0.98f));
-            AddOutline(detail.gameObject,
-                new Color(Cyan.r, Cyan.g, Cyan.b, 0.72f),
-                new Vector2(2f, -2f));
+                ArcaneGold,
+                false,
+                0.82f);
             _starterDetailArtwork = CreateCardArtwork(
                 detail.transform, null,
-                new Vector2(0.16f, 0.43f), new Vector2(0.84f, 0.96f),
-                0f, true);
+                new Vector2(0.13f, 0.47f), new Vector2(0.87f, 0.955f),
+                0f, false);
+            _starterDetailArtwork.color = Color.clear;
+            AddOutline(
+                _starterDetailArtwork.gameObject,
+                new Color(ArcaneGold.r, ArcaneGold.g, ArcaneGold.b, 0.76f),
+                new Vector2(2f, -2f));
+            var artworkButton =
+                _starterDetailArtwork.gameObject.AddComponent<Button>();
+            artworkButton.targetGraphic = _starterDetailArtwork;
+            artworkButton.onClick.AddListener(() =>
+            {
+                FrontendClickAudio.Play();
+                OpenDeckEditorZoom();
+            });
             _starterDetailName = CreateText(
                 detail.transform, "Selecione uma carta", 19,
                 FontStyle.Bold, Color.white,
-                new Vector2(0.06f, 0.34f), new Vector2(0.94f, 0.43f),
+                new Vector2(0.06f, 0.385f), new Vector2(0.94f, 0.47f),
                 TextAnchor.MiddleCenter);
             _starterDetailType = CreateText(
                 detail.transform, string.Empty, 13,
                 FontStyle.Bold, Cyan,
-                new Vector2(0.06f, 0.27f), new Vector2(0.94f, 0.34f),
+                new Vector2(0.06f, 0.325f), new Vector2(0.94f, 0.39f),
                 TextAnchor.MiddleCenter);
-            _starterDetailEffect = CreateText(
-                detail.transform, string.Empty, 12,
-                FontStyle.Normal, Muted,
-                new Vector2(0.06f, 0.03f), new Vector2(0.94f, 0.27f),
-                TextAnchor.UpperLeft);
+            _starterDetailEffect = CreateScrollableText(
+                detail.transform,
+                "Efeito da Carta Inicial",
+                new Vector2(0.055f, 0.035f),
+                new Vector2(0.945f, 0.315f),
+                13);
 
             CreateStarterSectionButton(definition, "Main", "PRINCIPAL",
                 new Vector2(0.31f, 0.75f), new Vector2(0.50f, 0.82f), section);
@@ -231,12 +254,21 @@ namespace ArcaneArena.Frontend
                 new Vector2(145f, 210f),
                 new Vector2(14f, 14f),
                 7);
+            Image gridViewport = grid.GetComponentInParent<Image>();
+            if (gridViewport != null)
+            {
+                AddOutline(
+                    gridViewport.gameObject,
+                    new Color(ArcaneCyan.r, ArcaneCyan.g, ArcaneCyan.b, 0.66f),
+                    new Vector2(2f, -2f));
+            }
             foreach (string cardId in cards)
             {
                 CardCatalogEntry entry = DeckRepository.ResolveCard(_catalog, cardId);
                 Image artwork = CreateCardArtwork(
                     grid, entry?.Artwork, Vector2.zero, Vector2.one, 0f, false);
                 AddBanlistBadge(artwork.transform, cardId);
+                artwork.raycastTarget = true;
                 AddButtonBehaviour(artwork,
                     () => ShowStarterCardDetails(cardId));
             }
@@ -245,7 +277,7 @@ namespace ArcaneArena.Frontend
                 ShowStarterCardDetails(cards[0]);
 
             Color claimColor = definition.IsPublishable ? Lime : Danger;
-            CreateButton(
+            CreateArcaneActionButton(
                 _screenRoot,
                 definition.IsPublishable
                     ? "ESCOLHER ESTE DECK"
@@ -257,7 +289,8 @@ namespace ArcaneArena.Frontend
                 {
                     if (definition.IsPublishable)
                         ShowStarterClaimConfirmation(definition);
-                });
+                },
+                20);
             if (!definition.IsPublishable)
             {
                 string issue = definition.ValidationIssues.Count > 0
@@ -267,6 +300,10 @@ namespace ArcaneArena.Frontend
                     new Vector2(0.31f, 0.015f), new Vector2(0.91f, 0.085f),
                     TextAnchor.MiddleCenter);
             }
+
+            _deckEditorDetailArtwork = _starterDetailArtwork;
+            BuildDeckEditorZoomViewer(
+                "Visualizador Ampliado do Deck Inicial");
         }
 
         private void CreateStarterSectionButton(
@@ -277,14 +314,12 @@ namespace ArcaneArena.Frontend
             Vector2 max,
             string selected)
         {
-            CreateButton(
+            CreateArcaneTabButton(
                 _screenRoot,
                 $"{label} {StarterSection(definition, section).Count}",
                 min,
                 max,
-                string.Equals(section, selected, StringComparison.Ordinal)
-                    ? Lime
-                    : Cyan,
+                string.Equals(section, selected, StringComparison.Ordinal),
                 () => ShowStarterDeckDetails(definition, section));
         }
 
@@ -308,14 +343,29 @@ namespace ArcaneArena.Frontend
             if (_starterDetailArtwork != null)
             {
                 _starterDetailArtwork.sprite = entry.Artwork;
+                _starterDetailArtwork.color = entry.Artwork != null
+                    ? Color.white
+                    : Color.clear;
                 RefreshBanlistBadge(_starterDetailArtwork.transform, cardId);
             }
             if (_starterDetailName != null)
                 _starterDetailName.text = entry.DisplayName;
             if (_starterDetailType != null)
-                _starterDetailType.text = $"{entry.TypeName}  |  ID {cardId}";
+                _starterDetailType.text = StarterCardTypeSummary(entry);
             if (_starterDetailEffect != null)
                 _starterDetailEffect.text = CardPresentationText.EffectPtBr(entry);
+        }
+
+        private static string StarterCardTypeSummary(CardCatalogEntry entry)
+        {
+            if (entry == null)
+                return string.Empty;
+            if (entry.Category == CardCategory.Monster &&
+                !string.IsNullOrWhiteSpace(entry.RaceName))
+            {
+                return $"{entry.RaceName}  •  {entry.TypeName}";
+            }
+            return entry.TypeName;
         }
 
         private void ShowStarterClaimConfirmation(
@@ -329,20 +379,21 @@ namespace ArcaneArena.Frontend
                 new Color(0f, 0f, 0f, 0.82f));
             _starterClaimModal = veil.gameObject;
             veil.transform.SetAsLastSibling();
-            Image modal = CreatePanel(
+            Image modal = CreateArcaneSurface(
                 veil.transform,
                 "Escolha Unica",
                 new Vector2(0.27f, 0.27f),
                 new Vector2(0.73f, 0.72f),
-                new Color(0.015f, 0.04f, 0.075f, 0.99f));
-            AddOutline(modal.gameObject, Gold, new Vector2(3f, -3f));
+                ArcaneGold,
+                true,
+                0.94f);
             CreateText(modal.transform, "CONFIRMAR DECK INICIAL", 28,
                 FontStyle.Bold, Color.white,
                 new Vector2(0.08f, 0.73f), new Vector2(0.92f, 0.91f),
                 TextAnchor.MiddleCenter);
             CreateText(
                 modal.transform,
-                $"{definition.DisplayName}\n\nGRATIS E UMA UNICA VEZ\nEsta escolha nao podera ser trocada depois.",
+                $"{definition.DisplayName}\n\nGRÁTIS E UMA ÚNICA VEZ\nEsta escolha não poderá ser trocada depois.",
                 18,
                 FontStyle.Bold,
                 Gold,
@@ -354,14 +405,14 @@ namespace ArcaneArena.Frontend
                 FontStyle.Bold, Danger,
                 new Vector2(0.08f, 0.25f), new Vector2(0.92f, 0.35f),
                 TextAnchor.MiddleCenter);
-            CreateButton(modal.transform, "CANCELAR",
+            CreateArcaneActionButton(modal.transform, "CANCELAR",
                 new Vector2(0.08f, 0.08f), new Vector2(0.44f, 0.24f),
                 Muted, () =>
                 {
                     Destroy(veil.gameObject);
                     _starterClaimModal = null;
                 });
-            CreateButton(modal.transform, "CONFIRMAR",
+            CreateArcaneActionButton(modal.transform, "CONFIRMAR",
                 new Vector2(0.56f, 0.08f), new Vector2(0.92f, 0.24f),
                 Lime, () =>
                 {

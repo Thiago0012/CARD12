@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: starter_724026
   m_EditorClassIdentifier: ArcaneDuel.Game::ArcaneDuel.Game.StarterDeckDefinition
   id: starter_724026
-  displayName: Deck Inicial 724026
+  displayName: Lendas Clássicas
   banlistVersion: tcg_eu_2026_05_18
   raw:
     sourceTitle: 

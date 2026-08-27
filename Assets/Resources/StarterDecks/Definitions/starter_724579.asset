@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: starter_724579
   m_EditorClassIdentifier: ArcaneDuel.Game::ArcaneDuel.Game.StarterDeckDefinition
   id: starter_724579
-  displayName: Deck Inicial 724579
+  displayName: Fusão do Mecanismo Antigo
   banlistVersion: tcg_eu_2026_05_18
   raw:
     sourceTitle: 4yretyhrthjtyj

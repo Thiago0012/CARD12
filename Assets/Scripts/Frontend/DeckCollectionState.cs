@@ -8,6 +8,8 @@ namespace ArcaneArena.Frontend
     [Serializable]
     public sealed class DeckCollectionState
     {
+        public const int NewProfileCoinBalance = 200;
+
         public int schemaVersion = 13;
         public long lastModifiedUtcTicks;
         public long cloudRevision;
@@ -24,7 +26,7 @@ namespace ArcaneArena.Frontend
         public List<DeckRecord> decks = new List<DeckRecord>();
         public List<string> unlockedDeckProductIds =
             new List<string>();
-        public int coinBalance;
+        public int coinBalance = NewProfileCoinBalance;
         public List<CardQuantityRecord> cardQuantities =
             new List<CardQuantityRecord>();
         public List<StructureDeckPurchaseRecord> structureDeckPurchases =

@@ -1,10 +1,41 @@
+using System;
+using System.Linq;
+using System.Reflection;
 using ArcaneDuel.Game;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace ArcaneDuel.Tests.EditMode
 {
     public sealed class MobileOptimizationEditModeTests
     {
+        [Test]
+        public void DeckCatalogGestureSeparatesVerticalScrollFromCardDrag()
+        {
+            Type dragType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType(
+                    "ArcaneArena.Frontend.DeckEditorCardDrag",
+                    false))
+                .FirstOrDefault(type => type != null);
+            Assert.That(dragType, Is.Not.Null);
+            MethodInfo prefersScroll = dragType.GetMethod(
+                "PrefersCatalogScroll",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(prefersScroll, Is.Not.Null);
+            Assert.That(
+                prefersScroll.Invoke(null, new object[]
+                    { new Vector2(5f, 70f) }),
+                Is.True);
+            Assert.That(
+                prefersScroll.Invoke(null, new object[]
+                    { new Vector2(70f, 5f) }),
+                Is.False);
+            Assert.That(
+                prefersScroll.Invoke(null, new object[] { Vector2.zero }),
+                Is.True,
+                "Um toque ainda sem deslocamento deve favorecer a rolagem e não iniciar um arraste acidental.");
+        }
+
         [Test]
         public void AutomaticQualityProtectsLimitedPhonesAndKeepsPcDetailed()
         {

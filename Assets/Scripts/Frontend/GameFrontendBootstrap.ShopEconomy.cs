@@ -152,39 +152,7 @@ namespace ArcaneArena.Frontend
             _repository.ConfigureCoinRewardAuthorization(
                 authorizedCoinRecipientsCatalog);
 
-#if UNITY_EDITOR
-            GrantEditorPackAnimationTestCoins();
-#endif
-
         }
-
-#if UNITY_EDITOR
-        private void GrantEditorPackAnimationTestCoins()
-        {
-            // Crédito único e idempotente para testar compras/animações dentro
-            // do Editor. Este bloco não é compilado em nenhuma build PC ou
-            // Android, portanto não cria uma fonte de moedas no jogo público.
-            const int testCoins = 10000;
-            const string transactionId =
-                "editor-pack-opening-animation-wallet-v2";
-            if (_repository.TryGrantCoins(
-                    testCoins,
-                    "Teste da animação de abertura de pacotes",
-                    transactionId,
-                    out _,
-                    out string rejection))
-            {
-                return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(rejection))
-            {
-                Debug.LogWarning(
-                    "[Loja/Editor] Não foi possível conceder as moedas de " +
-                    "teste: " + rejection);
-            }
-        }
-#endif
 
         private void ShowEconomyShop()
         {

@@ -213,7 +213,7 @@ namespace ArcaneArena.Editor
                 buttonObject.GetComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(0f, -420f);
+            rect.anchoredPosition = new Vector2(0f, -262f);
             rect.sizeDelta = new Vector2(300f, 76f);
 
             Image image = buttonObject.GetComponent<Image>();

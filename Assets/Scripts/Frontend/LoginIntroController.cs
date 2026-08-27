@@ -229,8 +229,8 @@ namespace ArcaneArena.Frontend
             rect.anchorMin = new Vector2(0.5f, 0.5f);
             rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(0f, -505f);
-            rect.sizeDelta = new Vector2(300f, 56f);
+            rect.anchoredPosition = new Vector2(0f, -367.2549f);
+            rect.sizeDelta = new Vector2(300f, 76.5097f);
 
             Image background = _accountRestoreOffer.GetComponent<Image>();
             background.color = new Color(0.012f, 0.035f, 0.060f, 0.92f);

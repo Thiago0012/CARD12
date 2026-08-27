@@ -2574,11 +2574,12 @@ namespace ArcaneArena.Frontend
             return panel;
         }
 
-        private void BuildDeckEditorZoomViewer()
+        private void BuildDeckEditorZoomViewer(
+            string overlayName = "Visualizador Ampliado do Editor")
         {
             var overlay = CreatePanel(
                 _screenRoot,
-                "Visualizador Ampliado do Editor",
+                overlayName,
                 Vector2.zero,
                 Vector2.one,
                 new Color(0.002f, 0.008f, 0.018f, 0.988f));
@@ -5071,6 +5072,10 @@ namespace ArcaneArena.Frontend
             _deckEditorDetailName = null;
             _deckEditorDetailType = null;
             _deckEditorDetailEffect = null;
+            _starterDetailArtwork = null;
+            _starterDetailName = null;
+            _starterDetailType = null;
+            _starterDetailEffect = null;
             _starterClaimModal = null;
             _deckDeleteModal = null;
             _catalogFilterButtons.Clear();

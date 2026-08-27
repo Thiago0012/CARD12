@@ -8,6 +8,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace ArcaneDuel.Tests.PlayMode
 {
@@ -60,7 +61,12 @@ namespace ArcaneDuel.Tests.PlayMode
                 Assert.That(catalog, Is.Not.Null);
                 Assert.That(catalog.Decks.Count, Is.EqualTo(6));
                 foreach (StarterDeckDefinition deck in catalog.Decks)
+                {
+                    Assert.That(
+                        deck.DisplayName,
+                        Does.Not.Match(@"^Deck Inicial \d+$"));
                     Assert.That(GameObject.Find(deck.DisplayName), Is.Not.Null);
+                }
                 Assert.That(GameObject.Find("Moldura HUD da Tela Inicial"), Is.Null,
                     "O menu nao pode reaparecer antes do claim.");
 
@@ -73,6 +79,27 @@ namespace ArcaneDuel.Tests.PlayMode
                 yield return null;
                 Assert.That(GameObject.Find("Detalhes da Carta"), Is.Not.Null);
                 Assert.That(GameObject.Find("Cartas do Main"), Is.Not.Null);
+                Assert.That(
+                    GameObject.Find("Visualizador Ampliado do Deck Inicial"),
+                    Is.Not.Null);
+                Text detailType = frontend.GetType().GetField(
+                        "_starterDetailType",
+                        BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(frontend) as Text;
+                Assert.That(detailType, Is.Not.Null);
+                Assert.That(detailType.text, Does.Not.Contain("ID"));
+                Image detailArtwork = frontend.GetType().GetField(
+                        "_starterDetailArtwork",
+                        BindingFlags.Instance | BindingFlags.NonPublic)
+                    .GetValue(frontend) as Image;
+                Assert.That(detailArtwork, Is.Not.Null);
+                Assert.That(detailArtwork.color, Is.EqualTo(Color.white));
+                detailArtwork.GetComponent<Button>().onClick.Invoke();
+                yield return null;
+                Assert.That(
+                    GameObject.Find("Visualizador Ampliado do Deck Inicial")
+                        .activeSelf,
+                    Is.True);
 
                 object[] claimArguments = { choice, catalog, null, null };
                 Assert.That(repositoryType.GetMethod("TryClaimStarterDeck")

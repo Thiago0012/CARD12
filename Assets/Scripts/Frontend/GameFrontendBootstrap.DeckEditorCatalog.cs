@@ -79,9 +79,12 @@ namespace ArcaneArena.Frontend
             {
                 _catalogScroll.onValueChanged.AddListener(
                     HandleVirtualCatalogScroll);
-                _catalogScroll.scrollSensitivity = 72f;
+                _catalogScroll.scrollSensitivity = 105f;
                 _catalogScroll.inertia = true;
-                _catalogScroll.decelerationRate = 0.16f;
+                _catalogScroll.decelerationRate = 0.22f;
+                _catalogScroll.movementType =
+                    ScrollRect.MovementType.Elastic;
+                _catalogScroll.elasticity = 0.08f;
             }
             EnsureVirtualCatalogPool();
         }

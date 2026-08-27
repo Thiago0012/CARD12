@@ -9,6 +9,9 @@ namespace ArcaneArena.Frontend
 {
     public sealed partial class DeckRepository
     {
+        private const string LegacyEditorCoinGrantTransactionId =
+            "editor-pack-opening-animation-wallet-v2";
+
         public int CoinBalance => Math.Max(0, State?.coinBalance ?? 0);
 
         public PendingPackOpeningRecord PendingPackOpening =>
@@ -34,6 +37,7 @@ namespace ArcaneArena.Frontend
                     .ToList();
             State.processedShopTransactions ??=
                 new List<ShopTransactionRecord>();
+            RemoveLegacyEditorCoinGrant();
             State.craftPoints ??= new PlayerCraftWallet();
             State.craftPoints.cpN = Math.Max(0, State.craftPoints.cpN);
             State.craftPoints.cpR = Math.Max(0, State.craftPoints.cpR);
@@ -156,6 +160,41 @@ namespace ArcaneArena.Frontend
                     FindStructurePurchase(productId, true);
                 purchase.purchaseCount = Math.Max(1, purchase.purchaseCount);
             }
+        }
+
+        private void RemoveLegacyEditorCoinGrant()
+        {
+            List<ShopTransactionRecord> legacyGrants =
+                State.processedShopTransactions
+                    .Where(transaction => transaction != null &&
+                        string.Equals(
+                            transaction.transactionId,
+                            LegacyEditorCoinGrantTransactionId,
+                            StringComparison.Ordinal))
+                    .ToList();
+            if (legacyGrants.Count == 0)
+                return;
+
+            bool hasOtherCoinActivity = State.processedShopTransactions.Any(
+                transaction => transaction != null &&
+                    !legacyGrants.Contains(transaction) &&
+                    transaction.coinDelta != 0);
+            int artificialCoins = legacyGrants.Sum(transaction =>
+                Math.Max(0, transaction.coinDelta));
+            State.coinBalance = Math.Max(
+                0,
+                State.coinBalance - artificialCoins);
+            if (!hasOtherCoinActivity)
+            {
+                State.coinBalance = Math.Max(
+                    DeckCollectionState.NewProfileCoinBalance,
+                    State.coinBalance);
+            }
+            State.processedShopTransactions.RemoveAll(transaction =>
+                transaction != null && string.Equals(
+                    transaction.transactionId,
+                    LegacyEditorCoinGrantTransactionId,
+                    StringComparison.Ordinal));
         }
 
         public int OwnedCardQuantity(string cardId)
