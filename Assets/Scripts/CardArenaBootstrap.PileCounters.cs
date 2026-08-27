@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using ArcaneArena.Frontend;
 using ArcaneArena.Multiplayer;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,9 +19,6 @@ namespace ArcaneArena
             public DuelZone3D Zone;
             public RectTransform Rect;
             public CanvasGroup Group;
-            public DuelHudSurfaceGraphic Surface;
-            public Image AccentBar;
-            public Text Caption;
             public Text Count;
             public Color Accent;
             public bool IsExtraDeck;
@@ -69,79 +65,35 @@ namespace ArcaneArena
                 rect.anchorMin = new Vector2(0.5f, 0.5f);
                 rect.anchorMax = new Vector2(0.5f, 0.5f);
                 rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.sizeDelta = extra
-                    ? new Vector2(88f, 48f)
-                    : new Vector2(94f, 48f);
+                rect.sizeDelta = new Vector2(48f, 32f);
 
                 CanvasGroup group = root.GetComponent<CanvasGroup>();
                 group.interactable = false;
                 group.blocksRaycasts = false;
                 group.alpha = 0f;
 
-                GameObject surfaceObject = new(
-                    "Superfície",
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(DuelHudSurfaceGraphic));
-                surfaceObject.transform.SetParent(root.transform, false);
-                RectTransform surfaceRect =
-                    surfaceObject.GetComponent<RectTransform>();
-                surfaceRect.anchorMin = Vector2.zero;
-                surfaceRect.anchorMax = Vector2.one;
-                surfaceRect.offsetMin = Vector2.zero;
-                surfaceRect.offsetMax = Vector2.zero;
-                DuelHudSurfaceGraphic surface =
-                    surfaceObject.GetComponent<DuelHudSurfaceGraphic>();
-                surface.raycastTarget = false;
-                surface.SetStyle(
-                    accent,
-                    owner == 0,
-                    0.82f,
-                    true,
-                    7f);
-
-                Image accentBar = CreateImage(
-                    root.transform,
-                    "Linha de Identidade",
-                    new Vector2(0.08f, 0.18f),
-                    new Vector2(0.105f, 0.82f),
-                    new Color(accent.r, accent.g, accent.b, 0.92f));
-                accentBar.raycastTarget = false;
-
-                Text caption = CreateText(
-                    root.transform,
-                    extra ? "EXTRA" : "DECK",
-                    8,
-                    FontStyle.Bold,
-                    new Color(0.78f, 0.88f, 0.94f, 0.94f),
-                    new Vector2(0.16f, 0.49f),
-                    new Vector2(0.95f, 0.88f),
-                    TextAnchor.MiddleLeft);
-                caption.raycastTarget = false;
-                caption.horizontalOverflow = HorizontalWrapMode.Overflow;
-                caption.verticalOverflow = VerticalWrapMode.Overflow;
-
                 Text count = CreateText(
                     root.transform,
                     "0",
-                    22,
+                    27,
                     FontStyle.Bold,
-                    Color.white,
-                    new Vector2(0.16f, 0.06f),
-                    new Vector2(0.95f, 0.59f),
-                    TextAnchor.MiddleLeft);
+                    accent,
+                    Vector2.zero,
+                    Vector2.one,
+                    TextAnchor.MiddleCenter);
                 count.raycastTarget = false;
                 count.horizontalOverflow = HorizontalWrapMode.Overflow;
                 count.verticalOverflow = VerticalWrapMode.Overflow;
+                Shadow countShadow = count.gameObject.AddComponent<Shadow>();
+                countShadow.effectColor = new Color(0f, 0f, 0f, 0.88f);
+                countShadow.effectDistance = new Vector2(1.2f, -1.2f);
+                countShadow.useGraphicAlpha = true;
 
                 pileCounters[zone.StableId] = new PileCounterVisual
                 {
                     Zone = zone,
                     Rect = rect,
                     Group = group,
-                    Surface = surface,
-                    AccentBar = accentBar,
-                    Caption = caption,
                     Count = count,
                     Accent = accent,
                     IsExtraDeck = extra
@@ -256,7 +208,7 @@ namespace ArcaneArena
                     direction = StatePlayerForZone(visual.Zone) == 0
                         ? new Vector2(0.8f, -0.6f)
                         : new Vector2(-0.8f, 0.6f);
-                screen += direction * (visual.IsExtraDeck ? 34f : 40f);
+                screen += direction * (visual.IsExtraDeck ? 18f : 22f);
 
                 if (!TryScreenToFrameLocal(screen, out Vector2 local))
                 {
@@ -265,8 +217,8 @@ namespace ArcaneArena
                 }
 
                 Rect bounds = frame.rect;
-                const float horizontalPadding = 52f;
-                const float verticalPadding = 32f;
+                const float horizontalPadding = 28f;
+                const float verticalPadding = 18f;
                 if (local.x < bounds.xMin - horizontalPadding ||
                     local.x > bounds.xMax + horizontalPadding ||
                     local.y < bounds.yMin - verticalPadding ||
@@ -334,29 +286,9 @@ namespace ArcaneArena
                 ? new Color(1f, 0.43f, 0.49f, 1f)
                 : visual.IsExtraDeck && count == 0
                     ? Muted
-                    : Color.white;
-            visual.Surface?.SetStyle(
-                accent,
-                StatePlayerForZone(visual.Zone) == 0,
-                emptyMainDeck ? 0.96f : 0.82f,
-                true,
-                7f);
-            if (visual.AccentBar != null)
-            {
-                visual.AccentBar.color = new Color(
-                    accent.r,
-                    accent.g,
-                    accent.b,
-                    0.92f);
-            }
+                    : accent;
             if (visual.Count != null)
                 visual.Count.color = numberColor;
-            if (visual.Caption != null)
-            {
-                visual.Caption.color = emptyMainDeck
-                    ? new Color(1f, 0.68f, 0.72f, 0.98f)
-                    : new Color(0.78f, 0.88f, 0.94f, 0.94f);
-            }
         }
     }
 }
