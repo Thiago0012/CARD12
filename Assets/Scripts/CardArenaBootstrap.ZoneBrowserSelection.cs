@@ -13,15 +13,18 @@ namespace ArcaneArena
         {
             public uint Code { get; }
             public uint CoreSequence { get; }
+            public bool HasHiddenIdentity { get; }
             public IReadOnlyList<DuelChoice> LegalChoices { get; }
 
             public ZoneBrowserEntry(
                 uint code,
                 uint coreSequence,
+                bool hasHiddenIdentity,
                 IReadOnlyList<DuelChoice> legalChoices)
             {
                 Code = code;
                 CoreSequence = coreSequence;
+                HasHiddenIdentity = hasHiddenIdentity;
                 LegalChoices = legalChoices ?? new List<DuelChoice>();
             }
         }
@@ -160,16 +163,28 @@ namespace ArcaneArena
                     choicesBySequence.TryGetValue(
                         sequence,
                         out DuelChoice[] locatedChoices);
-                    uint code = cards[index];
+                    // Cartas banidas viradas para baixo não pertencem ao
+                    // conhecimento público. Mesmo que uma réplica local ainda
+                    // possua um código transitório, o navegador nunca pode
+                    // mostrá-lo como se fosse uma carta pública.
+                    bool hiddenIdentity = zone.Kind == DuelZoneKind.Banishment &&
+                        index < state.Players[player].BanishedInstances.Count &&
+                        !IsFaceUp(state.Players[player].BanishedInstances[index]
+                            ?.Position ?? FaceDownDefense);
+                    uint code = hiddenIdentity ? 0U : cards[index];
                     if (code == 0 && locatedChoices != null)
                     {
-                        code = locatedChoices
-                            .Select(choice => choice.CardCode)
-                            .FirstOrDefault(value => value != 0);
+                        if (!hiddenIdentity)
+                        {
+                            code = locatedChoices
+                                .Select(choice => choice.CardCode)
+                                .FirstOrDefault(value => value != 0);
+                        }
                     }
                     entries.Add(new ZoneBrowserEntry(
                         code,
                         sequence,
+                        hiddenIdentity,
                         locatedChoices ?? System.Array.Empty<DuelChoice>()));
                 }
                 return entries;
@@ -186,6 +201,7 @@ namespace ArcaneArena
                     entries.Add(new ZoneBrowserEntry(
                         choice.CardCode,
                         choice.Sequence,
+                        false,
                         new[] { choice }));
                 }
                 return entries;
@@ -205,6 +221,7 @@ namespace ArcaneArena
                         entries.Add(new ZoneBrowserEntry(
                             code,
                             sequence,
+                            false,
                             System.Array.Empty<DuelChoice>()));
                     }
                 }
@@ -231,6 +248,7 @@ namespace ArcaneArena
                 entries.Add(new ZoneBrowserEntry(
                     code,
                     group.Key,
+                    false,
                     groupedChoices));
             }
             return entries;
@@ -258,11 +276,13 @@ namespace ArcaneArena
 
         private void StageZoneBrowserSelection(
             uint code,
+            bool hasHiddenIdentity,
             DuelPrompt prompt,
             IReadOnlyList<DuelChoice> choices,
             Outline selectedOutline)
         {
-            ShowInspector(code);
+            if (!hasHiddenIdentity)
+                ShowInspector(code);
             bool canUse =
                 prompt != null &&
                 prompt == core?.CurrentPrompt &&
@@ -271,7 +291,9 @@ namespace ArcaneArena
             if (!canUse)
             {
                 SetStatus(
-                    "Carta aberta somente para consulta.",
+                    hasHiddenIdentity
+                        ? "Carta banida virada para baixo · identidade oculta."
+                        : "Carta aberta somente para consulta.",
                     Muted);
                 return;
             }
@@ -293,9 +315,12 @@ namespace ArcaneArena
             }
             zoneBrowserConfirm.interactable = true;
             SetStatus(
-                zoneBrowserSummonMode
-                    ? $"{CardName(code)} selecionada. Confirme a Invocação."
-                    : $"{CardName(code)} selecionada. Confirme para continuar.",
+                hasHiddenIdentity
+                    ? "Carta banida virada para baixo selecionada. " +
+                      "Confirme para continuar."
+                    : zoneBrowserSummonMode
+                        ? $"{CardName(code)} selecionada. Confirme a Invocação."
+                        : $"{CardName(code)} selecionada. Confirme para continuar.",
                 EffectGlow);
         }
 

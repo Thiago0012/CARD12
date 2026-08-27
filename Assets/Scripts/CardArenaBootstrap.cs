@@ -4250,6 +4250,7 @@ namespace ArcaneArena
                 ZoneBrowserEntry entry = entries[index];
                 CreateZoneBrowserCard(
                     entry.Code,
+                    entry.HasHiddenIdentity,
                     index,
                     prompt,
                     entry.LegalChoices,
@@ -4281,6 +4282,7 @@ namespace ArcaneArena
 
         private void CreateZoneBrowserCard(
             uint code,
+            bool hasHiddenIdentity,
             int index,
             DuelPrompt prompt,
             IReadOnlyList<DuelChoice> legalChoices,
@@ -4307,6 +4309,19 @@ namespace ArcaneArena
                 Color.white);
             artwork.sprite = code == 0 ? cardBackSprite : SpriteFor(code);
             artwork.preserveAspect = true;
+            if (hasHiddenIdentity)
+            {
+                Text hidden = CreateText(
+                    card.transform,
+                    "BANIDA VIRADA PARA BAIXO\nIDENTIDADE OCULTA",
+                    9,
+                    FontStyle.Bold,
+                    Muted,
+                    new Vector2(0.09f, 0.07f),
+                    new Vector2(0.91f, 0.22f),
+                    TextAnchor.MiddleCenter);
+                hidden.raycastTarget = false;
+            }
             var inspectButton = card.AddComponent<Button>();
             inspectButton.targetGraphic = card.GetComponent<Image>();
             Outline cardOutline = card.GetComponent<Outline>();
@@ -4324,6 +4339,7 @@ namespace ArcaneArena
                     }
                     StageZoneBrowserSelection(
                         code,
+                        hasHiddenIdentity,
                         prompt,
                         capturedChoices,
                         cardOutline);

@@ -25,6 +25,7 @@ namespace ArcaneArena
             public Color Accent;
         }
 
+        private const int VisibleDuelFeedEntries = 3;
         private readonly Queue<DuelFeedItem> duelFeed = new();
         private GameObject decisionRibbon;
         private CanvasGroup decisionRibbonGroup;
@@ -200,7 +201,7 @@ namespace ArcaneArena
         private void BuildRecentActionsPanel()
         {
             recentActionsPanel = CreatePanel(frame, "Notificação de Ação",
-                new Vector2(0.735f, 0.555f), new Vector2(0.985f, 0.595f),
+                new Vector2(0.735f, 0.505f), new Vector2(0.985f, 0.595f),
                 Color.clear);
             Image background = recentActionsPanel.GetComponent<Image>();
             if (background != null) background.raycastTarget = false;
@@ -209,11 +210,27 @@ namespace ArcaneArena
             recentActionsGroup.blocksRaycasts = false;
             recentActionsGroup.alpha = 0f;
 
-            Text line = CreateText(recentActionsPanel.transform, string.Empty, 11,
-                FontStyle.Bold, Muted, Vector2.zero, Vector2.one,
-                TextAnchor.MiddleRight);
-            line.raycastTarget = false;
-            recentActionLines.Add(line);
+            // Uma única mensagem desaparecia antes de o jogador conseguir
+            // acompanhar uma Corrente ou uma sequência de efeitos. Mantemos
+            // somente os três acontecimentos públicos mais recentes, com o
+            // evento novo no topo, para dar contexto sem competir com o campo.
+            for (int index = 0; index < VisibleDuelFeedEntries; index++)
+            {
+                float maxY = 1f - index / (float)VisibleDuelFeedEntries;
+                float minY = 1f - (index + 1) /
+                    (float)VisibleDuelFeedEntries;
+                Text line = CreateText(
+                    recentActionsPanel.transform,
+                    string.Empty,
+                    index == 0 ? 11 : 10,
+                    FontStyle.Bold,
+                    Muted,
+                    new Vector2(0f, minY),
+                    new Vector2(1f, maxY),
+                    TextAnchor.MiddleRight);
+                line.raycastTarget = false;
+                recentActionLines.Add(line);
+            }
             recentActionsPanel.SetActive(false);
         }
 
@@ -556,10 +573,27 @@ namespace ArcaneArena
             if (recentActionsPanel == null || recentActionLines.Count == 0)
                 return;
 
-            duelFeed.Clear();
+            while (duelFeed.Count >= VisibleDuelFeedEntries)
+                duelFeed.Dequeue();
             duelFeed.Enqueue(new DuelFeedItem { Text = value, Accent = accent });
-            recentActionLines[0].text = $"› {value}";
-            recentActionLines[0].color = accent;
+            DuelFeedItem[] visible = duelFeed.Reverse().ToArray();
+            for (int index = 0; index < recentActionLines.Count; index++)
+            {
+                Text line = recentActionLines[index];
+                if (line == null)
+                    continue;
+                if (index >= visible.Length)
+                {
+                    line.text = string.Empty;
+                    continue;
+                }
+
+                DuelFeedItem item = visible[index];
+                line.text = $"› {item.Text}";
+                line.color = index == 0
+                    ? item.Accent
+                    : Color.Lerp(item.Accent, Muted, index * 0.36f);
+            }
             recentActionsPanel.SetActive(true);
             recentActionsPanel.transform.SetAsLastSibling();
             if (recentActionHideRoutine != null)
@@ -571,7 +605,7 @@ namespace ArcaneArena
         private IEnumerator HideRecentActionAfterDelay()
         {
             recentActionsGroup.alpha = experienceObscured ? 0.25f : 1f;
-            yield return new WaitForSecondsRealtime(1.65f);
+            yield return new WaitForSecondsRealtime(2.35f);
             const float fadeDuration = 0.35f;
             float elapsed = 0f;
             while (elapsed < fadeDuration)
