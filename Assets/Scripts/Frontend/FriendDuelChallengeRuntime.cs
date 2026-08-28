@@ -325,7 +325,7 @@ namespace ArcaneArena.Frontend
                         _outgoing.challengeId,
                         session.RoomCode);
                 }
-                else if (!session.IsOnlineDuelActive &&
+                else if (!session.HasOnlineRoom &&
                          !session.ConnectionOperationInProgress &&
                          Time.realtimeSinceStartup - _hostStartedAt >
                          SessionLaunchTimeoutSeconds)
@@ -375,7 +375,7 @@ namespace ArcaneArena.Frontend
                 {
                     _ = ReportJoinedAsync(_incoming.challengeId);
                 }
-                else if (!session.IsOnlineDuelActive &&
+                else if (!session.HasOnlineRoom &&
                          !session.ConnectionOperationInProgress &&
                          Time.realtimeSinceStartup - _joinStartedAt >
                          SessionLaunchTimeoutSeconds)
@@ -702,7 +702,7 @@ namespace ArcaneArena.Frontend
 
         private static void RequireNoOnlineDuel()
         {
-            if (DuelOnlineSession.Instance?.IsOnlineDuelActive == true)
+            if (DuelOnlineSession.Instance?.HasOnlineRoom == true)
             {
                 throw new InvalidOperationException(
                     "Finalize a sessão online atual antes de desafiar um amigo.");
