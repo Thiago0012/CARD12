@@ -2901,7 +2901,10 @@ namespace ArcaneArena.Multiplayer
 
         private IEnumerator ContinueAfterOnlinePreludeResult(bool tie)
         {
-            yield return new WaitForSecondsRealtime(tie ? 0.98f : 1.42f);
+            yield return new WaitForSecondsRealtime(
+                tie
+                    ? OnlineLoadingScreenPresenter.PreludeTiePresentationSeconds
+                    : OnlineLoadingScreenPresenter.PreludeWinPresentationSeconds);
             preludeResultRoutine = null;
             if (!IsHost || !matchStarted)
                 yield break;

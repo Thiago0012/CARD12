@@ -31,6 +31,8 @@ namespace ArcaneArena.Multiplayer
         private const float FadeInSeconds = 0.46f;
         private const float FadeOutSeconds = 0.42f;
         private const float SceneCardBurstSeconds = 1.55f;
+        public const float PreludeTiePresentationSeconds = 1.62f;
+        public const float PreludeWinPresentationSeconds = 2.10f;
         private float minimumVisibleSeconds = 0.35f;
 
         private Canvas canvas;
@@ -102,6 +104,10 @@ namespace ArcaneArena.Multiplayer
         private Image burstFlashVertical;
         private Image transitionVoidLayer;
         private GameObject preludeBackdrop;
+        private Image preludeChoiceArenaImage;
+        private CanvasGroup preludeChoiceArenaGroup;
+        private Image preludeClashArenaImage;
+        private CanvasGroup preludeClashArenaGroup;
         private readonly List<RectTransform> preludeMistLayers = new();
         private readonly List<Image> preludeMistImages = new();
         private readonly List<Vector2> preludeMistOrigins = new();
@@ -207,6 +213,7 @@ namespace ArcaneArena.Multiplayer
             CancelPreludeModeTransition();
             SetPreludeMode(true, false);
             RestorePreludePanelPresentation();
+            ResetPreludeResultVisuals();
             ResetPreludeBackdropFraming();
             choiceAction = onChoice;
             primaryLabel.text = "QUEM INICIA O DUELO?";
@@ -245,6 +252,8 @@ namespace ArcaneArena.Multiplayer
             PrepareVisibleSurface();
             CancelPreludeModeTransition();
             SetPreludeMode(false, true);
+            if (!revealFromChoices)
+                SetPreludeArenaBlend(1f);
             if (revealFromChoices && choicePanel != null)
             {
                 choicePanel.SetActive(true);
@@ -660,6 +669,7 @@ namespace ArcaneArena.Multiplayer
                 preludeResultAnimationRoutine = null;
             }
             ClearPreludeResultEffects();
+            ResetPreludeBackdropFraming();
             targetAlpha = 0f;
             hideRequested = false;
             group.alpha = 0f;
@@ -930,7 +940,11 @@ namespace ArcaneArena.Multiplayer
 
         private IEnumerator RevealPreludeResultFromChoices()
         {
-            const float duration = 0.28f;
+            // The result needs to read like a tiny scene change instead of
+            // appearing abruptly on top of the three-choice layout:
+            // confirmation -> original seals fade -> two raised plinths ->
+            // selected pieces settle into the confrontation frame.
+            const float duration = 0.82f;
             float elapsed = 0f;
             if (preludeCinematicVeil != null)
             {
@@ -947,38 +961,61 @@ namespace ArcaneArena.Multiplayer
             {
                 elapsed += Time.unscaledDeltaTime;
                 float progress = Mathf.Clamp01(elapsed / duration);
-                float eased = EaseOutCubic(progress);
-                SetPreludePanelOpacity(choicePanelGroup, 1f - eased);
-                SetPreludePanelOpacity(resultPanelGroup, eased);
+                float choiceFade = Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    Mathf.InverseLerp(0.10f, 0.38f, progress));
+                float clashBlend = Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    Mathf.InverseLerp(0.24f, 0.66f, progress));
+                float iconRise = EaseOutBack(Mathf.InverseLerp(
+                    0.28f,
+                    0.88f,
+                    progress));
+                float resultReveal = Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    Mathf.InverseLerp(0.34f, 0.72f, progress));
+                SetPreludePanelOpacity(choicePanelGroup, 1f - choiceFade);
+                SetPreludePanelOpacity(resultPanelGroup, resultReveal);
                 if (choicePanel != null)
                 {
                     choicePanel.GetComponent<RectTransform>().localScale =
-                        Vector3.one * Mathf.Lerp(1f, 0.94f, eased);
+                        Vector3.one * Mathf.Lerp(1f, 0.90f, choiceFade);
                 }
                 AnimatePreludeResultRevealIcon(
                     resultLocalChoiceIcon,
-                    eased,
+                    iconRise,
                     -1f);
                 AnimatePreludeResultRevealIcon(
                     resultOpponentChoiceIcon,
-                    eased,
+                    iconRise,
                     1f);
-                SetPreludeBackdropFocus(eased * 0.20f);
+                SetPreludeArenaBlend(clashBlend);
+                // Keep the three-pedestal scene at its original framing.
+                // The camera only starts moving once the two-pedestal
+                // confrontation art has taken over the screen.
+                float clashFocus = Mathf.InverseLerp(
+                    0.66f,
+                    1f,
+                    clashBlend);
+                SetPreludeBackdropFocus(clashFocus * 0.28f);
                 if (preludeCinematicVeil != null)
                 {
                     Color veil = new Color(0.018f, 0.08f, 0.20f, 1f);
-                    veil.a = Mathf.Sin(progress * Mathf.PI) * 0.30f;
+                    veil.a = Mathf.Sin(progress * Mathf.PI) * 0.38f;
                     preludeCinematicVeil.color = veil;
                 }
                 if (preludeCinematicRay != null)
                 {
                     Color ray = new Color(0.58f, 0.94f, 1f, 1f);
-                    ray.a = Mathf.Sin(progress * Mathf.PI) * 0.86f;
+                    ray.a = Mathf.Sin(progress * Mathf.PI) * 0.92f;
                     preludeCinematicRay.color = ray;
                     preludeCinematicRay.rectTransform.localScale =
                         new Vector3(
-                            Mathf.Lerp(0.08f, 1.18f, eased),
-                            Mathf.Lerp(2.15f, 0.62f, eased),
+                            Mathf.Lerp(0.06f, 1.26f, clashBlend),
+                            Mathf.Lerp(2.35f, 0.50f, clashBlend),
                             1f);
                 }
                 yield return null;
@@ -1005,12 +1042,12 @@ namespace ArcaneArena.Multiplayer
             if (icon == null)
                 return;
             icon.rectTransform.localScale = Vector3.one * Mathf.Lerp(
-                0.56f,
+                0.43f,
                 1f,
                 progress);
             icon.rectTransform.anchoredPosition = new Vector2(
-                horizontalDirection * Mathf.Lerp(38f, 0f, progress),
-                Mathf.Lerp(-92f, 0f, progress));
+                horizontalDirection * Mathf.Lerp(64f, 0f, progress),
+                Mathf.Lerp(-158f, 0f, progress));
         }
 
         private void ResetPreludeCinematicVeil()
@@ -1066,6 +1103,37 @@ namespace ArcaneArena.Multiplayer
                 Mathf.Lerp(0f, -32f, focus));
         }
 
+        private void SetPreludeArenaBlend(float clashBlend)
+        {
+            float blend = Mathf.Clamp01(clashBlend);
+            if (preludeClashArenaGroup == null ||
+                preludeClashArenaImage == null)
+            {
+                blend = 0f;
+            }
+            else if (preludeChoiceArenaGroup == null ||
+                     preludeChoiceArenaImage == null)
+            {
+                blend = 1f;
+            }
+            if (preludeChoiceArenaGroup != null)
+                preludeChoiceArenaGroup.alpha = 1f - blend;
+            if (preludeClashArenaGroup != null)
+                preludeClashArenaGroup.alpha = blend;
+            if (preludeChoiceArenaImage != null)
+            {
+                float scale = Mathf.Lerp(1f, 0.965f, blend);
+                preludeChoiceArenaImage.rectTransform.localScale =
+                    new Vector3(scale, scale, 1f);
+            }
+            if (preludeClashArenaImage != null)
+            {
+                float scale = Mathf.Lerp(1.085f, 1f, blend);
+                preludeClashArenaImage.rectTransform.localScale =
+                    new Vector3(scale, scale, 1f);
+            }
+        }
+
         private void ResetPreludeBackdropFraming()
         {
             if (preludeBackdrop == null)
@@ -1076,6 +1144,7 @@ namespace ArcaneArena.Multiplayer
                 return;
             backdrop.localScale = Vector3.one;
             backdrop.anchoredPosition = Vector2.zero;
+            SetPreludeArenaBlend(0f);
         }
 
         private void ApplyText(string primary, string secondary)
@@ -1399,33 +1468,26 @@ namespace ArcaneArena.Multiplayer
             stage.raycastTarget = false;
             preludeBackdrop = stage.gameObject;
 
-            Texture2D arenaTexture = Resources.Load<Texture2D>(
+            preludeChoiceArenaImage = CreatePreludeArenaArtwork(
+                stage.transform,
+                "Arena dos três selos",
                 "PreludeArena/decision_pedestal_arena");
-            if (arenaTexture == null)
+            if (preludeChoiceArenaImage != null)
             {
-                Debug.LogError(
-                    "A arte da arena de decisão não foi encontrada em " +
-                    "Resources/PreludeArena/decision_pedestal_arena.");
+                preludeChoiceArenaGroup = preludeChoiceArenaImage.gameObject
+                    .AddComponent<CanvasGroup>();
             }
-            else
+
+            preludeClashArenaImage = CreatePreludeArenaArtwork(
+                stage.transform,
+                "Arena do confronto",
+                "PreludeArena/decision_clash_arena");
+            if (preludeClashArenaImage != null)
             {
-                Image arena = CreateImage(
-                    stage.transform,
-                    "Arte da arena de decisão",
-                    Color.white,
-                    Vector2.zero,
-                    Vector2.one);
-                arena.sprite = Sprite.Create(
-                    arenaTexture,
-                    new Rect(0f, 0f, arenaTexture.width, arenaTexture.height),
-                    new Vector2(0.5f, 0.5f),
-                    100f);
-                AspectRatioFitter arenaFit = arena.gameObject
-                    .AddComponent<AspectRatioFitter>();
-                arenaFit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
-                arenaFit.aspectRatio = arenaTexture.width /
-                                       (float)arenaTexture.height;
+                preludeClashArenaGroup = preludeClashArenaImage.gameObject
+                    .AddComponent<CanvasGroup>();
             }
+            SetPreludeArenaBlend(0f);
 
             Image grading = CreateImage(
                 stage.transform,
@@ -1490,6 +1552,38 @@ namespace ArcaneArena.Multiplayer
                 }
             }
             preludeBackdrop.SetActive(false);
+        }
+
+        private static Image CreatePreludeArenaArtwork(
+            Transform parent,
+            string objectName,
+            string resourcePath)
+        {
+            Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+            if (texture == null)
+            {
+                Debug.LogError(
+                    "A arte da arena de decisão não foi encontrada em " +
+                    "Resources/" + resourcePath + ".");
+                return null;
+            }
+
+            Image image = CreateImage(
+                parent,
+                objectName,
+                Color.white,
+                Vector2.zero,
+                Vector2.one);
+            image.sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            AspectRatioFitter fit = image.gameObject
+                .AddComponent<AspectRatioFitter>();
+            fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fit.aspectRatio = texture.width / (float)texture.height;
+            return image;
         }
 
         private void UpdatePreludeMist(float now)
