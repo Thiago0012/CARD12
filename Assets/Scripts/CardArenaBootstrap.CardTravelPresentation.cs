@@ -17,6 +17,8 @@ namespace ArcaneArena
             float duration,
             CanvasGroup target,
             MonsterSummonArrivalEffect arrivalEffect,
+            MonsterFrameKind summonFrame,
+            DuelZone3D destinationZone,
             bool sinksIntoSpecialPile,
             DuelSpecialZoneWellVisual destinationWell)
         {
@@ -189,7 +191,10 @@ namespace ArcaneArena
             if (!sinksIntoSpecialPile)
                 RevealTransitionTarget(target);
             destinationWell?.PlayArrivalPulse();
-            PlayMonsterSummonArrivalEffect(arrivalEffect, destination);
+            if (PlaySummonMethodArrivalEffect(summonFrame, destination))
+                PlaySummonMethodParticleVfx(summonFrame, destinationZone);
+            else
+                PlayMonsterSummonArrivalEffect(arrivalEffect, destination);
             if (destinationPulse != null)
                 Destroy(destinationPulse);
             if (overlay != null)

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using ArcaneArena.Cards;
+using ArcaneArena.Presentation;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.Game;
 using UnityEngine;
@@ -16,10 +17,12 @@ namespace ArcaneArena
             public Color Accent;
             public ArcaneCardSound Sound;
             public bool HideIdentity;
-            public bool ExtraDeckSummon;
+            public bool SummonMethodVfx;
+            public MonsterFrameKind SummonFrame;
             public byte Controller;
             public byte Location;
             public uint Sequence;
+            public List<uint> MaterialCodes = new();
         }
 
         private readonly Queue<CardSoundPresentationRequest>
@@ -35,6 +38,7 @@ namespace ArcaneArena
 
         private void QueueCardSoundPresentation(DuelEvent duelEvent)
         {
+            TrackSummonMaterialPresentation(duelEvent);
             if (duelEvent?.Message == CoreMessage.Draw)
             {
                 if (!IsTurnDrawEvent(duelEvent))
@@ -124,19 +128,28 @@ namespace ArcaneArena
         private CardSoundPresentationRequest CreateSummonPresentation(
             DuelEvent duelEvent)
         {
+            MonsterFrameKind summonFrame =
+                LegacyEntryFor(duelEvent.Code)?.MonsterFrame ??
+                MonsterFrameKind.Unknown;
             return new CardSoundPresentationRequest
             {
                 Code = duelEvent.Code,
                 Heading = SummonPresentationHeading(duelEvent.Code),
-                Accent = Cyan,
+                Accent = SummonMethodVfxPalette.Supports(summonFrame)
+                    ? SummonMethodVfxPalette.Primary(summonFrame)
+                    : Cyan,
                 Sound = duelEvent.Message == CoreMessage.FlipSummoning
                     ? ArcaneCardSound.None
                     : SummonSoundFor(duelEvent.Code),
-                ExtraDeckSummon =
-                    IsExtraDeckSummonPresentation(duelEvent.Code),
+                SummonMethodVfx =
+                    HasDistinctSummonPresentation(duelEvent.Code),
+                SummonFrame = summonFrame,
                 Controller = duelEvent.Current?.Controller ?? duelEvent.Player,
                 Location = duelEvent.Current?.Location ?? 0,
-                Sequence = duelEvent.Current?.Sequence ?? 0
+                Sequence = duelEvent.Current?.Sequence ?? 0,
+                MaterialCodes = ConsumeSummonMaterialCodes(
+                    summonFrame,
+                    duelEvent.Current?.Controller ?? duelEvent.Player)
             };
         }
 
@@ -148,8 +161,11 @@ namespace ArcaneArena
                 MonsterFrameKind.Fusion => ArcaneCardSound.Fusion,
                 MonsterFrameKind.Synchro => ArcaneCardSound.Synchro,
                 MonsterFrameKind.Xyz => ArcaneCardSound.Xyz,
-                MonsterFrameKind.Link => ArcaneCardSound.None,
-                MonsterFrameKind.Pendulum => ArcaneCardSound.None,
+                // Link and Pendulum currently share the neutral summon cue;
+                // using a real clip keeps their cinematic duration tied to
+                // audio just like Fusion, Synchro and Xyz.
+                MonsterFrameKind.Link => ArcaneCardSound.MonsterSummon,
+                MonsterFrameKind.Pendulum => ArcaneCardSound.MonsterSummon,
                 _ => ArcaneCardSound.MonsterSummon
             };
         }
@@ -211,7 +227,9 @@ namespace ArcaneArena
                         request.Accent,
                         request.Sound,
                         request.HideIdentity,
-                        request.ExtraDeckSummon);
+                        request.SummonMethodVfx,
+                        request.SummonFrame,
+                        request.MaterialCodes);
                     ReleaseDeferredMonsterArrival(request);
                     activeCardSoundPresentation = null;
                 }
@@ -259,6 +277,7 @@ namespace ArcaneArena
             lastCardPresentationClick = -10f;
             cardAudioDirector?.StopCardCue();
             pendingSummonPresentation = null;
+            ResetSummonMaterialPresentation();
             activeCardSoundPresentation = null;
             cardSoundPresentationQueue.Clear();
             cardSoundPresentationRoutine = null;
@@ -272,15 +291,12 @@ namespace ArcaneArena
             core?.SetPresentationDecisionLocked(locked);
         }
 
-        private bool IsExtraDeckSummonPresentation(uint code)
+        private bool HasDistinctSummonPresentation(uint code)
         {
             MonsterFrameKind frame =
                 LegacyEntryFor(code)?.MonsterFrame ??
                 MonsterFrameKind.Unknown;
-            return frame == MonsterFrameKind.Fusion ||
-                   frame == MonsterFrameKind.Synchro ||
-                   frame == MonsterFrameKind.Xyz ||
-                   frame == MonsterFrameKind.Link;
+            return SummonMethodVfxPalette.Supports(frame);
         }
 
         private string SummonPresentationHeading(uint code)

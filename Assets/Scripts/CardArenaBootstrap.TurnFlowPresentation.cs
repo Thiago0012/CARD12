@@ -196,6 +196,7 @@ namespace ArcaneArena
                 CreateDrawGhost(deck);
                 float elapsed = 0f;
                 float waitStartedAt = Time.realtimeSinceStartup;
+                int displayedRemaining = -1;
                 while (!drawDeckClickRequested &&
                        elapsed < DrawClickTimeoutSeconds)
                 {
@@ -205,9 +206,17 @@ namespace ArcaneArena
                         1,
                         Mathf.CeilToInt(
                             DrawClickTimeoutSeconds - elapsed));
-                    SetStatus(
-                        $"FASE DE COMPRA · clique no Deck ({remaining}s)",
-                        Cyan);
+                    // Updating the same Text, outline and HUD surface every
+                    // rendered frame invalidates the Canvas mesh and looked
+                    // like a flicker above the Deck. The countdown only has
+                    // one meaningful UI change per second.
+                    if (remaining != displayedRemaining)
+                    {
+                        displayedRemaining = remaining;
+                        SetStatus(
+                            $"FASE DE COMPRA · clique no Deck ({remaining}s)",
+                            Cyan);
+                    }
                     yield return null;
                 }
 

@@ -139,6 +139,100 @@ namespace ArcaneDuel.Tests.PlayMode
                 GameObject.Find("Efeito de Invocacao Roxo"),
                 Is.Null);
 
+            Type monsterFrame = Type.GetType(
+                "ArcaneArena.Cards.MonsterFrameKind, Assembly-CSharp");
+            MethodInfo playMethodEffect = arena.GetType().GetMethod(
+                "PlaySummonMethodArrivalEffect",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(monsterFrame, Is.Not.Null);
+            Assert.That(playMethodEffect, Is.Not.Null);
+            foreach (string frameName in new[]
+                     {
+                         "Fusion",
+                         "Synchro",
+                         "Xyz",
+                         "Link",
+                         "Pendulum"
+                     })
+            {
+                object played = playMethodEffect.Invoke(
+                    arena,
+                    new[]
+                    {
+                        Enum.Parse(monsterFrame, frameName),
+                        (object)Vector2.zero
+                    });
+                Assert.That(played, Is.EqualTo(true));
+                Assert.That(
+                    GameObject.Find($"Impacto de Invocação {frameName}"),
+                    Is.Not.Null);
+            }
+            yield return new WaitForSecondsRealtime(0.95f);
+            Assert.That(
+                GameObject.Find("Impacto de Invocação Fusion"),
+                Is.Null);
+            Assert.That(
+                GameObject.Find("Impacto de Invocação Pendulum"),
+                Is.Null);
+
+            Type particleVfx = Type.GetType(
+                "ArcaneArena.Presentation.SummonMethodParticleVfx, " +
+                "Assembly-CSharp");
+            MethodInfo playParticleVfx = particleVfx?.GetMethod(
+                "Play",
+                BindingFlags.Static | BindingFlags.Public);
+            Assert.That(particleVfx, Is.Not.Null);
+            Assert.That(playParticleVfx, Is.Not.Null);
+            var particleAnchor = new GameObject("Âncora de teste VFX");
+            foreach (string frameName in new[]
+                     {
+                         "Fusion",
+                         "Synchro",
+                         "Xyz",
+                         "Link",
+                         "Pendulum"
+                     })
+            {
+                Component effect = playParticleVfx.Invoke(
+                    null,
+                    new object[]
+                    {
+                        particleAnchor.transform,
+                        Enum.Parse(monsterFrame, frameName),
+                        true
+                    }) as Component;
+                Assert.That(effect, Is.Not.Null);
+                ParticleSystem[] systems =
+                    effect.GetComponentsInChildren<ParticleSystem>();
+                Assert.That(
+                    systems.Length,
+                    Is.GreaterThanOrEqualTo(1),
+                    $"{frameName} must use a real Particle System VFX layer.");
+                Assert.That(
+                    Array.TrueForAll(
+                        systems,
+                        system => system.main.maxParticles <= 24),
+                    Is.True,
+                    $"{frameName} exceeded the Android particle budget.");
+                if (frameName == "Link")
+                {
+                    Assert.That(
+                        effect.GetComponentsInChildren<LineRenderer>().Length,
+                        Is.GreaterThanOrEqualTo(4),
+                        "Link VFX must retain its animated energy network.");
+                }
+                if (frameName == "Pendulum")
+                {
+                    Assert.That(
+                        systems.Length,
+                        Is.GreaterThanOrEqualTo(3),
+                        "Pendulum VFX needs both scales and their connecting arc.");
+                }
+                UnityEngine.Object.Destroy(effect.gameObject);
+            }
+            UnityEngine.Object.Destroy(particleAnchor);
+            yield return null;
+
             DuelArenaController controller =
                 arena.GetComponent<DuelArenaController>();
             Assert.That(controller, Is.Not.Null);

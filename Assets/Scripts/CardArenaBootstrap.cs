@@ -154,6 +154,7 @@ namespace ArcaneArena
         private ulong observedFieldSignature;
         private DuelZone3D draggingAttacker;
         private LineRenderer attackLine;
+        private DuelAttackArrowVfx attackArrowVfx;
         private bool presentationReady;
         private bool criticalInteractionLocked;
         private float nextPassiveRefreshTime;
@@ -4313,20 +4314,11 @@ namespace ArcaneArena
 
         private void EnsureAttackLine()
         {
-            if (attackLine != null) return;
+            if (attackLine != null && attackArrowVfx != null) return;
             var line = new GameObject("Seta de Ataque");
             attackLine = line.AddComponent<LineRenderer>();
-            attackLine.positionCount = 2;
-            attackLine.startWidth = 0.18f;
-            attackLine.endWidth = 0.04f;
-            attackLine.startColor = Cyan;
-            attackLine.endColor = Gold;
-            Shader shader =
-                Shader.Find("Sprites/Default") ??
-                Shader.Find("Universal Render Pipeline/Unlit");
-            if (shader != null)
-                attackLine.material = new Material(shader);
-            attackLine.enabled = false;
+            attackArrowVfx = line.AddComponent<DuelAttackArrowVfx>();
+            attackArrowVfx.Configure(attackLine, Red, Gold, Muted);
         }
 
         private IEnumerator ShowCardPresentation(
@@ -4335,7 +4327,9 @@ namespace ArcaneArena
             Color accent,
             ArcaneCardSound sound,
             bool hideIdentity,
-            bool extraDeckSummon)
+            bool summonMethodVfx,
+            MonsterFrameKind summonFrame,
+            IReadOnlyList<uint> summonMaterials)
         {
             if ((!hideIdentity && code == 0) || arenaCanvas == null)
                 yield break;
@@ -4348,8 +4342,12 @@ namespace ArcaneArena
             overlay.transform.SetAsLastSibling();
             var group = overlay.AddComponent<CanvasGroup>();
             group.alpha = 0f;
-            ExtraDeckSummonFocus summonFocus = extraDeckSummon
-                ? CreateExtraDeckSummonFocus(overlay.transform, accent)
+            ExtraDeckSummonFocus summonFocus = summonMethodVfx
+                ? CreateExtraDeckSummonFocus(
+                    overlay.transform,
+                    accent,
+                    summonFrame,
+                    summonMaterials)
                 : null;
             Sprite presentedSprite = hideIdentity
                 ? cardBackSprite
@@ -4405,7 +4403,7 @@ namespace ArcaneArena
                 0f,
                 0f,
                 -9f);
-            CreateText(
+            Text presentationHeading = CreateText(
                 overlay.transform,
                 heading,
                 20,
@@ -4414,7 +4412,7 @@ namespace ArcaneArena
                 new Vector2(0.30f, 0.84f),
                 new Vector2(0.70f, 0.91f),
                 TextAnchor.MiddleCenter);
-            CreateText(
+            Text presentationName = CreateText(
                 overlay.transform,
                 hideIdentity ? "CARTA VIRADA PARA BAIXO" : CardName(code),
                 30,
@@ -4513,6 +4511,54 @@ namespace ArcaneArena
                     elapsed,
                     totalDuration,
                     speed);
+                if (summonFocus != null)
+                {
+                    float reveal = summonFocus.CardReveal;
+                    float revealEase = TransitionEaseOutCubic(reveal);
+                    art.color = new Color(1f, 1f, 1f, reveal);
+                    art.rectTransform.localScale *= Mathf.Lerp(
+                        0.34f,
+                        1f,
+                        revealEase);
+                    float methodTurn = summonFrame switch
+                    {
+                        MonsterFrameKind.Fusion => -18f,
+                        MonsterFrameKind.Synchro => 9f,
+                        MonsterFrameKind.Xyz => 26f,
+                        MonsterFrameKind.Link => -12f,
+                        MonsterFrameKind.Pendulum => 7f,
+                        _ => 0f
+                    };
+                    art.rectTransform.localRotation *= Quaternion.Euler(
+                        0f,
+                        0f,
+                        methodTurn * (1f - revealEase));
+
+                    Color auraColor = aura.color;
+                    auraColor.a *= reveal;
+                    aura.color = auraColor;
+                    Color outerAuraColor = outerAura.color;
+                    outerAuraColor.a *= reveal;
+                    outerAura.color = outerAuraColor;
+                    Color shineColor = shine.color;
+                    shineColor.a *= reveal;
+                    shine.color = shineColor;
+                    if (presentationName != null)
+                    {
+                        Color nameColor = presentationName.color;
+                        nameColor.a = reveal;
+                        presentationName.color = nameColor;
+                    }
+                    if (presentationHeading != null)
+                    {
+                        Color headingColor = presentationHeading.color;
+                        headingColor.a = Mathf.Lerp(
+                            0.62f,
+                            1f,
+                            reveal);
+                        presentationHeading.color = headingColor;
+                    }
+                }
                 yield return null;
             }
             cardPresentationCanAccelerate = false;

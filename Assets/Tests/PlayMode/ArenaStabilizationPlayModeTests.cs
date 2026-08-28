@@ -1514,7 +1514,13 @@ namespace ArcaneDuel.Tests.PlayMode
                 catalog,
                 summonSound,
                 8,
-                ArcaneCardSound.None);
+                ArcaneCardSound.MonsterSummon);
+            AssertSoundForFrame(
+                arena,
+                catalog,
+                summonSound,
+                9,
+                ArcaneCardSound.MonsterSummon);
             AssertSoundForCategory(
                 arena,
                 catalog,

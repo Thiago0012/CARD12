@@ -33,6 +33,9 @@ namespace ArcaneArena
         private Text decisionRibbonText;
         private Outline decisionRibbonOutline;
         private DuelHudSurfaceGraphic decisionRibbonSurface;
+        private string renderedDecisionRibbonValue = string.Empty;
+        private Color renderedDecisionRibbonColor = Color.clear;
+        private bool decisionRibbonVisible;
         private GameObject opponentHandFan;
         private RectTransform opponentHandContent;
         private Text opponentHandCount;
@@ -400,10 +403,26 @@ namespace ArcaneArena
                 HideDecisionRibbon();
                 return;
             }
-            decisionRibbon.SetActive(true);
-            decisionRibbonText.text = value ?? string.Empty;
-            decisionRibbonAccent.color = color;
-            decisionRibbonKicker.color = color;
+            string normalized = value ?? string.Empty;
+            bool contentChanged =
+                !string.Equals(
+                    renderedDecisionRibbonValue,
+                    normalized,
+                    StringComparison.Ordinal) ||
+                renderedDecisionRibbonColor != color;
+            if (!decisionRibbon.activeSelf)
+                decisionRibbon.SetActive(true);
+            decisionRibbonVisible = true;
+            if (!contentChanged)
+                return;
+
+            renderedDecisionRibbonValue = normalized;
+            renderedDecisionRibbonColor = color;
+            decisionRibbonText.text = normalized;
+            if (decisionRibbonAccent != null)
+                decisionRibbonAccent.color = color;
+            if (decisionRibbonKicker != null)
+                decisionRibbonKicker.color = color;
             decisionRibbonSurface?.SetStyle(
                 color,
                 true,
@@ -416,6 +435,12 @@ namespace ArcaneArena
 
         private void HideDecisionRibbon()
         {
+            if (!decisionRibbonVisible &&
+                (decisionRibbon == null || !decisionRibbon.activeSelf))
+            {
+                return;
+            }
+            decisionRibbonVisible = false;
             if (decisionRibbonGroup != null)
                 decisionRibbonGroup.alpha = 0f;
             if (decisionRibbon != null)

@@ -41,6 +41,7 @@ namespace ArcaneArena
             public bool EntersSpecialPile;
             public DuelSpecialZoneWellVisual DestinationWell;
             public MonsterSummonArrivalEffect ArrivalEffect;
+            public MonsterFrameKind SummonFrame;
             public CanvasGroup HiddenTarget;
             public bool Released;
         }
@@ -108,7 +109,13 @@ namespace ArcaneArena
                                 (duelEvent.Current.Location &
                                  DuelLocation.MonsterZone) != 0
                     ? ArrivalEffectFor(duelEvent.Code)
-                    : MonsterSummonArrivalEffect.None
+                    : MonsterSummonArrivalEffect.None,
+                SummonFrame = entersField && destinationFaceUp &&
+                              (duelEvent.Current.Location &
+                               DuelLocation.MonsterZone) != 0
+                    ? LegacyEntryFor(duelEvent.Code)?.MonsterFrame ??
+                      MonsterFrameKind.Unknown
+                    : MonsterFrameKind.Unknown
             };
         }
 
@@ -212,6 +219,10 @@ namespace ArcaneArena
                 duration,
                 target,
                 snapshot.ArrivalEffect,
+                snapshot.SummonFrame,
+                snapshot.EntersField
+                    ? ZoneFor(snapshot.Current)
+                    : null,
                 snapshot.EntersSpecialPile,
                 snapshot.DestinationWell));
         }

@@ -31,6 +31,7 @@ namespace ArcaneArena
         private int attackTargetSelectionPointerId = int.MinValue;
         private bool awaitingAttackTargetPrompt;
         private bool attackTargetingActive;
+        private bool attackArrowLockedToIntent;
         private DuelPrompt attackTargetPrompt;
         private DuelChoice directAttackTargetChoice;
         private DuelZone3D highlightedAttackTarget;
@@ -96,14 +97,30 @@ namespace ArcaneArena
 
             Vector3 start = AttackAnchor(source);
             Vector3 end;
+            bool validTarget = false;
+            bool directTarget = false;
             if (attackTargetingActive &&
                 TryCandidateForZone(hovered, out AttackTargetCandidate target))
             {
                 end = AttackAnchor(target.Zone);
+                validTarget = true;
+            }
+            else if (!attackTargetingActive && hovered != null &&
+                     hovered.Kind == DuelZoneKind.Monster &&
+                     hovered.Owner != source.Owner)
+            {
+                // Before the Core opens SelectCard there is no legal-target
+                // list yet, but snapping to the opposing monster keeps the
+                // drag stable on both mouse and touch. Final legality still
+                // comes exclusively from the following Core prompt.
+                end = AttackAnchor(hovered);
+                validTarget = true;
             }
             else if (CanAimAtDirectAttack(screenPosition))
             {
                 end = DirectAttackPoint(source.Owner);
+                validTarget = true;
+                directTarget = true;
             }
             else
             {
@@ -113,9 +130,11 @@ namespace ArcaneArena
                     end = hit.point + Vector3.up * 0.25f;
             }
 
-            attackLine.SetPosition(0, start);
-            attackLine.SetPosition(1, end);
-            attackLine.enabled = true;
+            RenderAttackArrow(
+                start,
+                end,
+                validTarget,
+                directTarget);
         }
 
         public void EndMonsterAttackDrag(
@@ -148,6 +167,8 @@ namespace ArcaneArena
             intendedDirectAttack =
                 pendingAttackCommand?.DirectAttackAvailable == true &&
                 CanAimAtDirectAttack(screenPosition);
+            attackArrowLockedToIntent =
+                intendedAttackTarget != null || intendedDirectAttack;
 
             DuelChoice attack = pendingAttackCommand;
             if (attack == null ||
@@ -177,6 +198,18 @@ namespace ArcaneArena
             if (!attackTargetingActive || pendingAttackSource == null ||
                 InteractionLocked)
             {
+                return;
+            }
+
+            // The release submits the attack command first and the Core emits
+            // the target prompt on a later frame. Mouse/touch hover must not
+            // overwrite the target captured at release during that gap.
+            if (attackArrowLockedToIntent)
+            {
+                if (intendedAttackTarget != null)
+                    PointAttackLineAt(intendedAttackTarget);
+                else if (intendedDirectAttack)
+                    PointAttackLineAtDirectTarget();
                 return;
             }
 
@@ -266,6 +299,7 @@ namespace ArcaneArena
             pendingAttackCommandRequestId =
                 attackCommand?.RequestId ?? core?.CurrentPrompt?.RequestId ?? 0;
             awaitingAttackTargetPrompt = true;
+            attackArrowLockedToIntent = false;
         }
 
         private bool TryPresentAttackTargeting(DuelPrompt prompt)
@@ -337,10 +371,13 @@ namespace ArcaneArena
             }
             else
             {
+                attackArrowLockedToIntent = false;
+                intendedAttackTarget = null;
+                intendedDirectAttack = false;
                 if (directAttackTargetChoice != null)
                     PointAttackLineAtDirectTarget();
-                else if (attackLine != null)
-                    attackLine.enabled = false;
+                else
+                    HideAttackArrow();
             }
 
             SetStatus(
@@ -535,25 +572,60 @@ namespace ArcaneArena
 
         private void PointAttackLineAt(DuelZone3D target)
         {
-            if (attackLine == null || pendingAttackSource == null ||
+            if (pendingAttackSource == null ||
                 target == null)
             {
                 return;
             }
-            attackLine.SetPosition(0, AttackAnchor(pendingAttackSource));
-            attackLine.SetPosition(1, AttackAnchor(target));
-            attackLine.enabled = true;
+            RenderAttackArrow(
+                AttackAnchor(pendingAttackSource),
+                AttackAnchor(target),
+                true,
+                false);
         }
 
         private void PointAttackLineAtDirectTarget()
         {
-            if (attackLine == null || pendingAttackSource == null)
+            if (pendingAttackSource == null)
                 return;
-            attackLine.SetPosition(0, AttackAnchor(pendingAttackSource));
-            attackLine.SetPosition(
-                1,
-                DirectAttackPoint(pendingAttackSource.Owner));
+            RenderAttackArrow(
+                AttackAnchor(pendingAttackSource),
+                DirectAttackPoint(pendingAttackSource.Owner),
+                true,
+                true);
+        }
+
+        private void RenderAttackArrow(
+            Vector3 start,
+            Vector3 end,
+            bool validTarget,
+            bool directTarget)
+        {
+            EnsureAttackLine();
+            if (attackArrowVfx != null)
+            {
+                attackArrowVfx.SetEndpoints(
+                    start,
+                    end,
+                    validTarget,
+                    directTarget);
+                return;
+            }
+
+            if (attackLine == null)
+                return;
+            attackLine.positionCount = 2;
+            attackLine.SetPosition(0, start);
+            attackLine.SetPosition(1, end);
             attackLine.enabled = true;
+        }
+
+        private void HideAttackArrow()
+        {
+            if (attackArrowVfx != null)
+                attackArrowVfx.SetVisible(false);
+            else if (attackLine != null)
+                attackLine.enabled = false;
         }
 
         private static Vector3 AttackAnchor(DuelZone3D zone)
@@ -590,8 +662,7 @@ namespace ArcaneArena
             if (highlightedAttackTarget != null)
                 highlightedAttackTarget.SetDropHighlight(false);
             highlightedAttackTarget = null;
-            if (attackLine != null)
-                attackLine.enabled = false;
+            HideAttackArrow();
             if (directAttackTargetButton != null)
                 directAttackTargetButton.SetActive(false);
             if (attackTargetingActive)
@@ -611,6 +682,7 @@ namespace ArcaneArena
             awaitingAttackTargetPrompt = true;
             intendedAttackTarget = null;
             intendedDirectAttack = false;
+            attackArrowLockedToIntent = false;
         }
 
         private void CancelAttackTargeting()
@@ -623,8 +695,7 @@ namespace ArcaneArena
             if (highlightedAttackTarget != null)
                 highlightedAttackTarget.SetDropHighlight(false);
             highlightedAttackTarget = null;
-            if (attackLine != null)
-                attackLine.enabled = false;
+            HideAttackArrow();
             if (directAttackTargetButton != null)
                 directAttackTargetButton.SetActive(false);
             draggingAttacker = null;
@@ -637,6 +708,7 @@ namespace ArcaneArena
             pendingAttackCommandRequestId = 0;
             intendedAttackTarget = null;
             intendedDirectAttack = false;
+            attackArrowLockedToIntent = false;
             awaitingAttackTargetPrompt = false;
             attackTargetingActive = false;
             attackTargetPrompt = null;
