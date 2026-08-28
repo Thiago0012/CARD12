@@ -427,7 +427,7 @@ namespace ArcaneArena.Frontend
                 .raycastTarget = false;
             CreateText(
                 storyButton.transform,
-                "JORNADA ROGUELITE  •  3 ATOS",
+                "BETA  •  EM DESENVOLVIMENTO",
                 10,
                 FontStyle.Bold,
                 new Color(0.48f, 0.90f, 0.96f, 0.96f),
@@ -540,22 +540,25 @@ namespace ArcaneArena.Frontend
                 0f,
                 -9f);
 
-            Image progressTrack = CreatePanel(
-                _screenRoot,
+            var progressObject = new GameObject(
                 "Barra de progresso de elo",
-                new Vector2(0.373f, 0.224f),
-                new Vector2(0.802f, 0.268f),
-                new Color(0.005f, 0.018f, 0.035f, 0.88f));
-            Image progressFill = CreatePanel(
-                progressTrack.transform,
-                "Preenchimento do progresso de elo",
-                new Vector2(0.008f, 0.17f),
-                new Vector2(
-                    Mathf.Lerp(0.008f, 0.992f, rank.Progress01),
-                    0.83f),
-                new Color(0.04f, 0.82f, 0.96f, 0.96f));
-            progressTrack.raycastTarget = false;
-            progressFill.raycastTarget = false;
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(ArcaneRankProgressGraphic));
+            progressObject.transform.SetParent(_screenRoot, false);
+            RectTransform progressRect =
+                progressObject.GetComponent<RectTransform>();
+            progressRect.anchorMin = new Vector2(0.373f, 0.224f);
+            progressRect.anchorMax = new Vector2(0.802f, 0.268f);
+            progressRect.offsetMin = Vector2.zero;
+            progressRect.offsetMax = Vector2.zero;
+            ArcaneRankProgressGraphic progressGraphic =
+                progressObject.GetComponent<ArcaneRankProgressGraphic>();
+            progressGraphic.SetProgress(
+                rank.Progress01,
+                ArcaneCyan,
+                ArcaneGold);
+            progressGraphic.raycastTarget = false;
 
             CreateText(
                 _screenRoot,

@@ -93,13 +93,34 @@ namespace ArcaneArena.Frontend
             PlayerFriendsRuntime.SetLocalDisplayName(
                 _repository?.PlayerDisplayName);
 
+            string bindingRejection = string.Empty;
+            bool accountBound = _repository != null &&
+                !string.IsNullOrWhiteSpace(snapshot.playerId) &&
+                _repository.TryBindAuthenticatedPlayerId(
+                    snapshot.playerId,
+                    out bindingRejection);
             if (_repository != null &&
                 !string.IsNullOrWhiteSpace(snapshot.playerId) &&
-                !_repository.TryBindAuthenticatedPlayerId(
-                    snapshot.playerId,
-                    out string bindingRejection))
+                !accountBound)
             {
                 Debug.LogWarning("[ID da conta] " + bindingRejection);
+            }
+            else if (accountBound)
+            {
+                string publicId = PlayerIdAccessPolicy.NormalizePublicId(
+                    snapshot.publicId,
+                    snapshot.playerId);
+                if (DeveloperAccountRegistry.IsDeveloperPublicId(publicId) &&
+                    !_repository.TryGrantCoins(
+                        5000,
+                        "Crédito único da conta de desenvolvimento",
+                        "dev-entitlement:coins:v1:" + publicId,
+                        out _,
+                        out string grantRejection))
+                {
+                    Debug.LogWarning(
+                        "[Conta de desenvolvimento] " + grantRejection);
+                }
             }
 
             if (snapshot.serverVerified &&

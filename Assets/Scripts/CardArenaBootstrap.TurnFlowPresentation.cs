@@ -165,6 +165,7 @@ namespace ArcaneArena
             activeDrawDeckPosition = deck.position;
             activeDrawDeckRotation = deck.rotation;
             activeDrawDeckScale = deck.localScale;
+            HideDecisionRibbon();
 
             bool localDraw = request.Player == 0;
             if (localDraw)
@@ -174,9 +175,6 @@ namespace ArcaneArena
                 drawInteractionSide = side;
                 if (activeDrawDeckZone != null)
                     activeDrawDeckZone.SetDropHighlight(true);
-                SetStatus(
-                    "FASE DE COMPRA · o Deck está se aproximando.",
-                    Cyan);
             }
 
             Quaternion drawFocusRotation =
@@ -201,31 +199,17 @@ namespace ArcaneArena
                 {
                     elapsed = Time.realtimeSinceStartup - waitStartedAt;
                     UpdateDrawGhost(deck, elapsed);
-                    int remaining = Mathf.Max(
-                        1,
-                        Mathf.CeilToInt(
-                            DrawClickTimeoutSeconds - elapsed));
-                    SetStatus(
-                        $"FASE DE COMPRA · clique no Deck ({remaining}s)",
-                        Cyan);
                     yield return null;
                 }
 
-                bool automatic = !drawDeckClickRequested;
                 awaitingDrawDeckClick = false;
                 if (activeDrawDeckZone != null)
                     activeDrawDeckZone.SetDropHighlight(false);
                 DestroyActiveDrawGhost();
-                SetStatus(
-                    automatic
-                        ? "COMPRA AUTOMÁTICA · limite de 5 segundos atingido."
-                        : "CARTA COMPRADA",
-                    automatic ? Gold : Cyan);
                 yield return new WaitForSecondsRealtime(0.10f);
             }
             else
             {
-                SetStatus("O OPONENTE ESTÁ COMPRANDO UMA CARTA", Gold);
                 yield return new WaitForSecondsRealtime(
                     DuelAnimationPreferences.Duration(0.55f));
             }
@@ -274,7 +258,6 @@ namespace ArcaneArena
             }
 
             drawDeckClickRequested = true;
-            SetStatus("COMPRA CONFIRMADA", Cyan);
             return true;
         }
 
@@ -530,9 +513,6 @@ namespace ArcaneArena
 
             drawRevealFastForwardRequested = false;
             drawRevealCanFastForward = true;
-            SetStatus(
-                "CARTA COMPRADA · clique para acelerar",
-                Cyan);
             float holdElapsed = 0f;
             float holdStartedAt = Time.realtimeSinceStartup;
             while (holdElapsed < DrawRevealHoldSeconds)
@@ -644,7 +624,6 @@ namespace ArcaneArena
             SetDrawUiPose(card, revealViewport, revealHeight, 0f);
             drawRevealFastForwardRequested = false;
             drawRevealCanFastForward = true;
-            SetStatus("CARTA COMPRADA · clique para acelerar", Cyan);
             float holdElapsed = 0f;
             float holdStartedAt = Time.realtimeSinceStartup;
             while (holdElapsed < DrawRevealHoldSeconds)

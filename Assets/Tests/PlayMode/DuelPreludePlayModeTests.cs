@@ -59,6 +59,14 @@ namespace ArcaneDuel.Tests.PlayMode
                 session.GetField("PreludeResultMessage", hidden)
                     ?.GetRawConstantValue(),
                 Is.EqualTo("arcane.duel.prelude-result.v1"));
+            Assert.That(
+                session.GetField("PreludeStartChoiceMessage", hidden)
+                    ?.GetRawConstantValue(),
+                Is.EqualTo("arcane.duel.prelude-start-choice.v1"));
+            Assert.That(
+                session.GetField("PreludeStartDecisionMessage", hidden)
+                    ?.GetRawConstantValue(),
+                Is.EqualTo("arcane.duel.prelude-start-decision.v1"));
 
             Type result = session.GetNestedType(
                 "PreludeResultPayload",
@@ -68,6 +76,15 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(result?.GetField("clientChoice"), Is.Not.Null);
             Assert.That(result?.GetField("winnerSeat"), Is.Not.Null);
             Assert.That(result?.GetField("tie"), Is.Not.Null);
+
+            Type startChoice = session.GetNestedType(
+                "PreludeStartChoicePayload",
+                BindingFlags.NonPublic);
+            Assert.That(startChoice?.GetField("winnerStarts"), Is.Not.Null);
+            Type startDecision = session.GetNestedType(
+                "PreludeStartDecisionPayload",
+                BindingFlags.NonPublic);
+            Assert.That(startDecision?.GetField("startingPlayer"), Is.Not.Null);
         }
 
         private static Type TypeByName(string fullName)

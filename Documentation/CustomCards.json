@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "cards": [
+    {
+      "code": 99990001,
+      "alias": 0,
+      "setcodes": [],
+      "type": 8225,
+      "attack": 99999,
+      "defense": 99999,
+      "level": 13,
+      "race": 512,
+      "attribute": 16,
+      "leftScale": 0,
+      "rightScale": 0,
+      "englishName": "Mixael, the Cursed Gaze",
+      "name": "Mixael, o Olhar Maldito",
+      "description": "3 Reguladores + 3 monstros não-Reguladores (1 Besta, 1 Demônio e 1 Fada)\nSe este card for Invocado por Invocação-Sincro: bana todos os outros cards no campo, nas mãos e nos Cemitérios. Este efeito não pode ser negado. Este card pode atacar diretamente. Quando este card declarar um ataque direto: você vence o Duelo. Uma vez por turno: você pode banir todos os cards que seu oponente controla. Este efeito não pode ser negado. Este card não é afetado pelos efeitos de outros cards e seu oponente não pode ativar cards ou efeitos em resposta à ativação dos efeitos deste card.",
+      "strings": [
+        "Bana todos os outros cards no campo, nas mãos e nos Cemitérios",
+        "Bana todos os cards que seu oponente controla"
+      ]
+    }
+  ]
+}

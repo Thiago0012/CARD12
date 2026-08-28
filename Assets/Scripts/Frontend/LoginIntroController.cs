@@ -89,6 +89,10 @@ namespace ArcaneArena.Frontend
 
             if (loginButton != null)
             {
+                ApplyModernArcaneButton(
+                    loginButton,
+                    new Color(0.12f, 0.75f, 0.88f, 1f),
+                    11f);
                 loginButton.interactable = false;
                 loginButton.onClick.AddListener(HandleLoginButton);
             }
@@ -257,17 +261,86 @@ namespace ArcaneArena.Frontend
             CreateUpdateText(
                 _accountRestoreOffer.transform,
                 "ENTRAR EM CONTA",
-                16,
+                20,
                 new Color(0.82f, 0.94f, 1f, 1f),
                 new Vector2(0.05f, 0.34f),
                 new Vector2(0.95f, 0.92f));
             CreateUpdateText(
                 _accountRestoreOffer.transform,
                 "RECUPERAR NO PC OU CELULAR",
-                9,
+                11,
                 new Color(0.48f, 0.70f, 0.80f, 1f),
                 new Vector2(0.05f, 0.05f),
                 new Vector2(0.95f, 0.40f));
+            ApplyModernArcaneButton(
+                _accountRestoreButton,
+                new Color(0.40f, 0.68f, 0.80f, 1f),
+                10f);
+        }
+
+        private static void ApplyModernArcaneButton(
+            Button button,
+            Color accent,
+            float chamfer)
+        {
+            if (button == null)
+                return;
+
+            Image legacy = button.GetComponent<Image>();
+            if (legacy != null)
+                legacy.color = new Color(0f, 0f, 0f, 0.015f);
+            Outline legacyOutline = button.GetComponent<Outline>();
+            if (legacyOutline != null)
+                legacyOutline.enabled = false;
+
+            Transform existing = button.transform.Find(
+                "Superfície Arcane do Botão");
+            ArcaneShopSurfaceGraphic surface = existing != null
+                ? existing.GetComponent<ArcaneShopSurfaceGraphic>()
+                : null;
+            if (surface == null)
+            {
+                var surfaceObject = new GameObject(
+                    "Superfície Arcane do Botão",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(ArcaneShopSurfaceGraphic));
+                surfaceObject.transform.SetParent(button.transform, false);
+                surfaceObject.transform.SetAsFirstSibling();
+                RectTransform rect =
+                    surfaceObject.GetComponent<RectTransform>();
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+                surface = surfaceObject.GetComponent<ArcaneShopSurfaceGraphic>();
+            }
+
+            surface.SetStyle(accent, true, 1f, chamfer);
+            surface.raycastTarget = true;
+            button.targetGraphic = surface;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = Color.Lerp(Color.white, accent, 0.16f);
+            colors.pressedColor = Color.Lerp(Color.white, accent, 0.42f);
+            colors.selectedColor = Color.Lerp(Color.white, accent, 0.22f);
+            colors.disabledColor = new Color(0.48f, 0.54f, 0.58f, 0.72f);
+            colors.fadeDuration = 0.10f;
+            button.colors = colors;
+
+            foreach (Text label in button.GetComponentsInChildren<Text>(true))
+            {
+                label.font = MasterDuelTypography.Resolve(
+                    FontStyle.Bold,
+                    Mathf.Max(25, label.fontSize));
+                label.fontStyle = FontStyle.Normal;
+                label.resizeTextForBestFit = false;
+                Shadow shadow = label.GetComponent<Shadow>() ??
+                                label.gameObject.AddComponent<Shadow>();
+                shadow.effectColor = new Color(0f, 0f, 0f, 0.72f);
+                shadow.effectDistance = new Vector2(1f, -1f);
+                shadow.useGraphicAlpha = true;
+            }
         }
 
         private void HandleAccountRestoreButton()

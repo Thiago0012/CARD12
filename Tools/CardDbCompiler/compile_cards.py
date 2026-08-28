@@ -37,6 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--minimum-count", type=int, default=200)
     parser.add_argument("--sqlite3-cli", type=Path)
     parser.add_argument("--localization", type=Path)
+    parser.add_argument("--custom-cards", type=Path)
     return parser.parse_args()
 
 
@@ -57,6 +58,27 @@ def load_localization(path: Path | None) -> dict[int, dict]:
             raise ValueError(f"Localization strings must be a list for {code:08d}")
         overrides[code] = card
     return overrides
+
+
+def load_custom_cards(path: Path | None) -> dict[int, dict]:
+    if path is None or not path.exists():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schemaVersion") != 1 or not isinstance(payload.get("cards"), list):
+        raise ValueError("Custom card file must use schemaVersion 1 and contain cards")
+    custom: dict[int, dict] = {}
+    for raw in payload["cards"]:
+        code = int(raw["code"])
+        if code <= 0 or code in custom:
+            raise ValueError(f"Invalid or duplicate custom code {code:08d}")
+        if not str(raw.get("name", "")).strip():
+            raise ValueError(f"Custom card name is empty for {code:08d}")
+        strings = raw.get("strings", [])
+        setcodes = raw.get("setcodes", [])
+        if not isinstance(strings, list) or not isinstance(setcodes, list):
+            raise ValueError(f"Custom card lists are invalid for {code:08d}")
+        custom[code] = raw
+    return custom
 
 
 class QueryRows(list):
@@ -116,21 +138,24 @@ def selected_codes(path: Path, minimum_count: int) -> list[int]:
 
 
 def expand_alias_dependencies(
-    codes: list[int], connection: sqlite3.Connection
+    codes: list[int], connection: sqlite3.Connection, custom_cards: dict[int, dict]
 ) -> list[int]:
     """Include every canonical record an authored card can request at runtime."""
     expanded = set(codes)
     pending = list(codes)
     while pending:
         code = pending.pop()
-        row = connection.execute(
-            "SELECT alias FROM datas WHERE id = ?", (code,)
-        ).fetchone()
-        if row is None:
-            raise ValueError(
-                f"Official card {code:08d} is missing from the pinned database"
-            )
-        alias = int(row[0] or 0)
+        if code in custom_cards:
+            alias = int(custom_cards[code].get("alias", 0) or 0)
+        else:
+            row = connection.execute(
+                "SELECT alias FROM datas WHERE id = ?", (code,)
+            ).fetchone()
+            if row is None:
+                raise ValueError(
+                    f"Official card {code:08d} is missing from the pinned database"
+                )
+            alias = int(row[0] or 0)
         if alias != 0 and alias not in expanded:
             expanded.add(alias)
             pending.append(alias)
@@ -148,27 +173,52 @@ def compile_database(
     connection: sqlite3.Connection,
     output: Path,
     localization: dict[int, dict],
+    custom_cards: dict[int, dict],
 ) -> None:
     output.mkdir(parents=True, exist_ok=True)
     records: list[tuple] = []
     text_cards: list[dict] = []
 
     for code in codes:
-        data = connection.execute(
-            "SELECT id, alias, setcode, type, atk, def, level, race, attribute "
-            "FROM datas WHERE id = ?",
-            (code,),
-        ).fetchone()
-        text = connection.execute(
-            "SELECT name, desc, str1, str2, str3, str4, str5, str6, str7, str8, "
-            "str9, str10, str11, str12, str13, str14, str15, str16 "
-            "FROM texts WHERE id = ?",
-            (code,),
-        ).fetchone()
-        if data is None or text is None:
-            raise ValueError(f"Official card {code:08d} is missing from the pinned database")
+        authored = custom_cards.get(code)
+        if authored is not None:
+            alias = int(authored.get("alias", 0) or 0)
+            card_type = int(authored["type"])
+            attack = int(authored.get("attack", 0))
+            defense = int(authored.get("defense", 0))
+            packed_level = (
+                int(authored.get("level", 0)) & 0xFF
+                | (int(authored.get("rightScale", 0)) & 0xFF) << 16
+                | (int(authored.get("leftScale", 0)) & 0xFF) << 24
+            )
+            race = int(authored.get("race", 0))
+            attribute = int(authored.get("attribute", 0))
+            setcodes = [int(value) & 0xFFFF for value in authored.get("setcodes", [])]
+            source_name = str(authored.get("englishName") or authored["name"])
+            source_description = str(authored.get("description", ""))
+            source_strings = [str(value or "") for value in authored.get("strings", [])]
+        else:
+            data = connection.execute(
+                "SELECT id, alias, setcode, type, atk, def, level, race, attribute "
+                "FROM datas WHERE id = ?",
+                (code,),
+            ).fetchone()
+            text = connection.execute(
+                "SELECT name, desc, str1, str2, str3, str4, str5, str6, str7, str8, "
+                "str9, str10, str11, str12, str13, str14, str15, str16 "
+                "FROM texts WHERE id = ?",
+                (code,),
+            ).fetchone()
+            if data is None or text is None:
+                raise ValueError(
+                    f"Official card {code:08d} is missing from the pinned database"
+                )
+            _, alias, setcode, card_type, attack, defense, packed_level, race, attribute = data
+            setcodes = split_setcodes(setcode)
+            source_name = text[0] or f"Card {code:08d}"
+            source_description = text[1] or ""
+            source_strings = [value or "" for value in text[2:18]]
 
-        _, alias, setcode, card_type, attack, defense, packed_level, race, attribute = data
         unsigned_level = packed_level & 0xFFFFFFFF
         level = unsigned_level & 0xFF
         if packed_level < 0:
@@ -177,7 +227,6 @@ def compile_database(
         right_scale = (unsigned_level >> 16) & 0xFF
         link_marker = defense if card_type & TYPE_LINK else 0
         core_defense = 0 if card_type & TYPE_LINK else defense
-        setcodes = split_setcodes(setcode)
         records.append(
             (
                 code,
@@ -196,7 +245,8 @@ def compile_database(
         )
         localized = localization.get(code, {})
         localized_strings = localized.get("strings", [])
-        strings = [value or "" for value in text[2:18]]
+        strings = list(source_strings[:16])
+        strings.extend([""] * (16 - len(strings)))
         for index, value in enumerate(localized_strings[:16]):
             strings[index] = str(value or "")
         text_cards.append(
@@ -205,9 +255,11 @@ def compile_database(
                 # The official English name is retained solely as a stable
                 # metadata key (for example, Master Duel rarity lookup).
                 # Unity continues to present the localized name below.
-                "englishName": text[0] or f"Card {code:08d}",
-                "name": localized.get("name") or text[0] or f"Card {code:08d}",
-                "description": localized.get("description") or text[1] or "",
+                "englishName": source_name,
+                "name": localized.get("name") or str(
+                    authored.get("name") if authored else source_name
+                ),
+                "description": localized.get("description") or source_description,
                 "strings": strings,
             }
         )
@@ -261,16 +313,27 @@ def compile_database(
 def main() -> None:
     args = parse_args()
     localization = load_localization(args.localization)
+    custom_cards = load_custom_cards(args.custom_cards)
     authored_codes = selected_codes(args.catalog, args.minimum_count)
     with open_connection(args.database, args.sqlite3_cli) as connection:
-        runtime_codes = expand_alias_dependencies(authored_codes, connection)
+        runtime_codes = expand_alias_dependencies(
+            authored_codes,
+            connection,
+            custom_cards,
+        )
         unknown_localizations = sorted(set(localization) - set(runtime_codes))
         if unknown_localizations:
             raise ValueError(
                 "Localization references cards outside the runtime catalog: "
                 + ", ".join(f"{code:08d}" for code in unknown_localizations)
             )
-        compile_database(runtime_codes, connection, args.output, localization)
+        compile_database(
+            runtime_codes,
+            connection,
+            args.output,
+            localization,
+            custom_cards,
+        )
 
 
 if __name__ == "__main__":

@@ -47,11 +47,13 @@ namespace ArcaneArena.Multiplayer
         private Text secondaryLabel;
         private GameObject choicePanel;
         private GameObject resultPanel;
+        private GameObject startingPlayerPanel;
         private Text resultLabel;
         private Image resultLocalChoiceIcon;
         private Image resultOpponentChoiceIcon;
         private Text resultVersusLabel;
         private readonly List<Button> choiceButtons = new();
+        private readonly List<Button> startingPlayerButtons = new();
         private readonly Dictionary<DuelPreludeChoice, Sprite>
             preludeChoiceIcons = new();
         private readonly List<RectTransform> lightStreaks = new();
@@ -88,6 +90,7 @@ namespace ArcaneArena.Multiplayer
         private Button backButton;
         private Action backAction;
         private Action<DuelPreludeChoice> choiceAction;
+        private Action<bool> startingPlayerChoiceAction;
         private Coroutine transitionRoutine;
         private float targetAlpha;
         private float shownAt;
@@ -263,7 +266,7 @@ namespace ArcaneArena.Multiplayer
                 revealFromChoices ? 0f : 1f);
             primaryLabel.text = tie
                 ? "EMPATE"
-                : localWon ? "VOCÊ COMEÇA" : "O RIVAL COMEÇA";
+                : localWon ? "VOCÊ VENCEU" : "O RIVAL VENCEU";
             secondaryLabel.text = tie
                 ? "As escolhas foram iguais. Uma nova rodada será iniciada."
                 : "Resultado confirmado · preparando os dois campos.";
@@ -282,6 +285,42 @@ namespace ArcaneArena.Multiplayer
                     localWon,
                     tie,
                     revealFromChoices));
+        }
+
+        /// <summary>
+        /// Shows the first-turn decision after a player wins the pre-duel
+        /// round. The callback receives true when the local winner chooses
+        /// to start and false when they choose to play second.
+        /// </summary>
+        public void ShowStartingPlayerChoice(Action<bool> onChoice)
+        {
+            PresentStartingPlayerPanel(
+                "VOCÊ VENCEU A ESCOLHA!",
+                "DEFINA QUEM INICIA O DUELO.",
+                onChoice,
+                true);
+        }
+
+        public void ShowStartingPlayerWaiting(string message)
+        {
+            loadingMode = false;
+            PrepareVisibleSurface();
+            CancelPreludeModeTransition();
+            ResetPreludeResultVisuals();
+            SetPreludeMode(false, false);
+            RestorePreludePanelPresentation();
+            SetPreludeBackdropVisible(true);
+            ApplyPreludeTypographyLayout(true);
+            spinner.gameObject.SetActive(false);
+            progressRoot.gameObject.SetActive(false);
+            primaryLabel.text = "AGUARDANDO O VENCEDOR";
+            secondaryLabel.text = string.IsNullOrWhiteSpace(message)
+                ? "O VENCEDOR ESTÁ DEFININDO QUEM INICIA."
+                : message;
+            secondaryLabel.gameObject.SetActive(true);
+            startingPlayerChoiceAction = null;
+            if (startingPlayerPanel != null)
+                startingPlayerPanel.SetActive(false);
         }
 
         private sealed class PreludeResultFragment
@@ -794,6 +833,8 @@ namespace ArcaneArena.Multiplayer
         {
             choicePanel.SetActive(choices);
             resultPanel.SetActive(result);
+            if (startingPlayerPanel != null)
+                startingPlayerPanel.SetActive(false);
             SetPreludeBackdropVisible(choices || result);
             ApplyPreludeTypographyLayout(choices || result);
             spinner.gameObject.SetActive(!choices && !result);
@@ -806,7 +847,34 @@ namespace ArcaneArena.Multiplayer
         {
             return choicePanel?.activeSelf == true ||
                    resultPanel?.activeSelf == true ||
+                   startingPlayerPanel?.activeSelf == true ||
                    preludeBackdrop?.activeSelf == true;
+        }
+
+        private void PresentStartingPlayerPanel(
+            string title,
+            string subtitle,
+            Action<bool> onChoice,
+            bool localCanChoose)
+        {
+            loadingMode = false;
+            PrepareVisibleSurface();
+            CancelPreludeModeTransition();
+            ResetPreludeResultVisuals();
+            SetPreludeMode(false, false);
+            RestorePreludePanelPresentation();
+            SetPreludeBackdropVisible(true);
+            ApplyPreludeTypographyLayout(true);
+            spinner.gameObject.SetActive(false);
+            progressRoot.gameObject.SetActive(false);
+            primaryLabel.text = title;
+            secondaryLabel.text = subtitle;
+            secondaryLabel.gameObject.SetActive(true);
+            startingPlayerChoiceAction = onChoice;
+            if (startingPlayerPanel != null)
+                startingPlayerPanel.SetActive(true);
+            foreach (Button button in startingPlayerButtons)
+                button.interactable = localCanChoose;
         }
 
         private void ApplyPreludeTypographyLayout(bool preludeActive)
@@ -1422,6 +1490,7 @@ namespace ArcaneArena.Multiplayer
             BuildProgress(safe.transform, font);
             BuildChoicePanel(safe.transform, font);
             BuildResultPanel(safe.transform, font);
+            BuildStartingPlayerPanel(safe.transform, font);
             backButton = CreateButton(
                 safe.transform,
                 "ReturnButton",
@@ -2767,7 +2836,7 @@ namespace ArcaneArena.Multiplayer
                     new Vector2(center + 0.11f, 0.575f),
                     new Color(0.005f, 0.012f, 0.028f, 0.012f),
                     Color.white);
-                button.transition = Selectable.Transition.None;
+                DecoratePreludeButton(button, accent, 16f);
                 Text label = button.GetComponentInChildren<Text>(true);
                 if (label != null)
                     label.gameObject.SetActive(false);
@@ -2782,7 +2851,7 @@ namespace ArcaneArena.Multiplayer
                     button.transform,
                     $"Símbolo {captured}",
                     Color.white,
-                    new Vector2(0.08f, 0.13f),
+                    new Vector2(0.08f, 0.20f),
                     new Vector2(0.92f, 0.90f));
                 icon.sprite = PreludeChoiceIcon(captured);
                 icon.preserveAspect = true;
@@ -2790,6 +2859,20 @@ namespace ArcaneArena.Multiplayer
                 Shadow iconShadow = icon.gameObject.AddComponent<Shadow>();
                 iconShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
                 iconShadow.effectDistance = new Vector2(7f, -8f);
+                Text choiceCaption = CreateText(
+                    button.transform,
+                    $"Rótulo {captured}",
+                    font,
+                    18,
+                    FontStyle.Bold,
+                    new Vector2(0.08f, 0.075f),
+                    new Vector2(0.92f, 0.19f));
+                choiceCaption.text = DuelPreludeRules.Label(captured);
+                choiceCaption.color = new Color(
+                    accent.r,
+                    accent.g,
+                    accent.b,
+                    1f);
                 button.onClick.AddListener(() =>
                 {
                     foreach (Button item in choiceButtons)
@@ -3179,6 +3262,148 @@ namespace ArcaneArena.Multiplayer
             resultVersusLabel.text = "VS";
             resultVersusLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
             resultPanel.SetActive(false);
+        }
+
+        private void BuildStartingPlayerPanel(Transform parent, Font font)
+        {
+            Image panel = CreateImage(
+                parent,
+                "Decisão de Primeiro Turno",
+                new Color(0f, 0f, 0f, 0.015f),
+                new Vector2(0.18f, 0.26f),
+                new Vector2(0.82f, 0.61f));
+            startingPlayerPanel = panel.gameObject;
+            DecoratePreludeSurface(
+                panel,
+                new Color(0.18f, 0.88f, 1f, 1f),
+                true,
+                18f);
+
+            Text heading = CreateText(
+                panel.transform,
+                "Instrução de Primeiro Turno",
+                font,
+                19,
+                FontStyle.Bold,
+                new Vector2(0.08f, 0.72f),
+                new Vector2(0.92f, 0.90f));
+            heading.text = "ESCOLHA O PRIMEIRO TURNO";
+            heading.color = new Color(0.66f, 0.93f, 1f, 1f);
+
+            CreateStartingPlayerButton(
+                panel.transform,
+                font,
+                "Você inicia o duelo!",
+                true,
+                new Vector2(0.08f, 0.22f),
+                new Vector2(0.47f, 0.60f),
+                new Color(0.03f, 0.37f, 0.56f, 0.98f),
+                new Color(0.70f, 0.96f, 1f, 1f));
+            CreateStartingPlayerButton(
+                panel.transform,
+                font,
+                "Seu oponente inicia o duelo!",
+                false,
+                new Vector2(0.53f, 0.22f),
+                new Vector2(0.92f, 0.60f),
+                new Color(0.28f, 0.12f, 0.48f, 0.98f),
+                new Color(0.94f, 0.86f, 1f, 1f));
+            startingPlayerPanel.SetActive(false);
+        }
+
+        private void CreateStartingPlayerButton(
+            Transform parent,
+            Font font,
+            string label,
+            bool localStarts,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            Color background,
+            Color foreground)
+        {
+            Button button = CreateButton(
+                parent,
+                label,
+                label,
+                font,
+                anchorMin,
+                anchorMax,
+                background,
+                foreground);
+            Text buttonLabel = button.GetComponentInChildren<Text>(true);
+            if (buttonLabel != null)
+                buttonLabel.fontSize = 17;
+            DecoratePreludeButton(button, foreground, 11f);
+            button.onClick.AddListener(() =>
+            {
+                foreach (Button item in startingPlayerButtons)
+                    item.interactable = false;
+                startingPlayerChoiceAction?.Invoke(localStarts);
+            });
+            startingPlayerButtons.Add(button);
+        }
+
+        private static ArcaneShopSurfaceGraphic DecoratePreludeSurface(
+            Image target,
+            Color accent,
+            bool raised,
+            float chamfer)
+        {
+            if (target == null)
+                return null;
+            target.color = new Color(0f, 0f, 0f, 0.015f);
+            Transform existing = target.transform.Find(
+                "Superfície Arcane do Prelúdio");
+            ArcaneShopSurfaceGraphic surface = existing != null
+                ? existing.GetComponent<ArcaneShopSurfaceGraphic>()
+                : null;
+            if (surface == null)
+            {
+                var item = new GameObject(
+                    "Superfície Arcane do Prelúdio",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(ArcaneShopSurfaceGraphic));
+                item.transform.SetParent(target.transform, false);
+                item.transform.SetAsFirstSibling();
+                RectTransform rect = item.GetComponent<RectTransform>();
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+                surface = item.GetComponent<ArcaneShopSurfaceGraphic>();
+            }
+            surface.SetStyle(accent, raised, 1f, chamfer);
+            surface.raycastTarget = false;
+            return surface;
+        }
+
+        private static void DecoratePreludeButton(
+            Button button,
+            Color accent,
+            float chamfer)
+        {
+            if (button == null)
+                return;
+            Image image = button.GetComponent<Image>();
+            ArcaneShopSurfaceGraphic surface = DecoratePreludeSurface(
+                image,
+                accent,
+                true,
+                chamfer);
+            if (surface == null)
+                return;
+            surface.raycastTarget = true;
+            button.targetGraphic = surface;
+            button.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = Color.Lerp(Color.white, accent, 0.16f);
+            colors.pressedColor = Color.Lerp(Color.white, accent, 0.42f);
+            colors.selectedColor = Color.Lerp(Color.white, accent, 0.22f);
+            colors.disabledColor = new Color(0.42f, 0.48f, 0.54f, 0.72f);
+            colors.fadeDuration = 0.10f;
+            button.colors = colors;
         }
 
         private static void CreatePreludeResultCaption(

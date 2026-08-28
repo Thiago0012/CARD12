@@ -59,11 +59,11 @@ namespace ArcaneArena
                 CoreMessage.SelectChain =>
                     "ESCOLHA UMA RESPOSTA LEGAL OU PASSE A PRIORIDADE",
                 CoreMessage.SelectSum =>
-                    $"MATÉRIAS LEGAIS DO CORE · SELECIONADAS {selected} · " +
+                    $"MATÉRIAS DISPONÍVEIS · SELECIONADAS {selected} · " +
                     $"SOMA {(prompt.SumAtLeast ? "MÍNIMA" : "EXATA")} " +
                     $"{prompt.RequiredSum}{sourceSuffix}",
                 CoreMessage.SelectTribute =>
-                    $"TRIBUTOS LEGAIS DO CORE · SELECIONADOS {selected} · " +
+                    $"TRIBUTOS DISPONÍVEIS · SELECIONADOS {selected} · " +
                     $"VALOR NECESSÁRIO {prompt.MinimumSelections}" +
                     sourceSuffix,
                 CoreMessage.SelectUnselectCard =>

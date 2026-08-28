@@ -41,6 +41,7 @@ namespace ArcaneArena
             public bool EntersSpecialPile;
             public DuelSpecialZoneWellVisual DestinationWell;
             public MonsterSummonArrivalEffect ArrivalEffect;
+            public MonsterFrameKind SummonFrame;
             public CanvasGroup HiddenTarget;
             public bool Released;
         }
@@ -108,7 +109,13 @@ namespace ArcaneArena
                                 (duelEvent.Current.Location &
                                  DuelLocation.MonsterZone) != 0
                     ? ArrivalEffectFor(duelEvent.Code)
-                    : MonsterSummonArrivalEffect.None
+                    : MonsterSummonArrivalEffect.None,
+                SummonFrame = entersField && destinationFaceUp &&
+                              (duelEvent.Current.Location &
+                               DuelLocation.MonsterZone) != 0
+                    ? LegacyEntryFor(duelEvent.Code)?.MonsterFrame ??
+                      MonsterFrameKind.Unknown
+                    : MonsterFrameKind.Unknown
             };
         }
 
@@ -148,7 +155,7 @@ namespace ArcaneArena
                 snapshot.Code,
                 snapshot.Kind == CardTransitionKind.Destruction
                     ? 0.40f
-                    : snapshot.EntersField ? 0.32f : 0.42f);
+                    : snapshot.EntersField ? 0.36f : 0.42f);
             if (duration <= 0f)
             {
                 RevealTransitionTarget(snapshot.HiddenTarget);
@@ -212,6 +219,10 @@ namespace ArcaneArena
                 duration,
                 target,
                 snapshot.ArrivalEffect,
+                snapshot.SummonFrame,
+                snapshot.EntersField
+                    ? ZoneFor(snapshot.Current)
+                    : null,
                 snapshot.EntersSpecialPile,
                 snapshot.DestinationWell));
         }
@@ -542,6 +553,9 @@ namespace ArcaneArena
                 return null;
             group.alpha = 0f;
             group.blocksRaycasts = false;
+            Transform combatLabel = zone.FindCombatLabel();
+            if (combatLabel != null)
+                combatLabel.gameObject.SetActive(false);
             return group;
         }
 
@@ -597,11 +611,22 @@ namespace ArcaneArena
                 : null;
         }
 
-        private static void RevealTransitionTarget(CanvasGroup target)
+        private void RevealTransitionTarget(CanvasGroup target)
         {
             if (target == null)
                 return;
             target.alpha = 1f;
+            target.blocksRaycasts = true;
+            DuelZone3D zone = target.GetComponentInParent<DuelZone3D>();
+            if (zone == null)
+                return;
+            uint code = CodeAt(zone);
+            uint position = PositionAt(zone);
+            RefreshCombatLabel(
+                zone,
+                code,
+                position,
+                IsFaceUp(position));
         }
     }
 }

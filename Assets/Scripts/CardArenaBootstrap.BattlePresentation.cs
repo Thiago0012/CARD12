@@ -20,6 +20,7 @@ namespace ArcaneArena
     /// </summary>
     public sealed partial class CardArenaBootstrap
     {
+        private const float DuelConclusionSlowMotionDuration = 0.62f;
         private static readonly Color LocalTurnBlue =
             new(0.12f, 0.62f, 1f, 1f);
         private static readonly Color OpponentTurnRed =
@@ -61,6 +62,17 @@ namespace ArcaneArena
         private LineRenderer battlePresentationLine;
         private Material battlePresentationMaterial;
         private Coroutine battlePresentationRoutine;
+        private Coroutine duelConclusionSlowMotionRoutine;
+        private float duelConclusionOriginalTimeScale = 1f;
+        private bool duelConclusionTimeScaleApplied;
+        private float damagePresentationDeadline = -1f;
+        private readonly Coroutine[] lifePointPresentationRoutines =
+            new Coroutine[2];
+        private readonly GameObject[] lifePointFloatingOverlays =
+            new GameObject[2];
+        private readonly bool[] lifePointPresentationOverride =
+            new bool[2];
+        private readonly int[] presentedLifePoints = new int[2];
         private DuelEvent latestBattleEvent;
         private Transform animatedBattleCard;
         private Vector3 animatedBattleCardPosition;
@@ -101,8 +113,12 @@ namespace ArcaneArena
             ResetTurnFlowPresentation(true);
             if (battlePresentationRoutine != null)
                 StopCoroutine(battlePresentationRoutine);
+            if (duelConclusionSlowMotionRoutine != null)
+                StopCoroutine(duelConclusionSlowMotionRoutine);
+            RestoreDuelConclusionTimeScale();
             if (turnOwnershipGlowRoutine != null)
                 StopCoroutine(turnOwnershipGlowRoutine);
+            ResetLifePointPresentations();
             ResetBattlePresentationVisuals();
             if (battlePresentationMaterial != null)
                 Destroy(battlePresentationMaterial);
@@ -342,10 +358,23 @@ namespace ArcaneArena
                     SetStatus("ETAPA DE DANO CONCLUÍDA", Muted);
                     break;
                 case CoreMessage.Damage:
-                    StartCoroutine(
-                        PlayDamagePresentation(
-                            duelEvent.Player,
-                            duelEvent.Value));
+                    StartLifePointPresentation(
+                        duelEvent.Player,
+                        duelEvent.Value,
+                        false);
+                    break;
+                case CoreMessage.Recover:
+                    StartLifePointPresentation(
+                        duelEvent.Player,
+                        duelEvent.Value,
+                        true);
+                    break;
+                case CoreMessage.Win:
+                    if (duelConclusionSlowMotionRoutine != null)
+                        StopCoroutine(duelConclusionSlowMotionRoutine);
+                    RestoreDuelConclusionTimeScale();
+                    duelConclusionSlowMotionRoutine = StartCoroutine(
+                        PlayDuelConclusionSlowMotion());
                     break;
             }
         }
@@ -1324,80 +1353,274 @@ namespace ArcaneArena
             ResetTurnFlowPresentation(true);
         }
 
-        private IEnumerator PlayDamagePresentation(
+        private void StartLifePointPresentation(
             byte player,
-            uint value)
+            uint value,
+            bool recovering)
         {
-            StartCoroutine(FlashLifeDamage(player));
+            if (player > 1 || value == 0 || state == null)
+                return;
+            int index = player;
+            int target = Mathf.Max(0, state.Players[index].LifePoints);
+            int expectedStart = recovering
+                ? Mathf.Max(0, target - (int)Math.Min(value, int.MaxValue))
+                : target + (int)Math.Min(
+                    value,
+                    (uint)Mathf.Max(0, int.MaxValue - target));
+            int start = lifePointPresentationOverride[index]
+                ? presentedLifePoints[index]
+                : expectedStart;
+
+            if (lifePointPresentationRoutines[index] != null)
+                StopCoroutine(lifePointPresentationRoutines[index]);
+            if (lifePointFloatingOverlays[index] != null)
+                Destroy(lifePointFloatingOverlays[index]);
+            RestoreLifePointTextPresentation(player);
+
+            lifePointPresentationOverride[index] = true;
+            presentedLifePoints[index] = start;
+            ApplyPresentedLifePointValue(player);
+            lifePointPresentationRoutines[index] = StartCoroutine(
+                PlayLifePointPresentation(
+                    player,
+                    value,
+                    recovering,
+                    start,
+                    target));
+        }
+
+        private IEnumerator PlayLifePointPresentation(
+            byte player,
+            uint value,
+            bool recovering,
+            int start,
+            int target)
+        {
+            int index = player;
+            ArcaneAudioDirector audio = core != null
+                ? core.GetComponent<ArcaneAudioDirector>()
+                : null;
+            float impactLead = !recovering && audio != null
+                ? audio.PlayDamageImpactCue()
+                : 0f;
+            float lifeCountDuration = audio != null
+                ? audio.LifePointLossCueDuration
+                : 0.72f;
+            const float travelDuration = 0.46f;
+            damagePresentationDeadline = Mathf.Max(
+                damagePresentationDeadline,
+                Time.unscaledTime + impactLead + travelDuration +
+                lifeCountDuration);
+            if (impactLead > 0f)
+                yield return new WaitForSecondsRealtime(impactLead);
+
             GameObject floating = CreatePanel(
                 frame,
-                "Dano Flutuante",
-                player == 0
-                    ? new Vector2(0.055f, 0.135f)
-                    : new Vector2(0.73f, 0.79f),
-                player == 0
-                    ? new Vector2(0.245f, 0.205f)
-                    : new Vector2(0.945f, 0.86f),
+                recovering ? "Contador de Vida Recuperada" : "Contador de Dano",
+                Vector2.zero,
+                Vector2.one,
                 Color.clear);
+            lifePointFloatingOverlays[index] = floating;
             floating.transform.SetAsLastSibling();
             floating.GetComponent<Image>().raycastTarget = false;
             CanvasGroup group = floating.AddComponent<CanvasGroup>();
             group.interactable = false;
             group.blocksRaycasts = false;
 
-            Color damageRed = new(1f, 0.22f, 0.30f, 1f);
-            Image leadingLine = CreateImage(
-                floating.transform,
-                "Traço de Impacto",
-                new Vector2(0.01f, 0.19f),
-                new Vector2(0.035f, 0.81f),
-                damageRed);
-            leadingLine.raycastTarget = false;
-            Image energyLine = CreateImage(
-                floating.transform,
-                "Linha de Energia",
-                new Vector2(0.04f, 0.47f),
-                new Vector2(0.96f, 0.53f),
-                new Color(damageRed.r, damageRed.g, damageRed.b, 0.72f));
-            energyLine.raycastTarget = false;
+            Color accent = recovering
+                ? new Color(0.45f, 1f, 0.28f, 1f)
+                : new Color(1f, 0.22f, 0.30f, 1f);
             Text amount = CreateText(
                 floating.transform,
-                $"− {value:N0} LP",
-                28,
+                $"{(recovering ? "+" : "−")} {value:N0}",
+                68,
                 FontStyle.Bold,
                 Color.white,
-                new Vector2(0.06f, 0f),
-                Vector2.one,
+                new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f),
                 TextAnchor.MiddleCenter);
             amount.raycastTarget = false;
             Shadow shadow = amount.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.82f);
-            shadow.effectDistance = new Vector2(2f, -2f);
-            RectTransform rect =
-                floating.GetComponent<RectTransform>();
-            Vector2 from = rect.anchoredPosition;
-            float duration =
-                DuelAnimationPreferences.Duration(0.72f);
+            shadow.effectDistance = new Vector2(4f, -4f);
+            Outline outline = amount.gameObject.AddComponent<Outline>();
+            outline.effectColor = accent;
+            outline.effectDistance = new Vector2(1.5f, -1.5f);
+            RectTransform rect = amount.rectTransform;
+            rect.sizeDelta = new Vector2(500f, 150f);
+            Vector2 from = Vector2.zero;
+            Vector2 destination = LifePointTextDestination(
+                player,
+                out float destinationScale);
+            for (float elapsed = 0f;
+                 elapsed < travelDuration;
+                 elapsed += Time.unscaledDeltaTime)
+            {
+                float t = Mathf.Clamp01(elapsed / travelDuration);
+                float impact = Mathf.Clamp01(t / 0.20f);
+                float travel = Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    Mathf.Clamp01((t - 0.16f) / 0.84f));
+                float scale = t < 0.20f
+                    ? Mathf.Lerp(0.70f, 1.16f, EaseOutBack(impact))
+                    : Mathf.Lerp(1.16f, destinationScale, travel);
+                rect.anchoredPosition = Vector2.Lerp(from, destination, travel);
+                rect.localScale = Vector3.one * scale;
+                group.alpha = 1f;
+                yield return null;
+            }
+            rect.anchoredPosition = destination;
+            rect.localScale = Vector3.one * destinationScale;
+            group.alpha = 1f;
+            yield return null;
+            Destroy(floating);
+            lifePointFloatingOverlays[index] = null;
+
+            float duration = audio != null
+                ? audio.PlayLifePointLossCue()
+                : lifeCountDuration;
+            if (duration <= 0f)
+                duration = lifeCountDuration;
+
+            Text life = player == 0 ? localLife : opponentLife;
+            Color originalColor = life != null ? life.color : Color.white;
+            Vector3 originalScale = life != null
+                ? life.rectTransform.localScale
+                : Vector3.one;
             for (float elapsed = 0f;
                  elapsed < duration;
                  elapsed += Time.unscaledDeltaTime)
             {
                 float t = Mathf.Clamp01(elapsed / duration);
-                float impact = Mathf.Clamp01(t / 0.24f);
-                float settle = Mathf.Clamp01((t - 0.24f) / 0.26f);
-                float scale = t < 0.24f
-                    ? Mathf.Lerp(0.68f, 1.10f, EaseOutBack(impact))
-                    : Mathf.Lerp(1.10f, 1f, Mathf.SmoothStep(0f, 1f, settle));
-                rect.anchoredPosition =
-                    from + Vector2.up * Mathf.Lerp(0f, 38f, t);
-                rect.localScale = Vector3.one * scale;
-                group.alpha =
-                    t < 0.66f
-                        ? 1f
-                        : 1f - (t - 0.66f) / 0.34f;
+                float eased = Mathf.SmoothStep(0f, 1f, t);
+                presentedLifePoints[index] = Mathf.RoundToInt(
+                    Mathf.Lerp(start, target, eased));
+                ApplyPresentedLifePointValue(player);
+                if (life != null)
+                {
+                    life.color = Color.Lerp(accent, Color.white, t * 0.62f);
+                    float pulse = Mathf.Sin(t * Mathf.PI) * 0.075f;
+                    life.rectTransform.localScale = originalScale *
+                        (1f + pulse);
+                }
                 yield return null;
             }
-            Destroy(floating);
+
+            presentedLifePoints[index] = target;
+            lifePointPresentationOverride[index] = false;
+            ApplyPresentedLifePointValue(player);
+            if (life != null)
+            {
+                life.color = originalColor;
+                life.rectTransform.localScale = originalScale;
+            }
+            lifePointPresentationRoutines[index] = null;
+        }
+
+        private Vector2 LifePointTextDestination(
+            byte player,
+            out float destinationScale)
+        {
+            Text life = player == 0 ? localLife : opponentLife;
+            RectTransform lifeRect = life != null
+                ? life.rectTransform
+                : null;
+            destinationScale = life != null
+                ? Mathf.Clamp(life.fontSize / 68f, 0.28f, 0.68f)
+                : 0.42f;
+            if (lifeRect == null || frame == null)
+            {
+                return player == 0
+                    ? new Vector2(-740f, -380f)
+                    : new Vector2(740f, 380f);
+            }
+
+            Camera eventCamera = arenaCanvas != null &&
+                                 arenaCanvas.renderMode !=
+                                 RenderMode.ScreenSpaceOverlay
+                ? arenaCanvas.worldCamera
+                : null;
+            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(
+                eventCamera,
+                lifeRect.TransformPoint(lifeRect.rect.center));
+            if (Mathf.Abs(frame.lossyScale.x) > 0.0001f)
+            {
+                destinationScale *= Mathf.Abs(
+                    lifeRect.lossyScale.x / frame.lossyScale.x);
+            }
+            return RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                frame,
+                screenPoint,
+                eventCamera,
+                out Vector2 localPoint)
+                ? localPoint
+                : Vector2.zero;
+        }
+
+        private int LifePointValueForDisplay(byte player, int authoritative)
+        {
+            return player <= 1 && lifePointPresentationOverride[player]
+                ? presentedLifePoints[player]
+                : authoritative;
+        }
+
+        private void ApplyPresentedLifePointValue(byte player)
+        {
+            Text life = player == 0 ? localLife : opponentLife;
+            if (life == null || player > 1)
+                return;
+            int authoritative = state != null
+                ? state.Players[player].LifePoints
+                : presentedLifePoints[player];
+            life.text = LifePointValueForDisplay(
+                player,
+                authoritative).ToString("N0");
+        }
+
+        private void RestoreLifePointTextPresentation(byte player)
+        {
+            Text life = player == 0 ? localLife : opponentLife;
+            if (life == null)
+                return;
+            life.color = Color.white;
+            life.rectTransform.localScale = Vector3.one;
+        }
+
+        private void ResetLifePointPresentations()
+        {
+            for (byte player = 0; player < 2; player++)
+            {
+                if (lifePointPresentationRoutines[player] != null)
+                    StopCoroutine(lifePointPresentationRoutines[player]);
+                lifePointPresentationRoutines[player] = null;
+                if (lifePointFloatingOverlays[player] != null)
+                    Destroy(lifePointFloatingOverlays[player]);
+                lifePointFloatingOverlays[player] = null;
+                lifePointPresentationOverride[player] = false;
+                RestoreLifePointTextPresentation(player);
+            }
+        }
+
+        private IEnumerator PlayDuelConclusionSlowMotion()
+        {
+            duelConclusionOriginalTimeScale = Time.timeScale;
+            duelConclusionTimeScaleApplied = true;
+            Time.timeScale = Mathf.Max(
+                0.05f,
+                duelConclusionOriginalTimeScale * 0.34f);
+            yield return new WaitForSecondsRealtime(
+                DuelConclusionSlowMotionDuration);
+            RestoreDuelConclusionTimeScale();
+            duelConclusionSlowMotionRoutine = null;
+        }
+
+        private void RestoreDuelConclusionTimeScale()
+        {
+            if (!duelConclusionTimeScaleApplied)
+                return;
+            Time.timeScale = duelConclusionOriginalTimeScale;
+            duelConclusionTimeScaleApplied = false;
         }
 
         private static float EaseOutBack(float value)

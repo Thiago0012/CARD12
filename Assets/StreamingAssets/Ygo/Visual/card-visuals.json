@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "count": 3276,
-  "catalogSha256": "0324E4806FE3CBDDFF4C030F7BA2F4239AFE6EDF875492BB82FFC476882F2D76",
+  "count": 3277,
+  "catalogSha256": "33764E90509F60AA816934E9843F41C066D9321A334AADDBDC5FF58368A187EA",
   "cards": [
     {
       "officialCode": 483,
@@ -51607,6 +51607,21 @@
         "Monstro de Efeito",
         "intermediate",
         "ygoprodeck_nine_deck_batch"
+      ]
+    },
+    {
+      "officialCode": 99990001,
+      "artFile": "99990001.png",
+      "frameStyle": "synchro",
+      "summonVfx": "extra_summon",
+      "activationSfx": "arcane_summon",
+      "riskLevel": "D",
+      "scriptStatus": "custom",
+      "scriptFile": "c99990001.lua",
+      "presentationTags": [
+        "Monstro Sincro",
+        "extra_deck",
+        "custom_dev_only"
       ]
     },
     {

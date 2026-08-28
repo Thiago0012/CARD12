@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ArcaneArena.Multiplayer;
 using ArcaneDuel.DuelEngine.Protocol;
+using ArcaneDuel.Game.Accounts;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -145,7 +146,7 @@ namespace ArcaneArena
                     zone.Kind == DuelZoneKind.Graveyard
                         ? state.Players[player].Graveyard
                         : state.Players[player].Banished;
-                Dictionary<uint, DuelChoice[]> choicesBySequence =
+                Dictionary<uint, DuelChoice[]> publicChoicesBySequence =
                     (legalChoices ?? System.Array.Empty<DuelChoice>())
                     .Where(choice => choice != null)
                     .GroupBy(choice => choice.Sequence)
@@ -160,7 +161,7 @@ namespace ArcaneArena
                 for (int index = cards.Count - 1; index >= 0; index--)
                 {
                     uint sequence = (uint)index;
-                    choicesBySequence.TryGetValue(
+                    publicChoicesBySequence.TryGetValue(
                         sequence,
                         out DuelChoice[] locatedChoices);
                     // Cartas banidas viradas para baixo não pertencem ao
@@ -207,49 +208,64 @@ namespace ArcaneArena
                 return entries;
             }
 
-            uint[] extraDeck = core?.PlayerExtraDeckCards?.ToArray() ??
-                               System.Array.Empty<uint>();
-            bool coreOfferedActions = legalChoices != null &&
-                                      legalChoices.Count > 0;
-            if (!coreOfferedActions)
+            DuelChoice[] summonableChoices =
+                (legalChoices ?? System.Array.Empty<DuelChoice>())
+                .Where(choice =>
+                    choice != null &&
+                    choice.CardCode != 0 &&
+                    !DeveloperAccountRegistry.IsDeveloperOnlyCard(
+                        choice.CardCode))
+                .ToArray();
+            if (summonableChoices.Length > 0)
             {
-                for (uint sequence = 0; sequence < extraDeck.Length; sequence++)
+                // Ao abrir o monte iluminado, retorne ao comportamento
+                // original: a bandeja é uma lista de invocação e contém
+                // somente as cartas que o Core ofereceu neste exato prompt.
+                foreach (IGrouping<uint, DuelChoice> group in
+                         summonableChoices
+                             .GroupBy(choice => choice.Sequence)
+                             .OrderBy(group => group.Key))
                 {
-                    uint code = extraDeck[sequence];
-                    if (code != 0)
-                    {
-                        entries.Add(new ZoneBrowserEntry(
-                            code,
-                            sequence,
-                            false,
-                            System.Array.Empty<DuelChoice>()));
-                    }
+                    DuelChoice[] groupedChoices = group.ToArray();
+                    uint code = groupedChoices
+                        .Select(choice => choice.CardCode)
+                        .FirstOrDefault(value => value != 0);
+                    if (code == 0)
+                        continue;
+                    entries.Add(new ZoneBrowserEntry(
+                        code,
+                        group.Key,
+                        false,
+                        groupedChoices));
                 }
                 return entries;
             }
 
-            // The Core already validated summon method, materials, timing and
-            // available zones. Presentation must expose only those exact
-            // choices, preserving the Core sequence instead of recomputing
-            // legality from card artwork or metadata.
-            foreach (IGrouping<uint, DuelChoice> group in legalChoices
-                         .Where(choice => choice != null)
-                         .GroupBy(choice => choice.Sequence)
-                         .OrderBy(group => group.Key))
+            uint[] extraDeck = core?.PlayerExtraDeckCards?
+                .Where(code => code != 0)
+                .ToArray() ?? System.Array.Empty<uint>();
+            if (extraDeck.Length == 0 && state?.Players?.Length > 0)
             {
-                DuelChoice[] groupedChoices = group.ToArray();
-                uint code = groupedChoices
-                    .Select(choice => choice.CardCode)
-                    .FirstOrDefault(value => value != 0);
-                if (code == 0 && group.Key < extraDeck.Length)
-                    code = extraDeck[group.Key];
-                if (code == 0)
+                // Network/reconciliation snapshots may omit the private
+                // identities while retaining their count. The presentation
+                // state is the authoritative local fallback in that case.
+                extraDeck = state.Players[0].ExtraDeckCards
+                    .Where(code => code != 0)
+                    .ToArray();
+            }
+
+            // Sem invocação disponível, o clique continua servindo apenas
+            // para consultar o Deck Adicional completo.
+            for (uint sequence = 0; sequence < extraDeck.Length; sequence++)
+            {
+                uint code = extraDeck[sequence];
+                if (DeveloperAccountRegistry.IsDeveloperOnlyCard(code))
                     continue;
                 entries.Add(new ZoneBrowserEntry(
                     code,
-                    group.Key,
+                    sequence,
                     false,
-                    groupedChoices));
+                    System.Array.Empty<DuelChoice>()));
             }
             return entries;
         }

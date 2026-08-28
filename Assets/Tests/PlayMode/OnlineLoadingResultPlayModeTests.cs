@@ -159,6 +159,54 @@ namespace ArcaneDuel.Tests.PlayMode
             }
         }
 
+        [UnityTest]
+        public IEnumerator FirstTurnChoicePanelAppearsOnlyForTheWinner()
+        {
+            GameObject root = new GameObject("Prelude winner-only test");
+            try
+            {
+                Type presenterType = TypeByName(
+                    "ArcaneArena.Multiplayer.OnlineLoadingScreenPresenter");
+                Component presenter = root.AddComponent(presenterType);
+
+                presenterType.GetMethod("ShowStartingPlayerWaiting")?.Invoke(
+                    presenter,
+                    new object[]
+                    {
+                        "O VENCEDOR ESTÁ DEFININDO QUEM INICIA O DUELO."
+                    });
+                yield return null;
+
+                Transform panel = FindDescendant(
+                    root.transform,
+                    "Decisão de Primeiro Turno");
+                Assert.That(panel, Is.Not.Null);
+                Assert.That(
+                    panel.gameObject.activeSelf,
+                    Is.False,
+                    "O perdedor deve ver apenas o estado de espera, nunca os botões de escolha.");
+
+                presenterType.GetMethod("ShowStartingPlayerChoice")?.Invoke(
+                    presenter,
+                    new object[] { new Action<bool>(_ => { }) });
+                yield return null;
+                Assert.That(panel.gameObject.activeSelf, Is.True);
+                Button[] choices = panel.GetComponentsInChildren<Button>(true);
+                Assert.That(choices, Has.Length.EqualTo(2));
+                Assert.That(choices.All(button => button.interactable), Is.True);
+                Assert.That(
+                    panel.GetComponentsInChildren<Graphic>(true)
+                        .Any(graphic => graphic.GetType().Name ==
+                                        "ArcaneShopSurfaceGraphic"),
+                    Is.True,
+                    "A decisão deve usar a mesma superfície moderna da loja.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
         private static Transform FindDescendant(Transform root, string name)
         {
             return root.GetComponentsInChildren<Transform>(true)

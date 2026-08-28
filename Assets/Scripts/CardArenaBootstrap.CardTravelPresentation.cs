@@ -17,6 +17,8 @@ namespace ArcaneArena
             float duration,
             CanvasGroup target,
             MonsterSummonArrivalEffect arrivalEffect,
+            MonsterFrameKind summonFrame,
+            DuelZone3D destinationZone,
             bool sinksIntoSpecialPile,
             DuelSpecialZoneWellVisual destinationWell)
         {
@@ -63,19 +65,19 @@ namespace ArcaneArena
                     0f,
                     Mathf.Lerp(startTilt, 0f, TransitionEaseOutCubic(t)));
                 float scale;
-                if (t < 0.22f)
+                if (t < 0.24f)
                 {
                     scale = Mathf.Lerp(
-                        0.90f,
-                        1.10f,
-                        TransitionEaseOutCubic(t / 0.22f));
+                        0.92f,
+                        1.06f,
+                        TransitionEaseOutCubic(t / 0.24f));
                 }
                 else
                 {
                     scale = Mathf.Lerp(
-                        1.10f,
+                        1.06f,
                         1f,
-                        Mathf.SmoothStep(0f, 1f, (t - 0.22f) / 0.78f));
+                        Mathf.SmoothStep(0f, 1f, (t - 0.24f) / 0.76f));
                 }
                 float horizontalScale = 1f;
                 if (flipToDestination)
@@ -189,7 +191,10 @@ namespace ArcaneArena
             if (!sinksIntoSpecialPile)
                 RevealTransitionTarget(target);
             destinationWell?.PlayArrivalPulse();
-            PlayMonsterSummonArrivalEffect(arrivalEffect, destination);
+            if (PlaySummonMethodArrivalEffect(summonFrame, destination))
+                PlaySummonMethodParticleVfx(summonFrame, destinationZone);
+            else
+                PlayMonsterSummonArrivalEffect(arrivalEffect, destination);
             if (destinationPulse != null)
                 Destroy(destinationPulse);
             if (overlay != null)
@@ -296,17 +301,17 @@ namespace ArcaneArena
         private static float TransitionTravelEase(float t)
         {
             t = Mathf.Clamp01(t);
-            if (t < 0.82f)
+            if (t < 0.86f)
             {
                 return Mathf.LerpUnclamped(
                     0f,
-                    1.024f,
-                    TransitionEaseOutCubic(t / 0.82f));
+                    1.012f,
+                    TransitionEaseOutCubic(t / 0.86f));
             }
             return Mathf.Lerp(
-                1.024f,
+                1.012f,
                 1f,
-                Mathf.SmoothStep(0f, 1f, (t - 0.82f) / 0.18f));
+                Mathf.SmoothStep(0f, 1f, (t - 0.86f) / 0.14f));
         }
 
         private static float TransitionEaseOutCubic(float t)
@@ -387,7 +392,8 @@ namespace ArcaneArena
             Consider(compactResponseBar);
             Consider(zoneBrowser);
             Consider(decisionRibbon);
-            Consider(recentActionsPanel);
+            Consider(duelHistoryButton?.gameObject);
+            Consider(duelHistoryOverlay);
             Consider(chainIndicator);
             Consider(phaseNavigator);
             Consider(battleHud);

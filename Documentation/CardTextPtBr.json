@@ -946,7 +946,7 @@
     {
       "code": 313513,
       "name": "Engrenagem Mágica",
-      "description": "Envie 3 cartas \"Ancient Gear\" que você controla ao Cemitério. Você pode Special Summon até 1 \"Ancient Gear Golem\" da sua mão e 1 do seu Deck, ignorando as condições de invocação. Depois disso, destrua todos os monstros que você controla exceto \"Ancient Gear Golems\". Você não pode Normal Summon ou Set até o fim do seu próximo turno.\n",
+      "description": "Envie 3 cards \"Mecanismo Antigo\" com a face para cima que você controla para o Cemitério; Invoque por Invocação-Especial até 1 \"Golem do Mecanismo Antigo\" da sua mão e até 1 do seu Deck, ignorando suas condições de Invocação e, depois, destrua todos os monstros que você controla, exceto \"Golem do Mecanismo Antigo\". Você não pode Invocar por Invocação-Normal/Baixar até o final do seu próximo turno.",
       "strings": []
     },
     {
@@ -1174,7 +1174,7 @@
     {
       "code": 612115,
       "name": "Fera Gladiatora Retiari",
-      "description": "Quando esta carta for Special Summon pelo efeito de um monstro \"Besta Gladiatora\", você pode remover do jogo 1 carta do Cemitério de seu oponente. No fim do Fase da Batalha, se esta carta atacacou ou foi atacado, você pode retornar esta carta para Deck e faça 1 Special Summon de \"Besta Gladiatora\" do seu Deck exceto do \"Besta Gladiadora Retiari\"\n",
+      "description": "Quando este card for Invocado por Invocação-Especial pelo efeito de um monstro \"Besta Gladiadora\": você pode escolher 1 card no Cemitério do seu oponente; bana o alvo. No final da Fase de Batalha, se este card batalhou: você pode embaralhá-lo no Deck; Invoque por Invocação-Especial 1 monstro \"Besta Gladiadora\" do seu Deck, exceto \"Besta Gladiadora Retiari\".",
       "strings": []
     },
     {
@@ -4456,7 +4456,7 @@
     {
       "code": 4253484,
       "name": "Fera Gladiadora Hoplomus",
-      "description": "Se esta carta foi Special Summoned pelo efeito de um monstro \"Gladiator Beast\", a DEF original desta carta torna-se 2400. No fim da Battle Phase, se esta carta atacou ou foi atacada, você pode retorná-la ao Deck para Special Summon 1 monstro \"Gladiator Beast\" do seu Deck, exceto \"Gladiator Beast Hoplomus\".\n",
+      "description": "Se este card foi Invocado por Invocação-Especial pelo efeito de um monstro \"Besta Gladiadora\", a DEF original dele se torna 2400. No final da Fase de Batalha, se este card batalhou: você pode embaralhá-lo no Deck; Invoque por Invocação-Especial 1 monstro \"Besta Gladiadora\" do seu Deck, exceto \"Besta Gladiadora Hoplomus\".",
       "strings": []
     },
     {
@@ -19433,7 +19433,7 @@
     {
       "code": 79323590,
       "name": "Corrente de Energia",
-      "description": "Cada jogador deve pagar 500 LPs por carta para Normal Summon, Special Summon ou Set um monstro, ou ativar cartas das suas respectivas mãos.",
+      "description": "Cada duelista deve pagar 500 PV para Invocar por Invocação-Normal, Invocar por Invocação-Especial, Baixar ou ativar um card da própria mão.",
       "strings": []
     },
     {

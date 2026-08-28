@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 $catalog = Join-Path $ProjectRoot "Documentation\CoreCardCatalog.csv"
 $database = Join-Path $ProjectRoot "ThirdParty\BabelCDB\cards.cdb"
 $localization = Join-Path $ProjectRoot "Documentation\CardTextPtBr.json"
+$customCards = Join-Path $ProjectRoot "Documentation\CustomCards.json"
 $compiler = Join-Path $ProjectRoot "Tools\CardDbCompiler\compile_cards.py"
 $streaming = Join-Path $ProjectRoot "Assets\StreamingAssets\Ygo"
 $scriptsSource = Join-Path $ProjectRoot "ThirdParty\CardScripts"
@@ -27,6 +28,9 @@ $compilerArguments = @(
 )
 if (Test-Path -LiteralPath $localization) {
     $compilerArguments += @("--localization", $localization)
+}
+if (Test-Path -LiteralPath $customCards) {
+    $compilerArguments += @("--custom-cards", $customCards)
 }
 if (-not [string]::IsNullOrWhiteSpace($Sqlite3)) {
     $compilerArguments += @("--sqlite3-cli", $Sqlite3)
@@ -51,6 +55,13 @@ if ($uniqueCodes.Count -ne $rows.Count) {
     throw "Core catalog contains duplicate official codes."
 }
 foreach ($row in $rows) {
+    # Custom cards already own a reviewed Lua file in StreamingAssets/Ygo/
+    # CustomScripts. They are compiled into cards.bin like every other card,
+    # but must not be looked up in the pinned upstream CardScripts repository.
+    $origin = [string]$row.origin
+    if ($origin -like "custom-*") {
+        continue
+    }
     if ([string]::IsNullOrWhiteSpace($row.script_code)) {
         continue
     }
