@@ -207,6 +207,7 @@ namespace ArcaneArena.Multiplayer
             CancelPreludeModeTransition();
             SetPreludeMode(true, false);
             RestorePreludePanelPresentation();
+            ResetPreludeBackdropFraming();
             choiceAction = onChoice;
             primaryLabel.text = "QUEM INICIA O DUELO?";
             secondaryLabel.text = string.IsNullOrWhiteSpace(opponentName)
@@ -336,6 +337,7 @@ namespace ArcaneArena.Multiplayer
                     elapsed += Time.unscaledDeltaTime;
                     float progress = Mathf.Clamp01(elapsed / tieDuration);
                     float pulse = Mathf.Sin(progress * Mathf.PI);
+                    SetPreludeBackdropFocus(pulse * 0.18f);
                     resultLocalChoiceIcon.rectTransform.anchoredPosition =
                         new Vector2(18f * pulse, 0f);
                     resultOpponentChoiceIcon.rectTransform.anchoredPosition =
@@ -349,6 +351,7 @@ namespace ArcaneArena.Multiplayer
                 }
                 ResetPreludeResultIcon(resultLocalChoiceIcon);
                 ResetPreludeResultIcon(resultOpponentChoiceIcon);
+                ResetPreludeBackdropFraming();
                 preludeResultAnimationRoutine = null;
                 yield break;
             }
@@ -391,6 +394,7 @@ namespace ArcaneArena.Multiplayer
                 approachElapsed += Time.unscaledDeltaTime;
                 float progress = Mathf.Clamp01(approachElapsed / approachDuration);
                 float eased = EaseOutCubic(progress);
+                SetPreludeBackdropFocus(Mathf.Lerp(0.20f, 1f, eased));
                 winner.rectTransform.anchoredPosition = attackOffset * eased;
                 loser.rectTransform.anchoredPosition = loserApproachOffset *
                                                        eased;
@@ -417,6 +421,7 @@ namespace ArcaneArena.Multiplayer
                 float progress = Mathf.Clamp01(
                     destructionElapsed / destructionDuration);
                 float eased = EaseOutCubic(progress);
+                SetPreludeBackdropFocus(1f);
                 winner.rectTransform.anchoredPosition = Vector2.Lerp(
                     attackOffset,
                     attackOffset * 0.16f,
@@ -958,6 +963,7 @@ namespace ArcaneArena.Multiplayer
                     resultOpponentChoiceIcon,
                     eased,
                     1f);
+                SetPreludeBackdropFocus(eased * 0.20f);
                 if (preludeCinematicVeil != null)
                 {
                     Color veil = new Color(0.018f, 0.08f, 0.20f, 1f);
@@ -999,12 +1005,12 @@ namespace ArcaneArena.Multiplayer
             if (icon == null)
                 return;
             icon.rectTransform.localScale = Vector3.one * Mathf.Lerp(
-                0.64f,
+                0.56f,
                 1f,
                 progress);
             icon.rectTransform.anchoredPosition = new Vector2(
-                horizontalDirection * Mathf.Lerp(52f, 0f, progress),
-                Mathf.Lerp(-46f, 0f, progress));
+                horizontalDirection * Mathf.Lerp(38f, 0f, progress),
+                Mathf.Lerp(-92f, 0f, progress));
         }
 
         private void ResetPreludeCinematicVeil()
@@ -1025,7 +1031,11 @@ namespace ArcaneArena.Multiplayer
         private void SetPreludeBackdropVisible(bool visible)
         {
             if (preludeBackdrop != null)
+            {
                 preludeBackdrop.SetActive(visible);
+                if (!visible)
+                    ResetPreludeBackdropFraming();
+            }
 
             bool showCards = !visible;
             foreach (Image card in floatingCardImages)
@@ -1038,6 +1048,34 @@ namespace ArcaneArena.Multiplayer
                 if (trail != null)
                     trail.enabled = showCards;
             }
+        }
+
+        private void SetPreludeBackdropFocus(float amount)
+        {
+            if (preludeBackdrop == null)
+                return;
+            RectTransform backdrop = preludeBackdrop
+                .GetComponent<RectTransform>();
+            if (backdrop == null)
+                return;
+            float focus = Mathf.Clamp01(amount);
+            float scale = Mathf.Lerp(1f, 1.115f, focus);
+            backdrop.localScale = new Vector3(scale, scale, 1f);
+            backdrop.anchoredPosition = new Vector2(
+                0f,
+                Mathf.Lerp(0f, -32f, focus));
+        }
+
+        private void ResetPreludeBackdropFraming()
+        {
+            if (preludeBackdrop == null)
+                return;
+            RectTransform backdrop = preludeBackdrop
+                .GetComponent<RectTransform>();
+            if (backdrop == null)
+                return;
+            backdrop.localScale = Vector3.one;
+            backdrop.anchoredPosition = Vector2.zero;
         }
 
         private void ApplyText(string primary, string secondary)
