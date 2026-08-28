@@ -12,7 +12,7 @@ namespace ArcaneDuel.Tests.EditMode
     public sealed class ProfileIconSystemEditModeTests
     {
         [Test]
-        public void CatalogHasDefaultAndTwentyFiveIconsAtExactPrice()
+        public void CatalogKeepsAnimatedIconsExclusiveAndTheOthersAtExactPrice()
         {
             Type catalog = FindType("ArcaneArena.Frontend.ProfileIconCatalog");
             object[] icons = Values(catalog.GetProperty("All").GetValue(null));
@@ -20,11 +20,13 @@ namespace ArcaneDuel.Tests.EditMode
                 (bool)Property(icon, "IsPurchasable")).ToArray();
 
             Assert.That(icons, Has.Length.EqualTo(26));
-            Assert.That(purchasable, Has.Length.EqualTo(25));
+            Assert.That(purchasable, Has.Length.EqualTo(22));
             Assert.That(purchasable.All(icon =>
                 (int)Property(icon, "PriceCoins") == 35), Is.True);
             Assert.That(icons.Count(icon =>
-                !(bool)Property(icon, "IsPurchasable")), Is.EqualTo(1));
+                !(bool)Property(icon, "IsPurchasable")), Is.EqualTo(4));
+            Assert.That(icons.Count(icon =>
+                (bool)Property(icon, "IsExclusive")), Is.EqualTo(3));
             Assert.That(icons.Count(icon =>
                 Property(icon, "AssetMode").ToString() == "PreframedHex"),
                 Is.EqualTo(10),
@@ -357,6 +359,31 @@ namespace ArcaneDuel.Tests.EditMode
                 Assert.That(Property(reloaded, "EquippedIconId"),
                     Is.EqualTo(iconId));
                 Assert.That(CoinBalance(reloaded), Is.EqualTo(40));
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
+        [Test]
+        public void AnimatedExclusiveIconsCannotBePurchasedWithCoins()
+        {
+            string path = TemporarySave("exclusive-icon");
+            try
+            {
+                object repository = CreateRepository(path);
+                SetCoinBalance(repository, 999);
+                object[] purchase =
+                {
+                    "icon-azure-tempest-dragon", "exclusive-icon-tx", null, null
+                };
+                bool purchased = (bool)repository.GetType()
+                    .GetMethod("TryPurchaseIcon").Invoke(repository, purchase);
+                Assert.That(purchased, Is.False);
+                Assert.That(purchase[3] as string,
+                    Does.Contain("exclusivo").IgnoreCase);
+                Assert.That(CoinBalance(repository), Is.EqualTo(999));
             }
             finally
             {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneDuel.Game.Accounts;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 
@@ -10,8 +11,17 @@ namespace ArcaneArena.Frontend
     {
         private const int MaximumProcessedStatisticResults = 256;
 
-        public string EquippedIconId => ProfileIconCatalog.ResolveId(
-            State?.cosmetics?.equippedIconId);
+        public string EquippedIconId
+        {
+            get
+            {
+                string resolved = ProfileIconCatalog.ResolveId(
+                    State?.cosmetics?.equippedIconId);
+                return ProfileIconCatalog.CanCurrentAccountUse(resolved)
+                    ? resolved
+                    : ProfileIconCatalog.DefaultIconId;
+            }
+        }
 
         public IReadOnlyCollection<string> OwnedIconIds
         {
@@ -78,7 +88,64 @@ namespace ArcaneArena.Frontend
         public bool OwnsIcon(string iconId)
         {
             string resolved = ProfileIconCatalog.ResolveId(iconId);
-            return State?.cosmetics?.ownedIconIds?.Contains(resolved) == true;
+            return ProfileIconCatalog.CanCurrentAccountUse(resolved) &&
+                   State?.cosmetics?.ownedIconIds?.Contains(resolved) == true;
+        }
+
+        /// <summary>
+        /// Replica no save local somente as concessões que o servidor acabou
+        /// de confirmar. Uma sessão ainda não verificada não remove nada, para
+        /// evitar perder a coleção enquanto o aplicativo está sem rede.
+        /// </summary>
+        public bool SynchronizeExclusiveProfileIconEntitlements()
+        {
+            if (State?.cosmetics?.ownedIconIds == null)
+                return false;
+
+            PlayerIdAccessSnapshot snapshot = PlayerIdAccessRuntime.Current;
+            if (snapshot?.serverVerified != true)
+                return false;
+
+            bool granted = PlayerIdAccessRuntime.HasFeature(
+                PlayerIdFeature.ExclusiveAnimatedProfileIcons);
+            bool changed = false;
+            foreach (ProfileIconDefinition icon in
+                     ProfileIconCatalog.ExclusiveAnimated)
+            {
+                if (granted)
+                {
+                    if (!State.cosmetics.ownedIconIds.Contains(icon.IconId))
+                    {
+                        State.cosmetics.ownedIconIds.Add(icon.IconId);
+                        changed = true;
+                    }
+                }
+                else
+                {
+                    changed |= State.cosmetics.ownedIconIds.RemoveAll(id =>
+                        string.Equals(id, icon.IconId,
+                            StringComparison.Ordinal)) > 0;
+                }
+            }
+
+            if (!granted && ProfileIconCatalog.IsExclusive(
+                    State.cosmetics.equippedIconId))
+            {
+                State.cosmetics.equippedIconId =
+                    ProfileIconCatalog.DefaultIconId;
+                changed = true;
+            }
+
+            if (!changed)
+                return false;
+
+            State.cosmetics.ownedIconIds = State.cosmetics.ownedIconIds
+                .Select(ProfileIconCatalog.ResolveId)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToList();
+            Save();
+            return true;
         }
 
         public bool TryPurchaseIcon(
@@ -90,6 +157,12 @@ namespace ArcaneArena.Frontend
             receipt = null;
             rejection = string.Empty;
             ProfileIconDefinition definition = ProfileIconCatalog.Resolve(iconId);
+            if (definition != null && definition.IsExclusive)
+            {
+                rejection = "Este emblema é exclusivo e não pode ser comprado " +
+                            "com moedas.";
+                return false;
+            }
             if (definition == null || !definition.IsPurchasable ||
                 !string.Equals(definition.IconId, iconId, StringComparison.Ordinal))
             {
@@ -155,6 +228,12 @@ namespace ArcaneArena.Frontend
                 return false;
             }
             string resolved = ProfileIconCatalog.ResolveId(iconId);
+            if (!ProfileIconCatalog.CanCurrentAccountUse(resolved))
+            {
+                rejection = "O acesso a este emblema exclusivo não está " +
+                            "liberado para o ID desta conta.";
+                return false;
+            }
             if (!string.Equals(resolved, iconId, StringComparison.Ordinal) ||
                 !OwnsIcon(resolved))
             {

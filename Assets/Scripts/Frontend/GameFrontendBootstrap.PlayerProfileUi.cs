@@ -1195,10 +1195,17 @@ namespace ArcaneArena.Frontend
             Transform parent,
             ProfileIconDefinition icon)
         {
-            bool owned = _repository.OwnsIcon(icon.IconId);
-            bool equipped = string.Equals(_repository.EquippedIconId,
-                icon.IconId, StringComparison.Ordinal);
-            Color accent = equipped
+            bool locked = icon.IsExclusive &&
+                          !ProfileIconCatalog.CanCurrentAccountUse(
+                              icon.IconId);
+            bool owned = !locked && _repository.OwnsIcon(icon.IconId);
+            bool equipped = owned && string.Equals(
+                _repository.EquippedIconId,
+                icon.IconId,
+                StringComparison.Ordinal);
+            Color accent = locked
+                ? new Color(0.78f, 0.63f, 0.28f, 1f)
+                : equipped
                 ? new Color(0.78f, 1f, 0.20f, 1f)
                 : owned
                     ? new Color(0.34f, 0.88f, 0.96f, 1f)
@@ -1206,7 +1213,8 @@ namespace ArcaneArena.Frontend
             Image tile = CreateShopTile(parent, icon.DisplayName, accent);
 
             CreateText(tile.transform,
-                equipped ? "EMBLEMA ATIVO" : owned
+                locked ? "CONTEÚDO EXCLUSIVO" : equipped
+                    ? "EMBLEMA ATIVO" : owned
                     ? "EMBLEMA ADQUIRIDO"
                     : "EMBLEMA PREMIUM",
                 10, FontStyle.Bold,
@@ -1242,7 +1250,11 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.25f, 0.08f),
                 new Vector2(0.75f, 0.92f));
 
-            if (owned)
+            if (locked)
+            {
+                CreateExclusiveIconLockButton(tile.transform, accent);
+            }
+            else if (owned)
             {
                 string action = equipped ? "EQUIPADO" : "EQUIPAR";
                 Image actionButton = CreateButton(tile.transform, action,
@@ -1265,8 +1277,33 @@ namespace ArcaneArena.Frontend
             }
         }
 
+        private void CreateExclusiveIconLockButton(Transform parent, Color accent)
+        {
+            Image button = CreateButton(parent, "🔒  EXCLUSIVO",
+                new Vector2(0.08f, 0.04f),
+                new Vector2(0.92f, 0.19f), accent, null);
+            DecorateRuntimeShopButton(button, accent, false, 8f);
+            Button interaction = button.GetComponent<Button>();
+            if (interaction != null)
+                interaction.interactable = false;
+            CreateText(button.transform, "LIBERADO SOMENTE POR ID",
+                9, FontStyle.Bold,
+                new Color(accent.r, accent.g, accent.b, 0.88f),
+                new Vector2(0.14f, 0.08f),
+                new Vector2(0.86f, 0.34f), TextAnchor.MiddleCenter);
+        }
+
         private void HandleProfileIconShopAction(ProfileIconDefinition icon)
         {
+            if (icon.IsExclusive && !ProfileIconCatalog.CanCurrentAccountUse(
+                    icon.IconId))
+            {
+                _shopFeedback = "Este emblema é exclusivo e está bloqueado " +
+                                "para o ID desta conta.";
+                _shopFeedbackIsError = true;
+                ShowEconomyShop();
+                return;
+            }
             if (_repository.OwnsIcon(icon.IconId))
             {
                 if (!_repository.TryEquipIcon(icon.IconId, out string rejection))
@@ -1288,6 +1325,13 @@ namespace ArcaneArena.Frontend
         private void ShowProfileIconPurchaseConfirmation(
             ProfileIconDefinition icon)
         {
+            if (icon.IsExclusive)
+            {
+                _shopFeedback = "Este emblema exclusivo não utiliza moedas.";
+                _shopFeedbackIsError = true;
+                ShowEconomyShop();
+                return;
+            }
             if (!PlayerIdAccessRuntime.Allows(
                     PlayerIdCapability.Economy,
                     out string accessRejection))
