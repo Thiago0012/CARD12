@@ -22,6 +22,12 @@ namespace ArcaneDuel.Game.Accounts
     {
         public const string ExclusiveAccountContent =
             "exclusive-account-content";
+
+        // Liberação individual para os três emblemas cuja moldura possui
+        // animação própria. Não representa cargo: o catálogo concede a chave
+        // somente ao ID numérico autorizado.
+        public const string ExclusiveAnimatedProfileIcons =
+            "exclusive-animated-profile-icons";
     }
 
     /// <summary>

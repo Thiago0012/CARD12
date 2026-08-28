@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ArcaneDuel.Game.Accounts;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 
@@ -118,6 +119,7 @@ namespace ArcaneArena.Frontend
         public string ResourcePath { get; }
         public int PriceCoins { get; }
         public bool IsPurchasable { get; }
+        public bool IsExclusive { get; }
         public ProfileIconAssetMode AssetMode { get; }
         public Rect PortraitUv { get; }
         public ProfileIconAuraTheme AuraTheme { get; }
@@ -130,13 +132,15 @@ namespace ArcaneArena.Frontend
             ProfileIconAssetMode assetMode =
                 ProfileIconAssetMode.PreframedHex,
             Rect? portraitUv = null,
-            ProfileIconAuraTheme auraTheme = ProfileIconAuraTheme.None)
+            ProfileIconAuraTheme auraTheme = ProfileIconAuraTheme.None,
+            bool isExclusive = false)
         {
             IconId = iconId;
             DisplayName = displayName;
             ResourcePath = resourcePath;
             PriceCoins = isPurchasable ? ProfileIconCatalog.IconPriceCoins : 0;
             IsPurchasable = isPurchasable;
+            IsExclusive = isExclusive;
             AssetMode = assetMode;
             PortraitUv = portraitUv ?? new Rect(0f, 0f, 1f, 1f);
             AuraTheme = auraTheme;
@@ -231,17 +235,20 @@ namespace ArcaneArena.Frontend
                 "Profile/Icons/cosmic-imperator", true,
                 ProfileIconAssetMode.UnframedPortrait),
             new("icon-crimson-veil-arcanist", "Arcanista do Véu Rubro",
-                "Profile/Icons/crimson-veil-arcanist", true,
+                "Profile/Icons/crimson-veil-arcanist", false,
                 ProfileIconAssetMode.UnframedPortrait,
-                auraTheme: ProfileIconAuraTheme.CrimsonLegendary),
+                auraTheme: ProfileIconAuraTheme.CrimsonLegendary,
+                isExclusive: true),
             new("icon-azure-tempest-dragon", "Dragão da Tempestade Azul",
-                "Profile/Icons/azure-tempest-dragon", true,
+                "Profile/Icons/azure-tempest-dragon", false,
                 ProfileIconAssetMode.UnframedPortrait,
-                auraTheme: ProfileIconAuraTheme.AzureTempest),
+                auraTheme: ProfileIconAuraTheme.AzureTempest,
+                isExclusive: true),
             new("icon-violet-eclipse-sorceress", "Maga do Eclipse Violeta",
-                "Profile/Icons/violet-eclipse-sorceress", true,
+                "Profile/Icons/violet-eclipse-sorceress", false,
                 ProfileIconAssetMode.UnframedPortrait,
-                auraTheme: ProfileIconAuraTheme.VioletEclipse)
+                auraTheme: ProfileIconAuraTheme.VioletEclipse,
+                isExclusive: true)
         };
 
         private static readonly Dictionary<string, Texture2D> TextureCache =
@@ -250,6 +257,13 @@ namespace ArcaneArena.Frontend
         public static IReadOnlyList<ProfileIconDefinition> All => Items;
         public static IEnumerable<ProfileIconDefinition> Purchasable =>
             Items.Where(item => item.IsPurchasable);
+        public static IEnumerable<ProfileIconDefinition> StoreVisible =>
+            Items.Where(item => !string.Equals(
+                item.IconId,
+                DefaultIconId,
+                StringComparison.Ordinal));
+        public static IEnumerable<ProfileIconDefinition> ExclusiveAnimated =>
+            Items.Where(item => item.IsExclusive);
 
         public static ProfileIconDefinition Resolve(string iconId)
         {
@@ -258,6 +272,20 @@ namespace ArcaneArena.Frontend
         }
 
         public static string ResolveId(string iconId) => Resolve(iconId).IconId;
+
+        public static bool IsExclusive(string iconId) =>
+            Resolve(iconId).IsExclusive;
+
+        /// <summary>
+        /// Itens exclusivos não usam saldo local. A liberação vem do snapshot
+        /// assinado pelo catálogo de jogadores e expira junto da sessão.
+        /// </summary>
+        public static bool CanCurrentAccountUse(string iconId)
+        {
+            ProfileIconDefinition icon = Resolve(iconId);
+            return !icon.IsExclusive || PlayerIdAccessRuntime.HasFeature(
+                PlayerIdFeature.ExclusiveAnimatedProfileIcons);
+        }
 
         public static string ResolveForStableIdentity(string stablePlayerId)
         {

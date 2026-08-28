@@ -69,8 +69,8 @@ namespace ArcaneArena.Multiplayer
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
-        private const int ConnectionApprovalTimeoutSeconds = 12;
-        private const int MaximumHandshakeAttempts = 40;
+        private const int ConnectionApprovalTimeoutSeconds = 30;
+        private const int MaximumHandshakeAttempts = 80;
         private const int MaximumStartAttempts = 80;
         private const float HandshakeRetrySeconds = 0.75f;
         private const float StartRetrySeconds = 0.75f;
@@ -81,7 +81,9 @@ namespace ArcaneArena.Multiplayer
         private const float ResponseResyncSeconds = 3f;
         private const float WireRetrySeconds = 0.35f;
         private const float WirePumpSeconds = 0.02f;
-        private const float WireAssemblyTimeoutSeconds = 20f;
+        private const float WireAssemblyTimeoutSeconds = 45f;
+        private const int MaximumPrivateRelayStartAttempts = 3;
+        private const float PrivateRelayRetrySeconds = 3f;
         private const float WireReceiptLifetimeSeconds = 120f;
         private const int WirePacketsPerTransferPump = 8;
         private const int WirePacketsPerFrame = 24;
@@ -488,6 +490,9 @@ namespace ArcaneArena.Multiplayer
         private float nextWirePumpTime;
         private float nextWireCleanupTime;
         private bool connectionOperationInProgress;
+        private bool privateRelayStartInProgress;
+        private int privateRelayStartAttempts;
+        private float nextPrivateRelayStartTime;
         private bool handlersRegistered;
         private bool showPanel;
         private bool focusJoinCode;
@@ -539,6 +544,14 @@ namespace ArcaneArena.Multiplayer
         public bool IsOnlineDuelActive =>
             role != SessionRole.None && networkManager != null &&
             (networkManager.IsClient || networkManager.IsServer);
+
+        /// <summary>
+        /// A private room starts as a Lobby, before Relay/NGO is deliberately
+        /// opened for both players. Treat that Lobby as occupied as well: it
+        /// already has a valid code, identity and capacity reservation.
+        /// </summary>
+        public bool HasOnlineRoom => role != SessionRole.None &&
+            sessionCoordinator.HasSession;
 
         public bool IsHost => role == SessionRole.Host;
         public CompetitivePolicy CompetitivePolicy => competitivePolicy;
@@ -619,7 +632,7 @@ namespace ArcaneArena.Multiplayer
                 rejection = "A operação online atual ainda está terminando.";
                 return false;
             }
-            if (IsOnlineDuelActive)
+            if (HasOnlineRoom)
             {
                 rejection = "Já existe uma sessão online em andamento.";
                 return false;
@@ -669,7 +682,7 @@ namespace ArcaneArena.Multiplayer
                 rejection = "A operação online atual ainda está terminando.";
                 return false;
             }
-            if (IsOnlineDuelActive)
+            if (HasOnlineRoom)
             {
                 rejection = "Já existe uma sessão online em andamento.";
                 return false;
@@ -824,6 +837,7 @@ namespace ArcaneArena.Multiplayer
                     ? OnlineMatchFlowState.Menu
                     : OnlineMatchFlowState.InSessionWaiting);
             SceneManager.sceneLoaded += OnDuelSceneLoaded;
+            sessionCoordinator.NetworkStartFailed += OnRelayNetworkStartFailed;
             DuelOnlineBridge.SubmitReplicaChoice = SubmitRemoteChoice;
             DuelOnlineBridge.SubmitReplicaResponse = SubmitRemoteResponse;
             persistedReconnectCoroutine = StartCoroutine(
@@ -835,7 +849,8 @@ namespace ArcaneArena.Multiplayer
             if (role == SessionRole.None || !sessionCoordinator.HasSession)
                 return;
 
-            PersistReconnectTicket();
+            if (IsOnlineDuelActive)
+                PersistReconnectTicket();
             if (matchStarted && flowState != OnlineMatchFlowState.ResultScreen)
             {
                 loadingPresenter?.Show(
@@ -850,7 +865,13 @@ namespace ArcaneArena.Multiplayer
             _ = sessionCoordinator.SetPlayerStateAsync(
                 paused ? "paused" : "connected",
                 localLoadout != null);
+            // A private room can now exist before the host starts Relay.
+            // Regaining Android focus in that Lobby must not launch the
+            // reconnect routine: there is intentionally no NGO connection to
+            // restore yet. Once Relay is active the existing recovery path
+            // remains unchanged.
             if (!paused && role == SessionRole.Client &&
+                IsOnlineDuelActive &&
                 (networkManager == null || !networkManager.IsConnectedClient))
             {
                 StartClientReconnect();
@@ -860,6 +881,7 @@ namespace ArcaneArena.Multiplayer
         private void OnApplicationFocus(bool focused)
         {
             if (focused && role == SessionRole.Client &&
+                IsOnlineDuelActive &&
                 sessionCoordinator.HasSession &&
                 (networkManager == null || !networkManager.IsConnectedClient))
             {
@@ -867,10 +889,30 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
+        private void OnRelayNetworkStartFailed(SessionError error)
+        {
+            if (role == SessionRole.None || !HasOnlineRoom)
+                return;
+
+            Debug.LogWarning(
+                "[MP] stage=relay-client-recovery error=" + error +
+                " role=" + role);
+            if (role != SessionRole.Client || reconnecting)
+                return;
+
+            // The MPS SDK can recover a client by reconnecting to the same
+            // Session after a temporary Relay/WSS failure. Do this only for
+            // an actual network-start failure; a Lobby that is waiting for
+            // its host has no network yet and never reaches this callback.
+            status = "A conexão Relay oscilou. Reconectando à sala...";
+            StartClientReconnect();
+        }
+
         private void OnDestroy()
         {
             DuelOnlineBridge.CompleteOnlineArenaTransition();
             SceneManager.sceneLoaded -= OnDuelSceneLoaded;
+            sessionCoordinator.NetworkStartFailed -= OnRelayNetworkStartFailed;
             if (arenaAttachRetry != null)
                 StopCoroutine(arenaAttachRetry);
             if (helloRetry != null)
@@ -932,11 +974,11 @@ namespace ArcaneArena.Multiplayer
             competitivePolicy = policy;
             rankedRoomCreationPanel =
                 policy == CompetitivePolicy.Ranked && !join;
-            if (!IsOnlineDuelActive)
+            if (!HasOnlineRoom)
                 automaticRankedMatchmaking = false;
             focusJoinCode = join;
             requestJoinFocus = join;
-            status = IsOnlineDuelActive
+            status = HasOnlineRoom
                 ? status
                 : "Escolha um deck válido e conecte-se por Relay.";
         }
@@ -949,7 +991,7 @@ namespace ArcaneArena.Multiplayer
                 status = "Uma conexão online já está sendo preparada. Aguarde.";
                 return;
             }
-            if (IsOnlineDuelActive)
+            if (HasOnlineRoom)
             {
                 showPanel = true;
                 status = "Ja existe uma sessao online em andamento.";
@@ -1333,7 +1375,10 @@ namespace ArcaneArena.Multiplayer
             // reach the explicit deck compatibility handshake below.
             networkManager.NetworkConfig.ForceSamePrefabs = false;
             networkManager.NetworkConfig.TickRate = NetworkTickRate;
-            networkManager.NetworkConfig.ClientConnectionBufferTimeout = 30;
+            // The client reaches this gate after an HTTPS/WebSocket Relay
+            // handshake. Give Android enough time to resume from asset and
+            // shader loading instead of rejecting a valid mobile player.
+            networkManager.NetworkConfig.ClientConnectionBufferTimeout = 45;
             // Each peer deliberately opens the arena locally after the Relay
             // handshake. This card game has no spawned scene objects, so NGO
             // scene replication would only add races.
@@ -1347,8 +1392,14 @@ namespace ArcaneArena.Multiplayer
             if (handlersRegistered)
                 return;
             if (networkManager?.CustomMessagingManager == null)
-                throw new InvalidOperationException(
-                    "O canal de mensagens online ainda não foi inicializado.");
+            {
+                // MPS may signal Session/Relay readiness one frame before
+                // NGO exposes its custom-message channel. This is normal on
+                // Android and must not turn a valid join into a failed room.
+                // Update and OnClientConnected call us again as soon as the
+                // channel is available.
+                return;
+            }
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
                 WirePacketMessage,
                 OnWirePacketMessage);
@@ -1390,7 +1441,7 @@ namespace ArcaneArena.Multiplayer
                 status = error;
                 return;
             }
-            if (IsOnlineDuelActive)
+            if (HasOnlineRoom)
             {
                 status = "Já existe uma sessão online em andamento.";
                 return;
@@ -1436,11 +1487,10 @@ namespace ArcaneArena.Multiplayer
                 relayRegion = "QoS automatico";
                 relayRegionDescription =
                     "melhor regiao escolhida automaticamente";
-                RegisterHandlers();
                 await sessionCoordinator.SetPlayerStateAsync("connected", true);
 
                 status = $"Sala criada na região Relay {GetRelayRegionLabel()}. " +
-                    "Compartilhe o código e aguarde o rival.";
+                    "Compartilhe o código; a conexão inicia quando o rival entrar.";
                 showPanel = activeTournamentContext == null;
             }
             catch (Exception exception)
@@ -1483,7 +1533,7 @@ namespace ArcaneArena.Multiplayer
                 status = "Informe o código da sala com 6 a 12 caracteres.";
                 return;
             }
-            if (IsOnlineDuelActive)
+            if (HasOnlineRoom)
             {
                 status = "Já existe uma sessão online em andamento.";
                 return;
@@ -1524,12 +1574,13 @@ namespace ArcaneArena.Multiplayer
                 relayRegion = "QoS automatico";
                 relayRegionDescription =
                     "regiao Relay definida pelo anfitriao";
-                RegisterHandlers();
-                status = "Conectando ao host...";
+                status = "Sala confirmada. Aguardando o anfitrião abrir a conexão Relay...";
                 await sessionCoordinator.SetPlayerStateAsync("connected", false);
-                PersistReconnectTicket();
                 if (networkManager.IsConnectedClient)
+                {
+                    RegisterHandlers();
                     StartClientDeckHandshake();
+                }
             }
             catch (Exception exception)
             {
@@ -1562,7 +1613,7 @@ namespace ArcaneArena.Multiplayer
                 status = error;
                 return;
             }
-            if (IsOnlineDuelActive)
+            if (HasOnlineRoom)
             {
                 status = "Ja existe uma sessao online em andamento.";
                 return;
@@ -1827,6 +1878,99 @@ namespace ArcaneArena.Multiplayer
                     out string rejection))
             {
                 throw new InvalidOperationException(rejection);
+            }
+        }
+
+        /// <summary>
+        /// Private rooms deliberately use a two-step Session lifecycle:
+        /// create/join the Lobby first, then start Relay when both seats are
+        /// present. Besides presenting the code immediately, this removes the
+        /// race where a slow Android client was expected to complete Lobby,
+        /// Relay and NGO connection approval as one indivisible operation.
+        /// </summary>
+        private void MaintainPrivateRelayNetworkStart(float now)
+        {
+            if (role != SessionRole.Host || !HasOnlineRoom ||
+                automaticRankedMatchmaking || matchStarted)
+            {
+                return;
+            }
+
+            NetworkState networkState = sessionCoordinator.NetworkState;
+            if (networkState == NetworkState.Started ||
+                networkState == NetworkState.Starting)
+            {
+                return;
+            }
+
+            if (sessionCoordinator.PlayerCount < 2)
+            {
+                // A new guest should receive the complete retry budget; a
+                // previous guest might have closed the app while connecting.
+                privateRelayStartAttempts = 0;
+                return;
+            }
+            if (privateRelayStartInProgress ||
+                now < nextPrivateRelayStartTime ||
+                privateRelayStartAttempts >=
+                    MaximumPrivateRelayStartAttempts)
+            {
+                return;
+            }
+
+            privateRelayStartInProgress = true;
+            _ = StartPrivateRelayNetworkAsync();
+        }
+
+        private async Task StartPrivateRelayNetworkAsync()
+        {
+            try
+            {
+                status = "Rival localizado. Abrindo a conexão segura Relay...";
+                Debug.Log(
+                    "[MP] stage=private-relay-start members=" +
+                    sessionCoordinator.PlayerCount + " protocol=" +
+                    sessionCoordinator.ActiveRelayProtocol);
+                await sessionCoordinator.StartPrivateRelayNetworkAsync();
+
+                if (role == SessionRole.Host && HasOnlineRoom &&
+                    networkManager != null && networkManager.IsListening)
+                {
+                    privateRelayStartAttempts = 0;
+                    status = "Relay conectado. Validando os decks da sala...";
+                    Debug.Log("[MP] stage=private-relay-ready role=host");
+                }
+            }
+            catch (Exception exception)
+            {
+                if (role == SessionRole.Host && HasOnlineRoom &&
+                    !matchStarted)
+                {
+                    privateRelayStartAttempts++;
+                    if (privateRelayStartAttempts <
+                        MaximumPrivateRelayStartAttempts)
+                    {
+                        nextPrivateRelayStartTime =
+                            Time.realtimeSinceStartup +
+                            PrivateRelayRetrySeconds;
+                        status = "A conexão Relay oscilou. Tentando novamente " +
+                            $"({privateRelayStartAttempts + 1}/" +
+                            MaximumPrivateRelayStartAttempts + ")...";
+                    }
+                    else
+                    {
+                        status = "Não foi possível abrir a conexão Relay. " +
+                            "Saia da sala, crie um novo código e tente novamente.";
+                    }
+                    Debug.LogWarning(
+                        "[MP] stage=private-relay-start-failed attempt=" +
+                        privateRelayStartAttempts + " error=" +
+                        exception.GetBaseException().Message);
+                }
+            }
+            finally
+            {
+                privateRelayStartInProgress = false;
             }
         }
 
@@ -2119,6 +2263,11 @@ namespace ArcaneArena.Multiplayer
             {
                 if (clientId == NetworkManager.ServerClientId)
                     return;
+                // In private rooms the Lobby is created before Relay. The
+                // custom messaging channel only exists after NGO connects,
+                // so registering it earlier used to make a mobile join abort
+                // before the deck handshake could begin.
+                RegisterHandlers();
                 CancelRankedBotFallback();
                 rankedBotFallbackDeadline = 0f;
                 bool resumedMatch = hostAwaitingReconnect && matchStarted &&
@@ -2168,6 +2317,8 @@ namespace ArcaneArena.Multiplayer
             if (role == SessionRole.Client &&
                 clientId == networkManager.LocalClientId)
             {
+                RegisterHandlers();
+                PersistReconnectTicket();
                 reconnecting = false;
                 status = "Conectado. Enviando o deck para validação do host...";
                 if (matchStarted && helloAccepted)
@@ -5259,6 +5410,8 @@ namespace ArcaneArena.Multiplayer
         private void Update()
         {
             float now = Time.realtimeSinceStartup;
+            MaintainPrivateRelayNetworkStart(now);
+            MaintainMessageHandlers();
             MaintainFlowTimeout(now);
             MaintainArenaReadyHandshake(now);
             TrySendPendingPresentationEvents();
@@ -5306,6 +5459,12 @@ namespace ArcaneArena.Multiplayer
                     now,
                     Math.Min(WirePacketsPerTransferPump, remainingBudget));
             }
+        }
+
+        private void MaintainMessageHandlers()
+        {
+            if (IsOnlineDuelActive && !handlersRegistered)
+                RegisterHandlers();
         }
 
         private void MaintainArenaReadyHandshake(float now)
@@ -5958,6 +6117,9 @@ namespace ArcaneArena.Multiplayer
 
         private void StopConnectionCoroutines()
         {
+            privateRelayStartInProgress = false;
+            privateRelayStartAttempts = 0;
+            nextPrivateRelayStartTime = 0f;
             if (arenaAttachRetry != null)
             {
                 StopCoroutine(arenaAttachRetry);
@@ -6344,7 +6506,7 @@ namespace ArcaneArena.Multiplayer
             const float margin = 38f;
             const float contentWidth = 564f;
 
-            bool roomActive = IsOnlineDuelActive;
+            bool roomActive = HasOnlineRoom;
             bool automaticQueue = automaticRankedMatchmaking &&
                 competitivePolicy == CompetitivePolicy.Ranked;
             bool rankedRoomSetup = rankedRoomCreationPanel &&
@@ -6464,13 +6626,9 @@ namespace ArcaneArena.Multiplayer
             GUI.backgroundColor = Color.white;
             GUI.Box(new Rect(margin, 264f, 412f, 92f),
                 GUIContent.none, lobbySectionStyle);
-            bool peerConnected = IsHost
-                ? remoteClientId != ulong.MaxValue
-                : role == SessionRole.Client && networkManager != null &&
-                  networkManager.IsConnectedClient;
             int players = role == SessionRole.None
                 ? 0
-                : peerConnected ? 2 : 1;
+                : Mathf.Clamp(sessionCoordinator.PlayerCount, 1, 2);
             int confirmedDecks = localLoadout == null ? 0 : 1;
             if (IsHost ? remoteLoadout != null && clientDeckReady : helloAccepted)
                 confirmedDecks++;
@@ -6493,7 +6651,9 @@ namespace ArcaneArena.Multiplayer
                 $"DECK JOGADOR 2  •  {playerTwoDeck}",
                 lobbyDeckStyle);
 
-            bool canStartMatch = IsHost && peerConnected &&
+            bool canStartMatch = IsHost &&
+                networkManager != null && networkManager.IsServer &&
+                remoteClientId != ulong.MaxValue &&
                 remoteLoadout != null && clientDeckReady && !matchStarted;
             string matchButtonLabel = matchStarted
                 ? "DUELO ONLINE EM ANDAMENTO"
@@ -6552,11 +6712,21 @@ namespace ArcaneArena.Multiplayer
 
         private string GetRelayLobbyInfo()
         {
-            if (!IsOnlineDuelActive)
+            if (!HasOnlineRoom)
             {
                 return "ONLINE v12 • Relay " +
                     RelayTransportPolicy.DisplayName +
                     " • melhor região automática.";
+            }
+
+            if (!IsOnlineDuelActive)
+            {
+                int memberCount = Mathf.Clamp(
+                    sessionCoordinator.PlayerCount,
+                    1,
+                    2);
+                return $"SALA v12 • {memberCount:00}/02 no Lobby • Relay " +
+                    "será iniciado quando os dois jogadores estiverem prontos.";
             }
 
             int roundTrip = RelayRoundTripTimeMs;

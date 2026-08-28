@@ -86,6 +86,7 @@ namespace ArcaneArena.Frontend
             if (snapshot == null || this == null)
                 return;
 
+            _repository?.SynchronizeExclusiveProfileIconEntitlements();
             PlayerIdAccessRuntime.SetPlayerDisplayName(
                 _repository?.PlayerDisplayName);
             SyncPublicProfileSnapshot();
