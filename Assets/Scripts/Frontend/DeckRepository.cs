@@ -99,6 +99,7 @@ namespace ArcaneArena.Frontend
             State.decks.RemoveAll(deck => deck == null);
             foreach (var deck in State.decks)
                 deck.Normalize();
+            NormalizeStarterDeckDisplayNames();
 
             if (string.IsNullOrWhiteSpace(State.selectedDeckId) ||
                 State.decks.All(deck =>

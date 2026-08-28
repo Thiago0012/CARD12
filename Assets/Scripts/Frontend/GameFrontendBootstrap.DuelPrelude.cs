@@ -68,9 +68,38 @@ namespace ArcaneArena.Frontend
                             : OnlineLoadingScreenPresenter.PreludeWinPresentationSeconds);
                     if (!tie)
                     {
-                        _pendingStartingPlayer = localWon
-                            ? (byte)0
-                            : (byte)1;
+                        if (localWon)
+                        {
+                            bool choiceMade = false;
+                            bool localStarts = true;
+                            presenter?.ShowStartingPlayerChoice(
+                                starts =>
+                                {
+                                    localStarts = starts;
+                                    choiceMade = true;
+                                });
+                            while (!choiceMade)
+                                yield return null;
+                            _pendingStartingPlayer = localStarts
+                                ? (byte)0
+                                : (byte)1;
+                        }
+                        else
+                        {
+                            // The offline rival follows the same rule as an
+                            // online winner: it may claim the first turn or
+                            // deliberately give it away.
+                            bool opponentStarts =
+                                UnityEngine.Random.value >= 0.35f;
+                            _pendingStartingPlayer = opponentStarts
+                                ? (byte)1
+                                : (byte)0;
+                            presenter?.ShowStartingPlayerWaiting(
+                                opponentStarts
+                                    ? "SEU OPONENTE INICIA O DUELO!"
+                                    : "VOCÊ INICIA O DUELO!");
+                            yield return new WaitForSecondsRealtime(0.65f);
+                        }
                         break;
                     }
                     round++;

@@ -68,8 +68,8 @@ namespace ArcaneArena
             UpdateCardDrag(card, handDragOriginScreen);
             SetStatus(
                 handDragCandidateZones.Count > 0
-                    ? "Arraste ate uma zona azul. O Core confirmara o destino legal."
-                    : "Nao ha uma zona livre para esta acao.",
+                    ? "Arraste até uma zona azul disponível."
+                    : "Não há uma zona livre para esta ação.",
                 handDragCandidateZones.Count > 0 ? Cyan : Muted);
         }
 
@@ -239,7 +239,7 @@ namespace ArcaneArena
             if (exact == null)
             {
                 SetStatus(
-                    "O Core restringiu os destinos. Escolha uma zona iluminada.",
+                    "Os destinos disponíveis mudaram. Escolha uma zona iluminada.",
                     Gold);
                 return false;
             }

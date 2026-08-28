@@ -15,6 +15,7 @@ using ArcaneDuel.DuelEngine.Diagnostics;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Accounts;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -35,6 +36,7 @@ namespace ArcaneArena
         private const uint FaceDownAttack = 0x2;
         private const uint FaceUpDefense = 0x4;
         private const uint FaceDownDefense = 0x8;
+        private const uint TunerType = 0x00001000U;
         private const uint PendulumType = 0x01000000U;
         private const float HandCardHeight = 258f;
         private const float HandVisibleViewportRatio = 0.14f;
@@ -44,6 +46,9 @@ namespace ArcaneArena
         private const float SelectedCardActionVerticalOffset = -153f;
         private const float DesktopPassiveRefreshInterval = 0.08f;
         private const float MobilePassiveRefreshInterval = 0.20f;
+        private const uint DeveloperMixaelCode =
+            DeveloperAccountRegistry.MixaelCardCode;
+        private const float DeveloperMixaelComboWindow = 1.1f;
 
         [SerializeField] private List<Sprite> cardSprites = new();
         [SerializeField] private Sprite cardBackSprite;
@@ -68,6 +73,7 @@ namespace ArcaneArena
         private static readonly Color Lime = Hex("#C8FF19");
         private static readonly Color Muted = Hex("#87A8B7");
         private static readonly Color Red = Hex("#FF5E73");
+        private static readonly Color TunerNameYellow = Hex("#FFD84D");
         private static Font font;
 
         private readonly List<CardView> handViews = new();
@@ -159,6 +165,9 @@ namespace ArcaneArena
         private bool presentationReady;
         private bool criticalInteractionLocked;
         private float nextPassiveRefreshTime;
+        private bool developerMixaelInjected;
+        private int developerMixaelKeyPresses;
+        private float lastDeveloperMixaelKeyPressTime = -100f;
 
         private bool InteractionLocked =>
             criticalInteractionLocked ||
@@ -304,6 +313,29 @@ namespace ArcaneArena
                     : winner == 0
                         ? "Vitória confirmada contra o bot."
                         : "Derrota confirmada contra o bot.";
+            StartCoroutine(PresentOfflineDuelResultAfterSlowMotion(
+                presenter,
+                kind,
+                detail,
+                rankReceipt));
+        }
+
+        private IEnumerator PresentOfflineDuelResultAfterSlowMotion(
+            OnlineDuelResultPresenter presenter,
+            OnlineDuelResultKind kind,
+            string detail,
+            RankChangeReceipt rankReceipt)
+        {
+            float pendingDamageSeconds = Mathf.Max(
+                0f,
+                damagePresentationDeadline - Time.unscaledTime);
+            yield return new WaitForSecondsRealtime(
+                Mathf.Max(
+                    DuelConclusionSlowMotionDuration,
+                    pendingDamageSeconds));
+            if (presenter == null)
+                yield break;
+
             if (OnlineDuelResultPresenter.CanPresentRankTransition(
                     rankReceipt))
             {
@@ -363,9 +395,76 @@ namespace ArcaneArena
             UpdateOnlineInteractionWaitStatus();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
+            UpdateDeveloperMixaelShortcut();
             EnsureRequiredResponseTrayVisible();
             if (Time.unscaledTime >= nextPassiveRefreshTime)
                 RefreshEverything(false);
+        }
+
+        private bool CanInjectDeveloperMixael()
+        {
+            return core != null &&
+                   !core.IsNetworkReplica &&
+                   DuelOnlineSession.Instance?.IsOnlineDuelActive != true &&
+                   DeveloperAccountRegistry.IsDeveloperPublicId(
+                       PlayerIdAccessRuntime.PublicPlayerId);
+        }
+
+        private void UpdateDeveloperMixaelShortcut()
+        {
+            if (!developerMixaelInjected ||
+                !CanInjectDeveloperMixael() ||
+                core == null ||
+                core.IsFinished)
+            {
+                developerMixaelKeyPresses = 0;
+                return;
+            }
+
+            if (UnityEngine.InputSystem.Keyboard.current?.mKey
+                    .wasPressedThisFrame != true)
+            {
+                return;
+            }
+
+            float now = Time.unscaledTime;
+            if (now - lastDeveloperMixaelKeyPressTime >
+                DeveloperMixaelComboWindow)
+            {
+                developerMixaelKeyPresses = 0;
+            }
+            lastDeveloperMixaelKeyPressTime = now;
+            developerMixaelKeyPresses++;
+            if (developerMixaelKeyPresses < 3)
+                return;
+
+            developerMixaelKeyPresses = 0;
+            DuelPrompt prompt = core.CurrentPrompt;
+            DuelChoice summon = prompt?.Choices.FirstOrDefault(choice =>
+                choice != null &&
+                choice.CardCode == DeveloperMixaelCode &&
+                choice.HasLocation &&
+                choice.Controller == 0 &&
+                (choice.Location & DuelLocation.Extra) != 0 &&
+                string.Equals(
+                    choice.Label,
+                    "Invocação especial",
+                    StringComparison.Ordinal));
+            if (prompt == null ||
+                prompt.Message != CoreMessage.SelectIdleCommand ||
+                prompt.Player != 0 ||
+                summon == null)
+            {
+                SetStatus(
+                    "Mixael só pode ser chamado com prioridade na Fase Principal e uma zona de monstro livre.",
+                    Gold);
+                return;
+            }
+
+            core.SubmitChoice(summon);
+            SetStatus(
+                "MIXAEL · escolha uma zona de monstro livre.",
+                Cyan);
         }
 
         private void LateUpdate()
@@ -504,6 +603,17 @@ namespace ArcaneArena
             uint[] playerExtra = ParseCodes(player.extraDeckCardIds);
             uint[] opponentMain = ParseCodes(opponent.mainDeckCardIds);
             uint[] opponentExtra = ParseCodes(opponent.extraDeckCardIds);
+            developerMixaelInjected = CanInjectDeveloperMixael();
+            if (developerMixaelInjected &&
+                !playerExtra.Contains(DeveloperMixaelCode))
+            {
+                // A carta nunca altera o Deck salvo do jogador: ela existe
+                // apenas na configuração deste duelo local e só para o ID de
+                // desenvolvimento autorizado.
+                playerExtra = playerExtra
+                    .Concat(new[] { DeveloperMixaelCode })
+                    .ToArray();
+            }
             StoryDuelLaunchContext storyContext =
                 StoryRogueliteRuntime.DuelContext;
             int minimumMain = storyContext?.minimumMainDeckSize ?? 40;
@@ -932,6 +1042,7 @@ namespace ArcaneArena
                     MarkPromptPresented(prompt);
             }
             RefreshSpecialZoneActionHighlights(prompt);
+            RefreshExtraDeckSummonHighlight(prompt);
             RefreshDuelExperienceState();
         }
 
@@ -1653,7 +1764,7 @@ namespace ArcaneArena
             {
                 SetStatus(
                     InteractionLockStatus(
-                        "Aguarde a conclusao da animacao confirmada pelo Core."),
+                        "Aguarde a conclusão da animação."),
                     Muted);
                 return;
             }
@@ -1682,35 +1793,19 @@ namespace ArcaneArena
             ShowInspector(card.Code);
             RelayoutHand();
             ShowActionsForSelectedCard();
-            SetStatus(
-                ChoicesForCard(prompt, card.InstanceKey).Count > 0
-                    ? $"Carta selecionada - {CardName(card.Code)}"
-                    : UnavailableCardReason(prompt),
-                ChoicesForCard(prompt, card.InstanceKey).Count > 0
-                    ? Cyan
-                    : Muted);
-        }
-
-        private static string UnavailableCardReason(DuelPrompt prompt)
-        {
-            if (prompt == null)
-                return "O Core esta processando o estado do duelo.";
-            if (prompt.Player != 0)
-                return "A prioridade pertence ao oponente.";
-            if (prompt.Message == CoreMessage.SelectChain)
-                return prompt.Forced
-                    ? "Resolva primeiro a resposta obrigatoria da corrente."
-                    : "Conclua primeiro a janela de resposta da corrente.";
-            if (prompt.Message != CoreMessage.SelectIdleCommand &&
-                prompt.Message != CoreMessage.SelectBattleCommand)
+            if (ChoicesForCard(prompt, card.InstanceKey).Count > 0)
             {
-                return
-                    $"Resolva primeiro: {prompt.Title}. " +
-                    "Esta carta nao e uma resposta legal nesta etapa.";
+                SetStatus(
+                    $"Carta selecionada · {CardName(card.Code)}",
+                    Cyan);
             }
-            return
-                "O Core nao ofereceu uma acao legal para esta carta " +
-                "nesta fase e neste estado do campo.";
+            else
+            {
+                // A ausência de uma ação é comunicada pelos próprios botões
+                // indisponíveis. Não exponha diagnósticos internos do motor
+                // na faixa principal do duelo.
+                UpdateDuelExperienceForPrompt(prompt);
+            }
         }
 
         private void RelayoutHand()
@@ -2079,9 +2174,10 @@ namespace ArcaneArena
                 ClearHandSelection();
                 if (phaseButton != null)
                     phaseButton.interactable = false;
-                SetStatus(
-                    "Aguarde a apresentação da fase atual.",
-                    PhaseAccent(presentationPhaseOverride ?? state.Phase));
+                // A animação de turno/fase já comunica a transição. Manter o
+                // ribbon sendo reescrito durante a compra fazia a mensagem
+                // piscar sobre o Deck a cada refresh de apresentação.
+                HideDecisionRibbon();
                 return false;
             }
             UpdateDuelExperienceForPrompt(prompt);
@@ -2095,7 +2191,7 @@ namespace ArcaneArena
             ShowActionsForSelectedCard();
             if (prompt == null)
             {
-                SetStatus("Aguardando o ygopro-core...", Muted);
+                SetStatus("Preparando a próxima decisão...", Muted);
                 return true;
             }
 
@@ -2184,7 +2280,7 @@ namespace ArcaneArena
                 ScheduleAutomaticPromptChoice(
                     prompt,
                     automaticSort,
-                    "Ordem automática · mantendo a ordem autoritativa do Core.");
+                    "Ordem automática definida · continuando.");
                 return true;
             }
 
@@ -2203,22 +2299,9 @@ namespace ArcaneArena
             {
                 case CoreMessage.SelectIdleCommand:
                     HighlightPromptZones(prompt);
-                    int legalExtraSummons = prompt.Choices.Count(choice =>
-                        choice.HasLocation &&
-                        choice.Controller == 0 &&
-                        (choice.Location & DuelLocation.Extra) != 0);
-                    if (legalExtraSummons > 0)
-                    {
-                        SetStatus(
-                            $"DECK ADICIONAL DISPONÍVEL · {legalExtraSummons} invocação(ões) legal(is) · clique no monte iluminado.",
-                            EffectGlow);
-                    }
-                    else
-                    {
-                        SetStatus(
-                            "Selecione uma carta da mão ou do campo para ver somente ações legais.",
-                            Cyan);
-                    }
+                    SetStatus(
+                        "Selecione uma carta iluminada para jogar.",
+                        Cyan);
                     break;
                 case CoreMessage.SelectBattleCommand:
                     HighlightPromptZones(prompt);
@@ -2291,7 +2374,7 @@ namespace ArcaneArena
             {
                 SetStatus(
                     InteractionLockStatus(
-                        "Aguarde a conclusao da animacao confirmada pelo Core."),
+                        "Aguarde a conclusão da animação."),
                     Muted);
                 return;
             }
@@ -2323,26 +2406,30 @@ namespace ArcaneArena
                 prompt.Message == CoreMessage.SelectIdleCommand ||
                 prompt.Message == CoreMessage.SelectBattleCommand;
 
-            DuelChoice direct = prompt.Choices.FirstOrDefault(choice =>
-                choice.HasLocation &&
-                choice.Controller == controller &&
-                (choice.Location & location) != 0 &&
-                choice.Sequence == sequence);
+            List<DuelChoice> zoneChoices = PromptChoicesAt(
+                prompt,
+                controller,
+                location,
+                sequence);
+            DuelChoice direct = zoneChoices.FirstOrDefault();
             if (direct != null && !contextualCommand)
             {
-                bool localFaceDownActivation =
+                bool localEffectActivation =
                     IsLocalZone(zone) &&
-                    !IsFaceUp(PositionAt(zone)) &&
                     DuelPromptPresentationRules.IsEffectCandidate(
                         prompt,
                         direct);
-                if (localFaceDownActivation)
+                if (localEffectActivation)
                 {
-                    // A click first identifies the local set card. The
-                    // already visible RESPONDER/ATIVAR control remains the
-                    // explicit confirmation, so inspection cannot submit a
-                    // Core response by accident.
-                    ShowInspector(zone);
+                    // A click first identifies a local effect card, including
+                    // a set card whose field snapshot has not yet restored
+                    // its position. The visible RESPONDER/ATIVAR control
+                    // remains the explicit confirmation, so inspection can
+                    // never submit a Core response by accident.
+                    uint inspectableCode = direct.CardCode != 0
+                        ? direct.CardCode
+                        : InspectableCodeAt(zone, prompt);
+                    ShowInspector(inspectableCode, zone);
                     SetStatus(
                         "Carta preparada · confira o efeito e confirme a ativação.",
                         EffectGlow);
@@ -2353,7 +2440,7 @@ namespace ArcaneArena
                     return;
                 }
 
-                List<DuelChoice> locatedEffects = prompt.Choices
+                List<DuelChoice> locatedEffects = zoneChoices
                     .Where(choice =>
                         DuelPromptPresentationRules.IsEffectCandidate(
                             prompt,
@@ -2404,18 +2491,21 @@ namespace ArcaneArena
 
             if (contextualCommand)
             {
-                uint code = CodeAt(zone);
-                List<DuelChoice> cardChoices =
-                    ChoicesForCard(
-                        prompt,
-                        code,
-                        controller,
-                        location,
-                        sequence);
+                // The Core may deliberately withhold the visual identity of
+                // a set card until it offers an activation.  Do not use the
+                // field snapshot as the gate for its actions: the located
+                // Core choice is both the legal action and the authoritative
+                // identity for the local player.
+                List<DuelChoice> cardChoices = zoneChoices;
                 if (cardChoices.Count > 0)
                 {
-                    ShowInspector(zone);
                     OpenFieldActionMenu(zone, prompt, cardChoices);
+                    uint code = cardChoices
+                        .Select(choice => choice.CardCode)
+                        .FirstOrDefault(value => value != 0);
+                    if (code == 0)
+                        code = InspectableCodeAt(zone, prompt);
+                    ShowInspector(code, zone);
                     return;
                 }
             }
@@ -2425,8 +2515,8 @@ namespace ArcaneArena
                 OpenZoneChoices(zone, prompt);
                 return;
             }
-            uint inspected = CodeAt(zone);
-            if (inspected != 0) ShowInspector(zone);
+            uint inspected = InspectableCodeAt(zone, prompt);
+            if (inspected != 0) ShowInspector(inspected, zone);
         }
 
         public void HandleZoneHover(DuelZone3D zone, bool hovered)
@@ -2434,20 +2524,9 @@ namespace ArcaneArena
             SetPileCounterHovered(zone, hovered);
             if (zone != null && UpdateAttackTargetHover(zone, hovered))
                 return;
-            if (!hovered || zone == null || !presentationReady)
-                return;
-            if (choiceModal?.activeInHierarchy == true ||
-                compactResponseBar?.activeInHierarchy == true)
-            {
-                return;
-            }
-            if (!zone.HasValidIdentity &&
-                !zone.EnsureIdentityFromHierarchy(false))
-            {
-                return;
-            }
-            if (IsSpecialZone(zone.Kind))
-                SetStatus(PileLabel(zone), Muted);
+            // Hover serve apenas para leitura visual/combate. Exibir o nome e
+            // a contagem do monte no ribbon fazia o texto oscilar ao cruzar
+            // Deck, Deck Adicional, Cemitério e Banimento.
         }
 
         private void HighlightPromptZones(DuelPrompt prompt)
@@ -2457,6 +2536,8 @@ namespace ArcaneArena
             foreach (DuelChoice choice in prompt.Choices)
             {
                 if (!choice.HasLocation) continue;
+                bool extraDeckSummon =
+                    IsExtraDeckSummonChoice(prompt, choice);
                 bool graveyardOrBanishment =
                     (choice.Location &
                      (DuelLocation.Graveyard | DuelLocation.Banished)) != 0;
@@ -2466,6 +2547,14 @@ namespace ArcaneArena
                         choice);
                 if (graveyardOrBanishment && !effectCandidate)
                     continue;
+                // Selecting an Extra Deck card for any other Core request
+                // must not make the pile look summon-ready. Its animation is
+                // reserved exclusively for a legal special summon command.
+                if ((choice.Location & DuelLocation.Extra) != 0 &&
+                    !extraDeckSummon)
+                {
+                    continue;
+                }
                 DuelZone3D zone = FindZone(
                     choice.Controller,
                     choice.Location,
@@ -2476,7 +2565,7 @@ namespace ArcaneArena
                     (IsMultiPlacePrompt(prompt) &&
                     selectedPromptIndexes.Contains(choice.ChoiceIndex)) ||
                     graveyardOrBanishment ||
-                    (choice.Location & DuelLocation.Extra) != 0 ||
+                    extraDeckSummon ||
                     IsEffectActivationChoice(prompt, choice);
                 if (!highlighted.TryGetValue(zone, out bool existing) ||
                     effectAccent)
@@ -2529,6 +2618,89 @@ namespace ArcaneArena
                     choice.Location,
                     (int)choice.Sequence);
                 zone?.SetDropHighlight(true, EffectGlow);
+            }
+        }
+
+        private bool IsExtraDeckSummonChoice(
+            DuelPrompt prompt,
+            DuelChoice choice)
+        {
+            if (prompt == null || choice == null || state == null ||
+                prompt.Player != 0 ||
+                prompt.Message != CoreMessage.SelectIdleCommand ||
+                !choice.HasLocation || choice.Controller != 0 ||
+                (choice.Location & DuelLocation.Extra) == 0 ||
+                DeveloperAccountRegistry.IsDeveloperOnlyCard(
+                    choice.CardCode) ||
+                !string.Equals(
+                    choice.Label,
+                    "Invocação especial",
+                    StringComparison.Ordinal) ||
+                choice.Response == null || choice.Response.Length != 4)
+            {
+                return false;
+            }
+
+            // MSG_SELECT_IDLECMD encodes a legal Special Summon with command
+            // id 1. Requiring the original Core response keeps an unrelated
+            // Extra Deck inspection/selection from being presented as a
+            // summon opportunity.
+            int command = choice.Response[0] |
+                          (choice.Response[1] << 8);
+            if ((command & 0xFFFF) != 1)
+                return false;
+
+            // The prompt and the last authoritative field snapshot must agree
+            // on the exact physical Extra Deck card. This also rejects a stale
+            // prompt left over while a chain or field transition is settling.
+            if (choice.Sequence > int.MaxValue)
+                return false;
+            int sequence = (int)choice.Sequence;
+            IReadOnlyList<uint> cards = state.Players[0].ExtraDeckCards;
+            if (sequence < 0 || sequence >= cards.Count)
+                return false;
+            uint authoritativeCode = cards[sequence];
+            if (choice.CardCode == 0 || authoritativeCode == 0 ||
+                authoritativeCode != choice.CardCode)
+            {
+                return false;
+            }
+
+            CardInstanceState instance = sequence <
+                                         state.Players[0]
+                                             .ExtraDeckInstances.Count
+                ? state.Players[0].ExtraDeckInstances[sequence]
+                : null;
+            return instance == null || choice.RuntimeId == 0 ||
+                   instance.RuntimeId == 0 ||
+                   instance.RuntimeId == choice.RuntimeId;
+        }
+
+        private void RefreshExtraDeckSummonHighlight(DuelPrompt prompt)
+        {
+            foreach (DuelZone3D zone in AllZones())
+            {
+                if (zone != null && zone.Kind == DuelZoneKind.ExtraDeck)
+                    zone.SetDropHighlight(false);
+            }
+
+            if (prompt == null || prompt.Player != 0 ||
+                !prompt.Choices.Any(choice =>
+                    IsExtraDeckSummonChoice(prompt, choice)))
+            {
+                return;
+            }
+
+            // Every legal Extra Deck command is represented by the same
+            // physical pile, rather than by an individual sequence inside
+            // that pile.
+            foreach (DuelZone3D zone in AllZones())
+            {
+                if (zone != null && zone.Kind == DuelZoneKind.ExtraDeck &&
+                    IsLocalZone(zone))
+                {
+                    zone.SetDropHighlight(true, EffectGlow);
+                }
             }
         }
 
@@ -2957,7 +3129,7 @@ namespace ArcaneArena
                 CombatLabelFor(zone, code, position),
                 46,
                 FontStyle.Bold,
-                Color.white,
+                CombatLabelPresentationColor(zone, code, position),
                 Vector2.zero,
                 Vector2.one,
                 TextAnchor.MiddleCenter);
@@ -3159,17 +3331,57 @@ namespace ArcaneArena
             uint position,
             bool faceUp)
         {
+            bool visible = faceUp &&
+                           IsMonster(code) &&
+                           IsPresentedWorldCardVisible(zone);
             Transform root = zone.FindCombatLabel();
             if (root == null)
             {
-                if (faceUp && IsMonster(code))
+                if (visible)
                     CreateCombatLabel(zone, code, position);
                 return;
             }
-            root.gameObject.SetActive(faceUp && IsMonster(code));
+            root.gameObject.SetActive(visible);
             Text text = root.GetComponentInChildren<Text>(true);
             if (text != null)
+            {
                 text.text = CombatLabelFor(zone, code, position);
+                text.color = CombatLabelPresentationColor(
+                    zone,
+                    code,
+                    position);
+            }
+        }
+
+        private static bool IsPresentedWorldCardVisible(DuelZone3D zone)
+        {
+            Transform card = zone?.FindPresentedCard();
+            if (card == null || !card.gameObject.activeInHierarchy)
+                return false;
+            CanvasGroup group = card.GetComponent<CanvasGroup>();
+            return group == null || group.alpha >= 0.99f;
+        }
+
+        private Color CombatLabelPresentationColor(
+            DuelZone3D zone,
+            uint code,
+            uint position)
+        {
+            if (database == null ||
+                !database.TryGet(code, out CardRecord printed) ||
+                !TryGetCombatStats(
+                    zone,
+                    code,
+                    out int attack,
+                    out int defense))
+            {
+                return Color.white;
+            }
+            bool defensePosition =
+                (position & (FaceUpDefense | FaceDownDefense)) != 0;
+            return defensePosition
+                ? CombatStatPresentationColor(defense, printed.Defense)
+                : CombatStatPresentationColor(attack, printed.Attack);
         }
 
         private string CombatLabelFor(
@@ -3328,9 +3540,13 @@ namespace ArcaneArena
         private void UpdateLifeAndPhase()
         {
             if (localLife != null)
-                localLife.text = state.Players[0].LifePoints.ToString("N0");
+                localLife.text = LifePointValueForDisplay(
+                    0,
+                    state.Players[0].LifePoints).ToString("N0");
             if (opponentLife != null)
-                opponentLife.text = state.Players[1].LifePoints.ToString("N0");
+                opponentLife.text = LifePointValueForDisplay(
+                    1,
+                    state.Players[1].LifePoints).ToString("N0");
             if (phaseLabel != null)
             {
                 uint displayedPhase =
@@ -3373,7 +3589,7 @@ namespace ArcaneArena
                 CloseCardDetails();
                 return;
             }
-            ShowInspector(CodeAt(zone), zone);
+            ShowInspector(InspectableCodeAt(zone, core?.CurrentPrompt), zone);
         }
 
         private void ShowInspector(uint code, DuelZone3D zone)
@@ -3391,7 +3607,8 @@ namespace ArcaneArena
             bool contextualInspector =
                 choiceModal?.activeInHierarchy == true ||
                 compactResponseBar?.activeInHierarchy == true ||
-                zoneBrowser?.activeInHierarchy == true;
+                zoneBrowser?.activeInHierarchy == true ||
+                fieldActionPanel?.activeInHierarchy == true;
             if (!contextualInspector)
             {
                 OpenExclusiveDuelUiSurface(
@@ -3412,6 +3629,9 @@ namespace ArcaneArena
                     !string.IsNullOrWhiteSpace(legacy.DisplayName)
                         ? legacy.DisplayName
                         : card.Name;
+                detailName.color = CardNamePresentationColor(
+                    code,
+                    Color.white);
             }
             string typeLine =
                 legacy != null ? CombatTypeLine(legacy) : CardTypeLabel(card);
@@ -3716,11 +3936,21 @@ namespace ArcaneArena
             SetDetailActive(detailAttackIcon, hasAttack);
             SetDetailActive(detailAttack, hasAttack);
             if (hasAttack && detailAttack != null)
+            {
                 detailAttack.text = attack.ToString();
+                detailAttack.color = CombatStatPresentationColor(
+                    attack,
+                    card.Attack);
+            }
             SetDetailActive(detailDefenseIcon, hasDefense);
             SetDetailActive(detailDefense, hasDefense);
             if (hasDefense && detailDefense != null)
+            {
                 detailDefense.text = defense.ToString();
+                detailDefense.color = CombatStatPresentationColor(
+                    defense,
+                    card.Defense);
+            }
         }
 
         private static void SetDetailActive(Component component, bool active)
@@ -4192,19 +4422,30 @@ namespace ArcaneArena
 
         private void OpenZoneChoices(DuelZone3D zone, DuelPrompt prompt)
         {
-            List<DuelChoice> choices = prompt?.Choices
-                .Where(choice =>
-                    choice.HasLocation &&
-                    choice.Controller == StatePlayerForZone(zone) &&
-                    (choice.Location & LocationFor(zone.Kind)) != 0)
-                .ToList() ?? new List<DuelChoice>();
             bool browsingExtraDeck =
                 zone.Kind == DuelZoneKind.ExtraDeck &&
                 IsLocalZone(zone);
+            // Piles represent every sequence in their location.  Field
+            // zones use a single sequence, but an Extra Deck summon choice
+            // carries the chosen card's sequence rather than the pile's.
+            List<DuelChoice> choices = prompt?.Choices
+                .Where(choice =>
+                    choice != null &&
+                    choice.HasLocation &&
+                    choice.Controller == StatePlayerForZone(zone) &&
+                    (choice.Location & LocationFor(zone.Kind)) != 0 &&
+                    (browsingExtraDeck ||
+                     IsSpecialZone(zone.Kind) ||
+                     choice.Sequence == SequenceFor(zone)))
+                .ToList() ?? new List<DuelChoice>();
+            List<DuelChoice> extraDeckSummonChoices = browsingExtraDeck
+                ? choices.Where(choice =>
+                    IsExtraDeckSummonChoice(prompt, choice)).ToList()
+                : choices;
             List<ZoneBrowserEntry> entries = BuildZoneBrowserEntries(
                 zone,
                 browsingExtraDeck,
-                choices);
+                extraDeckSummonChoices);
             bool browsingPublicPile =
                 zone.Kind == DuelZoneKind.Graveyard ||
                 zone.Kind == DuelZoneKind.Banishment;
@@ -4212,8 +4453,7 @@ namespace ArcaneArena
                 browsingExtraDeck &&
                 prompt != null &&
                 prompt == core.CurrentPrompt &&
-                prompt.Message == CoreMessage.SelectIdleCommand &&
-                choices.Count > 0;
+                extraDeckSummonChoices.Count > 0;
             if (!browsingExtraDeck && !browsingPublicPile &&
                 choices.Count == 0)
             {
@@ -4379,9 +4619,8 @@ namespace ArcaneArena
 
         private void InspectZone(DuelZone3D zone)
         {
-            uint code = CodeAt(zone);
-            if (code != 0) ShowInspector(zone);
-            SetStatus(PileLabel(zone), Muted);
+            uint code = InspectableCodeAt(zone, core?.CurrentPrompt);
+            if (code != 0) ShowInspector(code, zone);
         }
 
         public void BeginMonsterAttackDrag(
@@ -4506,7 +4745,9 @@ namespace ArcaneArena
                 hideIdentity ? "CARTA VIRADA PARA BAIXO" : CardName(code),
                 30,
                 FontStyle.Bold,
-                Color.white,
+                hideIdentity
+                    ? Color.white
+                    : CardNamePresentationColor(code, Color.white),
                 new Vector2(0.20f, 0.08f),
                 new Vector2(0.80f, 0.17f),
                 TextAnchor.MiddleCenter);
@@ -4754,6 +4995,28 @@ namespace ArcaneArena
             return code;
         }
 
+        private uint InspectableCodeAt(DuelZone3D zone, DuelPrompt prompt)
+        {
+            uint code = CodeAt(zone);
+            if (code != 0 || zone == null || !IsLocalZone(zone) ||
+                prompt == null)
+            {
+                return code;
+            }
+
+            byte controller = StatePlayerForZone(zone);
+            byte location = LocationFor(zone.Kind);
+            int sequence = SequenceFor(zone);
+            DuelChoice authoritative = prompt.Choices.FirstOrDefault(choice =>
+                choice != null &&
+                choice.CardCode != 0 &&
+                choice.HasLocation &&
+                choice.Controller == controller &&
+                (choice.Location & location) != 0 &&
+                choice.Sequence == sequence);
+            return authoritative?.CardCode ?? 0;
+        }
+
         private uint PositionAt(DuelZone3D zone)
         {
             if (zone == null || state == null ||
@@ -4890,6 +5153,25 @@ namespace ArcaneArena
                   choice.Sequence == sequence))).ToList();
         }
 
+        private static List<DuelChoice> PromptChoicesAt(
+            DuelPrompt prompt,
+            byte controller,
+            byte location,
+            int sequence)
+        {
+            if (prompt == null)
+                return new List<DuelChoice>();
+            return prompt.Choices.Where(choice =>
+                choice != null &&
+                choice.HasLocation &&
+                choice.Controller == controller &&
+                (choice.Location & location) != 0 &&
+                choice.Sequence == sequence &&
+                (choice.RequestId == 0 ||
+                 prompt.RequestId == 0 ||
+                 choice.RequestId == prompt.RequestId)).ToList();
+        }
+
         private List<DuelChoice> ChoicesForCard(
             DuelPrompt prompt,
             CardInstanceKey instanceKey)
@@ -4957,6 +5239,31 @@ namespace ArcaneArena
                    database.TryGet(code, out CardRecord card)
                 ? card.Name
                 : code.ToString("00000000");
+        }
+
+        private Color CardNamePresentationColor(
+            uint code,
+            Color fallback)
+        {
+            return database != null &&
+                   database.TryGet(code, out CardRecord card) &&
+                   IsTunerType(card.Type)
+                ? TunerNameYellow
+                : fallback;
+        }
+
+        private static bool IsTunerType(uint type)
+        {
+            return (type & TunerType) != 0U;
+        }
+
+        private static Color CombatStatPresentationColor(
+            int current,
+            int printed)
+        {
+            return printed >= 0 && current > printed
+                ? SummonBlue
+                : Color.white;
         }
 
         private static string CardTypeLabel(CardRecord card)
@@ -5098,6 +5405,11 @@ namespace ArcaneArena
 
         private void UpdateOnlineInteractionWaitStatus()
         {
+            if (phasePresentationLocked)
+            {
+                HideDecisionRibbon();
+                return;
+            }
             string online = DuelOnlineSession.Instance?.InteractionWaitMessage;
             if (!string.IsNullOrWhiteSpace(online) &&
                 (status == null || status.text != online))

@@ -23,10 +23,16 @@ namespace ArcaneArena
         {
             public string Text;
             public Color Accent;
+            public int Turn;
+            public uint Phase;
         }
 
-        private const int VisibleDuelFeedEntries = 3;
-        private readonly Queue<DuelFeedItem> duelFeed = new();
+        private const int MaximumDuelHistoryEntries = 320;
+        // The compact priority/status ribbon was retired from the duel HUD.
+        // Core prompts still drive the actionable buttons, highlights and
+        // modals; they must never reopen a passive message over the field.
+        private const bool DecisionGuidanceRibbonEnabled = false;
+        private readonly List<DuelFeedItem> duelHistory = new();
         private GameObject decisionRibbon;
         private CanvasGroup decisionRibbonGroup;
         private Image decisionRibbonAccent;
@@ -42,10 +48,17 @@ namespace ArcaneArena
         private Text opponentHandCount;
         private DuelHandLayoutAnchor opponentHandLayoutAnchor;
         private int renderedOpponentHandCount = -1;
-        private GameObject recentActionsPanel;
-        private CanvasGroup recentActionsGroup;
-        private readonly List<Text> recentActionLines = new();
-        private Coroutine recentActionHideRoutine;
+        private Button duelHistoryButton;
+        private GameObject duelHistoryOverlay;
+        private Text duelHistorySummary;
+        private Text duelHistoryContent;
+        private RectTransform duelHistoryContentRect;
+        private ScrollRect duelHistoryScroll;
+        private int duelHistorySummons;
+        private int duelHistoryDestroyed;
+        private int duelHistoryChains;
+        private long localLifeRecoveredInDuel;
+        private long opponentLifeRecoveredInDuel;
         private GameObject chainIndicator;
         private CanvasGroup chainIndicatorGroup;
         private Text chainIndicatorCount;
@@ -60,7 +73,7 @@ namespace ArcaneArena
         {
             BuildDecisionRibbon();
             BuildOpponentHandFan();
-            BuildRecentActionsPanel();
+            BuildDuelHistoryPanel();
             BuildChainIndicator();
             if (status != null) status.gameObject.SetActive(false);
         }
@@ -201,40 +214,157 @@ namespace ArcaneArena
             }
         }
 
-        private void BuildRecentActionsPanel()
+        private void BuildDuelHistoryPanel()
         {
-            recentActionsPanel = CreatePanel(frame, "Notificação de Ação",
-                new Vector2(0.735f, 0.505f), new Vector2(0.985f, 0.595f),
-                Color.clear);
-            Image background = recentActionsPanel.GetComponent<Image>();
-            if (background != null) background.raycastTarget = false;
-            recentActionsGroup = recentActionsPanel.AddComponent<CanvasGroup>();
-            recentActionsGroup.interactable = false;
-            recentActionsGroup.blocksRaycasts = false;
-            recentActionsGroup.alpha = 0f;
+            duelHistoryButton = CreateButton(
+                frame,
+                "Botão Histórico",
+                "HISTÓRICO",
+                new Vector2(0.900f, 0.088f),
+                new Vector2(0.985f, 0.148f),
+                Cyan,
+                OpenDuelHistory);
+            duelHistoryButton.gameObject.transform.SetAsLastSibling();
+            AttachDuelSurface(
+                duelHistoryButton.gameObject,
+                "Superfície do Histórico",
+                Cyan,
+                true,
+                0.92f,
+                false,
+                8f);
 
-            // Uma única mensagem desaparecia antes de o jogador conseguir
-            // acompanhar uma Corrente ou uma sequência de efeitos. Mantemos
-            // somente os três acontecimentos públicos mais recentes, com o
-            // evento novo no topo, para dar contexto sem competir com o campo.
-            for (int index = 0; index < VisibleDuelFeedEntries; index++)
-            {
-                float maxY = 1f - index / (float)VisibleDuelFeedEntries;
-                float minY = 1f - (index + 1) /
-                    (float)VisibleDuelFeedEntries;
-                Text line = CreateText(
-                    recentActionsPanel.transform,
-                    string.Empty,
-                    index == 0 ? 11 : 10,
-                    FontStyle.Bold,
-                    Muted,
-                    new Vector2(0f, minY),
-                    new Vector2(1f, maxY),
-                    TextAnchor.MiddleRight);
-                line.raycastTarget = false;
-                recentActionLines.Add(line);
-            }
-            recentActionsPanel.SetActive(false);
+            duelHistoryOverlay = CreatePanel(
+                frame,
+                "Janela do Histórico do Duelo",
+                Vector2.zero,
+                Vector2.one,
+                new Color(0.004f, 0.010f, 0.022f, 0.88f));
+            duelHistoryOverlay.GetComponent<Image>().raycastTarget = true;
+
+            GameObject window = CreatePanel(
+                duelHistoryOverlay.transform,
+                "Central do Histórico",
+                new Vector2(0.17f, 0.105f),
+                new Vector2(0.83f, 0.895f),
+                new Color(0.010f, 0.035f, 0.055f, 0.98f));
+            AttachDuelSurface(
+                window,
+                "Superfície da Central do Histórico",
+                Gold,
+                true,
+                0.97f,
+                false,
+                12f);
+            CreateText(
+                window.transform,
+                "HISTÓRICO DO DUELO",
+                25,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.045f, 0.905f),
+                new Vector2(0.66f, 0.975f),
+                TextAnchor.MiddleLeft).raycastTarget = false;
+            Text caption = CreateText(
+                window.transform,
+                "EVENTOS E ESTATÍSTICAS DA PARTIDA",
+                11,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.56f, 0.915f),
+                new Vector2(0.955f, 0.965f),
+                TextAnchor.MiddleRight);
+            caption.raycastTarget = false;
+            CreateImage(
+                window.transform,
+                "Linha do Histórico",
+                new Vector2(0.04f, 0.895f),
+                new Vector2(0.96f, 0.899f),
+                new Color(Cyan.r, Cyan.g, Cyan.b, 0.72f))
+                .raycastTarget = false;
+
+            duelHistorySummary = CreateText(
+                window.transform,
+                string.Empty,
+                12,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.05f, 0.79f),
+                new Vector2(0.95f, 0.885f),
+                TextAnchor.MiddleLeft);
+            duelHistorySummary.supportRichText = true;
+            duelHistorySummary.raycastTarget = false;
+
+            GameObject scrollRoot = CreatePanel(
+                window.transform,
+                "Rolagem do Histórico",
+                new Vector2(0.05f, 0.14f),
+                new Vector2(0.95f, 0.78f),
+                new Color(0.002f, 0.016f, 0.028f, 0.94f));
+            AddOutline(scrollRoot, new Color(Cyan.r, Cyan.g, Cyan.b, 0.45f));
+            duelHistoryScroll = scrollRoot.AddComponent<ScrollRect>();
+            duelHistoryScroll.horizontal = false;
+            duelHistoryScroll.vertical = true;
+            duelHistoryScroll.movementType = ScrollRect.MovementType.Elastic;
+            duelHistoryScroll.elasticity = 0.085f;
+            duelHistoryScroll.inertia = true;
+            duelHistoryScroll.decelerationRate = 0.12f;
+            duelHistoryScroll.scrollSensitivity = 32f;
+
+            GameObject viewport = CreatePanel(
+                scrollRoot.transform,
+                "Área Visível",
+                new Vector2(0.015f, 0.02f),
+                new Vector2(0.985f, 0.98f),
+                Color.clear);
+            Mask mask = viewport.AddComponent<Mask>();
+            mask.showMaskGraphic = false;
+            duelHistoryScroll.viewport = viewport.GetComponent<RectTransform>();
+
+            var contentObject = new GameObject(
+                "Conteúdo do Histórico",
+                typeof(RectTransform));
+            contentObject.transform.SetParent(viewport.transform, false);
+            duelHistoryContentRect =
+                contentObject.GetComponent<RectTransform>();
+            duelHistoryContentRect.anchorMin = new Vector2(0f, 1f);
+            duelHistoryContentRect.anchorMax = new Vector2(1f, 1f);
+            duelHistoryContentRect.pivot = new Vector2(0.5f, 1f);
+            duelHistoryContentRect.anchoredPosition = Vector2.zero;
+            duelHistoryContentRect.sizeDelta = new Vector2(0f, 400f);
+            duelHistoryScroll.content = duelHistoryContentRect;
+
+            duelHistoryContent = CreateText(
+                duelHistoryContentRect,
+                string.Empty,
+                13,
+                FontStyle.Normal,
+                Color.white,
+                Vector2.zero,
+                Vector2.one,
+                TextAnchor.UpperLeft);
+            duelHistoryContent.supportRichText = true;
+            duelHistoryContent.raycastTarget = false;
+            duelHistoryContent.rectTransform.offsetMin = new Vector2(14f, 8f);
+            duelHistoryContent.rectTransform.offsetMax = new Vector2(-14f, -8f);
+
+            Button close = CreateButton(
+                window.transform,
+                "Fechar Histórico",
+                "FECHAR",
+                new Vector2(0.38f, 0.035f),
+                new Vector2(0.62f, 0.115f),
+                Cyan,
+                CloseDuelHistory);
+            AttachDuelSurface(
+                close.gameObject,
+                "Superfície de Fechar Histórico",
+                Cyan,
+                true,
+                0.94f,
+                false,
+                8f);
+            duelHistoryOverlay.SetActive(false);
         }
 
         private void BuildChainIndicator()
@@ -275,11 +405,81 @@ namespace ArcaneArena
 
         private void DisposeDuelExperience()
         {
-            if (recentActionHideRoutine != null)
-                StopCoroutine(recentActionHideRoutine);
-            recentActionHideRoutine = null;
-            duelFeed.Clear();
-            recentActionLines.Clear();
+            duelHistory.Clear();
+            duelHistorySummons = 0;
+            duelHistoryDestroyed = 0;
+            duelHistoryChains = 0;
+            localLifeRecoveredInDuel = 0;
+            opponentLifeRecoveredInDuel = 0;
+            duelHistoryButton = null;
+            duelHistoryOverlay = null;
+            duelHistorySummary = null;
+            duelHistoryContent = null;
+            duelHistoryContentRect = null;
+            duelHistoryScroll = null;
+        }
+
+        private void OpenDuelHistory()
+        {
+            if (duelHistoryOverlay == null)
+                return;
+            OpenExclusiveDuelUiSurface(DuelUiSurfaceKind.DuelHistory);
+            RefreshDuelHistoryWindow();
+            duelHistoryOverlay.SetActive(true);
+            duelHistoryOverlay.transform.SetAsLastSibling();
+        }
+
+        private void CloseDuelHistory()
+        {
+            if (duelHistoryOverlay != null)
+                duelHistoryOverlay.SetActive(false);
+            MarkDuelUiSurfaceClosed(DuelUiSurfaceKind.DuelHistory);
+            RestoreSuspendedPromptIfCurrent();
+        }
+
+        private void RefreshDuelHistoryWindow()
+        {
+            if (duelHistorySummary == null || duelHistoryContent == null ||
+                duelHistoryContentRect == null)
+            {
+                return;
+            }
+
+            int localLp = state?.Players[0].LifePoints ?? 0;
+            int opponentLp = state?.Players[1].LifePoints ?? 0;
+            duelHistorySummary.text =
+                $"<color=#52E8E0>VOCÊ</color>  LP {localLp:N0}  ·  " +
+                $"dano sofrido {localDamageReceivedInDuel:N0}  ·  " +
+                $"vida ganha {localLifeRecoveredInDuel:N0}\n" +
+                $"<color=#FF536B>OPONENTE</color>  LP {opponentLp:N0}  ·  " +
+                $"dano sofrido {localDamageDealtInDuel:N0}  ·  " +
+                $"vida ganha {opponentLifeRecoveredInDuel:N0}  ·  " +
+                $"invocações {duelHistorySummons}  ·  " +
+                $"destruídas {duelHistoryDestroyed}  ·  " +
+                $"correntes {duelHistoryChains}";
+
+            duelHistoryContent.text = duelHistory.Count == 0
+                ? "<color=#87A8B7>Nenhum evento registrado ainda.</color>"
+                : string.Join(
+                    "\n\n",
+                    duelHistory.Select(item =>
+                        $"<color=#{ColorUtility.ToHtmlStringRGB(item.Accent)}>" +
+                        $"T{Mathf.Max(1, item.Turn)} · " +
+                        $"{CoreMessageDecoder.PhaseName(item.Phase).ToUpperInvariant()}" +
+                        $"</color>\n{item.Text}"));
+
+            Canvas.ForceUpdateCanvases();
+            float viewportHeight = duelHistoryScroll?.viewport != null
+                ? duelHistoryScroll.viewport.rect.height
+                : 380f;
+            float estimatedHeight = Mathf.Max(
+                viewportHeight,
+                42f + duelHistory.Count * 58f);
+            duelHistoryContentRect.sizeDelta =
+                new Vector2(0f, estimatedHeight);
+            duelHistoryContentRect.anchoredPosition = Vector2.zero;
+            if (duelHistoryScroll != null)
+                duelHistoryScroll.verticalNormalizedPosition = 1f;
         }
 
         private void RefreshDuelExperienceState()
@@ -415,7 +615,8 @@ namespace ArcaneArena
         private void UpdateDecisionRibbon(string value, Color color)
         {
             if (decisionRibbon == null || decisionRibbonText == null) return;
-            if (!DuelActivationPreferences.GuidanceMessagesEnabled)
+            if (!DecisionGuidanceRibbonEnabled ||
+                !DuelActivationPreferences.GuidanceMessagesEnabled)
             {
                 HideDecisionRibbon();
                 return;
@@ -509,12 +710,14 @@ namespace ArcaneArena
                 case CoreMessage.Summoned:
                 case CoreMessage.SpecialSummoned:
                 case CoreMessage.FlipSummoned:
+                    duelHistorySummons++;
                     entry = state?.LastSummon != null
                         ? $"Invocação confirmada: {SafeCardName(state.LastSummon.CardCode)}"
                         : "Invocação confirmada";
                     accent = Lime;
                     break;
                 case CoreMessage.Chaining:
+                    duelHistoryChains++;
                     activeChainLinks = Mathf.Max(activeChainLinks + 1,
                         (int)duelEvent.Value);
                     UpdateChainIndicator();
@@ -558,13 +761,53 @@ namespace ArcaneArena
                         ? "Ataque direto declarado" : "Ataque declarado";
                     accent = Gold;
                     break;
+                case CoreMessage.Set:
+                    entry = $"Carta baixada: {SafeCardName(duelEvent.Code)}";
+                    accent = Muted;
+                    break;
+                case CoreMessage.Move:
+                    bool destroyed = (duelEvent.Value & 0x1U) != 0U;
+                    if (destroyed)
+                    {
+                        duelHistoryDestroyed++;
+                        entry = $"Carta destruída: {SafeCardName(duelEvent.Code)}";
+                        accent = Red;
+                    }
+                    else if (duelEvent.Current != null &&
+                             (duelEvent.Current.Location &
+                              DuelLocation.Graveyard) != 0)
+                    {
+                        entry = $"Enviada ao Cemitério: {SafeCardName(duelEvent.Code)}";
+                    }
+                    else if (duelEvent.Current != null &&
+                             (duelEvent.Current.Location &
+                              DuelLocation.Banished) != 0)
+                    {
+                        entry = $"Banida: {SafeCardName(duelEvent.Code)}";
+                        accent = Gold;
+                    }
+                    break;
                 case CoreMessage.Damage:
-                    entry = $"{duelEvent.Value:N0} de dano";
+                    entry = duelEvent.Player == 0
+                        ? $"Você sofreu {duelEvent.Value:N0} de dano"
+                        : $"Oponente sofreu {duelEvent.Value:N0} de dano";
                     accent = Red;
                     break;
                 case CoreMessage.Recover:
-                    entry = $"{duelEvent.Value:N0} PV recuperados";
+                    if (duelEvent.Player == 0)
+                        localLifeRecoveredInDuel += duelEvent.Value;
+                    else
+                        opponentLifeRecoveredInDuel += duelEvent.Value;
+                    entry = duelEvent.Player == 0
+                        ? $"Você recuperou {duelEvent.Value:N0} LP"
+                        : $"Oponente recuperou {duelEvent.Value:N0} LP";
                     accent = Lime;
+                    break;
+                case CoreMessage.PayLifePointCost:
+                    entry = duelEvent.Player == 0
+                        ? $"Você pagou {duelEvent.Value:N0} LP"
+                        : $"Oponente pagou {duelEvent.Value:N0} LP";
+                    accent = Gold;
                     break;
                 case CoreMessage.Win:
                     entry = duelEvent.Player == 0 ? "Vitória!" : "Derrota";
@@ -595,55 +838,19 @@ namespace ArcaneArena
 
         private void PushDuelFeed(string value, Color accent)
         {
-            if (recentActionsPanel == null || recentActionLines.Count == 0)
+            if (string.IsNullOrWhiteSpace(value))
                 return;
-
-            while (duelFeed.Count >= VisibleDuelFeedEntries)
-                duelFeed.Dequeue();
-            duelFeed.Enqueue(new DuelFeedItem { Text = value, Accent = accent });
-            DuelFeedItem[] visible = duelFeed.Reverse().ToArray();
-            for (int index = 0; index < recentActionLines.Count; index++)
+            while (duelHistory.Count >= MaximumDuelHistoryEntries)
+                duelHistory.RemoveAt(0);
+            duelHistory.Add(new DuelFeedItem
             {
-                Text line = recentActionLines[index];
-                if (line == null)
-                    continue;
-                if (index >= visible.Length)
-                {
-                    line.text = string.Empty;
-                    continue;
-                }
-
-                DuelFeedItem item = visible[index];
-                line.text = $"› {item.Text}";
-                line.color = index == 0
-                    ? item.Accent
-                    : Color.Lerp(item.Accent, Muted, index * 0.36f);
-            }
-            recentActionsPanel.SetActive(true);
-            recentActionsPanel.transform.SetAsLastSibling();
-            if (recentActionHideRoutine != null)
-                StopCoroutine(recentActionHideRoutine);
-            recentActionHideRoutine = StartCoroutine(
-                HideRecentActionAfterDelay());
-        }
-
-        private IEnumerator HideRecentActionAfterDelay()
-        {
-            recentActionsGroup.alpha = experienceObscured ? 0.25f : 1f;
-            yield return new WaitForSecondsRealtime(2.35f);
-            const float fadeDuration = 0.35f;
-            float elapsed = 0f;
-            while (elapsed < fadeDuration)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                float visible = 1f - Mathf.Clamp01(elapsed / fadeDuration);
-                recentActionsGroup.alpha = visible *
-                    (experienceObscured ? 0.25f : 1f);
-                yield return null;
-            }
-            recentActionsGroup.alpha = 0f;
-            recentActionsPanel.SetActive(false);
-            recentActionHideRoutine = null;
+                Text = value.Trim(),
+                Accent = accent,
+                Turn = Mathf.Max(1, state?.TurnNumber ?? 1),
+                Phase = state?.Phase ?? 0U
+            });
+            if (duelHistoryOverlay?.activeInHierarchy == true)
+                RefreshDuelHistoryWindow();
         }
 
         private void UpdateChainIndicator()
@@ -823,17 +1030,15 @@ namespace ArcaneArena
         private void SetDuelExperienceObscured(bool obscured)
         {
             experienceObscured = obscured;
-            if (recentActionsPanel == null || recentActionsGroup == null)
-                return;
-            if (recentActionsPanel.activeSelf)
-                recentActionsGroup.alpha = obscured ? 0.25f : 1f;
+            if (duelHistoryButton != null)
+                duelHistoryButton.gameObject.SetActive(!obscured);
         }
 
         private bool PrepareDuelExperienceCapture(string captureState)
         {
             if (!string.Equals(captureState, "experience",
                     StringComparison.OrdinalIgnoreCase)) return false;
-            duelFeed.Clear();
+            duelHistory.Clear();
             RebuildOpponentHandFan(
                 Mathf.Max(5, state?.Players[1].Hand.Count ?? 5));
             PushDuelFeed("Fase Principal 1", Cyan);

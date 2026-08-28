@@ -31,6 +31,10 @@ namespace ArcaneDuel.Game
             new Dictionary<AudioClip, float>();
         private AudioSource source;
         private AudioSource cardSource;
+        private AudioSource damageHitSource;
+        private AudioSource lifePointLossSource;
+        private AudioClip damageHitClip;
+        private AudioClip lifePointLossClip;
         private Coroutine generalEnvelopeRoutine;
         private Coroutine cardEnvelopeRoutine;
         private Coroutine rapidCardCueRoutine;
@@ -58,6 +62,14 @@ namespace ArcaneDuel.Game
             }
         }
 
+        public float DamageImpactCueDelay => damageHitClip != null
+            ? Mathf.Max(0f, damageHitClip.length - 0.5f)
+            : 0f;
+
+        public float LifePointLossCueDuration => lifePointLossClip != null
+            ? Mathf.Max(0.08f, lifePointLossClip.length)
+            : 0.72f;
+
         private void Awake()
         {
             source = GetComponent<AudioSource>();
@@ -73,6 +85,12 @@ namespace ArcaneDuel.Game
             cardSource = gameObject.AddComponent<AudioSource>();
             cardSource.playOnAwake = false;
             cardSource.spatialBlend = 0f;
+            damageHitSource = gameObject.AddComponent<AudioSource>();
+            damageHitSource.playOnAwake = false;
+            damageHitSource.spatialBlend = 0f;
+            lifePointLossSource = gameObject.AddComponent<AudioSource>();
+            lifePointLossSource.playOnAwake = false;
+            lifePointLossSource.spatialBlend = 0f;
             ApplyPreferences();
             clips["draw"] = BuildTone("Arcane_Draw", 540f, 760f, 0.09f, 0.18f);
             clips["summon"] = BuildTone("Arcane_Summon", 160f, 460f, 0.24f, 0.28f);
@@ -91,6 +109,8 @@ namespace ArcaneDuel.Game
             LoadCardClip(ArcaneCardSound.Synchro, "CardsSounds/SincronSummonSound.mpeg");
             LoadCardClip(ArcaneCardSound.Trap, "CardsSounds/trapsound.mpeg");
             LoadCardClip(ArcaneCardSound.Xyz, "CardsSounds/XYZ summon.mpeg");
+            damageHitClip = LoadDuelClip("Audio/SFX/Duel/HitSound");
+            lifePointLossClip = LoadDuelClip("Audio/SFX/Duel/LosingLP");
         }
 
         private void OnDestroy()
@@ -111,7 +131,6 @@ namespace ArcaneDuel.Game
             {
                 CoreMessage.Attack => "attack",
                 CoreMessage.NewPhase => "phase",
-                CoreMessage.Damage => "damage",
                 _ => null
             };
             if (key != null && clips.TryGetValue(key, out AudioClip clip))
@@ -128,6 +147,47 @@ namespace ArcaneDuel.Game
                 rapidCardCueRoutine = null;
             }
             return BeginCardCue(cue);
+        }
+
+        /// <summary>
+        /// Toca o impacto imediato de dano e informa o atraso até o contador
+        /// de LP aparecer. O fim do impacto sobrepõe meio segundo à animação
+        /// de perda, como na apresentação de um duelo televisionado.
+        /// </summary>
+        public float PlayDamageImpactCue()
+        {
+            AudioClip clip = damageHitClip;
+            if (clip == null)
+                return 0f;
+
+            if (Enabled && damageHitSource != null)
+            {
+                damageHitSource.PlayOneShot(
+                    clip,
+                    GainFor(clip));
+            }
+
+            return DamageImpactCueDelay;
+        }
+
+        /// <summary>
+        /// Toca o áudio de perda de LP e devolve exatamente a duração usada
+        /// pela interface para levar o número até o perfil atingido.
+        /// </summary>
+        public float PlayLifePointLossCue()
+        {
+            AudioClip clip = lifePointLossClip;
+            if (clip == null)
+                return 0.72f;
+
+            if (Enabled && lifePointLossSource != null)
+            {
+                lifePointLossSource.PlayOneShot(
+                    clip,
+                    GainFor(clip));
+            }
+
+            return LifePointLossCueDuration;
         }
 
         public void PlayRapidCardCues(
@@ -234,6 +294,10 @@ namespace ArcaneDuel.Game
             {
                 cardSource.mute = muted;
             }
+            if (damageHitSource != null)
+                damageHitSource.mute = muted;
+            if (lifePointLossSource != null)
+                lifePointLossSource.mute = muted;
             ApplySourceVolumes();
         }
 
@@ -334,6 +398,10 @@ namespace ArcaneDuel.Game
                 cardSource.volume =
                     volume * cardEnvelope * cardPlaybackGain;
             }
+            if (damageHitSource != null)
+                damageHitSource.volume = volume;
+            if (lifePointLossSource != null)
+                lifePointLossSource.volume = volume;
         }
 
         private void LoadCardClip(ArcaneCardSound cue, string resourcePath)
@@ -351,6 +419,29 @@ namespace ArcaneDuel.Game
                 : 1f;
             balancedGains[clip] =
                 CalculateBalancedGain(clip) * categoryGain;
+        }
+
+        private AudioClip LoadDuelClip(string resourcePath)
+        {
+            AudioClip clip = Resources.Load<AudioClip>(resourcePath);
+            if (clip == null)
+            {
+                Debug.LogWarning($"Som de duelo ausente: {resourcePath}.");
+                return null;
+            }
+
+            clip.LoadAudioData();
+            balancedGains[clip] = CalculateBalancedGain(clip);
+            return clip;
+        }
+
+        private float GainFor(AudioClip clip)
+        {
+            return clip != null && balancedGains.TryGetValue(
+                clip,
+                out float gain)
+                ? gain
+                : 1f;
         }
 
         private static float CalculateBalancedGain(AudioClip clip)

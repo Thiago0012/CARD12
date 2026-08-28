@@ -134,9 +134,29 @@ namespace ArcaneDuel.Tests.PlayMode
                     "Anúncio de Turno e Fase"),
                 Is.Not.Null);
 
+            Transform guidanceRibbon = FindDescendant(
+                arena.transform,
+                "Orientação do Duelo");
+            Assert.That(guidanceRibbon, Is.Not.Null);
             Assert.That(
-                FindDescendant(arena.transform, "Orientação do Duelo"),
-                Is.Not.Null);
+                guidanceRibbon.gameObject.activeSelf,
+                Is.False,
+                "Passive priority/core messages must stay hidden over the duel field.");
+            MethodInfo updateGuidance = arena.GetType().GetMethod(
+                "UpdateDecisionRibbon",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(updateGuidance, Is.Not.Null);
+            updateGuidance.Invoke(
+                arena,
+                new object[]
+                {
+                    "Nenhuma resposta legal disponível.",
+                    Color.cyan
+                });
+            Assert.That(
+                guidanceRibbon.gameObject.activeSelf,
+                Is.False,
+                "A new core prompt must not reactivate the retired ribbon.");
             Assert.That(
                 FindDescendant(
                     arena.transform,

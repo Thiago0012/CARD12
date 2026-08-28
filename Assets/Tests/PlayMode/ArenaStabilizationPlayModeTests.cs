@@ -5,6 +5,7 @@ using System.Reflection;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Accounts;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -23,6 +24,76 @@ namespace ArcaneDuel.Tests.PlayMode
         private const uint Polymerization = 24094653;
         private const uint RelinquishedAnima = 94259633;
         private const uint FaceDown = 0xA;
+
+        [Test]
+        public void CombatPresentationDistinguishesBuffsTunersAndHiddenArrivals()
+        {
+            System.Type arenaType = System.AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Select(assembly => assembly.GetType(
+                    "ArcaneArena.CardArenaBootstrap",
+                    false))
+                .First(type => type != null);
+            const BindingFlags staticPrivate =
+                BindingFlags.Static | BindingFlags.NonPublic;
+            MethodInfo statColor = arenaType.GetMethod(
+                "CombatStatPresentationColor",
+                staticPrivate);
+            MethodInfo tunerType = arenaType.GetMethod(
+                "IsTunerType",
+                staticPrivate);
+            MethodInfo worldCardVisible = arenaType.GetMethod(
+                "IsPresentedWorldCardVisible",
+                staticPrivate);
+            Assert.That(statColor, Is.Not.Null);
+            Assert.That(tunerType, Is.Not.Null);
+            Assert.That(worldCardVisible, Is.Not.Null);
+
+            Color enhanced = (Color)statColor.Invoke(
+                null,
+                new object[] { 2800, 800 });
+            Color printed = (Color)statColor.Invoke(
+                null,
+                new object[] { 800, 800 });
+            Assert.That(
+                ColorUtility.ToHtmlStringRGB(enhanced),
+                Is.EqualTo("52C3FF"));
+            Assert.That(printed, Is.EqualTo(Color.white));
+            Assert.That(
+                (bool)tunerType.Invoke(null, new object[] { 0x1000U }),
+                Is.True);
+            Assert.That(
+                (bool)tunerType.Invoke(null, new object[] { 0x20U }),
+                Is.False);
+
+            var zoneObject = new GameObject("Combat visibility test zone");
+            System.Type zoneType = System.AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Select(assembly => assembly.GetType(
+                    "ArcaneArena.DuelZone3D",
+                    false))
+                .First(type => type != null);
+            Component zone = zoneObject.AddComponent(zoneType);
+            Transform presentationAnchor = zoneType
+                .GetProperty("CardPresentationAnchor")
+                ?.GetValue(zone) as Transform;
+            Assert.That(presentationAnchor, Is.Not.Null);
+            var card = new GameObject(
+                "Carta Invocada",
+                typeof(CanvasGroup));
+            card.transform.SetParent(presentationAnchor, false);
+            CanvasGroup group = card.GetComponent<CanvasGroup>();
+            group.alpha = 0f;
+            Assert.That(
+                (bool)worldCardVisible.Invoke(null, new object[] { zone }),
+                Is.False,
+                "ATK/DEF must remain hidden while the arriving card is hidden.");
+            group.alpha = 1f;
+            Assert.That(
+                (bool)worldCardVisible.Invoke(null, new object[] { zone }),
+                Is.True);
+            Object.DestroyImmediate(zoneObject);
+        }
 
         [UnityTest]
         public IEnumerator AuthoredArenaNeverConsumesThePlayersPromptsAutomatically()
@@ -832,6 +903,11 @@ namespace ArcaneDuel.Tests.PlayMode
                 arena.GetType().GetMethod("HandleZoneHover", flags);
             Assert.That(pileLabel, Is.Not.Null);
             Assert.That(hover, Is.Not.Null);
+            Text status = arena.GetType().GetField("status", flags)
+                ?.GetValue(arena) as Text;
+            Assert.That(status, Is.Not.Null);
+            const string untouchedStatus = "STATUS NÃO ALTERADO POR HOVER";
+            status.text = untouchedStatus;
 
             Component[] zones = Resources
                 .FindObjectsOfTypeAll<Component>()
@@ -855,6 +931,10 @@ namespace ArcaneDuel.Tests.PlayMode
                 Assert.DoesNotThrow(() =>
                     hover.Invoke(arena, new object[] { zone, false }));
             }
+            Assert.That(
+                status.text,
+                Is.EqualTo(untouchedStatus),
+                "Passar o mouse pelos slots e montes não deve escrever mensagens no ribbon.");
             Assert.That(
                 pileLabel.Invoke(arena, new object[] { null }),
                 Is.EqualTo("Zona indisponivel"));
@@ -1641,7 +1721,7 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator ExtraDeckAndGraveyardUseVisibleLegalOutlines()
+        public IEnumerator ExtraDeckRequiresAuthoritativeLegalSummonForOutline()
         {
             PlayerPrefs.SetInt("ArcaneAutoStart", 0);
             PlayerPrefs.Save();
@@ -1688,15 +1768,75 @@ namespace ArcaneDuel.Tests.PlayMode
             LineRenderer graveOutline = grave.transform
                 .Find("Contorno de ação legal")
                 ?.GetComponent<LineRenderer>();
-            Assert.That(extraOutline, Is.Not.Null);
             Assert.That(graveOutline, Is.Not.Null);
-            Assert.That(extraOutline.enabled, Is.True);
+            if (extraOutline != null)
+            {
+                Assert.That(
+                    extraOutline.enabled,
+                    Is.False,
+                    "Uma escolha sem resposta/comando autoritativo não pode iluminar o Deck Adicional.");
+            }
             Assert.That(graveOutline.enabled, Is.True);
-            Assert.That(extraOutline.transform.parent, Is.EqualTo(extraStack));
-            Assert.That(extraOutline.loop, Is.True);
             Assert.That(graveOutline.loop, Is.True);
-            Assert.That(extraOutline.startColor.g, Is.GreaterThan(0.75f));
             Assert.That(graveOutline.startColor.g, Is.GreaterThan(0.75f));
+
+            DuelPresentationState presentationState =
+                (DuelPresentationState)arena.GetType().GetField(
+                    "state",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.GetValue(arena);
+            Assert.That(presentationState, Is.Not.Null);
+            List<uint> extraContents = typeof(DuelistState).GetProperty(
+                    "ExtraDeckContents",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(presentationState.Players[0]) as List<uint>;
+            Assert.That(extraContents, Is.Not.Null);
+            extraContents.Clear();
+            extraContents.Add(RelinquishedAnima);
+            presentationState.Players[0].ExtraDeckInstances.Clear();
+
+            prompt.Choices.Clear();
+            prompt.Choices.Add(LocatedChoice(
+                "Invocação especial",
+                (byte)DuelLocation.Extra,
+                RelinquishedAnima,
+                new byte[] { 1, 0, 0, 0 }));
+            arena.GetType().GetMethod(
+                    "HighlightPromptZones",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, new object[] { prompt });
+            extra.GetType().GetMethod(
+                    "Update",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(extra, null);
+            extraOutline = extraStack
+                .Find("Contorno de ação legal")
+                ?.GetComponent<LineRenderer>();
+            Assert.That(extraOutline, Is.Not.Null);
+            Assert.That(
+                extraOutline.enabled,
+                Is.True,
+                "Uma Invocação-Especial autoritativa deve iluminar o Deck Adicional.");
+
+            extraContents[0] = DeveloperAccountRegistry.MixaelCardCode;
+            prompt.Choices.Clear();
+            prompt.Choices.Add(LocatedChoice(
+                "Invocação especial",
+                (byte)DuelLocation.Extra,
+                DeveloperAccountRegistry.MixaelCardCode,
+                new byte[] { 1, 0, 0, 0 }));
+            arena.GetType().GetMethod(
+                    "HighlightPromptZones",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(arena, new object[] { prompt });
+            extra.GetType().GetMethod(
+                    "Update",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.Invoke(extra, null);
+            Assert.That(
+                extraOutline.enabled,
+                Is.False,
+                "O card exclusivo do atalho dev não pode acender o Deck Adicional normal.");
         }
 
         [UnityTest]
@@ -2295,11 +2435,15 @@ namespace ArcaneDuel.Tests.PlayMode
 
         private static DuelChoice LocatedChoice(
             string label,
-            byte location)
+            byte location,
+            uint code = 0,
+            byte[] response = null)
         {
             var choice = new DuelChoice();
             System.Type type = typeof(DuelChoice);
             type.GetProperty("Label")?.SetValue(choice, label);
+            type.GetProperty("CardCode")?.SetValue(choice, code);
+            type.GetProperty("Response")?.SetValue(choice, response);
             type.GetProperty("HasLocation")?.SetValue(choice, true);
             type.GetProperty("Controller")?.SetValue(choice, (byte)0);
             type.GetProperty("Location")?.SetValue(choice, location);

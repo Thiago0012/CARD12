@@ -3,6 +3,7 @@ using System.Linq;
 using ArcaneArena.Frontend;
 using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Accounts;
 
 namespace ArcaneArena.Multiplayer
 {
@@ -57,6 +58,14 @@ namespace ArcaneArena.Multiplayer
                 !TryParse(loadout.sideDeckCardIds, out uint[] side))
             {
                 rejection = "O deck possui identificadores de carta invalidos.";
+                return false;
+            }
+
+            if (main.Concat(extra).Concat(side).Any(
+                    DeveloperAccountRegistry.IsDeveloperOnlyCard))
+            {
+                rejection =
+                    "Cartas exclusivas de desenvolvimento não podem entrar em partidas online.";
                 return false;
             }
 

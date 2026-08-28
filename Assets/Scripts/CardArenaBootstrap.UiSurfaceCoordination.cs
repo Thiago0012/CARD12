@@ -14,7 +14,8 @@ namespace ArcaneArena
             ZoneBrowser,
             CardInspector,
             FieldAction,
-            PhaseNavigator
+            PhaseNavigator,
+            DuelHistory
         }
 
         private DuelUiSurfaceKind activeDuelUiSurface;
@@ -76,6 +77,9 @@ namespace ArcaneArena
 
             if (retained != DuelUiSurfaceKind.PhaseNavigator)
                 phaseNavigator?.SetActive(false);
+
+            if (retained != DuelUiSurfaceKind.DuelHistory)
+                duelHistoryOverlay?.SetActive(false);
 
             if (retained != DuelUiSurfaceKind.PromptPrimary)
                 SuspendAttackTargetingVisuals();
@@ -168,6 +172,11 @@ namespace ArcaneArena
             if (zoneBrowser?.activeInHierarchy == true)
             {
                 CloseZoneBrowserFromUser();
+                return;
+            }
+            if (duelHistoryOverlay?.activeInHierarchy == true)
+            {
+                CloseDuelHistory();
                 return;
             }
             if (phaseNavigator?.activeInHierarchy == true)

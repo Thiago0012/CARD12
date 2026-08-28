@@ -1405,16 +1405,37 @@ namespace ArcaneArena.Frontend
 
             Image veil = background.Find("Contraste da Arte da Loja")
                 ?.GetComponent<Image>();
-            if (veil == null)
-                return;
-            RectTransform veilRect = veil.rectTransform;
-            veilRect.anchorMin = Vector2.zero;
-            veilRect.anchorMax = Vector2.one;
-            veilRect.pivot = new Vector2(0.5f, 0.5f);
-            veilRect.offsetMin = new Vector2(-113.2444f, 0f);
-            veilRect.offsetMax = new Vector2(113.2456f, 0f);
-            veilRect.localScale = Vector3.one;
-            veil.color = new Color32(3, 2, 3, 219);
+            if (veil != null)
+            {
+                RectTransform veilRect = veil.rectTransform;
+                veilRect.anchorMin = Vector2.zero;
+                veilRect.anchorMax = Vector2.one;
+                veilRect.pivot = new Vector2(0.5f, 0.5f);
+                veilRect.offsetMin = new Vector2(-113.2444f, 0f);
+                veilRect.offsetMax = new Vector2(113.2456f, 0f);
+                veilRect.localScale = Vector3.one;
+                veil.color = new Color32(3, 2, 3, 219);
+            }
+
+            Image betaNotice = CreateArcaneSurface(
+                _screenRoot,
+                "Aviso Beta das Crônicas",
+                new Vector2(0.735f, 0.910f),
+                new Vector2(0.965f, 0.975f),
+                ArcaneGold,
+                true,
+                0.90f);
+            betaNotice.raycastTarget = false;
+            CreateText(
+                betaNotice.transform,
+                "BETA  •  CONTEÚDO EM DESENVOLVIMENTO",
+                12,
+                FontStyle.Bold,
+                new Color(0.98f, 0.82f, 0.52f, 1f),
+                new Vector2(0.05f, 0.08f),
+                new Vector2(0.95f, 0.92f),
+                TextAnchor.MiddleCenter)
+                .raycastTarget = false;
         }
 
         private Sprite StoryLoadSprite(string resourcePath)

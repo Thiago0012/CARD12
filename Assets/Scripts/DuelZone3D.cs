@@ -35,7 +35,6 @@ namespace ArcaneArena
         private bool disabledByCore;
         private static readonly Color DisabledByCoreColor =
             new Color(0.34f, 0.055f, 0.07f, 1f);
-        private bool pointerFocused;
         private LineRenderer specialZoneOutline;
         private Material specialZoneOutlineMaterial;
         private ParticleSystem placementDust;
@@ -337,7 +336,7 @@ namespace ArcaneArena
 
         private void Update()
         {
-            if (!dropHighlighted && !pointerFocused && !disabledByCore)
+            if (!dropHighlighted && !disabledByCore)
                 return;
             UpdateSpecialZoneOutline();
             if (dropSurfaceMaterial == null)
@@ -594,11 +593,8 @@ namespace ArcaneArena
             if (!HasValidIdentity &&
                 !EnsureIdentityFromHierarchy(false))
             {
-                pointerFocused = false;
                 return;
             }
-            pointerFocused = true;
-            EnsureDropSurfaceMaterial();
             FindAnyObjectByType<CardArenaBootstrap>()?.HandleZoneHover(
                 this,
                 true);
@@ -606,9 +602,6 @@ namespace ArcaneArena
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            pointerFocused = false;
-            if (!dropHighlighted && dropSurfaceMaterial != null)
-                dropSurfaceMaterial.color = dropSurfaceColor;
             if (!HasValidIdentity)
                 return;
             FindAnyObjectByType<CardArenaBootstrap>()?.HandleZoneHover(

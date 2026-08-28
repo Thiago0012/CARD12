@@ -176,8 +176,7 @@ namespace ArcaneDuel.Game
             }
             state.ReconcileFromCore(authoritative);
             state.CompleteChainEndReconciliation();
-            playerExtraCards.Clear();
-            playerExtraCards.AddRange(state.Players[0].ExtraDeckCards);
+            SynchronizePlayerExtraDeckCardsFromState();
             reconcileFailureRecorded = false;
             PresentationStateChanged?.Invoke();
             return true;
@@ -1698,10 +1697,7 @@ namespace ArcaneDuel.Game
                     ? receivedPrompt
                     : previousPrompt;
                 replicaNetworkState = networkState;
-                playerExtraCards.Clear();
-                if (state.Players.Length > 0)
-                    playerExtraCards.AddRange(
-                        state.Players[0].ExtraDeckCards);
+                SynchronizePlayerExtraDeckCardsFromState();
                 if (promptChanged)
                 {
                     PrepareRequiredPromptVisibility(replicaPrompt);
@@ -2196,6 +2192,27 @@ namespace ArcaneDuel.Game
                 status =
                     $"{contextualChoices.Count} ação(ões) legal(is) para a carta selecionada.";
             }
+        }
+
+        private void SynchronizePlayerExtraDeckCardsFromState()
+        {
+            if (state?.Players == null || state.Players.Length == 0)
+                return;
+
+            IReadOnlyList<uint> reported = state.Players[0].ExtraDeckCards;
+            int reportedCount = state.Players[0].ExtraDeckCount;
+            if (reported.Count == 0 && reportedCount > 0 &&
+                playerExtraCards.Count > 0)
+            {
+                // Field reconciliation can retain a private pile count while
+                // omitting its individual cards. Keep the locally known
+                // ordering; normal Move events still update that ordering as
+                // cards actually leave or return to the Extra Deck.
+                return;
+            }
+
+            playerExtraCards.Clear();
+            playerExtraCards.AddRange(reported);
         }
 
         private void TrackPlayerExtraDeck(DuelEvent duelEvent)

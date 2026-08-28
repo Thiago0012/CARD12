@@ -411,6 +411,13 @@ namespace ArcaneArena.Presentation
             child.transform.SetParent(transform, false);
             child.transform.localPosition = localPosition;
             ParticleSystem system = child.AddComponent<ParticleSystem>();
+            // AddComponent inicia o ParticleSystem antes de playOnAwake ser
+            // alterado. A configuração de duration só é válida com o sistema
+            // totalmente parado e limpo.
+            system.Stop(
+                true,
+                ParticleSystemStopBehavior.StopEmittingAndClear);
+            system.Clear(true);
             particleSystems.Add(system);
 
             ParticleSystem.MainModule main = system.main;

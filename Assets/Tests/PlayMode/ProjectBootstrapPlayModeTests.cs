@@ -102,6 +102,13 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(
                 GameObject.Find("Barra de progresso de elo"),
                 Is.Not.Null);
+            Assert.That(
+                GameObject.Find("Barra de progresso de elo")
+                    .GetComponents<Component>()
+                    .Any(component => component.GetType().FullName ==
+                        "ArcaneArena.Frontend.ArcaneRankProgressGraphic"),
+                Is.True,
+                "O progresso deve ser uma superfície integrada, não um retângulo sobre a arte.");
         }
 
         [UnityTest]
