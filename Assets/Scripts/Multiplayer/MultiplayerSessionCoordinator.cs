@@ -40,11 +40,16 @@ namespace ArcaneArena.Multiplayer
         private ISession currentSession;
         private Task leaveTask;
 
+        public event Action<SessionError> NetworkStartFailed;
+
         public ISession CurrentSession => currentSession;
         public bool HasSession => currentSession != null && currentSession.IsMember;
         public bool IsHost => currentSession?.IsHost == true;
+        public int PlayerCount => currentSession?.PlayerCount ?? 0;
         public string Code => currentSession?.Code ?? string.Empty;
         public string SessionId => currentSession?.Id ?? string.Empty;
+        public NetworkState NetworkState => currentSession?.Network?.State ??
+            Unity.Services.Multiplayer.NetworkState.Stopped;
         public RelayProtocol ActiveRelayProtocol =>
             RelayTransportPolicy.Select(Application.platform);
 
@@ -67,7 +72,13 @@ namespace ArcaneArena.Multiplayer
                     false),
                 PlayerProperties = CreatePlayerProperties(loadout, 0)
             };
-            options.WithRelayNetwork();
+            // Do not start Relay while the room itself is being created.
+            // WithRelayNetwork starts NGO as part of CreateSessionAsync. That
+            // makes a slow phone wait for the complete network handshake
+            // before the host gets the player-facing room code. Creating the
+            // lobby first lets the host share its code immediately; once the
+            // second player is in the Lobby, StartPrivateRelayNetworkAsync
+            // starts the single authoritative Relay connection for both.
             options.WithNetworkOptions(new NetworkOptions
             {
                 RelayProtocol = ActiveRelayProtocol
@@ -81,6 +92,42 @@ namespace ArcaneArena.Multiplayer
             Bind(created);
             Debug.Log("[MP] stage=session-ready role=host members=1");
             return created;
+        }
+
+        /// <summary>
+        /// Starts the Relay allocation only after the private Lobby has both
+        /// seats. The Session SDK then publishes the network metadata to the
+        /// already joined client and starts NGO on each platform with the same
+        /// protocol. This avoids the create/join race seen on slower Android
+        /// devices and keeps PC/Android on the identical Relay path.
+        /// </summary>
+        public async Task StartPrivateRelayNetworkAsync()
+        {
+            if (currentSession?.IsHost != true)
+            {
+                throw new InvalidOperationException(
+                    "Apenas o anfitrião pode iniciar a conexão Relay da sala.");
+            }
+            if (currentSession.PlayerCount < 2)
+            {
+                throw new InvalidOperationException(
+                    "Aguardando o segundo jogador entrar na sala.");
+            }
+            if (currentSession.Network.State ==
+                Unity.Services.Multiplayer.NetworkState.Started ||
+                currentSession.Network.State ==
+                Unity.Services.Multiplayer.NetworkState.Starting)
+            {
+                return;
+            }
+
+#pragma warning disable CS0618
+            // NetworkOptions pins the preferred protocol for the Session.
+            // RelayNetworkOptions keeps the explicit WSS request on the host
+            // startup path too, avoiding platform-default protocol drift.
+            await currentSession.AsHost().Network.StartRelayNetworkAsync(
+                new RelayNetworkOptions(ActiveRelayProtocol));
+#pragma warning restore CS0618
         }
 
         public async Task<ISession> JoinByCodeAsync(
@@ -579,6 +626,8 @@ namespace ArcaneArena.Multiplayer
             currentSession.Deleted += OnSessionTerminated;
             currentSession.RemovedFromSession += OnSessionTerminated;
             currentSession.SessionHostChanged += OnHostChanged;
+            currentSession.Network.StartFailed += OnNetworkStartFailed;
+            currentSession.Network.StateChanged += OnNetworkStateChanged;
         }
 
         private void Unbind()
@@ -588,11 +637,25 @@ namespace ArcaneArena.Multiplayer
             currentSession.Deleted -= OnSessionTerminated;
             currentSession.RemovedFromSession -= OnSessionTerminated;
             currentSession.SessionHostChanged -= OnHostChanged;
+            currentSession.Network.StartFailed -= OnNetworkStartFailed;
+            currentSession.Network.StateChanged -= OnNetworkStateChanged;
         }
 
         private void OnSessionTerminated()
         {
             Debug.LogWarning("[MP] stage=session-terminated");
+        }
+
+        private void OnNetworkStartFailed(SessionError error)
+        {
+            Debug.LogWarning(
+                "[MP] stage=relay-network-failed error=" + error);
+            NetworkStartFailed?.Invoke(error);
+        }
+
+        private static void OnNetworkStateChanged(NetworkState state)
+        {
+            Debug.Log("[MP] stage=relay-network-state value=" + state);
         }
 
         private static void OnHostChanged(string _)
