@@ -108,6 +108,9 @@ namespace ArcaneArena.Multiplayer
         private readonly List<float> preludeMistSpeeds = new();
         private readonly List<float> preludeMistPhases = new();
         private readonly List<Color> preludeMistBaseColors = new();
+        private readonly List<GameObject> preludeResultEffects = new();
+        private Coroutine preludeResultAnimationRoutine;
+        private Sprite preludeImpactSprite;
         private Color motionAccentA = new Color(0.12f, 0.76f, 1f, 1f);
         private Color motionAccentB = new Color(0.50f, 0.18f, 0.98f, 1f);
 
@@ -231,12 +234,299 @@ namespace ArcaneArena.Multiplayer
                 ? "As escolhas foram iguais. Uma nova rodada será iniciada."
                 : "Resultado confirmado · preparando os dois campos.";
             secondaryLabel.gameObject.SetActive(true);
+            ResetPreludeResultVisuals();
             if (resultLocalChoiceIcon != null)
                 resultLocalChoiceIcon.sprite = PreludeChoiceIcon(localChoice);
             if (resultOpponentChoiceIcon != null)
                 resultOpponentChoiceIcon.sprite = PreludeChoiceIcon(opponentChoice);
             if (resultVersusLabel != null)
                 resultVersusLabel.text = tie ? "=" : "VS";
+            preludeResultAnimationRoutine = StartCoroutine(
+                AnimatePreludeResult(
+                    localChoice,
+                    opponentChoice,
+                    localWon,
+                    tie));
+        }
+
+        private sealed class PreludeResultFragment
+        {
+            public Image image;
+            public Vector2 velocity;
+            public float spin;
+            public Color color;
+        }
+
+        private void ResetPreludeResultVisuals()
+        {
+            if (preludeResultAnimationRoutine != null)
+            {
+                StopCoroutine(preludeResultAnimationRoutine);
+                preludeResultAnimationRoutine = null;
+            }
+            ClearPreludeResultEffects();
+            ResetPreludeResultIcon(resultLocalChoiceIcon);
+            ResetPreludeResultIcon(resultOpponentChoiceIcon);
+            if (resultVersusLabel != null)
+            {
+                resultVersusLabel.gameObject.SetActive(true);
+                resultVersusLabel.rectTransform.localScale = Vector3.one;
+                resultVersusLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
+            }
+        }
+
+        private static void ResetPreludeResultIcon(Image icon)
+        {
+            if (icon == null)
+                return;
+            icon.gameObject.SetActive(true);
+            icon.rectTransform.anchoredPosition = Vector2.zero;
+            icon.rectTransform.localScale = Vector3.one;
+            icon.rectTransform.localEulerAngles = Vector3.zero;
+            icon.color = Color.white;
+        }
+
+        private IEnumerator AnimatePreludeResult(
+            DuelPreludeChoice localChoice,
+            DuelPreludeChoice opponentChoice,
+            bool localWon,
+            bool tie)
+        {
+            yield return new WaitForSecondsRealtime(0.10f);
+            if (resultLocalChoiceIcon == null || resultOpponentChoiceIcon == null)
+            {
+                preludeResultAnimationRoutine = null;
+                yield break;
+            }
+
+            if (tie)
+            {
+                const float tieDuration = 0.48f;
+                float elapsed = 0f;
+                while (elapsed < tieDuration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float progress = Mathf.Clamp01(elapsed / tieDuration);
+                    float pulse = Mathf.Sin(progress * Mathf.PI);
+                    resultLocalChoiceIcon.rectTransform.anchoredPosition =
+                        new Vector2(18f * pulse, 0f);
+                    resultOpponentChoiceIcon.rectTransform.anchoredPosition =
+                        new Vector2(-18f * pulse, 0f);
+                    float scale = 1f + pulse * 0.08f;
+                    resultLocalChoiceIcon.rectTransform.localScale =
+                        new Vector3(scale, scale, 1f);
+                    resultOpponentChoiceIcon.rectTransform.localScale =
+                        new Vector3(scale, scale, 1f);
+                    yield return null;
+                }
+                ResetPreludeResultIcon(resultLocalChoiceIcon);
+                ResetPreludeResultIcon(resultOpponentChoiceIcon);
+                preludeResultAnimationRoutine = null;
+                yield break;
+            }
+
+            Image winner = localWon
+                ? resultLocalChoiceIcon
+                : resultOpponentChoiceIcon;
+            Image loser = localWon
+                ? resultOpponentChoiceIcon
+                : resultLocalChoiceIcon;
+            DuelPreludeChoice winnerChoice = localWon
+                ? localChoice
+                : opponentChoice;
+            DuelPreludeChoice loserChoice = localWon
+                ? opponentChoice
+                : localChoice;
+            float direction = localWon ? 1f : -1f;
+            float travel = winnerChoice switch
+            {
+                DuelPreludeChoice.Paper => 112f,
+                DuelPreludeChoice.Scissors => 100f,
+                _ => 86f
+            };
+            Vector2 attackOffset = new Vector2(
+                direction * travel,
+                winnerChoice == DuelPreludeChoice.Rock ? -8f : 0f);
+            float attackRotation = winnerChoice switch
+            {
+                DuelPreludeChoice.Scissors => -direction * 26f,
+                DuelPreludeChoice.Paper => direction * 12f,
+                _ => -direction * 7f
+            };
+
+            const float approachDuration = 0.30f;
+            float approachElapsed = 0f;
+            while (approachElapsed < approachDuration)
+            {
+                approachElapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(approachElapsed / approachDuration);
+                float eased = EaseOutCubic(progress);
+                winner.rectTransform.anchoredPosition = attackOffset *
+                                                        (0.56f * eased);
+                loser.rectTransform.anchoredPosition = attackOffset *
+                                                       (0.12f * eased);
+                float winnerScale = 1f + Mathf.Sin(progress * Mathf.PI) * 0.10f;
+                winner.rectTransform.localScale =
+                    new Vector3(winnerScale, winnerScale, 1f);
+                winner.rectTransform.localEulerAngles = new Vector3(
+                    0f,
+                    0f,
+                    attackRotation * Mathf.Sin(progress * Mathf.PI));
+                yield return null;
+            }
+
+            Vector2 impactPosition = GetResultPanelPosition(loser.rectTransform);
+            List<PreludeResultFragment> fragments = SpawnPreludeImpact(
+                impactPosition,
+                winnerChoice,
+                loserChoice,
+                new Vector2(direction, 0f));
+            const float destructionDuration = 0.36f;
+            float destructionElapsed = 0f;
+            while (destructionElapsed < destructionDuration)
+            {
+                destructionElapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(
+                    destructionElapsed / destructionDuration);
+                float eased = EaseOutCubic(progress);
+                winner.rectTransform.anchoredPosition = Vector2.Lerp(
+                    attackOffset * 0.56f,
+                    attackOffset * 0.08f,
+                    eased);
+                winner.rectTransform.localScale = Vector3.one *
+                    (1.06f - 0.04f * eased);
+                loser.rectTransform.anchoredPosition = attackOffset *
+                    (0.12f + 0.82f * eased) +
+                    Vector2.down * (28f * eased * eased);
+                loser.rectTransform.localScale = Vector3.one *
+                    Mathf.Lerp(1f, 0.16f, eased);
+                Color loserColor = Color.white;
+                loserColor.a = 1f - eased;
+                loser.color = loserColor;
+                if (resultVersusLabel != null)
+                {
+                    Color versusColor = resultVersusLabel.color;
+                    versusColor.a = 1f - eased;
+                    resultVersusLabel.color = versusColor;
+                }
+                UpdatePreludeImpactFragments(
+                    fragments,
+                    impactPosition,
+                    eased);
+                yield return null;
+            }
+
+            loser.gameObject.SetActive(false);
+            yield return new WaitForSecondsRealtime(0.18f);
+            ClearPreludeResultEffects();
+            preludeResultAnimationRoutine = null;
+        }
+
+        private Vector2 GetResultPanelPosition(RectTransform target)
+        {
+            if (target == null || resultPanel == null)
+                return Vector2.zero;
+            RectTransform panel = resultPanel.GetComponent<RectTransform>();
+            return panel.InverseTransformPoint(target.position);
+        }
+
+        private List<PreludeResultFragment> SpawnPreludeImpact(
+            Vector2 position,
+            DuelPreludeChoice winnerChoice,
+            DuelPreludeChoice loserChoice,
+            Vector2 direction)
+        {
+            var fragments = new List<PreludeResultFragment>();
+            if (resultPanel == null || preludeImpactSprite == null)
+                return fragments;
+
+            Color baseColor = Color.Lerp(
+                PreludeChoiceAccent(winnerChoice),
+                PreludeChoiceAccent(loserChoice),
+                0.38f);
+            Image flash = CreateImage(
+                resultPanel.transform,
+                "Impacto da escolha",
+                new Color(baseColor.r, baseColor.g, baseColor.b, 0.58f),
+                new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f));
+            flash.sprite = preludeImpactSprite;
+            flash.rectTransform.sizeDelta = new Vector2(236f, 236f);
+            flash.rectTransform.anchoredPosition = position;
+            preludeResultEffects.Add(flash.gameObject);
+
+            int fragmentCount = loserChoice == DuelPreludeChoice.Paper
+                ? 14
+                : loserChoice == DuelPreludeChoice.Scissors ? 11 : 9;
+            Vector2 perpendicular = new Vector2(-direction.y, direction.x);
+            for (int index = 0; index < fragmentCount; index++)
+            {
+                float random = (float)visualRandom.NextDouble();
+                float side = Mathf.Lerp(-1f, 1f, random);
+                float forward = Mathf.Lerp(90f, 230f,
+                    (float)visualRandom.NextDouble());
+                float sideways = Mathf.Lerp(-130f, 130f,
+                    (float)visualRandom.NextDouble());
+                Image fragment = CreateImage(
+                    resultPanel.transform,
+                    $"Fragmento da escolha {index + 1}",
+                    Color.Lerp(baseColor, Color.white,
+                        (float)visualRandom.NextDouble() * 0.55f),
+                    new Vector2(0.5f, 0.5f),
+                    new Vector2(0.5f, 0.5f));
+                fragment.sprite = preludeImpactSprite;
+                float size = loserChoice == DuelPreludeChoice.Paper
+                    ? Mathf.Lerp(14f, 34f, random)
+                    : Mathf.Lerp(18f, 42f, random);
+                fragment.rectTransform.sizeDelta = new Vector2(size, size);
+                fragment.rectTransform.anchoredPosition = position;
+                preludeResultEffects.Add(fragment.gameObject);
+                fragments.Add(new PreludeResultFragment
+                {
+                    image = fragment,
+                    velocity = direction * forward + perpendicular *
+                               (sideways + side * 22f),
+                    spin = Mathf.Lerp(-440f, 440f,
+                        (float)visualRandom.NextDouble()),
+                    color = fragment.color
+                });
+            }
+            return fragments;
+        }
+
+        private static void UpdatePreludeImpactFragments(
+            IReadOnlyList<PreludeResultFragment> fragments,
+            Vector2 origin,
+            float progress)
+        {
+            if (fragments == null)
+                return;
+            for (int index = 0; index < fragments.Count; index++)
+            {
+                PreludeResultFragment fragment = fragments[index];
+                if (fragment?.image == null)
+                    continue;
+                fragment.image.rectTransform.anchoredPosition = origin +
+                    fragment.velocity * progress +
+                    Vector2.down * (70f * progress * progress);
+                fragment.image.rectTransform.localEulerAngles = new Vector3(
+                    0f,
+                    0f,
+                    fragment.spin * progress);
+                Color color = fragment.color;
+                color.a *= 1f - progress;
+                fragment.image.color = color;
+            }
+        }
+
+        private void ClearPreludeResultEffects()
+        {
+            foreach (GameObject effect in preludeResultEffects)
+            {
+                if (effect != null)
+                    Destroy(effect);
+            }
+            preludeResultEffects.Clear();
         }
 
         public void FadeThroughBlack(Action action)
@@ -328,6 +618,12 @@ namespace ArcaneArena.Multiplayer
         {
             if (canvas == null)
                 return;
+            if (preludeResultAnimationRoutine != null)
+            {
+                StopCoroutine(preludeResultAnimationRoutine);
+                preludeResultAnimationRoutine = null;
+            }
+            ClearPreludeResultEffects();
             targetAlpha = 0f;
             hideRequested = false;
             group.alpha = 0f;
@@ -2025,7 +2321,7 @@ namespace ArcaneArena.Multiplayer
                 panel.transform,
                 "Selecione um símbolo",
                 font,
-                13,
+                24,
                 FontStyle.Bold,
                 new Vector2(0.06f, 0.89f),
                 new Vector2(0.94f, 0.99f));
@@ -2423,6 +2719,7 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.25f, 0.44f),
                 new Vector2(0.75f, 0.75f));
             resultPanel = panel.gameObject;
+            preludeImpactSprite = CreateProceduralBurstSprite(false);
             resultLabel = CreateText(
                 panel.transform,
                 "Resultado",
@@ -2435,10 +2732,10 @@ namespace ArcaneArena.Multiplayer
             resultLabel.gameObject.SetActive(false);
             CreatePreludeResultCaption(
                 panel.transform, "VOCÊ", new Vector2(0.10f, 0.84f),
-                new Vector2(0.40f, 0.96f), font);
+                new Vector2(0.40f, 0.96f), font, 16);
             CreatePreludeResultCaption(
                 panel.transform, "RIVAL", new Vector2(0.60f, 0.84f),
-                new Vector2(0.90f, 0.96f), font);
+                new Vector2(0.90f, 0.96f), font, 16);
             resultLocalChoiceIcon = CreateImage(
                 panel.transform, "Seu símbolo", Color.white,
                 new Vector2(0.10f, 0.16f), new Vector2(0.40f, 0.80f));
@@ -2456,7 +2753,7 @@ namespace ArcaneArena.Multiplayer
             opponentShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
             opponentShadow.effectDistance = new Vector2(8f, -9f);
             resultVersusLabel = CreateText(
-                panel.transform, "Versus", font, 25, FontStyle.Bold,
+                panel.transform, "Versus", font, 32, FontStyle.Bold,
                 new Vector2(0.43f, 0.38f), new Vector2(0.57f, 0.60f));
             resultVersusLabel.text = "VS";
             resultVersusLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
@@ -2468,13 +2765,14 @@ namespace ArcaneArena.Multiplayer
             string value,
             Vector2 anchorMin,
             Vector2 anchorMax,
-            Font font)
+            Font font,
+            int fontSize = 15)
         {
             Text caption = CreateText(
                 parent,
                 value,
                 font,
-                11,
+                fontSize,
                 FontStyle.Bold,
                 anchorMin,
                 anchorMax);

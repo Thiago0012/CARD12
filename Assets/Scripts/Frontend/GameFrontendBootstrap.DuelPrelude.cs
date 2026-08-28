@@ -62,7 +62,7 @@ namespace ArcaneArena.Frontend
                         opponentChoice,
                         localWon,
                         tie);
-                    yield return new WaitForSecondsRealtime(tie ? 0.82f : 1.05f);
+                    yield return new WaitForSecondsRealtime(tie ? 0.98f : 1.42f);
                     if (!tie)
                     {
                         _pendingStartingPlayer = localWon
