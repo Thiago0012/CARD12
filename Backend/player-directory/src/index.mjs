@@ -7,6 +7,8 @@ const ACCESS_SNAPSHOT_SECONDS = 600;
 const CHALLENGE_TTL_SECONDS = 180;
 const CHALLENGE_READY_TTL_SECONDS = 300;
 const ACTIVE_CHALLENGE_STATUSES = ["pending", "accepted", "ready"];
+const CAPABILITY_ONLINE = "online";
+const CAPABILITY_RANKED = "ranked";
 let jwksCache = { expiresAt: 0, keys: [] };
 
 export default {
@@ -152,6 +154,10 @@ async function openOrHeartbeat(request, env, identity, operation) {
 }
 
 async function getDuelChallengeState(env, identity) {
+  // This route is intentionally protected on the server as well as in the
+  // Unity client.  A modified client must not be able to read or act on
+  // challenge data after its online entitlement has been revoked.
+  await requirePlayerCapability(env, identity.playerId, CAPABILITY_ONLINE);
   const now = unixNow();
   await expireDuelChallenges(env, identity.playerId, now);
   const rows = await env.DB.prepare(
@@ -162,7 +168,13 @@ async function getDuelChallengeState(env, identity) {
      LIMIT 4`)
     .bind(identity.playerId, identity.playerId)
     .all();
-  const challenges = (rows.results || []).map(serializeDuelChallenge);
+  const rawChallenges = rows.results || [];
+  // Only one active challenge may exist for a player, but check every row to
+  // keep this fail-closed if that invariant ever changes.
+  if (rawChallenges.some(value => value.duel_mode === "ranked")) {
+    await requirePlayerCapability(env, identity.playerId, CAPABILITY_RANKED);
+  }
+  const challenges = rawChallenges.map(serializeDuelChallenge);
   return json({
     schemaVersion: 1,
     incoming: challenges.find(value =>
@@ -196,6 +208,11 @@ async function createDuelChallenge(request, env, identity) {
     throw httpError(400, "A identificação do convite é inválida.");
   }
 
+  await requireDuelChallengeCapability(env, identity.playerId, duelMode);
+  // Do not expose whether a recipient is blocked, which capability was
+  // revoked, or the administrator's private block message.
+  await requireDuelRecipientAvailability(env, recipientPlayerId, duelMode);
+
   const prior = await env.DB.prepare(
     `${duelChallengeSelect()}
      WHERE c.sender_player_id = ? AND c.client_request_id = ?
@@ -212,13 +229,6 @@ async function createDuelChallenge(request, env, identity) {
   const now = unixNow();
   await expireDuelChallenges(env, identity.playerId, now);
   await expireDuelChallenges(env, recipientPlayerId, now);
-  const recipient = await env.DB.prepare(
-    "SELECT unity_player_id, blocked FROM players WHERE unity_player_id = ?")
-    .bind(recipientPlayerId)
-    .first();
-  if (!recipient || recipient.blocked === 1) {
-    throw httpError(404, "O jogador convidado não está disponível.");
-  }
   const online = await env.DB.prepare(
     `SELECT 1 AS online FROM player_sessions
      WHERE unity_player_id = ? AND last_heartbeat_utc >= ? LIMIT 1`)
@@ -285,6 +295,20 @@ async function mutateDuelChallenge(
       (challenge.sender_player_id !== identity.playerId &&
        challenge.recipient_player_id !== identity.playerId)) {
     throw httpError(404, "Desafio de duelo não encontrado.");
+  }
+
+  await requireDuelChallengeCapability(
+    env,
+    identity.playerId,
+    challenge.duel_mode);
+  if (ACTIVE_CHALLENGE_STATUSES.includes(challenge.status)) {
+    const otherPlayerId = challenge.sender_player_id === identity.playerId
+      ? challenge.recipient_player_id
+      : challenge.sender_player_id;
+    await requireExistingDuelOpponentAvailability(
+      env,
+      otherPlayerId,
+      challenge.duel_mode);
   }
 
   let message;
@@ -550,7 +574,65 @@ async function buildSnapshot(env, playerId, now = unixNow()) {
   };
 }
 
+async function requireDuelChallengeCapability(env, playerId, duelMode) {
+  await requirePlayerCapability(env, playerId, CAPABILITY_ONLINE);
+  if (duelMode === "ranked") {
+    await requirePlayerCapability(env, playerId, CAPABILITY_RANKED);
+  }
+}
+
+async function requirePlayerCapability(env, playerId, capability) {
+  const key = String(capability || "").trim().toLowerCase();
+  if (key !== CAPABILITY_ONLINE && key !== CAPABILITY_RANKED) {
+    throw new Error(`Capacidade de jogador não suportada: ${key}`);
+  }
+
+  const player = await env.DB.prepare(
+    "SELECT unity_player_id, blocked FROM players WHERE unity_player_id = ?")
+    .bind(playerId)
+    .first();
+  if (!player || player.blocked === 1) {
+    throw httpError(403, "O acesso online desta conta não está autorizado.");
+  }
+
+  const blocked = await env.DB.prepare(
+    `SELECT capability_key
+       FROM player_capability_blocks
+      WHERE unity_player_id = ?
+        AND capability_key IN (?, '*')
+      LIMIT 1`)
+    .bind(playerId, key)
+    .first();
+  if (blocked) {
+    throw httpError(403, "O acesso online desta conta não está autorizado.");
+  }
+  return player;
+}
+
+async function requireDuelRecipientAvailability(env, playerId, duelMode) {
+  try {
+    await requireDuelChallengeCapability(env, playerId, duelMode);
+  } catch (error) {
+    if (error?.status === 403 || error?.status === 404) {
+      throw httpError(404, "O jogador convidado não está disponível.");
+    }
+    throw error;
+  }
+}
+
+async function requireExistingDuelOpponentAvailability(env, playerId, duelMode) {
+  try {
+    await requireDuelChallengeCapability(env, playerId, duelMode);
+  } catch (error) {
+    if (error?.status === 403 || error?.status === 404) {
+      throw httpError(409, "O outro duelista não está disponível.");
+    }
+    throw error;
+  }
+}
+
 async function searchPlayer(env, requester, rawQuery) {
+  await requirePlayerCapability(env, requester.playerId, CAPABILITY_ONLINE);
   const query = cleanShort(rawQuery, 64).trim();
   if (query.length < 3) {
     throw httpError(400, "Digite ao menos três caracteres ou o ID completo.");

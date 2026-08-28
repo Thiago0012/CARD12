@@ -572,11 +572,13 @@ namespace ArcaneArena.Frontend
                             snapshot.Message);
                         SetUpdateShortcutStatus("ABRINDO INSTALADOR", false);
                         if (DateTimeOffset.UtcNow - committedSince.Value >
-                            TimeSpan.FromMinutes(3))
+                            TimeSpan.FromMinutes(2))
                         {
-                            throw new TimeoutException(
-                                "O Android não abriu a confirmação. Toque em " +
-                                "tentar novamente.");
+                            PresentAndroidInstallerRecovery(
+                                "O Android não abriu a confirmação dentro " +
+                                "do tempo esperado. A sessão pendente foi " +
+                                "encerrada para evitar que a tela fique presa.");
+                            return;
                         }
                         break;
                     case "AWAITING_CONFIRMATION":
@@ -589,6 +591,13 @@ namespace ArcaneArena.Frontend
                             ReopenAndroidInstaller,
                             true,
                             "ABRIR INSTALADOR");
+                        return;
+                    case "RECOVERY_REQUIRED":
+                    case "CANCELLED":
+                        PresentAndroidInstallerRecovery(
+                            string.IsNullOrWhiteSpace(snapshot.Message)
+                                ? "A confirmação do Android foi interrompida."
+                                : snapshot.Message);
                         return;
                     case "SUCCESS":
                         PlatformApplicationUpdater.DiscardDownloadedArtifact(
@@ -648,14 +657,26 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
-            _state = GateState.AppUpdate;
+            PresentAndroidInstallerRecovery(
+                "A confirmação oficial do Android não está mais disponível. " +
+                "A instalação será reiniciada com um pacote verificado.");
+        }
+
+        private void PresentAndroidInstallerRecovery(string detail)
+        {
+            PlatformApplicationUpdater.CancelAndroidPendingInstall();
             PlatformApplicationUpdater.DiscardDownloadedArtifact(
                 _activeArtifactPath);
             _activeArtifactPath = null;
+            _state = GateState.AppUpdate;
+            SetCopy(
+                "INSTALAÇÃO DO ANDROID INTERROMPIDA",
+                "REINICIE A INSTALAÇÃO",
+                detail);
             PresentUpdateShortcut(
                 BeginApplicationUpdate,
                 true,
-                "TENTAR INSTALAÇÃO");
+                "REINICIAR INSTALAÇÃO");
         }
 
         private static void SetUpdateShortcutStatus(

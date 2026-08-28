@@ -104,7 +104,9 @@ namespace ArcaneArena.Frontend
         {
             EnsureRuntimeExists();
             _instance.CancelPendingUpload();
-            _initialSyncTask = _instance.SynchronizeAsync(true, false);
+            // A sincronização comum compara as revisões e preserva o progresso
+            // mais recente. Restaurar à força a nuvem é uma operação distinta.
+            _initialSyncTask = _instance.SynchronizeAsync(false, false);
             await _initialSyncTask;
         }
 
@@ -204,9 +206,10 @@ namespace ArcaneArena.Frontend
             try
             {
                 await PlayerIdAccessRuntime.EnsureReadyAsync();
-                if (!AuthenticationService.Instance.IsSignedIn)
+                if (!PlayerIdAccessRuntime.HasAuthorizedSession)
                     throw new InvalidOperationException(
-                        "A conta ainda não foi autenticada.");
+                        "A sessão da conta não está autorizada. Entre novamente " +
+                        "antes de sincronizar a nuvem.");
 
                 string playerId = AuthenticationService.Instance.PlayerId;
                 if (!string.Equals(
@@ -376,7 +379,7 @@ namespace ArcaneArena.Frontend
         private async Task UploadCurrentCoreAsync()
         {
             if (!_settings.enabled || _repository?.State == null ||
-                !AuthenticationService.Instance.IsSignedIn)
+                !PlayerIdAccessRuntime.HasAuthorizedSession)
             {
                 return;
             }

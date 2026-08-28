@@ -291,10 +291,11 @@ namespace ArcaneArena.Frontend
                     throw new InvalidOperationException(
                         "Os serviços da Unity ainda não concluíram a inicialização.");
                 }
-                if (!AuthenticationService.Instance.IsSignedIn)
+                if (!PlayerIdAccessRuntime.HasAuthorizedSession)
                 {
                     throw new InvalidOperationException(
-                        "A conta não foi autenticada pela Unity.");
+                        "A sessão da conta não está autorizada. Entre novamente " +
+                        "para usar as conexões online.");
                 }
 
                 await SyncUnityPlayerNameAsync();
@@ -330,7 +331,7 @@ namespace ArcaneArena.Frontend
 
         private async Task SyncUnityPlayerNameAsync()
         {
-            if (!AuthenticationService.Instance.IsSignedIn ||
+            if (!PlayerIdAccessRuntime.HasAuthorizedSession ||
                 string.IsNullOrWhiteSpace(_localDisplayName))
             {
                 return;
@@ -535,7 +536,7 @@ namespace ArcaneArena.Frontend
         private async Task RefreshRelationshipProfilesAsync()
         {
             if (!PlayerIdAccessRuntime.IsCatalogConfigured ||
-                !AuthenticationService.Instance.IsSignedIn)
+                !PlayerIdAccessRuntime.HasAuthorizedSession)
             {
                 return;
             }

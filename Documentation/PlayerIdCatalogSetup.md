@@ -50,6 +50,12 @@ Assim o painel administrativo pode listar contas que realmente entraram no
 jogo, quando apareceram pela primeira vez e quando estiveram ativas por
 último.
 
+`IsSignedIn` sozinho não é uma autorização suficiente. O cliente verifica se o
+token Unity continua autorizado e não expirou; ao expirar ou ao encerrar a
+sessão, invalida o snapshot, interrompe privilégios online e pede nova entrada.
+Se a API ficar indisponível, o heartbeat continua tentando renovar o snapshot,
+mas online, ranqueada e economia permanecem bloqueados até uma resposta válida.
+
 ## Busca usada pela Central de Conexões
 
 A tela de Amigos consulta o mesmo catálogo para transformar um nome público ou
@@ -129,27 +135,26 @@ confirma.
 ## Ativação no projeto
 
 O arquivo
-`Assets/Resources/AccountControl/PlayerIdAccessSettings.json` vem com o
-catálogo remoto desabilitado para que o jogo continue abrindo durante o
-desenvolvimento:
+`Assets/Resources/AccountControl/PlayerIdAccessSettings.json` da produção
+mantém o catálogo remoto ativo e falha fechado para recursos online:
 
 ```json
 {
-  "enabled": false,
-  "baseUrl": "",
+  "enabled": true,
+  "baseUrl": "https://card12-player-directory.sousathi12.workers.dev",
   "heartbeatSeconds": 60,
   "requestTimeoutSeconds": 10,
-  "allowOnlineWhenCatalogUnavailable": true
+  "allowOnlineWhenCatalogUnavailable": false
 }
 ```
 
 Depois que a API autoritativa estiver publicada por HTTPS, preencha
-`baseUrl`, mude `enabled` para `true` e, quando o serviço estiver estável,
-considere mudar `allowOnlineWhenCatalogUnavailable` para `false`.
-
-Sem resposta válida do servidor, o jogo continua permitindo funções comuns,
-mas nunca concede `exclusive-account-content`. Isso evita que uma queda do
-catálogo libere privilégios por engano.
+`baseUrl`, mude `enabled` para `true` e mantenha
+`allowOnlineWhenCatalogUnavailable` em `false` na produção. O projeto atual já
+segue esse modo. Sem resposta válida do servidor, o jogo local comum continua
+disponível, mas online, ranqueada, economia e conteúdo exclusivo não são
+liberados. Isso evita que uma queda do catálogo vire uma forma de contornar um
+bloqueio por ID.
 
 ## Persistência da conta
 
@@ -157,3 +162,11 @@ O login atual é anônimo. O ID permanece no mesmo dispositivo enquanto o token
 da Unity for preservado, mas uma reinstalação pode gerar outro ID. Antes de
 associar benefícios permanentes aos dois criadores, as contas devem ser
 vinculadas a um provedor recuperável de autenticação.
+
+No fluxo com usuário e senha, o mesmo `PlayerId` recebe a credencial e o Cloud
+Save armazena o perfil para Android e Windows. A sincronização normal compara o
+save local e o remoto; ela não força a nuvem sobre um progresso local mais novo.
+Uma restauração de conta existente exige um perfil válido na nuvem e informa
+falha em vez de aparentar sucesso. O saldo, ranking e recompensas ainda não são
+anti-fraude enquanto estiverem somente no save do cliente; para competição real
+essas regras precisam migrar para um servidor autoritativo.

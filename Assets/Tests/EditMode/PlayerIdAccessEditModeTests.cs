@@ -17,6 +17,16 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(PlayerIdAccessPolicy.AllowsStandardCapability(
                 fallback,
                 PlayerIdCapability.Game), Is.True);
+            Assert.That(PlayerIdAccessPolicy.AllowsStandardCapability(
+                fallback,
+                PlayerIdCapability.Online,
+                allowWhenUnverified: false), Is.False,
+                "Online não pode ser liberado quando o catálogo ainda não " +
+                "confirmou a conta.");
+            Assert.That(PlayerIdAccessPolicy.AllowsStandardCapability(
+                fallback,
+                PlayerIdCapability.Ranked,
+                allowWhenUnverified: false), Is.False);
             Assert.That(PlayerIdAccessPolicy.HasGrantedFeature(
                 fallback,
                 PlayerIdFeature.ExclusiveAccountContent), Is.False);

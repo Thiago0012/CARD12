@@ -25,7 +25,11 @@ namespace ArcaneArena.Frontend
             public string baseUrl;
             public int heartbeatSeconds = 60;
             public int requestTimeoutSeconds = 10;
-            public bool allowOnlineWhenCatalogUnavailable = true;
+            // Online, ranqueado e economia dependem do catálogo autoritativo.
+            // O jogo local continua acessível quando a rede está indisponível,
+            // mas nunca devemos tratar uma conta não verificada como liberada
+            // para recursos que precisam respeitar bloqueios por ID.
+            public bool allowOnlineWhenCatalogUnavailable;
 
             public void Normalize()
             {
@@ -76,6 +80,7 @@ namespace ArcaneArena.Frontend
         private long _draws;
         private long _publicProfileRevisionUtcMilliseconds;
         private bool _publicProfileReadyForUpload;
+        private bool _authenticationEventsSubscribed;
         private Coroutine _heartbeat;
 
         public static event Action<PlayerIdAccessSnapshot> AccessChanged;
@@ -95,6 +100,31 @@ namespace ArcaneArena.Frontend
             _instance?._settings?.baseUrl ?? string.Empty;
         public static int CatalogRequestTimeoutSeconds =>
             _instance?._settings?.requestTimeoutSeconds ?? 10;
+
+        /// <summary>
+        /// Acesso a serviços remotos só é seguro enquanto a sessão Unity ainda
+        /// possui um token autorizado e não expirado. IsSignedIn isoladamente
+        /// não basta: ele pode continuar verdadeiro durante a transição de uma
+        /// sessão expirada.
+        /// </summary>
+        public static bool HasAuthorizedSession
+        {
+            get
+            {
+                try
+                {
+                    return UnityServices.State ==
+                               ServicesInitializationState.Initialized &&
+                           AuthenticationService.Instance.IsSignedIn &&
+                           AuthenticationService.Instance.IsAuthorized &&
+                           !AuthenticationService.Instance.IsExpired;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
 
         // Os pacotes UGS (inclusive Friends) registram suas dependências em
         // BeforeSceneLoad. Criar este runtime no mesmo estágio podia iniciar
@@ -121,9 +151,11 @@ namespace ArcaneArena.Frontend
             rejection = string.Empty;
             EnsureRuntimeExists();
 
-            bool unverifiedOnline = _instance._settings == null ||
-                                    _instance._settings
-                                        .allowOnlineWhenCatalogUnavailable;
+            _instance.EnsureSnapshotHasNotExpired();
+
+            bool unverifiedOnline = _instance._settings != null &&
+                                     _instance._settings
+                                         .allowOnlineWhenCatalogUnavailable;
             bool isOnlineCapability = string.Equals(
                                           capability,
                                           PlayerIdCapability.Online,
@@ -153,6 +185,8 @@ namespace ArcaneArena.Frontend
 
         public static bool HasFeature(string feature)
         {
+            EnsureRuntimeExists();
+            _instance.EnsureSnapshotHasNotExpired();
             return PlayerIdAccessPolicy.HasGrantedFeature(
                 _instance?._snapshot,
                 feature);
@@ -201,12 +235,14 @@ namespace ArcaneArena.Frontend
             RebindCurrentAuthenticationAsync()
         {
             EnsureRuntimeExists();
-            if (!AuthenticationService.Instance.IsSignedIn)
+            if (!HasAuthorizedSession)
             {
                 throw new InvalidOperationException(
-                    "Nenhuma conta da Unity está autenticada.");
+                    "A sessão da Unity não está autorizada. Entre novamente " +
+                    "para usar recursos online.");
             }
 
+            _instance.SubscribeAuthenticationEvents();
             _instance._sessionId = Guid.NewGuid().ToString("N");
             _instance._publicProfileReadyForUpload = false;
             _instance._publicProfileRevisionUtcMilliseconds = 0;
@@ -216,7 +252,14 @@ namespace ArcaneArena.Frontend
             if (_instance._settings.enabled &&
                 !string.IsNullOrWhiteSpace(_instance._settings.baseUrl))
             {
-                await _instance.RefreshFromCatalogAsync("open");
+                try
+                {
+                    await _instance.RefreshFromCatalogAsync("open");
+                }
+                finally
+                {
+                    _instance.StartHeartbeatIfNeeded();
+                }
             }
             return Current;
         }
@@ -243,13 +286,25 @@ namespace ArcaneArena.Frontend
             try
             {
                 await EnsureUnityAuthenticationAsync();
+                SubscribeAuthenticationEvents();
                 SetSnapshot(PlayerIdAccessPolicy.CreateUnverifiedFallback(
                     AuthenticationService.Instance.PlayerId));
                 if (_settings.enabled &&
                     !string.IsNullOrWhiteSpace(_settings.baseUrl))
                 {
-                    await RefreshFromCatalogAsync("open");
-                    _heartbeat = StartCoroutine(HeartbeatLoop());
+                    try
+                    {
+                        await RefreshFromCatalogAsync("open");
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogWarning(
+                            "O catálogo de jogadores não pôde ser consultado " +
+                            "neste momento. O jogo tentará novamente sem " +
+                            "liberar recursos online: " +
+                            exception.GetBaseException().Message);
+                    }
+                    StartHeartbeatIfNeeded();
                 }
             }
             catch (Exception exception)
@@ -299,6 +354,12 @@ namespace ArcaneArena.Frontend
 
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            if (!HasAuthorizedSession)
+            {
+                throw new InvalidOperationException(
+                    "A sessão da Unity expirou. Entre novamente para " +
+                    "restaurar os recursos online.");
+            }
         }
 
         private IEnumerator HeartbeatLoop()
@@ -310,91 +371,196 @@ namespace ArcaneArena.Frontend
                 Task task = RefreshFromCatalogAsync("heartbeat");
                 while (!task.IsCompleted)
                     yield return null;
+                if (task.IsFaulted)
+                {
+                    Debug.LogWarning(
+                        "[Catálogo de jogadores] A autorização online não " +
+                        "pôde ser renovada. Tentará novamente enquanto a " +
+                        "sessão permanecer válida.");
+                    if (!HasAuthorizedSession)
+                    {
+                        _heartbeat = null;
+                        yield break;
+                    }
+                }
+            }
+        }
+
+        private void StartHeartbeatIfNeeded()
+        {
+            if (_heartbeat == null && _settings.enabled &&
+                !string.IsNullOrWhiteSpace(_settings.baseUrl) &&
+                HasAuthorizedSession)
+            {
+                _heartbeat = StartCoroutine(HeartbeatLoop());
             }
         }
 
         private async Task RefreshFromCatalogAsync(string operation)
         {
             if (!_settings.enabled ||
-                string.IsNullOrWhiteSpace(_settings.baseUrl) ||
-                !AuthenticationService.Instance.IsSignedIn)
+                string.IsNullOrWhiteSpace(_settings.baseUrl))
             {
                 return;
             }
-
-            string playerId = AuthenticationService.Instance.PlayerId ??
-                              string.Empty;
-            var payload = new PresenceRequest
+            if (!HasAuthorizedSession)
             {
-                publicProfileSchemaVersion =
-                    PlayerIdAccessPolicy.PublicProfileUploadSchemaVersion(
-                        _publicProfileReadyForUpload),
-                publicProfileRevisionUtcMilliseconds =
-                    _publicProfileReadyForUpload
-                        ? _publicProfileRevisionUtcMilliseconds
-                        : 0,
-                sessionId = _sessionId,
-                playerId = playerId,
-                publicId = PlayerIdAccessPolicy.FormatPublicId(playerId),
-                playerDisplayName = _playerDisplayName,
-                equippedIconId = _equippedIconId,
-                rankedPoints = _rankedPoints,
-                duelsPlayed = _duelsPlayed,
-                wins = _wins,
-                losses = _losses,
-                draws = _draws,
-                buildVersion = Application.version ?? string.Empty,
-                platform = Application.platform.ToString()
-            };
-            string json = JsonUtility.ToJson(payload);
-            string url = $"{_settings.baseUrl}/v1/player/{operation}";
-
-            using var request = new UnityWebRequest(url, "POST")
-            {
-                uploadHandler = new UploadHandlerRaw(
-                    Encoding.UTF8.GetBytes(json)),
-                downloadHandler = new DownloadHandlerBuffer(),
-                timeout = _settings.requestTimeoutSeconds
-            };
-            request.SetRequestHeader("Content-Type", "application/json");
-            request.SetRequestHeader(
-                "Authorization",
-                "Bearer " + AuthenticationService.Instance.AccessToken);
-
-            UnityWebRequestAsyncOperation send = request.SendWebRequest();
-            while (!send.isDone)
-                await Task.Yield();
-
-            if (request.result != UnityWebRequest.Result.Success)
-            {
+                InvalidateServerAuthorization(
+                    "A sessão da conta expirou. Entre novamente para usar " +
+                    "recursos online.");
                 throw new InvalidOperationException(
-                    $"Catálogo respondeu HTTP {request.responseCode}: " +
-                    request.error);
+                    "A sessão da Unity não está autorizada.");
             }
-
-            PlayerIdAccessSnapshot response = JsonUtility.FromJson<
-                PlayerIdAccessSnapshot>(request.downloadHandler.text);
-            if (response == null ||
-                !string.Equals(
-                    response.playerId,
-                    playerId,
-                    StringComparison.Ordinal))
+            try
             {
-                throw new InvalidOperationException(
-                    "O catálogo devolveu um registro de outro jogador.");
-            }
+                string playerId = AuthenticationService.Instance.PlayerId ??
+                                  string.Empty;
+                var payload = new PresenceRequest
+                {
+                    publicProfileSchemaVersion =
+                        PlayerIdAccessPolicy.PublicProfileUploadSchemaVersion(
+                            _publicProfileReadyForUpload),
+                    publicProfileRevisionUtcMilliseconds =
+                        _publicProfileReadyForUpload
+                            ? _publicProfileRevisionUtcMilliseconds
+                            : 0,
+                    sessionId = _sessionId,
+                    playerId = playerId,
+                    publicId = PlayerIdAccessPolicy.FormatPublicId(playerId),
+                    playerDisplayName = _playerDisplayName,
+                    equippedIconId = _equippedIconId,
+                    rankedPoints = _rankedPoints,
+                    duelsPlayed = _duelsPlayed,
+                    wins = _wins,
+                    losses = _losses,
+                    draws = _draws,
+                    buildVersion = Application.version ?? string.Empty,
+                    platform = Application.platform.ToString()
+                };
+                string json = JsonUtility.ToJson(payload);
+                string url = $"{_settings.baseUrl}/v1/player/{operation}";
 
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            if (response.validUntilUtcUnixSeconds > 0 &&
-                response.validUntilUtcUnixSeconds <= now)
+                using var request = new UnityWebRequest(url, "POST")
+                {
+                    uploadHandler = new UploadHandlerRaw(
+                        Encoding.UTF8.GetBytes(json)),
+                    downloadHandler = new DownloadHandlerBuffer(),
+                    timeout = _settings.requestTimeoutSeconds
+                };
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader(
+                    "Authorization",
+                    "Bearer " + AuthenticationService.Instance.AccessToken);
+
+                UnityWebRequestAsyncOperation send = request.SendWebRequest();
+                while (!send.isDone)
+                    await Task.Yield();
+
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    throw new InvalidOperationException(
+                        $"Catálogo respondeu HTTP {request.responseCode}: " +
+                        request.error);
+                }
+
+                PlayerIdAccessSnapshot response = JsonUtility.FromJson<
+                    PlayerIdAccessSnapshot>(request.downloadHandler.text);
+                if (response == null ||
+                    !string.Equals(
+                        response.playerId,
+                        playerId,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        "O catálogo devolveu um registro de outro jogador.");
+                }
+
+                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                if (response.validUntilUtcUnixSeconds <= now)
+                {
+                    throw new InvalidOperationException(
+                        "O catálogo devolveu uma autorização expirada.");
+                }
+
+                response.serverVerified = true;
+                response.Normalize();
+                SetSnapshot(response);
+            }
+            catch
             {
-                throw new InvalidOperationException(
-                    "O catálogo devolveu uma autorização expirada.");
+                InvalidateServerAuthorization(
+                    "A autorização online não pôde ser confirmada. " +
+                    "Recursos online permanecerão bloqueados até a reconexão.",
+                    stopHeartbeat: false);
+                throw;
             }
+        }
 
-            response.serverVerified = true;
-            response.Normalize();
-            SetSnapshot(response);
+        private void SubscribeAuthenticationEvents()
+        {
+            if (_authenticationEventsSubscribed)
+                return;
+            AuthenticationService.Instance.Expired += HandleAuthenticationExpired;
+            AuthenticationService.Instance.SignedOut += HandleAuthenticationSignedOut;
+            _authenticationEventsSubscribed = true;
+        }
+
+        private void UnsubscribeAuthenticationEvents()
+        {
+            if (!_authenticationEventsSubscribed)
+                return;
+            try
+            {
+                AuthenticationService.Instance.Expired -= HandleAuthenticationExpired;
+                AuthenticationService.Instance.SignedOut -= HandleAuthenticationSignedOut;
+            }
+            catch
+            {
+                // O encerramento dos serviços da Unity não deve gerar erro
+                // durante a destruição da cena/aplicativo.
+            }
+            _authenticationEventsSubscribed = false;
+        }
+
+        private void HandleAuthenticationExpired()
+        {
+            InvalidateServerAuthorization(
+                "A sessão da conta expirou. Entre novamente para usar " +
+                "recursos online.");
+        }
+
+        private void HandleAuthenticationSignedOut()
+        {
+            InvalidateServerAuthorization(
+                "A sessão da conta foi encerrada. Entre novamente para usar " +
+                "recursos online.");
+        }
+
+        private void EnsureSnapshotHasNotExpired()
+        {
+            if (_snapshot == null || !_snapshot.serverVerified)
+                return;
+            long validUntil = _snapshot.validUntilUtcUnixSeconds;
+            if (validUntil > DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                return;
+            InvalidateServerAuthorization(
+                "A autorização online expirou. Reconecte sua conta para " +
+                "continuar usando recursos online.");
+        }
+
+        private void InvalidateServerAuthorization(
+            string message,
+            bool stopHeartbeat = true)
+        {
+            if (stopHeartbeat && _heartbeat != null)
+            {
+                StopCoroutine(_heartbeat);
+                _heartbeat = null;
+            }
+            string playerId = _snapshot?.playerId ?? string.Empty;
+            var fallback = PlayerIdAccessPolicy.CreateUnverifiedFallback(playerId);
+            fallback.message = (message ?? string.Empty).Trim();
+            SetSnapshot(fallback);
         }
 
         private void SetSnapshot(PlayerIdAccessSnapshot snapshot)
@@ -434,6 +600,7 @@ namespace ArcaneArena.Frontend
 
         private void OnDestroy()
         {
+            UnsubscribeAuthenticationEvents();
             if (_heartbeat != null)
                 StopCoroutine(_heartbeat);
             if (_instance == this)

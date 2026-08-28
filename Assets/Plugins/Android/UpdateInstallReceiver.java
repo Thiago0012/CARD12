@@ -27,27 +27,21 @@ public final class UpdateInstallReceiver extends BroadcastReceiver {
                     context,
                     confirmation);
             } else {
-                AndroidUpdateBridge.writeState(
+                AndroidUpdateBridge.failInstall(
                     context,
-                    "FAILED",
-                    1f,
                     "O Android não forneceu a tela de confirmação.");
                 Log.e(TAG, "PackageInstaller não forneceu a confirmação.");
             }
             return;
         }
         if (status == PackageInstaller.STATUS_SUCCESS) {
-            AndroidUpdateBridge.writeState(
+            AndroidUpdateBridge.completeInstall(
                 context,
-                "SUCCESS",
-                1f,
                 "Atualização instalada.");
             Log.i(TAG, "Atualização instalada com sucesso.");
         } else {
-            AndroidUpdateBridge.writeState(
+            AndroidUpdateBridge.failInstall(
                 context,
-                "FAILED",
-                1f,
                 message == null
                     ? "O Android recusou a instalação (" + status + ")."
                     : message);

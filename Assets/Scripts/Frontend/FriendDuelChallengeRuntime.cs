@@ -221,9 +221,9 @@ namespace ArcaneArena.Frontend
                     _status = "O servidor de convites de duelo não está configurado.";
                     return;
                 }
-                if (!AuthenticationService.Instance.IsSignedIn)
+                if (!PlayerIdAccessRuntime.HasAuthorizedSession)
                 {
-                    _status = "A conta ainda não foi autenticada.";
+                    _status = "A sessão da conta não está autorizada. Entre novamente.";
                     return;
                 }
                 _initialized = true;
@@ -625,8 +625,11 @@ namespace ArcaneArena.Frontend
             string method,
             string jsonBody)
         {
-            if (!AuthenticationService.Instance.IsSignedIn)
-                throw new InvalidOperationException("A conta não está autenticada.");
+            if (!PlayerIdAccessRuntime.HasAuthorizedSession)
+            {
+                throw new InvalidOperationException(
+                    "A sessão da conta não está autorizada. Entre novamente.");
+            }
             string url = PlayerIdAccessRuntime.CatalogBaseUrl + path;
             using var request = new UnityWebRequest(url, method)
             {
