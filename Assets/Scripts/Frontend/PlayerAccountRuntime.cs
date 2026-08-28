@@ -12,12 +12,15 @@ namespace ArcaneArena.Frontend
         public static event Action Changed;
 
         public static bool IsProtected =>
+            PlayerIdAccessRuntime.HasAuthorizedSession &&
             !string.IsNullOrWhiteSpace(
                 AuthenticationService.Instance.PlayerInfo?.Username);
 
         public static string AccountUsername =>
-            AuthenticationService.Instance.PlayerInfo?.Username ??
-            string.Empty;
+            PlayerIdAccessRuntime.HasAuthorizedSession
+                ? (AuthenticationService.Instance.PlayerInfo?.Username ??
+                   string.Empty)
+                : string.Empty;
 
         public static void RequestRestoreOnNextMenu()
         {
@@ -34,7 +37,7 @@ namespace ArcaneArena.Frontend
         public static async Task RefreshProtectionStateAsync()
         {
             await PlayerIdAccessRuntime.EnsureReadyAsync();
-            if (AuthenticationService.Instance.IsSignedIn)
+            if (PlayerIdAccessRuntime.HasAuthorizedSession)
                 await AuthenticationService.Instance.GetPlayerInfoAsync();
             Changed?.Invoke();
         }
@@ -45,9 +48,10 @@ namespace ArcaneArena.Frontend
         {
             ValidateCredentials(username, password);
             await PlayerIdAccessRuntime.EnsureReadyAsync();
-            if (!AuthenticationService.Instance.IsSignedIn)
+            if (!PlayerIdAccessRuntime.HasAuthorizedSession)
                 throw new InvalidOperationException(
-                    "A conta atual ainda não foi autenticada.");
+                    "A sessão atual não está autorizada. Entre novamente " +
+                    "antes de vincular uma senha.");
 
             string originalPlayerId = AuthenticationService.Instance.PlayerId;
             try
@@ -89,45 +93,52 @@ namespace ArcaneArena.Frontend
             ValidateCredentials(username, password);
             await PlayerIdAccessRuntime.EnsureReadyAsync();
             string normalizedUsername = username.Trim();
-            string previousPlayerId = AuthenticationService.Instance.PlayerId;
+            bool previousSessionAuthorized =
+                PlayerIdAccessRuntime.HasAuthorizedSession;
+            string previousPlayerId = previousSessionAuthorized
+                ? AuthenticationService.Instance.PlayerId
+                : string.Empty;
             string previousUsername = string.Empty;
             if (AuthenticationService.Instance.IsSignedIn)
             {
-                try
+                if (previousSessionAuthorized)
                 {
-                    await AuthenticationService.Instance.GetPlayerInfoAsync();
-                    previousUsername = AuthenticationService.Instance
-                        .PlayerInfo?.Username ?? string.Empty;
-                }
-                catch (Exception exception)
-                {
-                    Debug.LogWarning(
-                        "[Conta] Os vínculos da sessão atual não puderam ser " +
-                        "consultados antes da restauração: " +
-                        exception.GetBaseException().Message);
-                }
-
-                if (string.Equals(
-                        previousUsername,
-                        normalizedUsername,
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    await RestoreSignedInAccountAsync();
-                    return;
-                }
-
-                try
-                {
-                    await PlayerCloudSaveRuntime.UploadNowAsync();
-                }
-                catch (Exception exception)
-                {
-                    if (PlayerCloudSaveRuntime.HasLocalProfile)
+                    try
                     {
-                        throw new InvalidOperationException(
-                            "O perfil atual ainda não foi salvo na nuvem. " +
-                            "Sincronize-o antes de trocar de conta.",
-                            exception);
+                        await AuthenticationService.Instance.GetPlayerInfoAsync();
+                        previousUsername = AuthenticationService.Instance
+                            .PlayerInfo?.Username ?? string.Empty;
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogWarning(
+                            "[Conta] Os vínculos da sessão atual não puderam ser " +
+                            "consultados antes da restauração: " +
+                            exception.GetBaseException().Message);
+                    }
+
+                    if (string.Equals(
+                            previousUsername,
+                            normalizedUsername,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        await RestoreSignedInAccountAsync();
+                        return;
+                    }
+
+                    try
+                    {
+                        await PlayerCloudSaveRuntime.UploadNowAsync();
+                    }
+                    catch (Exception exception)
+                    {
+                        if (PlayerCloudSaveRuntime.HasLocalProfile)
+                        {
+                            throw new InvalidOperationException(
+                                "O perfil atual ainda não foi salvo na nuvem. " +
+                                "Sincronize-o antes de trocar de conta.",
+                                exception);
+                        }
                     }
                 }
                 // Mantém o token da sessão anterior até o novo login ser
@@ -154,15 +165,24 @@ namespace ArcaneArena.Frontend
                           "credenciais e tente novamente.",
                     exception);
             }
-            await AuthenticationService.Instance.GetPlayerInfoAsync();
-            await RebindSessionServicesAsync();
-            await PlayerCloudSaveRuntime.RestoreForCurrentAccountAsync();
-            if (PlayerCloudSaveRuntime.State ==
-                PlayerCloudSaveState.Synchronized)
+            try
             {
+                await AuthenticationService.Instance.GetPlayerInfoAsync();
+                await RebindSessionServicesAsync();
+                await PlayerCloudSaveRuntime.RestoreForCurrentAccountAsync();
+                EnsureCloudRestoreSucceeded();
                 await RefreshRestoredProfileAsync();
+                Changed?.Invoke();
             }
-            Changed?.Invoke();
+            catch (Exception exception)
+            {
+                Changed?.Invoke();
+                throw new InvalidOperationException(
+                    "As credenciais foram aceitas, mas o perfil da conta " +
+                    "não pôde ser carregado. A conta permanece ativa; " +
+                    "verifique a conexão e tente sincronizar novamente.",
+                    exception);
+            }
         }
 
         public static async Task<bool> AccessOrCreateAccountAsync(
@@ -172,10 +192,14 @@ namespace ArcaneArena.Frontend
             ValidateCredentials(username, password);
             await PlayerIdAccessRuntime.EnsureReadyAsync();
             string normalizedUsername = username.Trim();
-            string previousPlayerId = AuthenticationService.Instance.PlayerId;
+            bool previousSessionAuthorized =
+                PlayerIdAccessRuntime.HasAuthorizedSession;
+            string previousPlayerId = previousSessionAuthorized
+                ? AuthenticationService.Instance.PlayerId
+                : string.Empty;
             string previousUsername = await TryGetCurrentUsernameAsync();
 
-            if (AuthenticationService.Instance.IsSignedIn &&
+            if (previousSessionAuthorized &&
                 string.Equals(
                     previousUsername,
                     normalizedUsername,
@@ -187,48 +211,59 @@ namespace ArcaneArena.Frontend
 
             if (AuthenticationService.Instance.IsSignedIn)
             {
-                try
+                if (previousSessionAuthorized)
                 {
-                    await PlayerCloudSaveRuntime.UploadNowAsync();
-                }
-                catch (Exception exception)
-                {
-                    if (!string.IsNullOrWhiteSpace(previousUsername) &&
-                        PlayerCloudSaveRuntime.HasLocalProfile)
+                    try
                     {
-                        throw new InvalidOperationException(
-                            "A conta atual ainda não foi sincronizada. " +
-                            "Use SINCRONIZAR AGORA antes de trocar de conta.",
-                            exception);
+                        await PlayerCloudSaveRuntime.UploadNowAsync();
                     }
-                    Debug.LogWarning(
-                        "[Conta] O save convidado permaneceu local antes da " +
-                        "tentativa de acesso: " +
-                        exception.GetBaseException().Message);
+                    catch (Exception exception)
+                    {
+                        if (!string.IsNullOrWhiteSpace(previousUsername) &&
+                            PlayerCloudSaveRuntime.HasLocalProfile)
+                        {
+                            throw new InvalidOperationException(
+                                "A conta atual ainda não foi sincronizada. " +
+                                "Use SINCRONIZAR AGORA antes de trocar de conta.",
+                                exception);
+                        }
+                        Debug.LogWarning(
+                            "[Conta] O save convidado permaneceu local antes da " +
+                            "tentativa de acesso: " +
+                            exception.GetBaseException().Message);
+                    }
                 }
                 AuthenticationService.Instance.SignOut(false);
             }
 
             Exception signInFailure;
+            bool authenticatedTargetAccount = false;
             try
             {
                 await AuthenticationService.Instance
                     .SignInWithUsernamePasswordAsync(
                         normalizedUsername,
                         password);
+                authenticatedTargetAccount = true;
                 await AuthenticationService.Instance.GetPlayerInfoAsync();
                 await RebindSessionServicesAsync();
                 await PlayerCloudSaveRuntime.RestoreForCurrentAccountAsync();
-                if (PlayerCloudSaveRuntime.State ==
-                    PlayerCloudSaveState.Synchronized)
-                {
-                    await RefreshRestoredProfileAsync();
-                }
+                EnsureCloudRestoreSucceeded();
+                await RefreshRestoredProfileAsync();
                 Changed?.Invoke();
                 return false;
             }
             catch (Exception exception)
             {
+                if (authenticatedTargetAccount)
+                {
+                    Changed?.Invoke();
+                    throw new InvalidOperationException(
+                        "As credenciais foram aceitas, mas o perfil da conta " +
+                        "não pôde ser carregado. A conta permanece ativa; " +
+                        "verifique a conexão e tente sincronizar novamente.",
+                        exception);
+                }
                 signInFailure = exception;
             }
 
@@ -272,7 +307,7 @@ namespace ArcaneArena.Frontend
 
         private static async Task<string> TryGetCurrentUsernameAsync()
         {
-            if (!AuthenticationService.Instance.IsSignedIn)
+            if (!PlayerIdAccessRuntime.HasAuthorizedSession)
                 return string.Empty;
             try
             {
@@ -292,16 +327,22 @@ namespace ArcaneArena.Frontend
         private static async Task RestoreSignedInAccountAsync()
         {
             await PlayerCloudSaveRuntime.RestoreForCurrentAccountAsync();
+            EnsureCloudRestoreSucceeded();
+            await RefreshRestoredProfileAsync();
+            Changed?.Invoke();
+        }
+
+        private static void EnsureCloudRestoreSucceeded()
+        {
             if (PlayerCloudSaveRuntime.State ==
                 PlayerCloudSaveState.Synchronized)
             {
-                await RefreshRestoredProfileAsync();
+                return;
             }
-            else
-            {
-                await RebindSessionServicesAsync();
-            }
-            Changed?.Invoke();
+            throw new InvalidOperationException(
+                string.IsNullOrWhiteSpace(PlayerCloudSaveRuntime.Status)
+                    ? "O perfil da conta não pôde ser restaurado da nuvem."
+                    : PlayerCloudSaveRuntime.Status);
         }
 
         private static async Task RefreshRestoredProfileAsync()
@@ -328,13 +369,15 @@ namespace ArcaneArena.Frontend
         {
             try
             {
-                if (!AuthenticationService.Instance.IsSignedIn)
+                if (!PlayerIdAccessRuntime.HasAuthorizedSession)
                 {
+                    if (AuthenticationService.Instance.IsSignedIn)
+                        AuthenticationService.Instance.SignOut(false);
                     await AuthenticationService.Instance
                         .SignInAnonymouslyAsync();
                 }
                 bool restored = string.IsNullOrWhiteSpace(previousPlayerId)
-                    ? AuthenticationService.Instance.IsSignedIn
+                    ? PlayerIdAccessRuntime.HasAuthorizedSession
                     : string.Equals(
                         AuthenticationService.Instance.PlayerId,
                         previousPlayerId,
@@ -380,7 +423,10 @@ namespace ArcaneArena.Frontend
                     "O usuário deve ter de 3 a 20 caracteres.");
             foreach (char character in normalized)
             {
-                if (char.IsLetterOrDigit(character) ||
+                bool asciiLetter = (character >= 'A' && character <= 'Z') ||
+                                   (character >= 'a' && character <= 'z');
+                bool asciiNumber = character >= '0' && character <= '9';
+                if (asciiLetter || asciiNumber ||
                     character == '.' || character == '-' ||
                     character == '@' || character == '_')
                 {

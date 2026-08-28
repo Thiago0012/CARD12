@@ -1785,9 +1785,10 @@ namespace ArcaneArena.Multiplayer
         private async Task InitializeServices()
         {
             await PlayerIdAccessRuntime.EnsureReadyAsync();
-            if (!AuthenticationService.Instance.IsSignedIn)
+            if (!PlayerIdAccessRuntime.HasAuthorizedSession)
                 throw new InvalidOperationException(
-                    "A conta não pôde ser autenticada pela Unity.");
+                    "A sessão da conta não está autorizada. Entre novamente " +
+                    "antes de iniciar um duelo online.");
 
             string capability = competitivePolicy == CompetitivePolicy.Ranked
                 ? PlayerIdCapability.Ranked
@@ -2901,7 +2902,10 @@ namespace ArcaneArena.Multiplayer
 
         private IEnumerator ContinueAfterOnlinePreludeResult(bool tie)
         {
-            yield return new WaitForSecondsRealtime(tie ? 0.82f : 1.05f);
+            yield return new WaitForSecondsRealtime(
+                tie
+                    ? OnlineLoadingScreenPresenter.PreludeTiePresentationSeconds
+                    : OnlineLoadingScreenPresenter.PreludeWinPresentationSeconds);
             preludeResultRoutine = null;
             if (!IsHost || !matchStarted)
                 yield break;

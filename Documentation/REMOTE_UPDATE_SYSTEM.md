@@ -18,6 +18,14 @@ a permissão para instalar desta fonte e sempre pode apresentar sua confirmaçã
 oficial. A chave em `.release-secrets/master-duel-2-plus-ultra.p12` é a identidade
 permanente do aplicativo e nunca deve ser enviada ao Git.
 
+O fluxo grava o ID da sessão de instalação. Se o Android encerrar a tela de
+confirmação, trocar de aplicativo ou recriar o processo, o jogo não permanece
+em 100%: encerra somente aquela sessão temporária e apresenta **REINICIAR
+INSTALAÇÃO**. Antes do download, ele também confere espaço para o APK baixado,
+a cópia temporária do instalador e uma margem de segurança. A duplicação de uma
+APK completa é temporária; depois de sucesso, falha ou recuperação, o arquivo
+temporário do jogo é removido.
+
 Uma instalação antiga assinada por uma chave debug diferente precisa ser
 desinstalada uma única vez antes da instalação-base definitiva. Os dados devem
 estar sincronizados na Unity Cloud antes dessa migração.
@@ -29,6 +37,13 @@ processo auxiliar espera o jogo fechar, guarda cópia dos arquivos substituídos
 aplica a versão e reinicia. Se a cópia falhar, restaura automaticamente o backup.
 Os dados do jogador ficam em `Application.persistentDataPath`, fora da pasta que
 recebe a troca.
+
+O helper registra o resultado da transação, remove staging e backup depois de
+uma conclusão e só limpa diretórios abandonados dentro da pasta privada de
+atualizações. Ele mede espaço para extração, backup e troca antes de começar.
+Arquivos retirados da nova build só são apagados se já estiverem registrados no
+inventário de arquivos controlados pelo atualizador; arquivos do jogador nunca
+entram nesse inventário.
 
 ## Publicação automática
 
@@ -44,6 +59,12 @@ do manifesto por último:
 `-Version 1.3.0` e `-ProtocolVersion 2` são opcionais. Sem `-Version`, o patch
 da versão publicada é incrementado. O protocolo só deve subir quando clientes
 antigos não puderem mais participar das mesmas partidas.
+
+Uma APK de release só pode ser criada com `versionCode` maior que o publicado e
+com o cofre de produção. O guard de build bloqueia uma APK de depuração ou uma
+APK com `versionCode` repetido antes que ela seja gerada. Portanto, o botão
+padrão de Build da Unity não deve ser usado para publicar: use a Central de
+Publicação ou `Build-And-Publish-Release.ps1`.
 
 O token é obtido de `GITHUB_TOKEN`, do GitHub CLI ou do gerenciador de
 credenciais já usado pelo Git. O token nunca é escrito no projeto.

@@ -211,6 +211,10 @@ namespace ArcaneDuel.Tests.EditMode
                 "AndroidManifest.xml"));
 
             Assert.That(manifest, Does.Contain("REQUEST_INSTALL_PACKAGES"));
+            Assert.That(manifest, Does.Contain("android.permission.INTERNET"));
+            Assert.That(
+                manifest,
+                Does.Contain("android.permission.ACCESS_NETWORK_STATE"));
             Assert.That(manifest, Does.Contain("UpdateInstallReceiver"));
             Assert.That(manifest, Does.Contain("android:exported=\"false\""));
 
@@ -228,6 +232,10 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(bridge, Does.Contain("deleteManagedDownload"));
             Assert.That(bridge, Does.Contain("reconcileCompletedInstall"));
             Assert.That(bridge, Does.Contain("KEY_TARGET_VERSION"));
+            Assert.That(bridge, Does.Contain("KEY_SESSION_ID"));
+            Assert.That(bridge, Does.Contain("cancelPendingInstall"));
+            Assert.That(bridge, Does.Contain("RECOVERY_REQUIRED"));
+            Assert.That(bridge, Does.Contain("getAvailableUpdateBytes"));
 
             string runtime = File.ReadAllText(Path.Combine(
                 projectRoot,
@@ -237,6 +245,8 @@ namespace ArcaneDuel.Tests.EditMode
                 "RemoteUpdateRuntime.cs"));
             Assert.That(runtime, Does.Contain("MonitorAndroidInstallerAsync"));
             Assert.That(runtime, Does.Contain("ABRIR INSTALADOR"));
+            Assert.That(runtime, Does.Contain("PresentAndroidInstallerRecovery"));
+            Assert.That(runtime, Does.Contain("REINICIAR INSTALAÇÃO"));
             Assert.That(runtime, Does.Contain("DiscardDownloadedArtifact"));
             Assert.That(runtime, Does.Contain("CleanupAbandonedDownloads"));
             string updater = File.ReadAllText(Path.Combine(
@@ -247,6 +257,54 @@ namespace ArcaneDuel.Tests.EditMode
                 "PlatformApplicationUpdater.cs"));
             Assert.That(updater, Does.Contain(".download"),
                 "Downloads de conteúdo interrompidos também precisam ser limpos.");
+            Assert.That(updater, Does.Contain("EnsureAndroidUpdateSpace"));
+            Assert.That(updater, Does.Contain("CancelAndroidPendingInstall"));
+        }
+
+        [Test]
+        public void ReleaseBuildGuardRejectsDebugStyleOrNonIncrementedAndroidBuilds()
+        {
+            string guard = File.ReadAllText(Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "Assets",
+                "Editor",
+                "RemoteUpdates",
+                "AndroidReleaseBuildGuard.cs"));
+
+            Assert.That(guard, Does.Contain("ApplyAndroidSigning(true)"));
+            Assert.That(guard, Does.Contain("useCustomKeystore"));
+            Assert.That(guard, Does.Contain("bundleVersionCode <= publishedCode"));
+            Assert.That(guard, Does.Contain("BuildOptions.Development"));
+        }
+
+        [Test]
+        public void AccountSyncAndOnlineAuthorizationFailSafeWhenSessionIsInvalid()
+        {
+            string projectRoot = Directory.GetCurrentDirectory();
+            string cloud = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "PlayerCloudSaveRuntime.cs"));
+            string ids = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Scripts",
+                "Frontend",
+                "PlayerIdAccessRuntime.cs"));
+            string config = File.ReadAllText(Path.Combine(
+                projectRoot,
+                "Assets",
+                "Resources",
+                "AccountControl",
+                "PlayerIdAccessSettings.json"));
+
+            Assert.That(cloud, Does.Contain("SynchronizeAsync(false, false)"));
+            Assert.That(ids, Does.Contain("HasAuthorizedSession"));
+            Assert.That(ids, Does.Contain("AuthenticationService.Instance.Expired"));
+            Assert.That(config, Does.Contain(
+                "\"allowOnlineWhenCatalogUnavailable\": false"));
         }
 
         [Test]

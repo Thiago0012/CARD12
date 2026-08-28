@@ -4,5 +4,5 @@
   "baseUrl": "https://card12-player-directory.sousathi12.workers.dev",
   "heartbeatSeconds": 60,
   "requestTimeoutSeconds": 10,
-  "allowOnlineWhenCatalogUnavailable": true
+  "allowOnlineWhenCatalogUnavailable": false
 }

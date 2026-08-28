@@ -81,16 +81,19 @@ namespace ArcaneArena
         private void BuildArenaPresentation()
         {
             BuildTurnOwnershipGlow();
+            BuildPileCounterPresentation();
             BuildAnnouncementBanner();
             BuildBattleHud();
             BuildPhaseNavigator();
             BuildDuelExperience();
             PolishPhaseControl();
             RefreshTurnOwnershipVisuals(false);
+            RefreshPileCounterPresentation(true);
         }
 
         private void DisposeArenaPresentation()
         {
+            DisposePileCounterPresentation();
             DisposeDuelExperience();
             announcementQueue.Clear();
             if (announcementRoutine != null)

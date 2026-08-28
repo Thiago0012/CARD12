@@ -31,6 +31,8 @@ namespace ArcaneArena.Multiplayer
         private const float FadeInSeconds = 0.46f;
         private const float FadeOutSeconds = 0.42f;
         private const float SceneCardBurstSeconds = 1.55f;
+        public const float PreludeTiePresentationSeconds = 1.62f;
+        public const float PreludeWinPresentationSeconds = 2.10f;
         private float minimumVisibleSeconds = 0.35f;
 
         private Canvas canvas;
@@ -46,7 +48,12 @@ namespace ArcaneArena.Multiplayer
         private GameObject choicePanel;
         private GameObject resultPanel;
         private Text resultLabel;
+        private Image resultLocalChoiceIcon;
+        private Image resultOpponentChoiceIcon;
+        private Text resultVersusLabel;
         private readonly List<Button> choiceButtons = new();
+        private readonly Dictionary<DuelPreludeChoice, Sprite>
+            preludeChoiceIcons = new();
         private readonly List<RectTransform> lightStreaks = new();
         private readonly List<Image> lightStreakImages = new();
         private readonly List<Color> lightStreakBaseColors = new();
@@ -96,6 +103,25 @@ namespace ArcaneArena.Multiplayer
         private Image burstFlashHorizontal;
         private Image burstFlashVertical;
         private Image transitionVoidLayer;
+        private GameObject preludeBackdrop;
+        private Image preludeChoiceArenaImage;
+        private CanvasGroup preludeChoiceArenaGroup;
+        private Image preludeClashArenaImage;
+        private CanvasGroup preludeClashArenaGroup;
+        private readonly List<RectTransform> preludeMistLayers = new();
+        private readonly List<Image> preludeMistImages = new();
+        private readonly List<Vector2> preludeMistOrigins = new();
+        private readonly List<float> preludeMistSpeeds = new();
+        private readonly List<float> preludeMistPhases = new();
+        private readonly List<Color> preludeMistBaseColors = new();
+        private readonly List<GameObject> preludeResultEffects = new();
+        private Coroutine preludeResultAnimationRoutine;
+        private Coroutine preludeModeTransitionRoutine;
+        private Sprite preludeImpactSprite;
+        private CanvasGroup choicePanelGroup;
+        private CanvasGroup resultPanelGroup;
+        private Image preludeCinematicVeil;
+        private Image preludeCinematicRay;
         private Color motionAccentA = new Color(0.12f, 0.76f, 1f, 1f);
         private Color motionAccentB = new Color(0.50f, 0.18f, 0.98f, 1f);
 
@@ -112,6 +138,7 @@ namespace ArcaneArena.Multiplayer
             bool enteringSurface = !IsVisible;
             loadingMode = false;
             PrepareVisibleSurface();
+            CancelPreludeModeTransition();
             SetPreludeMode(false, false);
             ApplyText(primary, secondary);
             spinner.gameObject.SetActive(true);
@@ -131,8 +158,11 @@ namespace ArcaneArena.Multiplayer
             bool enteringLoading = !IsVisible || !loadingMode ||
                                    choicePanel?.activeSelf == true ||
                                    resultPanel?.activeSelf == true;
+            bool exitingPrelude = IsPreludeActive();
             loadingMode = true;
             PrepareVisibleSurface();
+            if (exitingPrelude)
+                PrimePreludeExitTransition();
             SetPreludeMode(false, false);
             ApplyText(primary, secondary);
             spinner.gameObject.SetActive(true);
@@ -146,11 +176,14 @@ namespace ArcaneArena.Multiplayer
             RefreshFloatingCardArtwork();
             if (enteringLoading)
                 RestartFloatingCardBurst();
+            if (exitingPrelude)
+                BeginPreludeExitTransition();
         }
 
         public void SetText(string primary, string secondary = "")
         {
             PrepareVisibleSurface();
+            CancelPreludeModeTransition();
             SetPreludeMode(false, false);
             ApplyText(primary, secondary);
             spinner.gameObject.SetActive(true);
@@ -177,7 +210,11 @@ namespace ArcaneArena.Multiplayer
         {
             loadingMode = false;
             PrepareVisibleSurface();
+            CancelPreludeModeTransition();
             SetPreludeMode(true, false);
+            RestorePreludePanelPresentation();
+            ResetPreludeResultVisuals();
+            ResetPreludeBackdropFraming();
             choiceAction = onChoice;
             primaryLabel.text = "QUEM INICIA O DUELO?";
             secondaryLabel.text = string.IsNullOrWhiteSpace(opponentName)
@@ -185,7 +222,10 @@ namespace ArcaneArena.Multiplayer
                 : $"CONTRA {opponentName.ToUpperInvariant()} · RODADA {Mathf.Max(1, round)}";
             secondaryLabel.gameObject.SetActive(true);
             foreach (Button button in choiceButtons)
+            {
                 button.interactable = true;
+                SetChoiceButtonSelected(button, false);
+            }
         }
 
         public void ShowRockPaperScissorsWaiting(string message)
@@ -206,9 +246,21 @@ namespace ArcaneArena.Multiplayer
             bool localWon,
             bool tie)
         {
+            bool revealFromChoices = choicePanel != null &&
+                                     choicePanel.activeSelf;
             loadingMode = false;
             PrepareVisibleSurface();
+            CancelPreludeModeTransition();
             SetPreludeMode(false, true);
+            if (!revealFromChoices)
+                SetPreludeArenaBlend(1f);
+            if (revealFromChoices && choicePanel != null)
+            {
+                choicePanel.SetActive(true);
+                SetPreludePanelOpacity(choicePanelGroup, 1f);
+            }
+            SetPreludePanelOpacity(resultPanelGroup,
+                revealFromChoices ? 0f : 1f);
             primaryLabel.text = tie
                 ? "EMPATE"
                 : localWon ? "VOCÊ COMEÇA" : "O RIVAL COMEÇA";
@@ -216,9 +268,309 @@ namespace ArcaneArena.Multiplayer
                 ? "As escolhas foram iguais. Uma nova rodada será iniciada."
                 : "Resultado confirmado · preparando os dois campos.";
             secondaryLabel.gameObject.SetActive(true);
-            resultLabel.text =
-                $"{DuelPreludeRules.Label(localChoice)}   ×   " +
-                DuelPreludeRules.Label(opponentChoice);
+            ResetPreludeResultVisuals();
+            if (resultLocalChoiceIcon != null)
+                resultLocalChoiceIcon.sprite = PreludeChoiceIcon(localChoice);
+            if (resultOpponentChoiceIcon != null)
+                resultOpponentChoiceIcon.sprite = PreludeChoiceIcon(opponentChoice);
+            if (resultVersusLabel != null)
+                resultVersusLabel.text = tie ? "=" : "VS";
+            preludeResultAnimationRoutine = StartCoroutine(
+                AnimatePreludeResult(
+                    localChoice,
+                    opponentChoice,
+                    localWon,
+                    tie,
+                    revealFromChoices));
+        }
+
+        private sealed class PreludeResultFragment
+        {
+            public Image image;
+            public Vector2 velocity;
+            public float spin;
+            public Color color;
+        }
+
+        private void ResetPreludeResultVisuals()
+        {
+            if (preludeResultAnimationRoutine != null)
+            {
+                StopCoroutine(preludeResultAnimationRoutine);
+                preludeResultAnimationRoutine = null;
+            }
+            ClearPreludeResultEffects();
+            ResetPreludeResultIcon(resultLocalChoiceIcon);
+            ResetPreludeResultIcon(resultOpponentChoiceIcon);
+            if (resultVersusLabel != null)
+            {
+                resultVersusLabel.gameObject.SetActive(true);
+                resultVersusLabel.rectTransform.localScale = Vector3.one;
+                resultVersusLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
+            }
+        }
+
+        private static void ResetPreludeResultIcon(Image icon)
+        {
+            if (icon == null)
+                return;
+            icon.gameObject.SetActive(true);
+            icon.rectTransform.anchoredPosition = Vector2.zero;
+            icon.rectTransform.localScale = Vector3.one;
+            icon.rectTransform.localEulerAngles = Vector3.zero;
+            icon.color = Color.white;
+        }
+
+        private IEnumerator AnimatePreludeResult(
+            DuelPreludeChoice localChoice,
+            DuelPreludeChoice opponentChoice,
+            bool localWon,
+            bool tie,
+            bool revealFromChoices)
+        {
+            if (revealFromChoices)
+                yield return RevealPreludeResultFromChoices();
+            yield return new WaitForSecondsRealtime(0.10f);
+            if (resultLocalChoiceIcon == null || resultOpponentChoiceIcon == null)
+            {
+                preludeResultAnimationRoutine = null;
+                yield break;
+            }
+
+            if (tie)
+            {
+                const float tieDuration = 0.48f;
+                float elapsed = 0f;
+                while (elapsed < tieDuration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float progress = Mathf.Clamp01(elapsed / tieDuration);
+                    float pulse = Mathf.Sin(progress * Mathf.PI);
+                    SetPreludeBackdropFocus(pulse * 0.18f);
+                    resultLocalChoiceIcon.rectTransform.anchoredPosition =
+                        new Vector2(18f * pulse, 0f);
+                    resultOpponentChoiceIcon.rectTransform.anchoredPosition =
+                        new Vector2(-18f * pulse, 0f);
+                    float scale = 1f + pulse * 0.08f;
+                    resultLocalChoiceIcon.rectTransform.localScale =
+                        new Vector3(scale, scale, 1f);
+                    resultOpponentChoiceIcon.rectTransform.localScale =
+                        new Vector3(scale, scale, 1f);
+                    yield return null;
+                }
+                ResetPreludeResultIcon(resultLocalChoiceIcon);
+                ResetPreludeResultIcon(resultOpponentChoiceIcon);
+                ResetPreludeBackdropFraming();
+                preludeResultAnimationRoutine = null;
+                yield break;
+            }
+
+            Image winner = localWon
+                ? resultLocalChoiceIcon
+                : resultOpponentChoiceIcon;
+            Image loser = localWon
+                ? resultOpponentChoiceIcon
+                : resultLocalChoiceIcon;
+            DuelPreludeChoice winnerChoice = localWon
+                ? localChoice
+                : opponentChoice;
+            DuelPreludeChoice loserChoice = localWon
+                ? opponentChoice
+                : localChoice;
+            Vector2 winnerOrigin = GetResultPanelPosition(
+                winner.rectTransform);
+            Vector2 loserOrigin = GetResultPanelPosition(
+                loser.rectTransform);
+            Vector2 impactPosition = Vector2.Lerp(
+                winnerOrigin,
+                loserOrigin,
+                0.50f);
+            Vector2 attackOffset = impactPosition - winnerOrigin;
+            Vector2 loserApproachOffset = (impactPosition - loserOrigin) *
+                                           0.17f;
+            float direction = Mathf.Sign(attackOffset.x);
+            float attackRotation = winnerChoice switch
+            {
+                DuelPreludeChoice.Scissors => -direction * 26f,
+                DuelPreludeChoice.Paper => direction * 12f,
+                _ => -direction * 7f
+            };
+
+            const float approachDuration = 0.30f;
+            float approachElapsed = 0f;
+            while (approachElapsed < approachDuration)
+            {
+                approachElapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(approachElapsed / approachDuration);
+                float eased = EaseOutCubic(progress);
+                SetPreludeBackdropFocus(Mathf.Lerp(0.20f, 1f, eased));
+                winner.rectTransform.anchoredPosition = attackOffset * eased;
+                loser.rectTransform.anchoredPosition = loserApproachOffset *
+                                                       eased;
+                float winnerScale = 1f + Mathf.Sin(progress * Mathf.PI) * 0.10f;
+                winner.rectTransform.localScale =
+                    new Vector3(winnerScale, winnerScale, 1f);
+                winner.rectTransform.localEulerAngles = new Vector3(
+                    0f,
+                    0f,
+                    attackRotation * Mathf.Sin(progress * Mathf.PI));
+                yield return null;
+            }
+
+            List<PreludeResultFragment> fragments = SpawnPreludeImpact(
+                impactPosition,
+                winnerChoice,
+                loserChoice,
+                new Vector2(direction, 0f));
+            const float destructionDuration = 0.36f;
+            float destructionElapsed = 0f;
+            while (destructionElapsed < destructionDuration)
+            {
+                destructionElapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(
+                    destructionElapsed / destructionDuration);
+                float eased = EaseOutCubic(progress);
+                SetPreludeBackdropFocus(1f);
+                winner.rectTransform.anchoredPosition = Vector2.Lerp(
+                    attackOffset,
+                    attackOffset * 0.16f,
+                    eased);
+                winner.rectTransform.localScale = Vector3.one *
+                    (1.06f - 0.04f * eased);
+                loser.rectTransform.anchoredPosition = Vector2.Lerp(
+                    loserApproachOffset,
+                    (loserOrigin - impactPosition) * 0.32f,
+                    eased) +
+                    Vector2.down * (28f * eased * eased);
+                loser.rectTransform.localScale = Vector3.one *
+                    Mathf.Lerp(1f, 0.16f, eased);
+                Color loserColor = Color.white;
+                loserColor.a = 1f - eased;
+                loser.color = loserColor;
+                if (resultVersusLabel != null)
+                {
+                    Color versusColor = resultVersusLabel.color;
+                    versusColor.a = 1f - eased;
+                    resultVersusLabel.color = versusColor;
+                }
+                UpdatePreludeImpactFragments(
+                    fragments,
+                    impactPosition,
+                    eased);
+                yield return null;
+            }
+
+            loser.gameObject.SetActive(false);
+            yield return new WaitForSecondsRealtime(0.18f);
+            ClearPreludeResultEffects();
+            preludeResultAnimationRoutine = null;
+        }
+
+        private Vector2 GetResultPanelPosition(RectTransform target)
+        {
+            if (target == null || resultPanel == null)
+                return Vector2.zero;
+            RectTransform panel = resultPanel.GetComponent<RectTransform>();
+            return panel.InverseTransformPoint(target.position);
+        }
+
+        private List<PreludeResultFragment> SpawnPreludeImpact(
+            Vector2 position,
+            DuelPreludeChoice winnerChoice,
+            DuelPreludeChoice loserChoice,
+            Vector2 direction)
+        {
+            var fragments = new List<PreludeResultFragment>();
+            if (resultPanel == null || preludeImpactSprite == null)
+                return fragments;
+
+            Color baseColor = Color.Lerp(
+                PreludeChoiceAccent(winnerChoice),
+                PreludeChoiceAccent(loserChoice),
+                0.38f);
+            Image flash = CreateImage(
+                resultPanel.transform,
+                "Impacto da escolha",
+                new Color(baseColor.r, baseColor.g, baseColor.b, 0.58f),
+                new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f));
+            flash.sprite = preludeImpactSprite;
+            flash.rectTransform.sizeDelta = new Vector2(236f, 236f);
+            flash.rectTransform.anchoredPosition = position;
+            preludeResultEffects.Add(flash.gameObject);
+
+            int fragmentCount = loserChoice == DuelPreludeChoice.Paper
+                ? 14
+                : loserChoice == DuelPreludeChoice.Scissors ? 11 : 9;
+            Vector2 perpendicular = new Vector2(-direction.y, direction.x);
+            for (int index = 0; index < fragmentCount; index++)
+            {
+                float random = (float)visualRandom.NextDouble();
+                float side = Mathf.Lerp(-1f, 1f, random);
+                float forward = Mathf.Lerp(90f, 230f,
+                    (float)visualRandom.NextDouble());
+                float sideways = Mathf.Lerp(-130f, 130f,
+                    (float)visualRandom.NextDouble());
+                Image fragment = CreateImage(
+                    resultPanel.transform,
+                    $"Fragmento da escolha {index + 1}",
+                    Color.Lerp(baseColor, Color.white,
+                        (float)visualRandom.NextDouble() * 0.55f),
+                    new Vector2(0.5f, 0.5f),
+                    new Vector2(0.5f, 0.5f));
+                fragment.sprite = preludeImpactSprite;
+                float size = loserChoice == DuelPreludeChoice.Paper
+                    ? Mathf.Lerp(14f, 34f, random)
+                    : Mathf.Lerp(18f, 42f, random);
+                fragment.rectTransform.sizeDelta = new Vector2(size, size);
+                fragment.rectTransform.anchoredPosition = position;
+                preludeResultEffects.Add(fragment.gameObject);
+                fragments.Add(new PreludeResultFragment
+                {
+                    image = fragment,
+                    velocity = direction * forward + perpendicular *
+                               (sideways + side * 22f),
+                    spin = Mathf.Lerp(-440f, 440f,
+                        (float)visualRandom.NextDouble()),
+                    color = fragment.color
+                });
+            }
+            return fragments;
+        }
+
+        private static void UpdatePreludeImpactFragments(
+            IReadOnlyList<PreludeResultFragment> fragments,
+            Vector2 origin,
+            float progress)
+        {
+            if (fragments == null)
+                return;
+            for (int index = 0; index < fragments.Count; index++)
+            {
+                PreludeResultFragment fragment = fragments[index];
+                if (fragment?.image == null)
+                    continue;
+                fragment.image.rectTransform.anchoredPosition = origin +
+                    fragment.velocity * progress +
+                    Vector2.down * (70f * progress * progress);
+                fragment.image.rectTransform.localEulerAngles = new Vector3(
+                    0f,
+                    0f,
+                    fragment.spin * progress);
+                Color color = fragment.color;
+                color.a *= 1f - progress;
+                fragment.image.color = color;
+            }
+        }
+
+        private void ClearPreludeResultEffects()
+        {
+            foreach (GameObject effect in preludeResultEffects)
+            {
+                if (effect != null)
+                    Destroy(effect);
+            }
+            preludeResultEffects.Clear();
         }
 
         public void FadeThroughBlack(Action action)
@@ -310,6 +662,14 @@ namespace ArcaneArena.Multiplayer
         {
             if (canvas == null)
                 return;
+            CancelPreludeModeTransition();
+            if (preludeResultAnimationRoutine != null)
+            {
+                StopCoroutine(preludeResultAnimationRoutine);
+                preludeResultAnimationRoutine = null;
+            }
+            ClearPreludeResultEffects();
+            ResetPreludeBackdropFraming();
             targetAlpha = 0f;
             hideRequested = false;
             group.alpha = 0f;
@@ -434,10 +794,357 @@ namespace ArcaneArena.Multiplayer
         {
             choicePanel.SetActive(choices);
             resultPanel.SetActive(result);
+            SetPreludeBackdropVisible(choices || result);
+            ApplyPreludeTypographyLayout(choices || result);
             spinner.gameObject.SetActive(!choices && !result);
             progressRoot.gameObject.SetActive(
                 !choices && !result && loadingMode);
             choiceAction = choices ? choiceAction : null;
+        }
+
+        private bool IsPreludeActive()
+        {
+            return choicePanel?.activeSelf == true ||
+                   resultPanel?.activeSelf == true ||
+                   preludeBackdrop?.activeSelf == true;
+        }
+
+        private void ApplyPreludeTypographyLayout(bool preludeActive)
+        {
+            if (primaryLabel == null || secondaryLabel == null)
+                return;
+
+            if (preludeActive)
+            {
+                Stretch(
+                    primaryLabel.rectTransform,
+                    new Vector2(0.16f, 0.76f),
+                    new Vector2(0.84f, 0.85f));
+                Stretch(
+                    secondaryLabel.rectTransform,
+                    new Vector2(0.16f, 0.70f),
+                    new Vector2(0.84f, 0.76f));
+                return;
+            }
+
+            Stretch(
+                primaryLabel.rectTransform,
+                new Vector2(0.12f, 0.40f),
+                new Vector2(0.88f, 0.49f));
+            Stretch(
+                secondaryLabel.rectTransform,
+                new Vector2(0.12f, 0.33f),
+                new Vector2(0.88f, 0.41f));
+        }
+
+        private static void SetPreludePanelOpacity(
+            CanvasGroup panelGroup,
+            float alpha)
+        {
+            if (panelGroup == null)
+                return;
+            panelGroup.alpha = Mathf.Clamp01(alpha);
+            panelGroup.blocksRaycasts = alpha > 0.98f;
+            panelGroup.interactable = alpha > 0.98f;
+        }
+
+        private void RestorePreludePanelPresentation()
+        {
+            SetPreludePanelOpacity(choicePanelGroup, 1f);
+            SetPreludePanelOpacity(resultPanelGroup, 1f);
+            if (choicePanel != null)
+                choicePanel.GetComponent<RectTransform>().localScale = Vector3.one;
+            if (resultPanel != null)
+                resultPanel.GetComponent<RectTransform>().localScale = Vector3.one;
+        }
+
+        private void CancelPreludeModeTransition()
+        {
+            if (preludeModeTransitionRoutine != null)
+            {
+                StopCoroutine(preludeModeTransitionRoutine);
+                preludeModeTransitionRoutine = null;
+            }
+            ResetPreludeCinematicVeil();
+        }
+
+        private void PrimePreludeExitTransition()
+        {
+            if (preludeCinematicVeil == null)
+                return;
+
+            CancelPreludeModeTransition();
+            preludeCinematicVeil.gameObject.SetActive(true);
+            preludeCinematicVeil.color = new Color(
+                0.004f,
+                0.014f,
+                0.046f,
+                0.97f);
+            if (preludeCinematicRay != null)
+            {
+                preludeCinematicRay.gameObject.SetActive(true);
+                preludeCinematicRay.color = new Color(
+                    0.48f,
+                    0.92f,
+                    1f,
+                    0.96f);
+                preludeCinematicRay.rectTransform.localScale =
+                    new Vector3(0.12f, 1f, 1f);
+            }
+        }
+
+        private void BeginPreludeExitTransition()
+        {
+            if (preludeCinematicVeil == null ||
+                !preludeCinematicVeil.gameObject.activeSelf)
+            {
+                return;
+            }
+            if (preludeModeTransitionRoutine != null)
+                StopCoroutine(preludeModeTransitionRoutine);
+            preludeModeTransitionRoutine = StartCoroutine(
+                AnimatePreludeExitTransition());
+        }
+
+        private IEnumerator AnimatePreludeExitTransition()
+        {
+            const float duration = 0.58f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / duration);
+                float eased = Mathf.SmoothStep(0f, 1f, progress);
+                Color veil = preludeCinematicVeil.color;
+                veil.a = Mathf.Lerp(0.97f, 0f, eased);
+                preludeCinematicVeil.color = veil;
+                if (preludeCinematicRay != null)
+                {
+                    float flare = Mathf.Pow(
+                        Mathf.Sin(progress * Mathf.PI),
+                        0.72f);
+                    Color ray = preludeCinematicRay.color;
+                    ray.a = flare * 0.92f;
+                    preludeCinematicRay.color = ray;
+                    preludeCinematicRay.rectTransform.localScale =
+                        new Vector3(
+                            Mathf.Lerp(0.12f, 1.34f, EaseOutCubic(progress)),
+                            Mathf.Lerp(1f, 0.38f, eased),
+                            1f);
+                }
+                yield return null;
+            }
+            preludeModeTransitionRoutine = null;
+            ResetPreludeCinematicVeil();
+        }
+
+        private IEnumerator RevealPreludeResultFromChoices()
+        {
+            // The result needs to read like a tiny scene change instead of
+            // appearing abruptly on top of the three-choice layout:
+            // confirmation -> original seals fade -> two raised plinths ->
+            // selected pieces settle into the confrontation frame.
+            const float duration = 0.82f;
+            float elapsed = 0f;
+            if (preludeCinematicVeil != null)
+            {
+                preludeCinematicVeil.gameObject.SetActive(true);
+                preludeCinematicVeil.color = Color.clear;
+            }
+            if (preludeCinematicRay != null)
+            {
+                preludeCinematicRay.gameObject.SetActive(true);
+                preludeCinematicRay.color = Color.clear;
+            }
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / duration);
+                float choiceFade = Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    Mathf.InverseLerp(0.10f, 0.38f, progress));
+                float clashBlend = Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    Mathf.InverseLerp(0.24f, 0.66f, progress));
+                float iconRise = EaseOutBack(Mathf.InverseLerp(
+                    0.28f,
+                    0.88f,
+                    progress));
+                float resultReveal = Mathf.SmoothStep(
+                    0f,
+                    1f,
+                    Mathf.InverseLerp(0.34f, 0.72f, progress));
+                SetPreludePanelOpacity(choicePanelGroup, 1f - choiceFade);
+                SetPreludePanelOpacity(resultPanelGroup, resultReveal);
+                if (choicePanel != null)
+                {
+                    choicePanel.GetComponent<RectTransform>().localScale =
+                        Vector3.one * Mathf.Lerp(1f, 0.90f, choiceFade);
+                }
+                AnimatePreludeResultRevealIcon(
+                    resultLocalChoiceIcon,
+                    iconRise,
+                    -1f);
+                AnimatePreludeResultRevealIcon(
+                    resultOpponentChoiceIcon,
+                    iconRise,
+                    1f);
+                SetPreludeArenaBlend(clashBlend);
+                // Keep the three-pedestal scene at its original framing.
+                // The camera only starts moving once the two-pedestal
+                // confrontation art has taken over the screen.
+                float clashFocus = Mathf.InverseLerp(
+                    0.66f,
+                    1f,
+                    clashBlend);
+                SetPreludeBackdropFocus(clashFocus * 0.28f);
+                if (preludeCinematicVeil != null)
+                {
+                    Color veil = new Color(0.018f, 0.08f, 0.20f, 1f);
+                    veil.a = Mathf.Sin(progress * Mathf.PI) * 0.38f;
+                    preludeCinematicVeil.color = veil;
+                }
+                if (preludeCinematicRay != null)
+                {
+                    Color ray = new Color(0.58f, 0.94f, 1f, 1f);
+                    ray.a = Mathf.Sin(progress * Mathf.PI) * 0.92f;
+                    preludeCinematicRay.color = ray;
+                    preludeCinematicRay.rectTransform.localScale =
+                        new Vector3(
+                            Mathf.Lerp(0.06f, 1.26f, clashBlend),
+                            Mathf.Lerp(2.35f, 0.50f, clashBlend),
+                            1f);
+                }
+                yield return null;
+            }
+
+            if (choicePanel != null)
+            {
+                choicePanel.SetActive(false);
+                choicePanel.GetComponent<RectTransform>().localScale =
+                    Vector3.one;
+            }
+            SetPreludePanelOpacity(choicePanelGroup, 1f);
+            SetPreludePanelOpacity(resultPanelGroup, 1f);
+            ResetPreludeResultIcon(resultLocalChoiceIcon);
+            ResetPreludeResultIcon(resultOpponentChoiceIcon);
+            ResetPreludeCinematicVeil();
+        }
+
+        private static void AnimatePreludeResultRevealIcon(
+            Image icon,
+            float progress,
+            float horizontalDirection)
+        {
+            if (icon == null)
+                return;
+            icon.rectTransform.localScale = Vector3.one * Mathf.Lerp(
+                0.43f,
+                1f,
+                progress);
+            icon.rectTransform.anchoredPosition = new Vector2(
+                horizontalDirection * Mathf.Lerp(64f, 0f, progress),
+                Mathf.Lerp(-158f, 0f, progress));
+        }
+
+        private void ResetPreludeCinematicVeil()
+        {
+            if (preludeCinematicRay != null)
+            {
+                preludeCinematicRay.color = Color.clear;
+                preludeCinematicRay.rectTransform.localScale = Vector3.one;
+                preludeCinematicRay.gameObject.SetActive(false);
+            }
+            if (preludeCinematicVeil != null)
+            {
+                preludeCinematicVeil.color = Color.clear;
+                preludeCinematicVeil.gameObject.SetActive(false);
+            }
+        }
+
+        private void SetPreludeBackdropVisible(bool visible)
+        {
+            if (preludeBackdrop != null)
+            {
+                preludeBackdrop.SetActive(visible);
+                if (!visible)
+                    ResetPreludeBackdropFraming();
+            }
+
+            bool showCards = !visible;
+            foreach (Image card in floatingCardImages)
+            {
+                if (card != null)
+                    card.enabled = showCards;
+            }
+            foreach (Image trail in floatingCardTrailImages)
+            {
+                if (trail != null)
+                    trail.enabled = showCards;
+            }
+        }
+
+        private void SetPreludeBackdropFocus(float amount)
+        {
+            if (preludeBackdrop == null)
+                return;
+            RectTransform backdrop = preludeBackdrop
+                .GetComponent<RectTransform>();
+            if (backdrop == null)
+                return;
+            float focus = Mathf.Clamp01(amount);
+            float scale = Mathf.Lerp(1f, 1.115f, focus);
+            backdrop.localScale = new Vector3(scale, scale, 1f);
+            backdrop.anchoredPosition = new Vector2(
+                0f,
+                Mathf.Lerp(0f, -32f, focus));
+        }
+
+        private void SetPreludeArenaBlend(float clashBlend)
+        {
+            float blend = Mathf.Clamp01(clashBlend);
+            if (preludeClashArenaGroup == null ||
+                preludeClashArenaImage == null)
+            {
+                blend = 0f;
+            }
+            else if (preludeChoiceArenaGroup == null ||
+                     preludeChoiceArenaImage == null)
+            {
+                blend = 1f;
+            }
+            if (preludeChoiceArenaGroup != null)
+                preludeChoiceArenaGroup.alpha = 1f - blend;
+            if (preludeClashArenaGroup != null)
+                preludeClashArenaGroup.alpha = blend;
+            if (preludeChoiceArenaImage != null)
+            {
+                float scale = Mathf.Lerp(1f, 0.965f, blend);
+                preludeChoiceArenaImage.rectTransform.localScale =
+                    new Vector3(scale, scale, 1f);
+            }
+            if (preludeClashArenaImage != null)
+            {
+                float scale = Mathf.Lerp(1.085f, 1f, blend);
+                preludeClashArenaImage.rectTransform.localScale =
+                    new Vector3(scale, scale, 1f);
+            }
+        }
+
+        private void ResetPreludeBackdropFraming()
+        {
+            if (preludeBackdrop == null)
+                return;
+            RectTransform backdrop = preludeBackdrop
+                .GetComponent<RectTransform>();
+            if (backdrop == null)
+                return;
+            backdrop.localScale = Vector3.one;
+            backdrop.anchoredPosition = Vector2.zero;
+            SetPreludeArenaBlend(0f);
         }
 
         private void ApplyText(string primary, string secondary)
@@ -463,6 +1170,7 @@ namespace ArcaneArena.Multiplayer
             float burstElapsed = Mathf.Max(0f, now - cardBurstStartedAt);
             UpdateBurstEnergyField(burstElapsed);
             UpdateBackdropColorGrade(burstElapsed, now);
+            UpdatePreludeMist(now);
             UpdateTypographyReveal(burstElapsed);
             for (int index = 0; index < lightStreaks.Count; index++)
             {
@@ -675,6 +1383,7 @@ namespace ArcaneArena.Multiplayer
                 Vector2.one);
             transitionVoidLayer.raycastTarget = false;
             BuildWarpBackdrop(transitionVoidLayer.transform);
+            BuildPreludeBackdrop(black.transform);
 
             GameObject safe = new GameObject("SafeArea", typeof(RectTransform));
             safe.transform.SetParent(black.transform, false);
@@ -724,8 +1433,195 @@ namespace ArcaneArena.Multiplayer
                 new Color(0.01f, 0.06f, 0.09f, 1f));
             backButton.onClick.AddListener(() => backAction?.Invoke());
             backButton.gameObject.SetActive(false);
+            BuildPreludeCinematicOverlay(safe.transform);
             group.alpha = 0f;
             canvasObject.SetActive(false);
+        }
+
+        private void BuildPreludeCinematicOverlay(Transform parent)
+        {
+            preludeCinematicVeil = CreateImage(
+                parent,
+                "Fenda entre a decisão e o duelo",
+                Color.clear,
+                Vector2.zero,
+                Vector2.one);
+            preludeCinematicVeil.raycastTarget = false;
+            preludeCinematicRay = CreateImage(
+                preludeCinematicVeil.transform,
+                "Pulso da fenda",
+                Color.clear,
+                new Vector2(0.16f, 0.475f),
+                new Vector2(0.84f, 0.525f));
+            preludeCinematicRay.raycastTarget = false;
+            preludeCinematicVeil.gameObject.SetActive(false);
+        }
+
+        private void BuildPreludeBackdrop(Transform parent)
+        {
+            Image stage = CreateImage(
+                parent,
+                "Arena da decisão",
+                Color.clear,
+                Vector2.zero,
+                Vector2.one);
+            stage.raycastTarget = false;
+            preludeBackdrop = stage.gameObject;
+
+            preludeChoiceArenaImage = CreatePreludeArenaArtwork(
+                stage.transform,
+                "Arena dos três selos",
+                "PreludeArena/decision_pedestal_arena");
+            if (preludeChoiceArenaImage != null)
+            {
+                preludeChoiceArenaGroup = preludeChoiceArenaImage.gameObject
+                    .AddComponent<CanvasGroup>();
+            }
+
+            preludeClashArenaImage = CreatePreludeArenaArtwork(
+                stage.transform,
+                "Arena do confronto",
+                "PreludeArena/decision_clash_arena");
+            if (preludeClashArenaImage != null)
+            {
+                preludeClashArenaGroup = preludeClashArenaImage.gameObject
+                    .AddComponent<CanvasGroup>();
+            }
+            SetPreludeArenaBlend(0f);
+
+            Image grading = CreateImage(
+                stage.transform,
+                "Véu da arena de decisão",
+                new Color(0.001f, 0.007f, 0.022f, 0.30f),
+                Vector2.zero,
+                Vector2.one);
+            grading.raycastTarget = false;
+
+            Texture2D mistTexture = Resources.Load<Texture2D>(
+                "PreludeArena/decision_mist_layer");
+            if (mistTexture == null)
+            {
+                Debug.LogError(
+                    "A névoa da arena de decisão não foi encontrada em " +
+                    "Resources/PreludeArena/decision_mist_layer.");
+            }
+            else
+            {
+                Sprite mistSprite = Sprite.Create(
+                    mistTexture,
+                    new Rect(0f, 0f, mistTexture.width, mistTexture.height),
+                    new Vector2(0.5f, 0.5f),
+                    100f);
+                Vector2[] origins =
+                {
+                    new Vector2(-170f, -240f),
+                    new Vector2(210f, -92f),
+                    new Vector2(-95f, 92f)
+                };
+                Vector2[] sizes =
+                {
+                    new Vector2(1720f, 573f),
+                    new Vector2(1940f, 647f),
+                    new Vector2(1480f, 493f)
+                };
+                Color[] colors =
+                {
+                    new Color(0.48f, 0.78f, 1f, 0.18f),
+                    new Color(0.42f, 0.56f, 0.92f, 0.13f),
+                    new Color(0.70f, 0.50f, 1f, 0.09f)
+                };
+                float[] speeds = { 0.09f, -0.065f, 0.045f };
+                for (int index = 0; index < origins.Length; index++)
+                {
+                    Image mist = CreateImage(
+                        stage.transform,
+                        $"Névoa móvel {index + 1}",
+                        colors[index],
+                        new Vector2(0.5f, 0.5f),
+                        new Vector2(0.5f, 0.5f));
+                    mist.sprite = mistSprite;
+                    mist.preserveAspect = true;
+                    mist.rectTransform.sizeDelta = sizes[index];
+                    mist.rectTransform.anchoredPosition = origins[index];
+                    preludeMistLayers.Add(mist.rectTransform);
+                    preludeMistImages.Add(mist);
+                    preludeMistOrigins.Add(origins[index]);
+                    preludeMistSpeeds.Add(speeds[index]);
+                    preludeMistPhases.Add(index * 1.79f);
+                    preludeMistBaseColors.Add(colors[index]);
+                }
+            }
+            preludeBackdrop.SetActive(false);
+        }
+
+        private static Image CreatePreludeArenaArtwork(
+            Transform parent,
+            string objectName,
+            string resourcePath)
+        {
+            Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+            if (texture == null)
+            {
+                Debug.LogError(
+                    "A arte da arena de decisão não foi encontrada em " +
+                    "Resources/" + resourcePath + ".");
+                return null;
+            }
+
+            Image image = CreateImage(
+                parent,
+                objectName,
+                Color.white,
+                Vector2.zero,
+                Vector2.one);
+            image.sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            AspectRatioFitter fit = image.gameObject
+                .AddComponent<AspectRatioFitter>();
+            fit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fit.aspectRatio = texture.width / (float)texture.height;
+            return image;
+        }
+
+        private void UpdatePreludeMist(float now)
+        {
+            if (preludeBackdrop == null || !preludeBackdrop.activeInHierarchy)
+                return;
+            for (int index = 0; index < preludeMistLayers.Count; index++)
+            {
+                RectTransform mist = preludeMistLayers[index];
+                Image mistImage = index < preludeMistImages.Count
+                    ? preludeMistImages[index]
+                    : null;
+                if (mist == null || mistImage == null)
+                    continue;
+                float speed = index < preludeMistSpeeds.Count
+                    ? preludeMistSpeeds[index]
+                    : 0.05f;
+                float phase = index < preludeMistPhases.Count
+                    ? preludeMistPhases[index]
+                    : index;
+                Vector2 origin = index < preludeMistOrigins.Count
+                    ? preludeMistOrigins[index]
+                    : Vector2.zero;
+                float horizontal = Mathf.Sin(now * speed + phase) * 180f;
+                float vertical = Mathf.Sin(now * (Mathf.Abs(speed) * 1.7f) +
+                                           phase * 1.37f) * 16f;
+                mist.anchoredPosition = origin +
+                                        new Vector2(horizontal, vertical);
+                float pulse = 0.82f + 0.18f * Mathf.Sin(
+                    now * 0.42f + phase);
+                mist.localScale = Vector3.one *
+                                  (0.98f + 0.025f * pulse);
+                Color color = index < preludeMistBaseColors.Count
+                    ? preludeMistBaseColors[index]
+                    : Color.white;
+                color.a *= pulse;
+                mistImage.color = color;
+            }
         }
 
         private void BuildWarpBackdrop(Transform parent)
@@ -1835,55 +2731,72 @@ namespace ArcaneArena.Multiplayer
         {
             Image panel = CreateImage(
                 parent,
-                "Pedra Papel Tesoura",
-                new Color(0.025f, 0.045f, 0.095f, 0.94f),
-                new Vector2(0.24f, 0.48f),
-                new Vector2(0.76f, 0.73f));
+                "Escolha de Símbolo",
+                Color.clear,
+                Vector2.zero,
+                Vector2.one);
             choicePanel = panel.gameObject;
+            choicePanelGroup = panel.gameObject.AddComponent<CanvasGroup>();
+            Text instruction = CreateText(
+                panel.transform,
+                "Selecione um símbolo",
+                font,
+                24,
+                FontStyle.Bold,
+                new Vector2(0.28f, 0.635f),
+                new Vector2(0.72f, 0.685f));
+            instruction.text = "ESCOLHA SEU SÍMBOLO";
+            instruction.color = new Color(0.66f, 0.93f, 1f, 0.92f);
             DuelPreludeChoice[] choices =
             {
                 DuelPreludeChoice.Rock,
                 DuelPreludeChoice.Paper,
                 DuelPreludeChoice.Scissors
             };
-            string[] labels = { "PEDRA", "PAPEL", "TESOURA" };
             for (int index = 0; index < choices.Length; index++)
             {
-                float xMin = 0.035f + index * 0.325f;
+                float center = 0.22f + index * 0.28f;
                 DuelPreludeChoice captured = choices[index];
+                Color accent = PreludeChoiceAccent(captured);
                 Button button = CreateButton(
                     panel.transform,
                     captured.ToString(),
-                    labels[index],
+                    string.Empty,
                     font,
-                    new Vector2(xMin, 0.12f),
-                    new Vector2(xMin + 0.28f, 0.88f),
-                    index == 1
-                        ? new Color(0.20f, 0.62f, 0.94f, 0.90f)
-                        : new Color(0.36f, 0.18f, 0.74f, 0.90f),
+                    new Vector2(center - 0.11f, 0.255f),
+                    new Vector2(center + 0.11f, 0.575f),
+                    new Color(0.005f, 0.012f, 0.028f, 0.012f),
                     Color.white);
+                button.transition = Selectable.Transition.None;
                 Text label = button.GetComponentInChildren<Text>(true);
                 if (label != null)
-                {
-                    Stretch(
-                        label.rectTransform,
-                        new Vector2(0.04f, 0.035f),
-                        new Vector2(0.96f, 0.30f));
-                    label.fontSize = 19;
-                }
+                    label.gameObject.SetActive(false);
+                Image selectionMark = CreateImage(
+                    button.transform,
+                    "Marca da escolha confirmada",
+                    new Color(accent.r, accent.g, accent.b, 0.90f),
+                    new Vector2(0.40f, 0.055f),
+                    new Vector2(0.60f, 0.078f));
+                selectionMark.gameObject.SetActive(false);
                 Image icon = CreateImage(
                     button.transform,
-                    $"Ícone {labels[index]}",
+                    $"Símbolo {captured}",
                     Color.white,
-                    new Vector2(0.18f, 0.31f),
-                    new Vector2(0.82f, 0.93f));
-                icon.sprite = CreatePreludeChoiceIconSprite(captured);
+                    new Vector2(0.08f, 0.13f),
+                    new Vector2(0.92f, 0.90f));
+                icon.sprite = PreludeChoiceIcon(captured);
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
+                Shadow iconShadow = icon.gameObject.AddComponent<Shadow>();
+                iconShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
+                iconShadow.effectDistance = new Vector2(7f, -8f);
                 button.onClick.AddListener(() =>
                 {
                     foreach (Button item in choiceButtons)
+                    {
                         item.interactable = false;
+                        SetChoiceButtonSelected(item, item == button);
+                    }
                     Action<DuelPreludeChoice> callback = choiceAction;
                     callback?.Invoke(captured);
                 });
@@ -1892,48 +2805,150 @@ namespace ArcaneArena.Multiplayer
             choicePanel.SetActive(false);
         }
 
+        private static void SetChoiceButtonSelected(
+            Button button,
+            bool selected)
+        {
+            if (button == null)
+                return;
+            Transform mark = button.transform.Find("Marca da escolha confirmada");
+            if (mark != null)
+                mark.gameObject.SetActive(selected);
+            button.transform.localScale = selected
+                ? new Vector3(1.06f, 1.06f, 1f)
+                : Vector3.one;
+        }
+
+        private Sprite PreludeChoiceIcon(DuelPreludeChoice choice)
+        {
+            if (!preludeChoiceIcons.TryGetValue(choice, out Sprite icon) ||
+                icon == null)
+            {
+                string assetPath = choice switch
+                {
+                    DuelPreludeChoice.Rock => "PreludeSymbols/prelude_rock_3d",
+                    DuelPreludeChoice.Paper => "PreludeSymbols/prelude_paper_3d",
+                    _ => "PreludeSymbols/prelude_scissors_3d"
+                };
+                Texture2D texture = Resources.Load<Texture2D>(assetPath);
+                if (texture == null)
+                {
+                    Debug.LogError(
+                        $"Não foi possível carregar a ilustração 3D de {choice} " +
+                        $"em Resources/{assetPath}.");
+                    return null;
+                }
+
+                icon = Sprite.Create(
+                    texture,
+                    new Rect(0f, 0f, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f),
+                    100f);
+                icon.name = $"Ilustração 3D {choice}";
+                preludeChoiceIcons[choice] = icon;
+            }
+            return icon;
+        }
+
+        private static Color PreludeChoiceAccent(DuelPreludeChoice choice)
+        {
+            return choice switch
+            {
+                DuelPreludeChoice.Rock => new Color(0.14f, 0.80f, 1f, 1f),
+                DuelPreludeChoice.Paper => new Color(1f, 0.78f, 0.30f, 1f),
+                _ => new Color(0.78f, 0.40f, 1f, 1f)
+            };
+        }
+
         private static Sprite CreatePreludeChoiceIconSprite(
             DuelPreludeChoice choice)
         {
-            const int size = 128;
+            const int size = 256;
             var pixels = new Color32[size * size];
             Color32 cyan = new Color32(112, 226, 255, 255);
-            Color32 pale = new Color32(226, 246, 255, 255);
+            Color32 pale = new Color32(235, 247, 255, 255);
+            Color32 steel = new Color32(116, 153, 177, 255);
             Color32 blue = new Color32(37, 111, 196, 255);
-            Color32 violet = new Color32(135, 70, 220, 255);
-            Color32 dark = new Color32(17, 32, 58, 255);
+            Color32 violet = new Color32(165, 89, 238, 255);
+            Color32 gold = new Color32(255, 202, 89, 255);
+            Color32 parchment = new Color32(241, 231, 186, 255);
+            Color32 dark = new Color32(11, 21, 39, 255);
 
             switch (choice)
             {
                 case DuelPreludeChoice.Rock:
-                    FillIconEllipse(pixels, size, 64, 53, 43, 33, dark);
-                    FillIconEllipse(pixels, size, 64, 60, 38, 31, blue);
-                    FillIconEllipse(pixels, size, 49, 72, 20, 13, cyan);
-                    DrawIconLine(pixels, size, 35, 50, 51, 32, 5, pale);
-                    DrawIconLine(pixels, size, 52, 32, 76, 29, 5, pale);
-                    DrawIconLine(pixels, size, 76, 29, 94, 48, 5, pale);
+                    FillIconPolygon(pixels, size, new[]
+                    {
+                        new Vector2Int(30, 95), new Vector2Int(55, 50),
+                        new Vector2Int(112, 28), new Vector2Int(174, 45),
+                        new Vector2Int(222, 98), new Vector2Int(201, 165),
+                        new Vector2Int(139, 220), new Vector2Int(67, 197),
+                        new Vector2Int(28, 149)
+                    }, dark);
+                    FillIconPolygon(pixels, size, new[]
+                    {
+                        new Vector2Int(40, 101), new Vector2Int(63, 61),
+                        new Vector2Int(113, 41), new Vector2Int(166, 57),
+                        new Vector2Int(208, 103), new Vector2Int(189, 157),
+                        new Vector2Int(136, 204), new Vector2Int(75, 184),
+                        new Vector2Int(43, 146)
+                    }, steel);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(63, 61), new Vector2Int(113, 41),
+                        new Vector2Int(105, 123), cyan);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(113, 41), new Vector2Int(166, 57),
+                        new Vector2Int(105, 123), pale);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(166, 57), new Vector2Int(208, 103),
+                        new Vector2Int(105, 123), blue);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(43, 146), new Vector2Int(105, 123),
+                        new Vector2Int(75, 184), blue);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(105, 123), new Vector2Int(189, 157),
+                        new Vector2Int(136, 204), dark);
+                    DrawIconLine(pixels, size, 105, 123, 189, 157, 4, cyan);
+                    DrawIconLine(pixels, size, 105, 123, 75, 184, 4, pale);
                     break;
                 case DuelPreludeChoice.Paper:
-                    FillIconRect(pixels, size, 31, 19, 96, 109, dark);
-                    FillIconRect(pixels, size, 35, 23, 92, 105, pale);
-                    FillIconTriangle(
-                        pixels,
-                        size,
-                        new Vector2Int(72, 105),
-                        new Vector2Int(92, 105),
-                        new Vector2Int(92, 84),
-                        cyan);
-                    DrawIconLine(pixels, size, 45, 73, 82, 73, 4, blue);
-                    DrawIconLine(pixels, size, 45, 59, 82, 59, 4, blue);
-                    DrawIconLine(pixels, size, 45, 45, 72, 45, 4, blue);
+                    FillIconPolygon(pixels, size, new[]
+                    {
+                        new Vector2Int(57, 30), new Vector2Int(171, 30),
+                        new Vector2Int(211, 70), new Vector2Int(211, 220),
+                        new Vector2Int(57, 220)
+                    }, dark);
+                    FillIconPolygon(pixels, size, new[]
+                    {
+                        new Vector2Int(66, 39), new Vector2Int(167, 39),
+                        new Vector2Int(201, 73), new Vector2Int(201, 211),
+                        new Vector2Int(66, 211)
+                    }, parchment);
+                    FillIconTriangle(pixels, size,
+                        new Vector2Int(167, 39), new Vector2Int(201, 73),
+                        new Vector2Int(167, 73), gold);
+                    DrawIconLine(pixels, size, 91, 158, 176, 158, 6, blue);
+                    DrawIconLine(pixels, size, 91, 128, 176, 128, 6, blue);
+                    DrawIconLine(pixels, size, 91, 98, 152, 98, 6, blue);
+                    DrawIconLine(pixels, size, 91, 68, 128, 68, 5, cyan);
                     break;
                 default:
-                    DrawIconLine(pixels, size, 45, 38, 91, 99, 8, pale);
-                    DrawIconLine(pixels, size, 82, 29, 48, 91, 8, pale);
-                    DrawIconLine(pixels, size, 47, 39, 92, 98, 3, cyan);
-                    DrawIconLine(pixels, size, 81, 30, 48, 91, 3, cyan);
-                    FillIconRing(pixels, size, 38, 31, 19, 10, violet);
-                    FillIconRing(pixels, size, 37, 89, 19, 10, violet);
+                    // As lâminas são desenhadas antes dos aros para que a
+                    // tesoura tenha silhueta clara mesmo em tela pequena.
+                    DrawIconLine(pixels, size, 103, 119, 207, 204, 18, dark);
+                    DrawIconLine(pixels, size, 103, 119, 207, 204, 11, pale);
+                    DrawIconLine(pixels, size, 142, 114, 207, 47, 18, dark);
+                    DrawIconLine(pixels, size, 142, 114, 207, 47, 11, pale);
+                    DrawIconLine(pixels, size, 112, 123, 199, 196, 4, cyan);
+                    DrawIconLine(pixels, size, 148, 108, 199, 55, 4, cyan);
+                    FillIconRing(pixels, size, 78, 82, 39, 20, dark);
+                    FillIconRing(pixels, size, 78, 82, 31, 15, violet);
+                    FillIconEllipse(pixels, size, 78, 82, 14, 8, dark);
+                    FillIconRing(pixels, size, 83, 164, 39, 20, dark);
+                    FillIconRing(pixels, size, 83, 164, 31, 15, violet);
+                    FillIconEllipse(pixels, size, 83, 164, 14, 8, dark);
+                    FillIconEllipse(pixels, size, 122, 119, 12, 12, gold);
+                    FillIconEllipse(pixels, size, 122, 119, 5, 5, pale);
                     break;
             }
 
@@ -1958,6 +2973,39 @@ namespace ArcaneArena.Multiplayer
             sprite.name = texture.name;
             sprite.hideFlags = HideFlags.HideAndDontSave;
             return sprite;
+        }
+
+        private static void FillIconPolygon(
+            Color32[] pixels,
+            int size,
+            IReadOnlyList<Vector2Int> vertices,
+            Color32 color)
+        {
+            if (vertices == null || vertices.Count < 3)
+                return;
+            int minX = Mathf.Max(0, vertices.Min(vertex => vertex.x));
+            int maxX = Mathf.Min(size - 1, vertices.Max(vertex => vertex.x));
+            int minY = Mathf.Max(0, vertices.Min(vertex => vertex.y));
+            int maxY = Mathf.Min(size - 1, vertices.Max(vertex => vertex.y));
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            {
+                bool inside = false;
+                for (int current = 0, previous = vertices.Count - 1;
+                     current < vertices.Count;
+                     previous = current++)
+                {
+                    Vector2Int a = vertices[current];
+                    Vector2Int b = vertices[previous];
+                    bool crosses = (a.y > y) != (b.y > y) &&
+                        x < (b.x - a.x) * (y - a.y) /
+                        (float)(b.y - a.y) + a.x;
+                    if (crosses)
+                        inside = !inside;
+                }
+                if (inside)
+                    pixels[y * size + x] = color;
+            }
         }
 
         private static void FillIconRect(
@@ -2087,10 +3135,12 @@ namespace ArcaneArena.Multiplayer
             Image panel = CreateImage(
                 parent,
                 "Resultado da Escolha",
-                new Color(0.025f, 0.045f, 0.095f, 0.94f),
-                new Vector2(0.31f, 0.51f),
-                new Vector2(0.69f, 0.68f));
+                Color.clear,
+                Vector2.zero,
+                Vector2.one);
             resultPanel = panel.gameObject;
+            resultPanelGroup = panel.gameObject.AddComponent<CanvasGroup>();
+            preludeImpactSprite = CreateProceduralBurstSprite(false);
             resultLabel = CreateText(
                 panel.transform,
                 "Resultado",
@@ -2100,7 +3150,55 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.04f, 0.08f),
                 new Vector2(0.96f, 0.92f));
             resultLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
+            resultLabel.gameObject.SetActive(false);
+            CreatePreludeResultCaption(
+                panel.transform, "VOCÊ", new Vector2(0.13f, 0.585f),
+                new Vector2(0.31f, 0.635f), font, 16);
+            CreatePreludeResultCaption(
+                panel.transform, "RIVAL", new Vector2(0.69f, 0.585f),
+                new Vector2(0.87f, 0.635f), font, 16);
+            resultLocalChoiceIcon = CreateImage(
+                panel.transform, "Seu símbolo", Color.white,
+                new Vector2(0.13f, 0.275f), new Vector2(0.31f, 0.575f));
+            resultLocalChoiceIcon.preserveAspect = true;
+            Shadow localShadow = resultLocalChoiceIcon.gameObject
+                .AddComponent<Shadow>();
+            localShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
+            localShadow.effectDistance = new Vector2(8f, -9f);
+            resultOpponentChoiceIcon = CreateImage(
+                panel.transform, "Símbolo rival", Color.white,
+                new Vector2(0.69f, 0.275f), new Vector2(0.87f, 0.575f));
+            resultOpponentChoiceIcon.preserveAspect = true;
+            Shadow opponentShadow = resultOpponentChoiceIcon.gameObject
+                .AddComponent<Shadow>();
+            opponentShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
+            opponentShadow.effectDistance = new Vector2(8f, -9f);
+            resultVersusLabel = CreateText(
+                panel.transform, "Versus", font, 32, FontStyle.Bold,
+                new Vector2(0.43f, 0.365f), new Vector2(0.57f, 0.515f));
+            resultVersusLabel.text = "VS";
+            resultVersusLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
             resultPanel.SetActive(false);
+        }
+
+        private static void CreatePreludeResultCaption(
+            Transform parent,
+            string value,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            Font font,
+            int fontSize = 15)
+        {
+            Text caption = CreateText(
+                parent,
+                value,
+                font,
+                fontSize,
+                FontStyle.Bold,
+                anchorMin,
+                anchorMax);
+            caption.text = value;
+            caption.color = new Color(0.66f, 0.93f, 1f, 0.92f);
         }
 
         private void ApplySafeArea()

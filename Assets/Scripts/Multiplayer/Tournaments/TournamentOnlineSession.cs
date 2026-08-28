@@ -1284,6 +1284,12 @@ namespace ArcaneArena.Multiplayer.Tournaments
             }
             if (!AuthenticationService.Instance.IsSignedIn)
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            if (!PlayerIdAccessRuntime.HasAuthorizedSession)
+            {
+                throw new InvalidOperationException(
+                    "A sessão da conta não está autorizada. Entre novamente " +
+                    "antes de entrar no torneio online.");
+            }
         }
 
         private static string CommandLineValue(string name)
