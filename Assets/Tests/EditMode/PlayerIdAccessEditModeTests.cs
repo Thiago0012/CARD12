@@ -30,6 +30,9 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(PlayerIdAccessPolicy.HasGrantedFeature(
                 fallback,
                 PlayerIdFeature.ExclusiveAccountContent), Is.False);
+            Assert.That(PlayerIdAccessPolicy.HasGrantedFeature(
+                fallback,
+                PlayerIdFeature.ExclusiveAnimatedProfileIcons), Is.False);
             Assert.That(fallback.publicId,
                 Does.Match("^[0-9]{12}$"));
             Assert.That(PlayerIdAccessPolicy.FormatPublicId(
@@ -75,18 +78,18 @@ namespace ArcaneDuel.Tests.EditMode
                 serverVerified = true,
                 grantedFeatures = new List<string>
                 {
-                    PlayerIdFeature.ExclusiveAccountContent
+                    PlayerIdFeature.ExclusiveAnimatedProfileIcons
                 }
             };
 
             Assert.That(PlayerIdAccessPolicy.HasGrantedFeature(
                 record,
-                PlayerIdFeature.ExclusiveAccountContent), Is.True);
+                PlayerIdFeature.ExclusiveAnimatedProfileIcons), Is.True);
 
             record.serverVerified = false;
             Assert.That(PlayerIdAccessPolicy.HasGrantedFeature(
                 record,
-                PlayerIdFeature.ExclusiveAccountContent), Is.False);
+                PlayerIdFeature.ExclusiveAnimatedProfileIcons), Is.False);
         }
 
         [Test]

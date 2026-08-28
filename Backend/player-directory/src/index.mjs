@@ -9,6 +9,13 @@ const CHALLENGE_READY_TTL_SECONDS = 300;
 const ACTIVE_CHALLENGE_STATUSES = ["pending", "accepted", "ready"];
 const CAPABILITY_ONLINE = "online";
 const CAPABILITY_RANKED = "ranked";
+const FEATURE_EXCLUSIVE_ANIMATED_PROFILE_ICONS =
+  "exclusive-animated-profile-icons";
+const EXCLUSIVE_ANIMATED_PROFILE_ICON_IDS = new Set([
+  "icon-crimson-veil-arcanist",
+  "icon-azure-tempest-dragon",
+  "icon-violet-eclipse-sorceress"
+]);
 let jwksCache = { expiresAt: 0, keys: [] };
 
 export default {
@@ -84,7 +91,7 @@ async function openOrHeartbeat(request, env, identity, operation) {
   }
 
   const displayName = cleanDisplayName(body.playerDisplayName) || player.display_name;
-  const publicProfile = normalizePublicProfile(body, player, now);
+  const publicProfile = await normalizePublicProfile(env, body, player, now);
   await env.DB.prepare(
     `UPDATE players
        SET display_name = ?, normalized_name = ?, last_seen_utc = ?,
@@ -799,7 +806,7 @@ function cleanSessionId(value) {
   return /^[a-f0-9]{32}$/i.test(text) ? text.toLowerCase() : "";
 }
 
-function normalizePublicProfile(body, current, now) {
+async function normalizePublicProfile(env, body, current, now) {
   const requestedVersion = clampInteger(
     body.publicProfileSchemaVersion,
     0,
@@ -818,9 +825,16 @@ function normalizePublicProfile(body, current, now) {
   }
 
   const proposedIcon = cleanShort(body.equippedIconId, 64).trim();
-  const equippedIconId = KEY_PATTERN.test(proposedIcon)
+  let equippedIconId = KEY_PATTERN.test(proposedIcon)
     ? proposedIcon
     : String(current.equipped_icon_id || "");
+  if (EXCLUSIVE_ANIMATED_PROFILE_ICON_IDS.has(equippedIconId) &&
+      !await playerHasFeature(
+        env,
+        current.unity_player_id,
+        FEATURE_EXCLUSIVE_ANIMATED_PROFILE_ICONS)) {
+    equippedIconId = "icon-arcane-default";
+  }
   const wins = clampInteger(body.wins, 0, 2147483647);
   const losses = clampInteger(body.losses, 0, 2147483647);
   const draws = clampInteger(body.draws, 0, 2147483647);
@@ -839,6 +853,13 @@ function normalizePublicProfile(body, current, now) {
     updatedUtc: now,
     revisionUtcMilliseconds: requestedRevision
   };
+}
+
+async function playerHasFeature(env, playerId, featureKey) {
+  const record = await env.DB.prepare(
+    "SELECT 1 AS granted FROM player_features WHERE unity_player_id = ? AND feature_key = ? LIMIT 1")
+    .bind(playerId, featureKey).first();
+  return Boolean(record);
 }
 
 function clampInteger(value, minimum, maximum) {

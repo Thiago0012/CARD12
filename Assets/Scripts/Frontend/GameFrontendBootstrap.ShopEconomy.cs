@@ -163,6 +163,7 @@ namespace ArcaneArena.Frontend
                 ShowPlayerIdCapabilityBlocked(accessRejection);
                 return;
             }
+            _repository?.SynchronizeExclusiveProfileIconEntitlements();
             PendingPackOpeningRecord pending = _repository?.PendingPackOpening;
             if (pending != null)
             {
@@ -302,7 +303,7 @@ namespace ArcaneArena.Frontend
             }
 
             foreach (ProfileIconDefinition icon in
-                     ProfileIconCatalog.Purchasable)
+                     ProfileIconCatalog.StoreVisible)
             {
                 CreateProfileIconShopTile(content, icon);
             }
