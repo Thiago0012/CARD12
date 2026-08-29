@@ -423,18 +423,12 @@ namespace ArcaneArena.Frontend
             {
                 GameObject markerObject = new(
                     "Marcador do perfil equipado",
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(Image),
-                    typeof(HexIconView));
+                    typeof(RectTransform));
                 markerObject.transform.SetParent(
                     _storyMapStage != null
                         ? _storyMapStage
                         : stage.transform,
                     false);
-                HexIconView markerIcon = markerObject.GetComponent<HexIconView>();
-                markerIcon.SetIcon(save.equippedIconId);
-                markerIcon.SetAccent(Gold);
                 _storyMapMarker = markerObject.GetComponent<RectTransform>();
                 RectTransform marker = _storyMapMarker;
                 SetStoryMarkerPosition(
@@ -442,6 +436,17 @@ namespace ArcaneArena.Frontend
                     StoryRogueliteUiLayout.ResolveMarkerPosition(
                         map,
                         current));
+                // A caixa externa conserva o tamanho do marcador anterior.
+                // O AspectRatioFitter do HexIconView fica somente no filho,
+                // para recortar a arte em hexágono sem recalcular a escala
+                // usando o mapa inteiro como referência.
+                HexIconView markerIcon = CreateHexIcon(
+                    markerObject.transform,
+                    "Ícone hexagonal do jogador",
+                    save.equippedIconId,
+                    Vector2.zero,
+                    Vector2.one);
+                markerIcon.SetAccent(Gold);
                 marker.SetAsLastSibling();
                 _storyMapViewport.Focus(current.NormalizedPosition);
             }
