@@ -20,8 +20,13 @@ namespace ArcaneArena.Frontend
         private const int RunnersPerEdge = 5;
         private const int ParticleCount = 14;
         private const float BaseHexScale = 0.765f;
+        // A malha vetorial é relativamente densa. A 30 Hz a animação segue
+        // suave para uma moldura periférica e evita reconstruir todo o Canvas
+        // em cada frame quando várias identidades estão na mesma tela.
+        private const float MeshRefreshInterval = 1f / 30f;
         private ProfileIconAuraTheme _theme;
         private float _instancePhase;
+        private float _nextMeshRefreshAt;
 
         public ProfileIconAuraTheme Theme => _theme;
 
@@ -40,6 +45,7 @@ namespace ArcaneArena.Frontend
         {
             base.OnEnable();
             raycastTarget = false;
+            _nextMeshRefreshAt = 0f;
             SetVerticesDirty();
         }
 
@@ -50,13 +56,25 @@ namespace ArcaneArena.Frontend
             if (gameObject.activeSelf != visible)
                 gameObject.SetActive(visible);
             if (visible)
+            {
+                _nextMeshRefreshAt = 0f;
                 SetVerticesDirty();
+            }
         }
 
         private void Update()
         {
-            if (_theme != ProfileIconAuraTheme.None && isActiveAndEnabled)
-                SetVerticesDirty();
+            if (_theme == ProfileIconAuraTheme.None || !isActiveAndEnabled)
+                return;
+
+            float now = Application.isPlaying
+                ? Time.unscaledTime
+                : Time.realtimeSinceStartup;
+            if (now < _nextMeshRefreshAt)
+                return;
+
+            _nextMeshRefreshAt = now + MeshRefreshInterval;
+            SetVerticesDirty();
         }
 
         protected override void OnPopulateMesh(VertexHelper vertexHelper)

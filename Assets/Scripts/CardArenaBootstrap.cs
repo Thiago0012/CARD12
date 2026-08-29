@@ -86,6 +86,10 @@ namespace ArcaneArena
         private readonly HashSet<int> selectedPromptIndexes = new();
         private readonly Dictionary<string, CardInstanceKey> renderedZones =
             new(StringComparer.Ordinal);
+        private readonly List<DuelZone3D> cachedDuelZones = new();
+        private ulong cachedDuelZoneSceneHandle = ulong.MaxValue;
+        private float nextDuelZoneCacheValidationAt;
+        private const float DuelZoneCacheValidationSeconds = 0.75f;
 
         private DuelArenaController core;
         private DuelPresentationState state;
@@ -5486,12 +5490,54 @@ namespace ArcaneArena
                     : zone.ZoneIndex == sequence));
         }
 
-        private IEnumerable<DuelZone3D> AllZones()
+        private IReadOnlyList<DuelZone3D> AllZones()
         {
-            return FindObjectsByType<DuelZone3D>(
+            // As zonas físicas são estáveis durante o duelo, mas são usadas
+            // por várias rotinas de atualização. Evitar FindObjectsByType em
+            // cada uma delas remove varreduras e alocações desnecessárias em
+            // aparelhos mais modestos. A validação periódica ainda cobre uma
+            // cena recarregada, uma zona desativada ou uma zona criada depois
+            // da inicialização da arena.
+            ulong sceneHandle = gameObject.scene.handle.GetRawData();
+            bool requiresRefresh = cachedDuelZoneSceneHandle != sceneHandle ||
+                                   cachedDuelZones.Count == 0 ||
+                                   Time.unscaledTime >=
+                                       nextDuelZoneCacheValidationAt;
+            if (!requiresRefresh)
+            {
+                for (int index = 0; index < cachedDuelZones.Count; index++)
+                {
+                    DuelZone3D zone = cachedDuelZones[index];
+                    if (zone == null || !zone.isActiveAndEnabled ||
+                        zone.gameObject.scene.handle.GetRawData() != sceneHandle)
+                    {
+                        requiresRefresh = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!requiresRefresh)
+                return cachedDuelZones;
+
+            cachedDuelZones.Clear();
+            DuelZone3D[] discovered = FindObjectsByType<DuelZone3D>(
                 FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None).Where(zone =>
-                zone != null && zone.gameObject.scene == gameObject.scene);
+                FindObjectsSortMode.None);
+            for (int index = 0; index < discovered.Length; index++)
+            {
+                DuelZone3D zone = discovered[index];
+                if (zone != null && zone.isActiveAndEnabled &&
+                    zone.gameObject.scene.handle.GetRawData() == sceneHandle)
+                {
+                    cachedDuelZones.Add(zone);
+                }
+            }
+
+            cachedDuelZoneSceneHandle = sceneHandle;
+            nextDuelZoneCacheValidationAt = Time.unscaledTime +
+                DuelZoneCacheValidationSeconds;
+            return cachedDuelZones;
         }
 
         // The host arena uses the authored P1/P2 table directly. A joining

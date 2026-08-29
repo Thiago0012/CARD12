@@ -32,6 +32,7 @@ namespace ArcaneArena
 
         private readonly Dictionary<string, PileCounterVisual> pileCounters =
             new(StringComparer.Ordinal);
+        private Camera pileCounterCamera;
 
         private void BuildPileCounterPresentation()
         {
@@ -177,7 +178,7 @@ namespace ArcaneArena
             if (pileCounters.Count == 0 || frame == null)
                 return;
 
-            Camera camera = Camera.main;
+            Camera camera = ResolvePileCounterCamera();
             foreach (PileCounterVisual visual in pileCounters.Values)
             {
                 if (visual?.Rect == null || visual.Group == null ||
@@ -250,6 +251,16 @@ namespace ArcaneArena
                 visual.Rect.localScale = Vector3.one * (1f + pulse + hover);
                 visual.Group.alpha = visual.Hovered ? 1f : 0.86f;
             }
+        }
+
+        private Camera ResolvePileCounterCamera()
+        {
+            if (pileCounterCamera == null ||
+                !pileCounterCamera.isActiveAndEnabled)
+            {
+                pileCounterCamera = Camera.main;
+            }
+            return pileCounterCamera;
         }
 
         private void SetPileCounterHovered(DuelZone3D zone, bool hovered)
