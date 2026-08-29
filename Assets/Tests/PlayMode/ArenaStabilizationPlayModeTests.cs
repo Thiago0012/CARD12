@@ -311,23 +311,36 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [Test]
-        public void DuelClockUsesFiveMinutesAndBonusesOnlyQualifiedTurns()
+        public void DuelClockUsesDecisionOwnershipAndTurnRecoveries()
         {
             Assert.That(
                 DuelArenaController.InitialDuelTimeSeconds,
-                Is.EqualTo(300f));
+                Is.EqualTo(400f));
             Assert.That(
-                DuelArenaController.QualifiedTurnTimeBonusSeconds,
-                Is.EqualTo(3f));
+                DuelArenaController.OwnTurnTimeRecoverySeconds,
+                Is.EqualTo(60f));
             Assert.That(
-                DuelArenaController.QualifiesForDuelClockBonus(0),
-                Is.False);
+                DuelArenaController.OpponentTurnTimeRecoverySeconds,
+                Is.EqualTo(30f));
             Assert.That(
-                DuelArenaController.QualifiesForDuelClockBonus(1),
-                Is.False);
+                DuelArenaController.RecoverDuelTime(120f, 60f),
+                Is.EqualTo(180f));
             Assert.That(
-                DuelArenaController.QualifiesForDuelClockBonus(2),
-                Is.True);
+                DuelArenaController.RecoverDuelTime(385f, 60f),
+                Is.EqualTo(400f));
+            Assert.That(
+                DuelArenaController.ResolveDuelClockPlayer(0, 1),
+                Is.EqualTo(1),
+                "A resposta do oponente deve consumir o relógio dele, " +
+                "mesmo durante o turno do jogador local.");
+            Assert.That(
+                DuelArenaController.ResolveDuelClockPlayer(1, 0),
+                Is.EqualTo(0),
+                "A resposta local deve consumir o relógio local, mesmo " +
+                "durante o turno do oponente.");
+            Assert.That(
+                DuelArenaController.ResolveDuelClockPlayer(1, null),
+                Is.EqualTo(1));
 
             DuelEvent timeout = DuelEvent.CreateAuthoritativeWin(
                 1,

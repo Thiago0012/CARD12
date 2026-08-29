@@ -234,7 +234,7 @@ namespace ArcaneArena
                 TextAnchor.MiddleCenter);
             duelTurnClockValue = CreateText(
                 duelTurnClock.transform,
-                "300 s",
+                "400 s",
                 27,
                 FontStyle.Bold,
                 Color.white,

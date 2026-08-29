@@ -4594,6 +4594,8 @@ namespace ArcaneArena.Multiplayer
                 hostController.ActiveDuelClockPlayer == 1
                     ? (byte)0
                     : (byte)1;
+            state.isDuelClockRunning =
+                hostController.IsDuelClockRunning;
             state.matchId = currentMatchId;
             ulong publicHash = DuelNetworkProtocol
                 .ComputePublicProjectionHash(state);

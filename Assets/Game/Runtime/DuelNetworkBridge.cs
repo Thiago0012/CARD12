@@ -17,6 +17,7 @@ namespace ArcaneDuel.Game
         float LocalDuelTimeRemaining { get; }
         float OpponentDuelTimeRemaining { get; }
         byte ActiveDuelClockPlayer { get; }
+        bool IsDuelClockRunning { get; }
 
         void ApplyTo(
             DuelPresentationState state,

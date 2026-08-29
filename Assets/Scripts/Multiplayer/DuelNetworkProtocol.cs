@@ -29,6 +29,7 @@ namespace ArcaneArena.Multiplayer
         public float localDuelTimeRemaining;
         public float opponentDuelTimeRemaining;
         public byte activeDuelClockPlayer;
+        public bool isDuelClockRunning;
         public DuelNetworkSnapshot snapshot;
         public DuelNetworkPrompt prompt;
 
@@ -40,6 +41,8 @@ namespace ArcaneArena.Multiplayer
             opponentDuelTimeRemaining;
         byte IDuelNetworkState.ActiveDuelClockPlayer =>
             activeDuelClockPlayer;
+        bool IDuelNetworkState.IsDuelClockRunning =>
+            isDuelClockRunning;
 
         void IDuelNetworkState.ApplyTo(
             DuelPresentationState state,
