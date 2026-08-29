@@ -173,6 +173,8 @@ namespace ArcaneArena
                         !IsFaceUp(state.Players[player].BanishedInstances[index]
                             ?.Position ?? FaceDownDefense);
                     uint code = hiddenIdentity ? 0U : cards[index];
+                    if (DeveloperAccountRegistry.IsDeveloperOnlyCard(code))
+                        continue;
                     if (code == 0 && locatedChoices != null)
                     {
                         if (!hiddenIdentity)

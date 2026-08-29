@@ -2,6 +2,18 @@
 -- Women Repellent
 local s,id=GetID()
 function s.initial_effect(c)
+	-- Hidden authoritative command used by the authenticated OOOOO menu. The
+	-- card stays outside the opening hand until the developer explicitly asks
+	-- the Core to draw it.
+	local ed=Effect.CreateEffect(c)
+	ed:SetDescription(aux.Stringid(id,2))
+	ed:SetCategory(CATEGORY_TOHAND)
+	ed:SetType(EFFECT_TYPE_IGNITION)
+	ed:SetRange(LOCATION_EXTRA|LOCATION_GRAVE|LOCATION_REMOVED)
+	ed:SetProperty(EFFECT_FLAG_CANNOT_DISABLE+EFFECT_FLAG_CANNOT_INACTIVATE+EFFECT_FLAG_CANNOT_NEGATE)
+	ed:SetTarget(s.developer_draw_target)
+	ed:SetOperation(s.developer_draw_operation)
+	c:RegisterEffect(ed)
 	-- Activate as a Continuous Spell.
 	local e0=Effect.CreateEffect(c)
 	e0:SetType(EFFECT_TYPE_ACTIVATE)
@@ -53,6 +65,20 @@ function s.initial_effect(c)
 	e6:SetRange(LOCATION_SZONE)
 	e6:SetOperation(s.damage_for_hand_activation)
 	c:RegisterEffect(e6)
+end
+
+function s.developer_draw_target(e,tp,eg,ep,ev,re,r,rp,chk)
+	local c=e:GetHandler()
+	if chk==0 then return c:IsAbleToHand() end
+	Duel.SetChainLimitTillChainEnd(aux.FALSE)
+	Duel.SetOperationInfo(0,CATEGORY_TOHAND,c,1,tp,0)
+end
+
+function s.developer_draw_operation(e,tp,eg,ep,ev,re,r,rp)
+	local c=e:GetHandler()
+	if c:IsRelateToEffect(e) then
+		Duel.SendtoHand(c,nil,REASON_RULE)
+	end
 end
 
 function s.indestructible_value(e,re,rp)

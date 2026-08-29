@@ -72,6 +72,10 @@ namespace ArcaneDuel.DuelEngine.Core
             Array.Empty<uint>();
         public uint[] OpponentAdditionalHandCards { get; set; } =
             Array.Empty<uint>();
+        public uint[] PlayerDeveloperCommandCards { get; set; } =
+            Array.Empty<uint>();
+        public uint[] OpponentDeveloperCommandCards { get; set; } =
+            Array.Empty<uint>();
 
         private static long runtimeSeedCounter;
 
@@ -176,6 +180,7 @@ namespace ArcaneDuel.DuelEngine.Core
         private const ulong TcgSegocNonPublic = 0x100000000UL;
         private const ulong TcgSegocFirstTrigger = 0x200000000UL;
         private const ulong SimpleAi = 0x40UL;
+        private const uint FaceUpAttack = 0x1;
         private const uint FaceDownDefense = 0x8;
         private const uint QueryCode = 0x1;
         private const uint QueryPosition = 0x2;
@@ -735,7 +740,9 @@ namespace ArcaneDuel.DuelEngine.Core
                 configuration.OpponentDeck,
                 configuration.OpponentExtraDeck,
                 configuration.PlayerAdditionalHandCards,
-                configuration.OpponentAdditionalHandCards);
+                configuration.OpponentAdditionalHandCards,
+                configuration.PlayerDeveloperCommandCards,
+                configuration.OpponentDeveloperCommandCards);
             if (unsupported.Length > 0)
             {
                 RuntimeDiagnosticRecorder.Record(
@@ -774,6 +781,12 @@ namespace ArcaneDuel.DuelEngine.Core
             AddInitialHandCards(
                 NativePlayerForLogical(1),
                 configuration.OpponentAdditionalHandCards);
+            AddDeveloperCommandCards(
+                NativePlayerForLogical(0),
+                configuration.PlayerDeveloperCommandCards);
+            AddDeveloperCommandCards(
+                NativePlayerForLogical(1),
+                configuration.OpponentDeveloperCommandCards);
             OcgCoreNative.StartDuel(duel);
             IsStarted = true;
             Emit(new DuelEvent
@@ -879,6 +892,26 @@ namespace ArcaneDuel.DuelEngine.Core
                     DuelLocation.Hand,
                     0,
                     FaceDownDefense);
+            }
+        }
+
+        private void AddDeveloperCommandCards(byte team, uint[] cards)
+        {
+            if (cards == null) return;
+            foreach (uint code in cards)
+            {
+                if (code == 0) continue;
+                // A face-up banished card can offer an ordinary Core ignition
+                // effect without entering the opening hand or consuming an
+                // Extra Deck slot. Presentation code hides these private
+                // command objects; only the authenticated OOOOO menu can send
+                // their exact Core responses.
+                AddCardAtNative(
+                    team,
+                    code,
+                    DuelLocation.Banished,
+                    0,
+                    FaceUpAttack);
             }
         }
 

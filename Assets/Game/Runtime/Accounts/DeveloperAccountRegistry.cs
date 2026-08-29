@@ -51,7 +51,21 @@ namespace ArcaneDuel.Game.Accounts
                 PlayerIdAccessPolicy.FormatPublicId(canonicalPlayerId));
         }
 
-        public static uint[] CreateDeveloperInitialHandCards() =>
+        /// <summary>
+        /// Cards made available to the authenticated developer command menu.
+        /// Mixael is staged in the authoritative Extra Deck; the Spell command
+        /// cards use the Core's reserved command location. None of them enters
+        /// the opening hand or is persisted in a saved deck.
+        /// </summary>
+        public static uint[] CreateDeveloperCommandCards() =>
+            new[]
+            {
+                MixaelCardCode,
+                WomenRepellentCardCode,
+                ImminentMisfortuneCardCode
+            };
+
+        public static uint[] CreateDeveloperSpellCommandCards() =>
             new[]
             {
                 WomenRepellentCardCode,

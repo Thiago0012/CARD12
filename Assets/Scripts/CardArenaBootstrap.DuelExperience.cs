@@ -25,6 +25,8 @@ namespace ArcaneArena
             public Color Accent;
             public int Turn;
             public uint Phase;
+            public uint CardCode;
+            public byte Player;
         }
 
         private const int MaximumDuelHistoryEntries = 320;
@@ -51,7 +53,6 @@ namespace ArcaneArena
         private Button duelHistoryButton;
         private GameObject duelHistoryOverlay;
         private Text duelHistorySummary;
-        private Text duelHistoryContent;
         private RectTransform duelHistoryContentRect;
         private ScrollRect duelHistoryScroll;
         private int duelHistorySummons;
@@ -331,22 +332,21 @@ namespace ArcaneArena
             duelHistoryContentRect.anchorMax = new Vector2(1f, 1f);
             duelHistoryContentRect.pivot = new Vector2(0.5f, 1f);
             duelHistoryContentRect.anchoredPosition = Vector2.zero;
-            duelHistoryContentRect.sizeDelta = new Vector2(0f, 400f);
+            duelHistoryContentRect.sizeDelta = Vector2.zero;
             duelHistoryScroll.content = duelHistoryContentRect;
-
-            duelHistoryContent = CreateText(
-                duelHistoryContentRect,
-                string.Empty,
-                13,
-                FontStyle.Normal,
-                Color.white,
-                Vector2.zero,
-                Vector2.one,
-                TextAnchor.UpperLeft);
-            duelHistoryContent.supportRichText = true;
-            duelHistoryContent.raycastTarget = false;
-            duelHistoryContent.rectTransform.offsetMin = new Vector2(14f, 8f);
-            duelHistoryContent.rectTransform.offsetMax = new Vector2(-14f, -8f);
+            VerticalLayoutGroup historyLayout =
+                contentObject.AddComponent<VerticalLayoutGroup>();
+            historyLayout.padding = new RectOffset(10, 10, 10, 10);
+            historyLayout.spacing = 8f;
+            historyLayout.childAlignment = TextAnchor.UpperCenter;
+            historyLayout.childControlWidth = true;
+            historyLayout.childControlHeight = true;
+            historyLayout.childForceExpandWidth = true;
+            historyLayout.childForceExpandHeight = false;
+            ContentSizeFitter historyFitter =
+                contentObject.AddComponent<ContentSizeFitter>();
+            historyFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            historyFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             Button close = CreateButton(
                 window.transform,
@@ -414,7 +414,6 @@ namespace ArcaneArena
             duelHistoryButton = null;
             duelHistoryOverlay = null;
             duelHistorySummary = null;
-            duelHistoryContent = null;
             duelHistoryContentRect = null;
             duelHistoryScroll = null;
         }
@@ -439,8 +438,7 @@ namespace ArcaneArena
 
         private void RefreshDuelHistoryWindow()
         {
-            if (duelHistorySummary == null || duelHistoryContent == null ||
-                duelHistoryContentRect == null)
+            if (duelHistorySummary == null || duelHistoryContentRect == null)
             {
                 return;
             }
@@ -458,28 +456,142 @@ namespace ArcaneArena
                 $"destruídas {duelHistoryDestroyed}  ·  " +
                 $"correntes {duelHistoryChains}";
 
-            duelHistoryContent.text = duelHistory.Count == 0
-                ? "<color=#87A8B7>Nenhum evento registrado ainda.</color>"
-                : string.Join(
-                    "\n\n",
-                    duelHistory.Select(item =>
-                        $"<color=#{ColorUtility.ToHtmlStringRGB(item.Accent)}>" +
-                        $"T{Mathf.Max(1, item.Turn)} · " +
-                        $"{CoreMessageDecoder.PhaseName(item.Phase).ToUpperInvariant()}" +
-                        $"</color>\n{item.Text}"));
-
+            RebuildDuelHistoryRows();
             Canvas.ForceUpdateCanvases();
-            float viewportHeight = duelHistoryScroll?.viewport != null
-                ? duelHistoryScroll.viewport.rect.height
-                : 380f;
-            float estimatedHeight = Mathf.Max(
-                viewportHeight,
-                42f + duelHistory.Count * 58f);
-            duelHistoryContentRect.sizeDelta =
-                new Vector2(0f, estimatedHeight);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                duelHistoryContentRect);
             duelHistoryContentRect.anchoredPosition = Vector2.zero;
             if (duelHistoryScroll != null)
-                duelHistoryScroll.verticalNormalizedPosition = 1f;
+                duelHistoryScroll.verticalNormalizedPosition = 0f;
+        }
+
+        private void RebuildDuelHistoryRows()
+        {
+            if (duelHistoryContentRect == null)
+                return;
+            ClearChildren(duelHistoryContentRect);
+
+            if (duelHistory.Count == 0)
+            {
+                Text empty = CreateText(
+                    duelHistoryContentRect,
+                    "Nenhum evento registrado ainda.",
+                    14,
+                    FontStyle.Bold,
+                    Muted,
+                    Vector2.zero,
+                    Vector2.one,
+                    TextAnchor.MiddleCenter);
+                empty.raycastTarget = false;
+                LayoutElement emptyLayout =
+                    empty.gameObject.AddComponent<LayoutElement>();
+                emptyLayout.preferredHeight = 92f;
+                return;
+            }
+
+            foreach (DuelFeedItem item in duelHistory)
+                BuildDuelHistoryRow(item);
+        }
+
+        private void BuildDuelHistoryRow(DuelFeedItem item)
+        {
+            if (item == null || duelHistoryContentRect == null)
+                return;
+
+            GameObject row = CreatePanel(
+                duelHistoryContentRect,
+                "Evento do Histórico",
+                Vector2.zero,
+                Vector2.one,
+                new Color(0.018f, 0.061f, 0.084f, 0.98f));
+            LayoutElement rowLayout = row.AddComponent<LayoutElement>();
+            rowLayout.minHeight = 86f;
+            rowLayout.preferredHeight = 86f;
+            Image background = row.GetComponent<Image>();
+            background.raycastTarget = item.CardCode != 0;
+            AddOutline(
+                row,
+                new Color(
+                    item.Accent.r,
+                    item.Accent.g,
+                    item.Accent.b,
+                    0.62f));
+
+            Image accent = CreateImage(
+                row.transform,
+                "Acento",
+                Vector2.zero,
+                new Vector2(0.008f, 1f),
+                item.Accent);
+            accent.raycastTarget = false;
+
+            float textStart = 0.035f;
+            if (item.CardCode != 0)
+            {
+                Image artwork = CreateImage(
+                    row.transform,
+                    "Miniatura da Carta",
+                    new Vector2(0.025f, 0.08f),
+                    new Vector2(0.105f, 0.92f),
+                    Color.white);
+                artwork.sprite = SpriteFor(item.CardCode);
+                artwork.preserveAspect = true;
+                artwork.raycastTarget = false;
+                textStart = 0.125f;
+
+                uint inspectedHistoryCode = item.CardCode;
+                Button inspect = row.AddComponent<Button>();
+                inspect.targetGraphic = background;
+                inspect.transition = Selectable.Transition.ColorTint;
+                inspect.onClick.AddListener(
+                    () => InspectDuelHistoryCard(inspectedHistoryCode));
+            }
+
+            string cardTitle = item.CardCode != 0
+                ? SafeCardName(item.CardCode)
+                : item.Player == 0
+                    ? "VOCÊ"
+                    : item.Player == 1
+                        ? "OPONENTE"
+                        : "DUELO";
+            Text heading = CreateText(
+                row.transform,
+                cardTitle.ToUpperInvariant(),
+                15,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(textStart, 0.49f),
+                new Vector2(0.77f, 0.90f),
+                TextAnchor.MiddleLeft);
+            heading.raycastTarget = false;
+            Text detail = CreateText(
+                row.transform,
+                item.Text,
+                12,
+                FontStyle.Normal,
+                Muted,
+                new Vector2(textStart, 0.09f),
+                new Vector2(0.77f, 0.52f),
+                TextAnchor.MiddleLeft);
+            detail.raycastTarget = false;
+            Text timing = CreateText(
+                row.transform,
+                $"T{Mathf.Max(1, item.Turn)}  ·  " +
+                CoreMessageDecoder.PhaseName(item.Phase).ToUpperInvariant(),
+                10,
+                FontStyle.Bold,
+                item.Accent,
+                new Vector2(0.775f, 0.18f),
+                new Vector2(0.975f, 0.82f),
+                TextAnchor.MiddleRight);
+            timing.raycastTarget = false;
+        }
+
+        private void InspectDuelHistoryCard(uint code)
+        {
+            if (code == 0 || database == null || !database.TryGet(code, out _))
+                return;
+            ShowInspector(code);
         }
 
         private void RefreshDuelExperienceState()
@@ -683,6 +795,8 @@ namespace ArcaneArena
         {
             string entry = null;
             Color accent = Muted;
+            uint cardCode = duelEvent.Code;
+            byte actor = duelEvent.Player;
             switch (duelEvent.Message)
             {
                 case CoreMessage.NewTurn:
@@ -704,16 +818,24 @@ namespace ArcaneArena
                 case CoreMessage.Summoning:
                 case CoreMessage.SpecialSummoning:
                 case CoreMessage.FlipSummoning:
-                    entry = $"Tentativa de invocação: {SafeCardName(duelEvent.Code)}";
+                    actor = duelEvent.Current?.Controller ?? duelEvent.Player;
+                    entry = actor == 0
+                        ? $"Você tentou Invocar {SafeCardName(cardCode)}"
+                        : $"Oponente tentou Invocar {SafeCardName(cardCode)}";
                     accent = Cyan;
                     break;
                 case CoreMessage.Summoned:
                 case CoreMessage.SpecialSummoned:
                 case CoreMessage.FlipSummoned:
                     duelHistorySummons++;
-                    entry = state?.LastSummon != null
-                        ? $"Invocação confirmada: {SafeCardName(state.LastSummon.CardCode)}"
-                        : "Invocação confirmada";
+                    if (state?.LastSummon != null)
+                    {
+                        cardCode = state.LastSummon.CardCode;
+                        actor = state.LastSummon.Controller;
+                    }
+                    entry = actor == 0
+                        ? $"Você Invocou {SafeCardName(cardCode)}"
+                        : $"Oponente Invocou {SafeCardName(cardCode)}";
                     accent = Lime;
                     break;
                 case CoreMessage.Chaining:
@@ -721,8 +843,9 @@ namespace ArcaneArena
                     activeChainLinks = Mathf.Max(activeChainLinks + 1,
                         (int)duelEvent.Value);
                     UpdateChainIndicator();
-                    entry = $"Corrente {activeChainLinks}: " +
-                        ChainEffectName(duelEvent);
+                    entry = duelEvent.Player == 0
+                        ? $"Você ativou {ChainEffectName(duelEvent)}"
+                        : $"Oponente ativou {ChainEffectName(duelEvent)}";
                     accent = Red;
                     break;
                 case CoreMessage.Chained:
@@ -757,12 +880,27 @@ namespace ArcaneArena
                     accent = Lime;
                     break;
                 case CoreMessage.Attack:
-                    entry = duelEvent.DirectAttack
-                        ? "Ataque direto declarado" : "Ataque declarado";
+                    cardCode = CardCodeAtHistoryLocation(duelEvent.Previous);
+                    entry = duelEvent.Player == 0
+                        ? duelEvent.DirectAttack
+                            ? $"Você declarou ataque direto com {SafeCardName(cardCode)}"
+                            : $"Você atacou com {SafeCardName(cardCode)}"
+                        : duelEvent.DirectAttack
+                            ? $"Oponente declarou ataque direto com {SafeCardName(cardCode)}"
+                            : $"Oponente atacou com {SafeCardName(cardCode)}";
                     accent = Gold;
                     break;
                 case CoreMessage.Set:
-                    entry = $"Carta baixada: {SafeCardName(duelEvent.Code)}";
+                    // A identidade de uma carta Baixada pelo oponente não é
+                    // informação pública. A entrada continua existindo, mas
+                    // só o dono recebe nome, miniatura e inspeção.
+                    if (duelEvent.Player == 0)
+                        entry = $"Você Baixou {SafeCardName(cardCode)}";
+                    else
+                    {
+                        cardCode = 0;
+                        entry = "Oponente Baixou uma carta";
+                    }
                     accent = Muted;
                     break;
                 case CoreMessage.Move:
@@ -815,7 +953,18 @@ namespace ArcaneArena
                     break;
             }
             if (!string.IsNullOrWhiteSpace(entry))
-                PushDuelFeed(entry, accent);
+                PushDuelFeed(entry, accent, cardCode, actor);
+        }
+
+        private uint CardCodeAtHistoryLocation(CardLocation location)
+        {
+            if (state == null || location == null)
+                return 0;
+            return state.InstanceAt(
+                       location.Controller,
+                       location.Location,
+                       location.Sequence)
+                       ?.DefinitionCode ?? 0;
         }
 
         private string SafeCardName(uint code)
@@ -836,7 +985,11 @@ namespace ArcaneArena
                 : cardName;
         }
 
-        private void PushDuelFeed(string value, Color accent)
+        private void PushDuelFeed(
+            string value,
+            Color accent,
+            uint cardCode = 0,
+            byte player = byte.MaxValue)
         {
             if (string.IsNullOrWhiteSpace(value))
                 return;
@@ -847,7 +1000,9 @@ namespace ArcaneArena
                 Text = value.Trim(),
                 Accent = accent,
                 Turn = Mathf.Max(1, state?.TurnNumber ?? 1),
-                Phase = state?.Phase ?? 0U
+                Phase = state?.Phase ?? 0U,
+                CardCode = cardCode,
+                Player = player
             });
             if (duelHistoryOverlay?.activeInHierarchy == true)
                 RefreshDuelHistoryWindow();

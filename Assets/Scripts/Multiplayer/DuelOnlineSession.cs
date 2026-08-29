@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ArcaneArena;
@@ -556,10 +557,7 @@ namespace ArcaneArena.Multiplayer
 
         public bool IsHost => role == SessionRole.Host;
         public CompetitivePolicy CompetitivePolicy => competitivePolicy;
-        public bool DeveloperCardsAllowed =>
-            IsOnlineDuelActive &&
-            competitivePolicy != CompetitivePolicy.Ranked &&
-            activeTournamentContext == null;
+        public bool DeveloperCardsAllowed => IsOnlineDuelActive;
         public string CurrentMatchId => currentMatchId ?? string.Empty;
         public string Status => status;
         public string RoomCode => roomCode;
@@ -4027,32 +4025,25 @@ namespace ArcaneArena.Multiplayer
             uint[] localExtra = ParseCardCodes(localLoadout.extraDeckCardIds);
             uint[] remoteMain = ParseCardCodes(remoteLoadout.mainDeckCardIds);
             uint[] remoteExtra = ParseCardCodes(remoteLoadout.extraDeckCardIds);
-            bool developerCardsAllowed =
-                competitivePolicy != CompetitivePolicy.Ranked &&
-                activeTournamentContext == null;
-            bool localDeveloper = developerCardsAllowed &&
+            bool localDeveloper =
                 PlayerIdAccessRuntime.HasAuthorizedSession &&
                 DeveloperAccountRegistry.IsDeveloperCanonicalId(
                     PlayerIdAccessRuntime.CanonicalPlayerId);
-            bool remoteDeveloper = developerCardsAllowed &&
+            bool remoteDeveloper =
                 DeveloperAccountRegistry.IsDeveloperCanonicalId(
                     remoteCanonicalPlayerId);
-            localExtra = InjectDeveloperExtraDeckCard(
+            localExtra = InjectDeveloperMixael(
                 localExtra,
-                localDeveloper,
-                competitivePolicy);
-            remoteExtra = InjectDeveloperExtraDeckCard(
+                localDeveloper);
+            remoteExtra = InjectDeveloperMixael(
                 remoteExtra,
-                remoteDeveloper,
-                competitivePolicy);
-            uint[] localDeveloperHand =
-                CreateDeveloperInitialHandCards(
-                    localDeveloper,
-                    competitivePolicy);
-            uint[] remoteDeveloperHand =
-                CreateDeveloperInitialHandCards(
-                    remoteDeveloper,
-                    competitivePolicy);
+                remoteDeveloper);
+            uint[] localDeveloperCommands = localDeveloper
+                ? DeveloperAccountRegistry.CreateDeveloperSpellCommandCards()
+                : Array.Empty<uint>();
+            uint[] remoteDeveloperCommands = remoteDeveloper
+                ? DeveloperAccountRegistry.CreateDeveloperSpellCommandCards()
+                : Array.Empty<uint>();
             if (localMain.Length < 40 || remoteMain.Length < 40)
             {
                 status = "Um dos decks não possui 40 cartas válidas no catálogo local.";
@@ -4073,8 +4064,10 @@ namespace ArcaneArena.Multiplayer
                         remoteMain,
                         remoteExtra,
                         onlineStartingPlayer,
-                        playerAdditionalHandCards: localDeveloperHand,
-                        opponentAdditionalHandCards: remoteDeveloperHand))
+                        playerAdditionalHandCards: Array.Empty<uint>(),
+                        opponentAdditionalHandCards: Array.Empty<uint>(),
+                        playerDeveloperCommandCards: localDeveloperCommands,
+                        opponentDeveloperCommandCards: remoteDeveloperCommands))
                 {
                     throw new InvalidOperationException(
                         "O ygopro-core não confirmou o início do duelo online.");
@@ -4115,36 +4108,22 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
-        private static uint[] InjectDeveloperExtraDeckCard(
+        private static uint[] InjectDeveloperMixael(
             uint[] source,
-            bool authenticatedDeveloper,
-            CompetitivePolicy policy)
+            bool authenticatedDeveloper)
         {
             uint[] cards = source ?? Array.Empty<uint>();
-            if (!authenticatedDeveloper ||
-                policy == CompetitivePolicy.Ranked ||
-                Array.IndexOf(
+            if (!authenticatedDeveloper)
+                return cards;
+
+            if (Array.IndexOf(
                     cards,
                     DeveloperAccountRegistry.MixaelCardCode) >= 0)
-            {
                 return cards;
-            }
 
-            var result = new uint[cards.Length + 1];
-            Array.Copy(cards, result, cards.Length);
-            result[result.Length - 1] =
-                DeveloperAccountRegistry.MixaelCardCode;
-            return result;
-        }
-
-        private static uint[] CreateDeveloperInitialHandCards(
-            bool authenticatedDeveloper,
-            CompetitivePolicy policy)
-        {
-            return authenticatedDeveloper &&
-                   policy != CompetitivePolicy.Ranked
-                ? DeveloperAccountRegistry.CreateDeveloperInitialHandCards()
-                : Array.Empty<uint>();
+            return cards
+                .Concat(new[] { DeveloperAccountRegistry.MixaelCardCode })
+                .ToArray();
         }
 
         private void OnHostCoreEvent(DuelEvent duelEvent)

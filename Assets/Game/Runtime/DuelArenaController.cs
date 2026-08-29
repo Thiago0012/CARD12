@@ -1895,7 +1895,9 @@ namespace ArcaneDuel.Game
             uint playerStartingLifePoints = 8000,
             uint opponentStartingLifePoints = 8000,
             uint[] playerAdditionalHandCards = null,
-            uint[] opponentAdditionalHandCards = null)
+            uint[] opponentAdditionalHandCards = null,
+            uint[] playerDeveloperCommandCards = null,
+            uint[] opponentDeveloperCommandCards = null)
         {
             completionNotified = false;
             presentationDecisionLocked = false;
@@ -1960,6 +1962,10 @@ namespace ArcaneDuel.Game
                 playerAdditionalHandCards?.ToArray() ?? Array.Empty<uint>();
             configuration.OpponentAdditionalHandCards =
                 opponentAdditionalHandCards?.ToArray() ?? Array.Empty<uint>();
+            configuration.PlayerDeveloperCommandCards =
+                playerDeveloperCommandCards?.ToArray() ?? Array.Empty<uint>();
+            configuration.OpponentDeveloperCommandCards =
+                opponentDeveloperCommandCards?.ToArray() ?? Array.Empty<uint>();
             configuration.StartingPlayer = startingPlayer > 0
                 ? (byte)1
                 : (byte)0;
@@ -2012,6 +2018,8 @@ namespace ArcaneDuel.Game
                 $"opponentMain={opponentMain.Length}, opponentExtra={opponentExtra?.Length ?? 0}, "+
                 $"additionalHands={configuration.PlayerAdditionalHandCards.Length}/" +
                 $"{configuration.OpponentAdditionalHandCards.Length}, " +
+                $"developerCommands={configuration.PlayerDeveloperCommandCards.Length}/" +
+                $"{configuration.OpponentDeveloperCommandCards.Length}, " +
                 $"seed={configuration.Seed:X16}.");
             return true;
         }

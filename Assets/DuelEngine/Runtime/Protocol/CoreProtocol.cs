@@ -519,7 +519,6 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 case CoreMessage.DeckTop:
                 case CoreMessage.ShuffleExtra:
                 case CoreMessage.ConfirmExtraTop:
-                case CoreMessage.Set:
                 case CoreMessage.CardSelected:
                 case CoreMessage.RandomSelected:
                 case CoreMessage.DamageStepStart:
@@ -527,6 +526,16 @@ namespace ArcaneDuel.DuelEngine.Protocol
                 case CoreMessage.BeChainTarget:
                     result.Detail = $"Evento de duelo {message}.";
                     reader.Skip(reader.Remaining);
+                    break;
+                case CoreMessage.Set:
+                    // MSG_SET carries the public identity and location of the
+                    // card that was placed.  Keeping those fields allows the
+                    // presentation/history layer to render the owner's Set
+                    // card without guessing from a later snapshot. Network
+                    // serialization still redacts a face-down opponent card.
+                    result.Code = reader.UInt32();
+                    result.Current = reader.Location();
+                    result.Player = result.Current.Controller;
                     break;
                 case CoreMessage.FieldDisabled:
                     DecodeFieldDisabled(reader, result);

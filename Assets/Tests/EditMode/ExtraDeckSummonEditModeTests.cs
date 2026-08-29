@@ -7,6 +7,7 @@ using ArcaneDuel.DuelEngine.Data;
 using ArcaneDuel.DuelEngine.Protocol;
 using ArcaneDuel.DuelEngine.State;
 using ArcaneDuel.Game;
+using ArcaneDuel.Game.Accounts;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -42,6 +43,82 @@ namespace ArcaneDuel.Tests.EditMode
                 new[] { DarkMagician },
                 Polymerization,
                 new[] { ApprenticeIllusionMagician });
+        }
+
+        [Test]
+        public void DeveloperCardsStayOutOfOpeningHandUntilMenuCommand()
+        {
+            uint[] fillerDeck = Enumerable.Repeat(BlueEyesWhiteDragon, 40)
+                .ToArray();
+            uint[] developerCards =
+                DeveloperAccountRegistry.CreateDeveloperCommandCards();
+            var configuration = new DuelConfiguration
+            {
+                StartingHand = 5,
+                Seed = 0x0D3E10A000000001UL,
+                ShuffleMainDecks = false,
+                SimpleOpponentAi = false,
+                PlayerDeck = (uint[])fillerDeck.Clone(),
+                OpponentDeck = (uint[])fillerDeck.Clone(),
+                PlayerExtraDeck = new[]
+                {
+                    DeveloperAccountRegistry.MixaelCardCode
+                },
+                OpponentExtraDeck = Array.Empty<uint>(),
+                PlayerDeveloperCommandCards =
+                    DeveloperAccountRegistry.CreateDeveloperSpellCommandCards()
+            };
+
+            bool inspectedIdlePrompt = false;
+            using (OcgDuelEngine engine =
+                   OcgDuelEngine.CreateDefault(configuration))
+            {
+                engine.Start();
+                int decisions = 0;
+                while (!engine.IsFinished &&
+                       !inspectedIdlePrompt &&
+                       decisions++ < 100)
+                {
+                    DuelPrompt prompt = engine.CurrentPrompt;
+                    Assert.That(prompt, Is.Not.Null);
+                    if (prompt.Player == 0 &&
+                        prompt.Message == CoreMessage.SelectIdleCommand)
+                    {
+                        inspectedIdlePrompt = true;
+                        Assert.That(
+                            engine.EventHistory
+                                .Where(duelEvent =>
+                                    duelEvent.Message == CoreMessage.Draw &&
+                                    duelEvent.Player == 0)
+                                .SelectMany(duelEvent =>
+                                    duelEvent.Codes ?? Array.Empty<uint>())
+                                .Any(
+                                    DeveloperAccountRegistry
+                                        .IsDeveloperOnlyCard),
+                            Is.False,
+                            "No developer card may spawn in the opening hand.");
+                        foreach (uint code in developerCards)
+                        {
+                            uint expectedLocation = code ==
+                                DeveloperAccountRegistry.MixaelCardCode
+                                    ? DuelLocation.Extra
+                                    : DuelLocation.Banished;
+                            Assert.That(
+                                prompt.Choices.Any(choice =>
+                                    choice.CardCode == code &&
+                                    choice.HasLocation &&
+                                    (choice.Location & expectedLocation) != 0),
+                                Is.True,
+                                $"The Core did not expose developer command {code}.");
+                        }
+                        break;
+                    }
+                    engine.SubmitResponse(
+                        DeterministicDuelPolicy.Choose(prompt).Response);
+                }
+            }
+
+            Assert.That(inspectedIdlePrompt, Is.True);
         }
 
         [Test]

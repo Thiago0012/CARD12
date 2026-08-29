@@ -99,7 +99,7 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [Test]
-        public void DeveloperMixaelShortcutAndOnlineInjectionStayAuthoritative()
+        public void DeveloperMenuAndOnlineInjectionStayAuthoritative()
         {
             System.Type arenaType = System.AppDomain.CurrentDomain
                 .GetAssemblies()
@@ -125,19 +125,19 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(
                 shortcutChoice.Invoke(null, new object[] { localizedSummon }),
                 Is.True,
-                "MMM must accept the Core's current localized summon label.");
+                "OOOOO must accept the Core's current localized summon label.");
             Assert.That(
                 shortcutChoice.Invoke(null, new object[] { activation }),
                 Is.False,
-                "MMM must never submit an activation or a fabricated response.");
+                "OOOOO must never submit an activation or a fabricated response.");
 
             MethodInfo spellShortcutChoice = arenaType.GetMethod(
-                "IsDeveloperSpellActivationChoice",
+                "IsDeveloperCardDrawChoice",
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(spellShortcutChoice, Is.Not.Null);
-            DuelChoice repelenteActivation = LocatedChoice(
-                "Ativar card",
-                (byte)DuelLocation.Hand,
+            DuelChoice repelenteDraw = LocatedChoice(
+                "Adicionar este card à mão",
+                (byte)DuelLocation.Banished,
                 DeveloperAccountRegistry.WomenRepellentCardCode,
                 new byte[] { 0, 0, 0, 0 });
             Assert.That(
@@ -146,18 +146,19 @@ namespace ArcaneDuel.Tests.PlayMode
                     new object[]
                     {
                         new DuelPrompt(),
-                        repelenteActivation,
+                        repelenteDraw,
                         DeveloperAccountRegistry.WomenRepellentCardCode
                     }),
                 Is.True,
-                "LLL must submit only the Core activation offered from hand.");
+                "OOOOO must submit only the Core draw command offered from " +
+                "a private authoritative location.");
             Assert.That(
                 spellShortcutChoice.Invoke(
                     null,
                     new object[]
                     {
                         new DuelPrompt(),
-                        repelenteActivation,
+                        repelenteDraw,
                         DeveloperAccountRegistry.ImminentMisfortuneCardCode
                     }),
                 Is.False,
@@ -170,7 +171,7 @@ namespace ArcaneDuel.Tests.PlayMode
                     false))
                 .First(type => type != null);
             MethodInfo inject = sessionType.GetMethod(
-                "InjectDeveloperExtraDeckCard",
+                "InjectDeveloperMixael",
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(inject, Is.Not.Null);
             var ordinaryExtra = new[] { RelinquishedAnima };
@@ -179,8 +180,7 @@ namespace ArcaneDuel.Tests.PlayMode
                 new object[]
                 {
                     ordinaryExtra,
-                    true,
-                    CompetitivePolicy.Unranked
+                    true
                 });
             Assert.That(
                 unranked,
@@ -195,8 +195,7 @@ namespace ArcaneDuel.Tests.PlayMode
                     new object[]
                     {
                         ordinaryExtra,
-                        false,
-                        CompetitivePolicy.Unranked
+                        false
                     }),
                 Is.EqualTo(ordinaryExtra),
                 "A non-developer identity must never receive the card.");
@@ -205,52 +204,23 @@ namespace ArcaneDuel.Tests.PlayMode
                     null,
                     new object[]
                     {
-                        ordinaryExtra,
-                        true,
-                        CompetitivePolicy.Ranked
-                    }),
-                Is.EqualTo(ordinaryExtra),
-                "Developer shortcuts must stay out of ranked matches.");
-            Assert.That(
-                (uint[])inject.Invoke(
-                    null,
-                    new object[]
-                    {
                         unranked,
-                        true,
-                        CompetitivePolicy.Unranked
+                        true
                     }),
                 Is.EqualTo(unranked),
-                "Reconnect/start retries must not duplicate the dev card.");
+                "All gameplay modes expose the authenticated menu and " +
+                "reconnect/start retries must not duplicate its cards.");
 
-            MethodInfo createDeveloperHand = sessionType.GetMethod(
-                "CreateDeveloperInitialHandCards",
-                BindingFlags.Static | BindingFlags.NonPublic);
-            Assert.That(createDeveloperHand, Is.Not.Null);
-            uint[] developerHand = (uint[])createDeveloperHand.Invoke(
-                null,
-                new object[] { true, CompetitivePolicy.Unranked });
             Assert.That(
-                developerHand,
+                DeveloperAccountRegistry.CreateDeveloperCommandCards(),
                 Is.EqualTo(new[]
                 {
+                    DeveloperAccountRegistry.MixaelCardCode,
                     DeveloperAccountRegistry.WomenRepellentCardCode,
                     DeveloperAccountRegistry.ImminentMisfortuneCardCode
                 }),
-                "Authenticated unranked developers receive both spell cards " +
-                "through the authoritative initial hand.");
-            Assert.That(
-                (uint[])createDeveloperHand.Invoke(
-                    null,
-                    new object[] { false, CompetitivePolicy.Unranked }),
-                Is.Empty,
-                "Ordinary accounts must not receive developer cards.");
-            Assert.That(
-                (uint[])createDeveloperHand.Invoke(
-                    null,
-                    new object[] { true, CompetitivePolicy.Ranked }),
-                Is.Empty,
-                "Developer spell shortcuts must stay out of ranked matches.");
+                "The command menu owns all three cards without adding any " +
+                "of them to the opening hand.");
 
             CardDatabase cardDatabase = CardDatabase.LoadDefault();
             Assert.That(
@@ -293,6 +263,9 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(
                 repelenteScript,
                 Does.Contain("Duel.Damage(opponent,count*100"));
+            Assert.That(
+                repelenteScript,
+                Does.Contain("LOCATION_EXTRA|LOCATION_GRAVE|LOCATION_REMOVED"));
             string misfortuneScript = File.ReadAllText(Path.Combine(
                 Application.streamingAssetsPath,
                 "Ygo",
@@ -304,6 +277,9 @@ namespace ArcaneDuel.Tests.PlayMode
             Assert.That(
                 misfortuneScript,
                 Does.Contain("Duel.NegateActivation(ev)"));
+            Assert.That(
+                misfortuneScript,
+                Does.Contain("Duel.SendtoHand(c,nil,REASON_RULE)"));
         }
 
         [UnityTest]

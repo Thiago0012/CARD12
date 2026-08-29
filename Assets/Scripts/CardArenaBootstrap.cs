@@ -52,7 +52,7 @@ namespace ArcaneArena
             DeveloperAccountRegistry.WomenRepellentCardCode;
         private const uint DeveloperImminentMisfortuneCode =
             DeveloperAccountRegistry.ImminentMisfortuneCardCode;
-        private const float DeveloperShortcutComboWindow = 1.1f;
+        private const float DeveloperShortcutComboWindow = 1.4f;
 
         [SerializeField] private List<Sprite> cardSprites = new();
         [SerializeField] private Sprite cardBackSprite;
@@ -169,13 +169,11 @@ namespace ArcaneArena
         private bool presentationReady;
         private bool criticalInteractionLocked;
         private float nextPassiveRefreshTime;
-        private bool developerMixaelInjected;
-        private int developerMixaelKeyPresses;
-        private float lastDeveloperMixaelKeyPressTime = -100f;
-        private int developerWomenRepellentKeyPresses;
-        private float lastDeveloperWomenRepellentKeyPressTime = -100f;
-        private int developerImminentMisfortuneKeyPresses;
-        private float lastDeveloperImminentMisfortuneKeyPressTime = -100f;
+        private bool developerCardsInjected;
+        private int developerMenuKeyPresses;
+        private float lastDeveloperMenuKeyPressTime = -100f;
+        private GameObject developerMenuOverlay;
+        private Text developerMenuStatus;
 
         private bool InteractionLocked =>
             criticalInteractionLocked ||
@@ -403,8 +401,7 @@ namespace ArcaneArena
             UpdateOnlineInteractionWaitStatus();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
-            UpdateDeveloperMixaelShortcut();
-            UpdateDeveloperSpellShortcuts();
+            UpdateDeveloperMenuShortcut();
             EnsureRequiredResponseTrayVisible();
             if (Time.unscaledTime >= nextPassiveRefreshTime)
                 RefreshEverything(false);
@@ -433,121 +430,256 @@ namespace ArcaneArena
                        PlayerIdAccessRuntime.PublicPlayerId);
         }
 
-        private void UpdateDeveloperMixaelShortcut()
+        private void UpdateDeveloperMenuShortcut()
         {
             if (!CanUseDeveloperCards() ||
                 core == null ||
                 core.IsFinished)
             {
-                developerMixaelKeyPresses = 0;
+                developerMenuKeyPresses = 0;
                 return;
             }
 
-            if (UnityEngine.InputSystem.Keyboard.current?.mKey
+            if (UnityEngine.InputSystem.Keyboard.current?.oKey
                     .wasPressedThisFrame != true)
             {
                 return;
             }
 
             float now = Time.unscaledTime;
-            if (now - lastDeveloperMixaelKeyPressTime >
+            if (now - lastDeveloperMenuKeyPressTime >
                 DeveloperShortcutComboWindow)
             {
-                developerMixaelKeyPresses = 0;
+                developerMenuKeyPresses = 0;
             }
-            lastDeveloperMixaelKeyPressTime = now;
-            developerMixaelKeyPresses++;
-            if (developerMixaelKeyPresses < 3)
+            lastDeveloperMenuKeyPressTime = now;
+            developerMenuKeyPresses++;
+            if (developerMenuKeyPresses < 5)
                 return;
 
-            developerMixaelKeyPresses = 0;
+            developerMenuKeyPresses = 0;
+            OpenDeveloperCardMenu();
+        }
+
+        private void OpenDeveloperCardMenu()
+        {
+            if (!CanUseDeveloperCards() || frame == null)
+                return;
+            if (InteractionLocked)
+            {
+                SetStatus(
+                    "Aguarde a apresentação atual terminar para abrir o menu de Dev.",
+                    Muted);
+                return;
+            }
+
+            if (developerMenuOverlay == null)
+                BuildDeveloperCardMenu();
+            if (developerMenuOverlay == null)
+                return;
+
+            OpenExclusiveDuelUiSurface(
+                DuelUiSurfaceKind.DeveloperMenu,
+                core.CurrentPrompt);
+            RefreshDeveloperCardMenuStatus();
+            developerMenuOverlay.SetActive(true);
+            developerMenuOverlay.transform.SetAsLastSibling();
+        }
+
+        private void BuildDeveloperCardMenu()
+        {
+            developerMenuOverlay = CreatePanel(
+                frame,
+                "Menu de Cartas de Desenvolvedor",
+                Vector2.zero,
+                Vector2.one,
+                new Color(0.002f, 0.008f, 0.018f, 0.94f));
+            developerMenuOverlay.GetComponent<Image>().raycastTarget = true;
+
+            GameObject window = CreatePanel(
+                developerMenuOverlay.transform,
+                "Central do Menu de Desenvolvedor",
+                new Vector2(0.16f, 0.18f),
+                new Vector2(0.84f, 0.82f),
+                new Color(0.010f, 0.035f, 0.055f, 0.995f));
+            AttachDuelSurface(
+                window,
+                "Superfície do Menu de Desenvolvedor",
+                Gold,
+                true,
+                0.98f,
+                false,
+                12f);
+            Text title = CreateText(
+                window.transform,
+                "MENU DE DESENVOLVEDOR",
+                24,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.04f, 0.88f),
+                new Vector2(0.96f, 0.97f),
+                TextAnchor.MiddleCenter);
+            title.raycastTarget = false;
+            Text subtitle = CreateText(
+                window.transform,
+                "ESCOLHA A CARTA · A RESPOSTA É VALIDADA PELO CORE",
+                11,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.04f, 0.82f),
+                new Vector2(0.96f, 0.89f),
+                TextAnchor.MiddleCenter);
+            subtitle.raycastTarget = false;
+
+            BuildDeveloperCardOption(
+                window.transform,
+                DeveloperMixaelCode,
+                "MIXAEL, O OLHAR MALDITO",
+                "INVOCAR",
+                new Vector2(0.04f, 0.22f),
+                new Vector2(0.32f, 0.81f));
+            BuildDeveloperCardOption(
+                window.transform,
+                DeveloperWomenRepellentCode,
+                "REPELENTE DE MULHERES",
+                "PUXAR",
+                new Vector2(0.36f, 0.22f),
+                new Vector2(0.64f, 0.81f));
+            BuildDeveloperCardOption(
+                window.transform,
+                DeveloperImminentMisfortuneCode,
+                "ZONA DE PROBABILIDADE · AZAR IMINENTE",
+                "PUXAR",
+                new Vector2(0.68f, 0.22f),
+                new Vector2(0.96f, 0.81f));
+
+            developerMenuStatus = CreateText(
+                window.transform,
+                string.Empty,
+                11,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.06f, 0.10f),
+                new Vector2(0.72f, 0.20f),
+                TextAnchor.MiddleLeft);
+            developerMenuStatus.raycastTarget = false;
+            CreateButton(
+                window.transform,
+                "Fechar Menu de Desenvolvedor",
+                "FECHAR",
+                new Vector2(0.74f, 0.08f),
+                new Vector2(0.94f, 0.19f),
+                Cyan,
+                CloseDeveloperCardMenu);
+            developerMenuOverlay.SetActive(false);
+        }
+
+        private void BuildDeveloperCardOption(
+            Transform parent,
+            uint cardCode,
+            string cardName,
+            string action,
+            Vector2 anchorMin,
+            Vector2 anchorMax)
+        {
+            GameObject tile = CreatePanel(
+                parent,
+                cardName,
+                anchorMin,
+                anchorMax,
+                new Color(0.018f, 0.061f, 0.084f, 0.98f));
+            AddOutline(tile, Cyan);
+            Image background = tile.GetComponent<Image>();
+            var button = tile.AddComponent<Button>();
+            button.targetGraphic = background;
+            button.transition = Selectable.Transition.ColorTint;
+            button.onClick.AddListener(() => SelectDeveloperCard(cardCode));
+
+            Image artwork = CreateImage(
+                tile.transform,
+                "Arte",
+                new Vector2(0.14f, 0.28f),
+                new Vector2(0.86f, 0.94f),
+                Color.white);
+            artwork.sprite = SpriteFor(cardCode);
+            artwork.preserveAspect = true;
+            artwork.raycastTarget = false;
+            Text name = CreateText(
+                tile.transform,
+                cardName,
+                12,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.05f, 0.10f),
+                new Vector2(0.95f, 0.28f),
+                TextAnchor.MiddleCenter);
+            name.raycastTarget = false;
+            Text actionLabel = CreateText(
+                tile.transform,
+                action,
+                10,
+                FontStyle.Bold,
+                Gold,
+                new Vector2(0.05f, 0.01f),
+                new Vector2(0.95f, 0.105f),
+                TextAnchor.MiddleCenter);
+            actionLabel.raycastTarget = false;
+        }
+
+        private void RefreshDeveloperCardMenuStatus()
+        {
+            if (developerMenuStatus == null)
+                return;
+            DuelPrompt prompt = core?.CurrentPrompt;
+            developerMenuStatus.text =
+                prompt != null &&
+                prompt.Message == CoreMessage.SelectIdleCommand &&
+                prompt.Player == 0
+                    ? "PRONTO · escolha uma opção disponível."
+                    : "AGUARDE SUA PRIORIDADE NA FASE PRINCIPAL.";
+            developerMenuStatus.color =
+                prompt?.Message == CoreMessage.SelectIdleCommand &&
+                prompt.Player == 0
+                    ? Lime
+                    : Muted;
+        }
+
+        private void SelectDeveloperCard(uint cardCode)
+        {
+            if (!CanUseDeveloperCards() || core == null || core.IsFinished)
+                return;
+
             DuelPrompt prompt = core.CurrentPrompt;
-            DuelChoice summon = prompt?.Choices.FirstOrDefault(choice =>
-                IsDeveloperMixaelSummonChoice(choice));
+            DuelChoice command = prompt?.Choices.FirstOrDefault(choice =>
+                cardCode == DeveloperMixaelCode
+                    ? IsDeveloperMixaelSummonChoice(choice)
+                    : IsDeveloperCardDrawChoice(prompt, choice, cardCode));
             if (prompt == null ||
                 prompt.Message != CoreMessage.SelectIdleCommand ||
                 prompt.Player != 0 ||
-                summon == null)
+                command == null)
             {
-                SetStatus(
-                    "Mixael só pode ser chamado com prioridade na Fase Principal e uma zona de monstro livre.",
-                    Gold);
+                if (developerMenuStatus != null)
+                {
+                    developerMenuStatus.text = cardCode == DeveloperMixaelCode
+                        ? "MIXAEL requer sua prioridade e uma Zona de Monstro legal livre."
+                        : "Esta carta já está disponível ou o Core ainda não oferece a compra.";
+                    developerMenuStatus.color = Gold;
+                }
                 return;
             }
 
-            core.SubmitChoice(summon);
+            CloseDeveloperCardMenu(false);
+            core.SubmitChoice(command);
+            RefreshEverything(true);
             SetStatus(
-                "MIXAEL · escolha uma zona de monstro livre.",
+                cardCode == DeveloperMixaelCode
+                    ? "MIXAEL · escolha uma Zona de Monstro livre."
+                    : $"{CardName(cardCode).ToUpperInvariant()} · adicionando à mão pelo Core.",
                 Cyan);
         }
 
-        private void UpdateDeveloperSpellShortcuts()
-        {
-            if (!CanUseDeveloperCards() ||
-                core == null ||
-                core.IsFinished)
-            {
-                developerWomenRepellentKeyPresses = 0;
-                developerImminentMisfortuneKeyPresses = 0;
-                return;
-            }
-
-            var keyboard = UnityEngine.InputSystem.Keyboard.current;
-            UpdateDeveloperSpellShortcut(
-                keyboard?.lKey.wasPressedThisFrame == true,
-                ref developerWomenRepellentKeyPresses,
-                ref lastDeveloperWomenRepellentKeyPressTime,
-                DeveloperWomenRepellentCode,
-                "REPELENTE DE MULHERES");
-            UpdateDeveloperSpellShortcut(
-                keyboard?.rKey.wasPressedThisFrame == true,
-                ref developerImminentMisfortuneKeyPresses,
-                ref lastDeveloperImminentMisfortuneKeyPressTime,
-                DeveloperImminentMisfortuneCode,
-                "AZAR IMINENTE");
-        }
-
-        private void UpdateDeveloperSpellShortcut(
-            bool pressedThisFrame,
-            ref int pressCount,
-            ref float lastPressTime,
-            uint cardCode,
-            string displayName)
-        {
-            if (!pressedThisFrame)
-                return;
-
-            float now = Time.unscaledTime;
-            if (now - lastPressTime > DeveloperShortcutComboWindow)
-                pressCount = 0;
-            lastPressTime = now;
-            pressCount++;
-            if (pressCount < 3)
-                return;
-
-            pressCount = 0;
-            DuelPrompt prompt = core.CurrentPrompt;
-            DuelChoice activation = prompt?.Choices.FirstOrDefault(choice =>
-                IsDeveloperSpellActivationChoice(
-                    prompt,
-                    choice,
-                    cardCode));
-            if (prompt == null ||
-                prompt.Message != CoreMessage.SelectIdleCommand ||
-                prompt.Player != 0 ||
-                activation == null)
-            {
-                SetStatus(
-                    $"{displayName} só pode ser ativada com prioridade na Fase Principal e uma zona legal livre.",
-                    Gold);
-                return;
-            }
-
-            core.SubmitChoice(activation);
-            SetStatus($"{displayName} · ativação enviada ao Core.", Cyan);
-        }
-
-        private static bool IsDeveloperSpellActivationChoice(
+        private static bool IsDeveloperCardDrawChoice(
             DuelPrompt prompt,
             DuelChoice choice,
             uint cardCode)
@@ -556,8 +688,26 @@ namespace ArcaneArena
                    choice.CardCode == cardCode &&
                    choice.HasLocation &&
                    choice.Controller == 0 &&
-                   (choice.Location & DuelLocation.Hand) != 0 &&
+                   (choice.Location & (DuelLocation.Extra |
+                                       DuelLocation.Graveyard |
+                                       DuelLocation.Banished)) != 0 &&
                    IsEffectActivationChoice(prompt, choice);
+        }
+
+        private void CloseDeveloperCardMenu()
+        {
+            CloseDeveloperCardMenu(true);
+        }
+
+        private void CloseDeveloperCardMenu(bool restorePrompt)
+        {
+            if (developerMenuOverlay != null)
+                developerMenuOverlay.SetActive(false);
+            MarkDuelUiSurfaceClosed(DuelUiSurfaceKind.DeveloperMenu);
+            if (restorePrompt)
+                RestoreSuspendedPromptIfCurrent();
+            else
+                suspendedDuelPrompt = null;
         }
 
         private static bool IsDeveloperMixaelSummonChoice(
@@ -586,7 +736,9 @@ namespace ArcaneArena
             UpdateFieldActionMenuPosition();
             UpdateFieldRelationPresentation();
             UpdatePileCounterPresentation();
-            if (choiceModal?.activeInHierarchy == true)
+            if (developerMenuOverlay?.activeInHierarchy == true)
+                developerMenuOverlay.transform.SetAsLastSibling();
+            else if (choiceModal?.activeInHierarchy == true)
                 choiceModal.transform.SetAsLastSibling();
             else if (compactResponseBar?.activeInHierarchy == true)
                 compactResponseBar.transform.SetAsLastSibling();
@@ -644,6 +796,8 @@ namespace ArcaneArena
             DuelDeckLoadout requestedPlayer,
             byte startingPlayer)
         {
+            developerMenuKeyPresses = 0;
+            developerMenuOverlay?.SetActive(false);
             localDamageDealtInDuel = 0;
             localDamageReceivedInDuel = 0;
             responseWindowLimiter.Reset();
@@ -707,18 +861,19 @@ namespace ArcaneArena
             uint[] playerExtra = ParseCodes(player.extraDeckCardIds);
             uint[] opponentMain = ParseCodes(opponent.mainDeckCardIds);
             uint[] opponentExtra = ParseCodes(opponent.extraDeckCardIds);
-            developerMixaelInjected = CanUseDeveloperCards();
-            uint[] developerInitialHandCards = developerMixaelInjected
-                ? DeveloperAccountRegistry.CreateDeveloperInitialHandCards()
+            developerCardsInjected = CanUseDeveloperCards();
+            uint[] developerSpellCommands = developerCardsInjected
+                ? DeveloperAccountRegistry.CreateDeveloperSpellCommandCards()
                 : Array.Empty<uint>();
-            if (developerMixaelInjected &&
-                !playerExtra.Contains(DeveloperMixaelCode))
+            if (developerCardsInjected)
             {
-                // A carta nunca altera o Deck salvo do jogador: ela existe
-                // apenas na configuração deste duelo local e só para o ID de
-                // desenvolvimento autorizado.
+                // Os comandos nunca alteram o Deck salvo nem a mão inicial.
+                // Eles ficam em uma localização autoritativa reservada até que
+                // a conta de desenvolvimento escolha uma carta em OOOOO.
                 playerExtra = playerExtra
-                    .Concat(new[] { DeveloperMixaelCode })
+                    .Concat(playerExtra.Contains(DeveloperMixaelCode)
+                        ? Array.Empty<uint>()
+                        : new[] { DeveloperMixaelCode })
                     .ToArray();
             }
             StoryDuelLaunchContext storyContext =
@@ -758,7 +913,9 @@ namespace ArcaneArena
                         minimumMain,
                         (uint)(storyContext?.playerLifePoints ?? 8000),
                         (uint)(storyContext?.opponentLifePoints ?? 8000),
-                        developerInitialHandCards,
+                        Array.Empty<uint>(),
+                        Array.Empty<uint>(),
+                        developerSpellCommands,
                         Array.Empty<uint>()))
                 {
                     throw new InvalidOperationException(
@@ -2645,6 +2802,9 @@ namespace ArcaneArena
             foreach (DuelChoice choice in prompt.Choices)
             {
                 if (!choice.HasLocation) continue;
+                if (DeveloperAccountRegistry.IsDeveloperOnlyCard(
+                        choice.CardCode))
+                    continue;
                 bool extraDeckSummon =
                     IsExtraDeckSummonChoice(prompt, choice);
                 bool graveyardOrBanishment =
@@ -2708,6 +2868,8 @@ namespace ArcaneArena
             foreach (DuelChoice choice in prompt.Choices)
             {
                 if (choice == null || !choice.HasLocation ||
+                    DeveloperAccountRegistry.IsDeveloperOnlyCard(
+                        choice.CardCode) ||
                     !DuelPromptPresentationRules.IsEffectCandidate(
                         prompt,
                         choice))
@@ -2834,9 +2996,11 @@ namespace ArcaneArena
                 {
                     int pileOwner = StatePlayerForZone(zone);
                     int pileCount = zone.Kind == DuelZoneKind.Graveyard
-                        ? state.Players[pileOwner].Graveyard.Count
+                        ? VisibleDeveloperFilteredPileCount(
+                            state.Players[pileOwner].Graveyard)
                         : zone.Kind == DuelZoneKind.Banishment
-                            ? state.Players[pileOwner].Banished.Count
+                            ? VisibleDeveloperFilteredPileCount(
+                                state.Players[pileOwner].Banished)
                             : 0;
                     specialWell.SetCardCount(pileCount);
                 }
@@ -5113,7 +5277,8 @@ namespace ArcaneArena
             else if (zone.Kind == DuelZoneKind.Graveyard)
                 code = state.Players[player].Graveyard.LastOrDefault();
             else if (zone.Kind == DuelZoneKind.Banishment)
-                code = state.Players[player].Banished.LastOrDefault();
+                code = state.Players[player].Banished.LastOrDefault(value =>
+                    !DeveloperAccountRegistry.IsDeveloperOnlyCard(value));
 
             if (code == 0 && IsLocalZone(zone))
             {
@@ -5489,7 +5654,7 @@ namespace ArcaneArena
                 DuelZoneKind.Graveyard =>
                     $"Cemitério · {state.Players[player].Graveyard.Count} cartas",
                 DuelZoneKind.Banishment =>
-                    $"Banimento · {state.Players[player].Banished.Count} cartas",
+                    $"Banimento · {VisibleDeveloperFilteredPileCount(state.Players[player].Banished)} cartas",
                 DuelZoneKind.Monster when zone.ZoneIndex >= 5 =>
                     $"Zona de Monstro Adicional {zone.ZoneIndex - 4}",
                 DuelZoneKind.Monster =>
@@ -5508,6 +5673,13 @@ namespace ArcaneArena
                     ? "Zona desconhecida"
                     : zone.StableId
             };
+        }
+
+        private static int VisibleDeveloperFilteredPileCount(
+            IEnumerable<uint> cards)
+        {
+            return cards?.Count(code =>
+                !DeveloperAccountRegistry.IsDeveloperOnlyCard(code)) ?? 0;
         }
 
         private string ChoiceLabel(DuelChoice choice)
