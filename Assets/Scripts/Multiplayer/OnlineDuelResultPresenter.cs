@@ -373,7 +373,7 @@ namespace ArcaneArena.Multiplayer
                 barBackground.transform,
                 "RankBarValue",
                 font,
-                16,
+                23,
                 FontStyle.Bold,
                 Vector2.zero,
                 Vector2.one);

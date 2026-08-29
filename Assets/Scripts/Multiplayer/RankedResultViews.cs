@@ -48,8 +48,8 @@ namespace ArcaneArena.Multiplayer
             {
                 valueLabel.text = tier == RankTier.GrandMaster &&
                                   absolutePoints >= RankRules.MaximumPoints
-                    ? "MAX · 200 PE"
-                    : $"{inside}/25 · {absolutePoints} PE";
+                    ? "200 PE · MAX"
+                    : $"{absolutePoints} PE";
             }
             if (remainingLabel == null)
                 return;
@@ -64,7 +64,8 @@ namespace ArcaneArena.Multiplayer
                 RankTier next = (RankTier)((int)tier + 1);
                 int remaining = definition.Maximum + 1 - absolutePoints;
                 remainingLabel.text =
-                    $"{remaining} PE PARA {RankRules.DisplayName(next)}";
+                    $"{inside}/25 · {remaining} PE PARA " +
+                    RankRules.DisplayName(next);
             }
         }
 
@@ -1014,8 +1015,7 @@ namespace ArcaneArena.Multiplayer
                     cursor,
                     segmentEnd,
                     start,
-                    end,
-                    1.05f * Mathf.Max(0.2f, end - start));
+                    end);
                 cursor = segmentEnd;
                 if (cursor != nextFloor || visualTier >= receipt.newTier)
                     continue;
@@ -1052,8 +1052,7 @@ namespace ArcaneArena.Multiplayer
                     cursor,
                     segmentEnd,
                     start,
-                    end,
-                    1.05f * Mathf.Max(0.2f, start - end));
+                    end);
                 cursor = segmentEnd;
                 if (receipt.newPoints >= floor || visualTier <= receipt.newTier)
                     break;
@@ -1080,30 +1079,51 @@ namespace ArcaneArena.Multiplayer
             int fromPoints,
             int toPoints,
             float from,
-            float to,
-            float duration)
+            float to)
         {
-            duration = Mathf.Clamp(duration, 0.20f, 1.25f);
-            for (float elapsed = 0f; elapsed < duration;
-                 elapsed += Time.unscaledDeltaTime)
+            int direction = Math.Sign(toPoints - fromPoints);
+            int pointCount = Math.Abs(toPoints - fromPoints);
+            if (direction == 0 || pointCount == 0)
             {
-                if (skipRequested)
-                    yield break;
-                float t = EaseInOutCubic(elapsed / duration);
-                int points = Mathf.RoundToInt(Mathf.Lerp(
-                    fromPoints,
-                    toPoints,
-                    t));
-                bar.SetVisual(tier, Mathf.Lerp(from, to, t), points);
-                float pulse = Mathf.Sin(t * Mathf.PI);
-                bool positive = toPoints >= fromPoints;
-                bar.SetMotionEnergy(pulse, positive);
-                banner.SetDeltaMotion(pulse, positive);
-                yield return null;
+                bar.SetVisual(tier, to, toPoints);
+                yield break;
+            }
+
+            const float secondsPerPoint = 0.095f;
+            bool positive = direction > 0;
+            for (int index = 0; index < pointCount; index++)
+            {
+                int currentPoints = fromPoints + direction * index;
+                int nextPoints = currentPoints + direction;
+                float startProgress = Mathf.Lerp(
+                    from,
+                    to,
+                    index / (float)pointCount);
+                float endProgress = Mathf.Lerp(
+                    from,
+                    to,
+                    (index + 1) / (float)pointCount);
+                bar.SetVisual(tier, startProgress, currentPoints);
+                for (float elapsed = 0f; elapsed < secondsPerPoint;
+                     elapsed += Time.unscaledDeltaTime)
+                {
+                    if (skipRequested)
+                        yield break;
+                    float t = EaseInOutCubic(elapsed / secondsPerPoint);
+                    bar.SetVisual(
+                        tier,
+                        Mathf.Lerp(startProgress, endProgress, t),
+                        currentPoints);
+                    float pulse = Mathf.Sin(t * Mathf.PI);
+                    bar.SetMotionEnergy(pulse, positive);
+                    banner.SetDeltaMotion(pulse, positive);
+                    yield return null;
+                }
+                bar.SetVisual(tier, endProgress, nextPoints);
             }
             bar.SetVisual(tier, to, toPoints);
             bar.ClearMotionEnergy();
-            banner.SetDeltaMotion(0f, toPoints >= fromPoints);
+            banner.SetDeltaMotion(0f, positive);
         }
 
         private IEnumerator PresentTierChange(
