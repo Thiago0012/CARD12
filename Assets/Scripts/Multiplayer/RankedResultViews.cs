@@ -396,21 +396,13 @@ namespace ArcaneArena.Multiplayer
         public void Initialize(RawImage output)
         {
             viewport = output;
-            viewportGroup = viewport != null
-                ? viewport.GetComponent<CanvasGroup>() ??
-                  viewport.gameObject.AddComponent<CanvasGroup>()
-                : null;
             if (viewport != null)
             {
                 viewport.raycastTarget = false;
                 viewport.color = Color.white;
             }
-            if (viewportGroup != null)
-            {
+            if (EnsureViewportGroup())
                 viewportGroup.alpha = 0f;
-                viewportGroup.blocksRaycasts = false;
-                viewportGroup.interactable = false;
-            }
         }
 
         public IEnumerator Play(
@@ -418,7 +410,8 @@ namespace ArcaneArena.Multiplayer
             RankTier newTier,
             bool promotion)
         {
-            if (viewport == null || oldTier == newTier)
+            if (viewport == null || oldTier == newTier ||
+                !EnsureViewportGroup())
                 yield break;
 
             EnsureScene();
@@ -452,7 +445,7 @@ namespace ArcaneArena.Multiplayer
 
         public void Hide()
         {
-            if (viewportGroup != null)
+            if (EnsureViewportGroup())
                 viewportGroup.alpha = 0f;
             if (stage != null)
                 stage.gameObject.SetActive(false);
@@ -462,6 +455,23 @@ namespace ArcaneArena.Multiplayer
         {
             skipRequested = true;
             Hide();
+        }
+
+        private bool EnsureViewportGroup()
+        {
+            if (viewport == null)
+                return false;
+            if (viewportGroup == null)
+            {
+                viewportGroup = viewport.GetComponent<CanvasGroup>();
+                if (viewportGroup == null)
+                    viewportGroup = viewport.gameObject.AddComponent<CanvasGroup>();
+            }
+            if (viewportGroup == null)
+                return false;
+            viewportGroup.blocksRaycasts = false;
+            viewportGroup.interactable = false;
+            return true;
         }
 
         public void ResetSequence()
@@ -706,7 +716,8 @@ namespace ArcaneArena.Multiplayer
         private void PrepareTransition(bool promotion, Color accent)
         {
             stage.gameObject.SetActive(true);
-            viewportGroup.alpha = 0f;
+            if (EnsureViewportGroup())
+                viewportGroup.alpha = 0f;
             stage.localRotation = Quaternion.Euler(0f, 0f, 0f);
             renderCamera.transform.localPosition = new Vector3(0f, 0.04f, -7.85f);
             outgoing.root.localPosition = Vector3.zero;
@@ -734,23 +745,28 @@ namespace ArcaneArena.Multiplayer
             float handoff = SmoothRange(time, 0.28f, 0.62f);
             float settle = SmoothRange(time, 0.62f, 1f);
             float direction = promotion ? 1f : -1f;
+            float cinematicArc = Mathf.Sin(
+                Mathf.SmoothStep(0f, 1f, time) * Mathf.PI);
 
-            viewportGroup.alpha = Mathf.Clamp01(
-                Mathf.Min(entry * 1.35f, (1f - settle) * 1.85f));
+            if (EnsureViewportGroup())
+            {
+                viewportGroup.alpha = Mathf.Clamp01(
+                    Mathf.Min(entry * 1.35f, (1f - settle) * 1.85f));
+            }
             stage.localRotation = Quaternion.Euler(
-                Mathf.Sin(time * Mathf.PI) * 7f,
+                cinematicArc * 7f,
                 Mathf.Lerp(-15f * direction, 12f * direction, handoff),
                 Mathf.Sin(time * Mathf.PI * 2f) * 4f);
             renderCamera.transform.localPosition = new Vector3(
                 0f,
                 0.04f,
-                Mathf.Lerp(-7.85f, -5.72f, Mathf.Sin(time * Mathf.PI)));
+                Mathf.Lerp(-7.85f, -5.72f, cinematicArc));
 
             outgoing.root.localPosition = new Vector3(
                 0f,
-                Mathf.Lerp(0f, 0.78f * direction, handoff),
-                Mathf.Lerp(0f, 0.46f, handoff));
-            outgoing.root.localScale = Vector3.one * Mathf.Lerp(1f, 1.42f, handoff);
+                Mathf.Lerp(0f, 1.86f * direction, handoff),
+                Mathf.Lerp(0f, 0.68f, handoff));
+            outgoing.root.localScale = Vector3.one * Mathf.Lerp(1f, 1.58f, handoff);
             outgoing.root.localRotation = Quaternion.Euler(
                 7f * Mathf.Sin(time * Mathf.PI),
                 Mathf.Lerp(0f, -92f * direction, handoff),
@@ -769,7 +785,7 @@ namespace ArcaneArena.Multiplayer
             SetModelOpacity(incoming, handoff);
 
             if (keyLight != null)
-                keyLight.intensity = Mathf.Lerp(0.95f, 2.15f, Mathf.Sin(time * Mathf.PI));
+                keyLight.intensity = Mathf.Lerp(0.95f, 2.15f, cinematicArc);
             for (int index = 0; index < energyFragments.Count; index++)
             {
                 Transform fragment = energyFragments[index];
@@ -785,13 +801,13 @@ namespace ArcaneArena.Multiplayer
                     time * 480f + index * 19f,
                     time * 260f + index * 31f,
                     time * 610f + index * 13f);
-                float scale = Mathf.Lerp(0.45f, 1.25f, Mathf.Sin(time * Mathf.PI));
+                float scale = Mathf.Lerp(0.45f, 1.25f, cinematicArc);
                 fragment.localScale = Vector3.one * 0.075f * scale;
             }
             SetMaterialColor(fragmentMaterial, Color.Lerp(
                 Color.white,
                 accent,
-                0.65f + 0.25f * Mathf.Sin(time * Mathf.PI)), true);
+                0.65f + 0.25f * cinematicArc), true);
         }
 
         private static float SmoothRange(float value, float start, float end)

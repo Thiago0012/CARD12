@@ -200,9 +200,9 @@ namespace ArcaneArena.Multiplayer
             AddModernSurface(
                 panel,
                 "Superfície do Resultado Ranqueado",
-                new Color(0.93f, 0.66f, 0.18f, 1f),
-                0.95f,
-                18f);
+                new Color(0.15f, 0.82f, 1f, 1f),
+                0.68f,
+                22f);
 
             GameObject bannerObject = new GameObject(
                 "RankResultBanner",
@@ -237,11 +237,37 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.30f, 0.19f),
                 new Vector2(0.70f, 0.27f));
 
+            Image rankCoreFrame = CreateImage(
+                panel.transform,
+                "RankCinematicFrame",
+                Color.clear,
+                new Vector2(0.285f, 0.245f),
+                new Vector2(0.715f, 0.765f));
+            AddModernSurface(
+                rankCoreFrame,
+                "Moldura holográfica do elo",
+                new Color(0.24f, 0.88f, 1f, 1f),
+                0.38f,
+                20f);
+
             RawImage cinematicViewport = CreateRawImage(
                 panel.transform,
                 "RankPromotionCinematicViewport",
                 new Vector2(0.285f, 0.245f),
                 new Vector2(0.715f, 0.765f));
+
+            Image currentMiniFrame = CreateImage(
+                panel.transform,
+                "CurrentRankMiniFrame",
+                Color.clear,
+                new Vector2(0.06f, 0.33f),
+                new Vector2(0.29f, 0.71f));
+            AddModernSurface(
+                currentMiniFrame,
+                "Moldura do elo atual",
+                new Color(0.20f, 0.75f, 1f, 1f),
+                0.30f,
+                13f);
 
             Image currentMini = CreateImage(
                 panel.transform,
@@ -259,6 +285,19 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.06f, 0.27f),
                 new Vector2(0.29f, 0.35f));
 
+            Image centerFrame = CreateImage(
+                panel.transform,
+                "CurrentRankCenterFrame",
+                Color.clear,
+                new Vector2(0.325f, 0.325f),
+                new Vector2(0.675f, 0.765f));
+            AddModernSurface(
+                centerFrame,
+                "Moldura central do elo",
+                new Color(0.26f, 0.90f, 1f, 1f),
+                0.42f,
+                22f);
+
             Image center = CreateImage(
                 panel.transform,
                 "CurrentRankLarge",
@@ -274,7 +313,20 @@ namespace ArcaneArena.Multiplayer
                 FontStyle.Bold,
                 new Vector2(0.28f, 0.27f),
                 new Vector2(0.72f, 0.36f));
-            centerLabel.color = new Color(0.95f, 0.78f, 0.30f, 1f);
+            centerLabel.color = new Color(0.60f, 0.94f, 1f, 1f);
+
+            Image nextMiniFrame = CreateImage(
+                panel.transform,
+                "NextRankMiniFrame",
+                Color.clear,
+                new Vector2(0.71f, 0.33f),
+                new Vector2(0.94f, 0.71f));
+            AddModernSurface(
+                nextMiniFrame,
+                "Moldura do próximo elo",
+                new Color(0.48f, 0.62f, 1f, 1f),
+                0.30f,
+                13f);
 
             Image nextMini = CreateImage(
                 panel.transform,
@@ -357,6 +409,11 @@ namespace ArcaneArena.Multiplayer
                 Vector2.zero,
                 Vector2.one);
             skipText.text = "PULAR ANIMAÇÃO";
+
+            // A textura 3D fica acima das molduras somente durante a troca.
+            // Seu CanvasGroup começa invisível, portanto não interfere com o
+            // emblema estático ou com os controles fora da animação.
+            cinematicViewport.transform.SetAsLastSibling();
 
             RankPointsBarView barView =
                 rankedRoot.AddComponent<RankPointsBarView>();
