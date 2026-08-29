@@ -92,6 +92,7 @@ namespace ArcaneArena.Editor
             Button settings = FindButton(authoredRoot, "CONFIG");
             Button profile = FindButton(authoredRoot, "PERFIL", false);
             Button friends = FindButton(authoredRoot, "AMIGOS", false);
+            Button missions = FindButton(authoredRoot, "MISS", false);
             if (duel == null || decks == null || shop == null ||
                 settings == null)
             {
@@ -111,7 +112,8 @@ namespace ArcaneArena.Editor
                 multiplayer,
                 settings,
                 profile,
-                friends);
+                friends,
+                missions);
             authoredRoot.gameObject.SetActive(true);
             ShopSceneInstaller.EnsureForScene(scene, view);
             EditorUtility.SetDirty(view);

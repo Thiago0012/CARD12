@@ -233,6 +233,12 @@ namespace ArcaneArena.Frontend
                 record.winner = request.isWinner;
                 record.draw = request.isDraw;
                 State.processedShopTransactions.Add(record);
+                RecordEligibleMissionCoins(
+                    transactionId,
+                    coins,
+                    true,
+                    false,
+                    false);
                 Save();
                 receipt = ToRewardReceipt(record, status);
                 return true;

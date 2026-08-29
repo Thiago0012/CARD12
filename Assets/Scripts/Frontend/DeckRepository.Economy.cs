@@ -689,6 +689,7 @@ namespace ArcaneArena.Frontend
             NormalizeCoinRewardAuthorizationState(CurrentSchemaVersion);
             NormalizeRankState(CurrentSchemaVersion);
             NormalizePlayerProfileState(CurrentSchemaVersion);
+            NormalizeMissionState(CurrentSchemaVersion);
         }
 
         private static int SecureIndex(int count)

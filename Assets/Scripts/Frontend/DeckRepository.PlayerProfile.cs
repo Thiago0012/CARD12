@@ -441,6 +441,12 @@ namespace ArcaneArena.Frontend
                     State.statistics.processedResultIds.Count -
                     MaximumProcessedStatisticResults);
             }
+            RecordMissionDuelResult(
+                resultId,
+                winner,
+                online,
+                ranked,
+                damageDealt);
             Save();
             return true;
         }
@@ -503,6 +509,12 @@ namespace ArcaneArena.Frontend
                     State.statistics.processedEventIds.Count -
                     MaximumProcessedStatisticResults);
             }
+            RecordMissionStatisticEvent(
+                eventId,
+                eventType,
+                amount,
+                online,
+                ranked);
             Save();
             return true;
         }

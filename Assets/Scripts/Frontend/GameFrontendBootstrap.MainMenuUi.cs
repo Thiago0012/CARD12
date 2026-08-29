@@ -39,6 +39,7 @@ namespace ArcaneArena.Frontend
 
         public void ShowMainMenu()
         {
+            _missionsUiVisible = false;
             if (_deckEditorNewMarkersWereShown)
             {
                 _repository?.ClearPendingDeckEditorNewCards();
@@ -59,9 +60,11 @@ namespace ArcaneArena.Frontend
                 _mainMenuSceneView.Bind(this);
                 _mainMenuSceneView.SetMainMenuVisible(true);
                 RefreshAuthoredMainMenuArtwork();
+                EnsureMissionsReadyInBackground();
                 return;
             }
             BuildTemplateMainMenu();
+            EnsureMissionsReadyInBackground();
         }
 
         private bool TryAttachAuthoredMainMenu()
@@ -181,6 +184,13 @@ namespace ArcaneArena.Frontend
         {
             FrontendClickAudio.Play();
             OpenPlayerSearchFromBell();
+        }
+
+        public void MainMenuMissions()
+        {
+            FrontendClickAudio.Play();
+            _missionSyncRequestedForView = false;
+            ShowMissionsScreen();
         }
 
         private void BuildTemplateMainMenu()
@@ -1041,9 +1051,8 @@ namespace ArcaneArena.Frontend
             Image image = item.GetComponent<Image>();
             image.sprite = RankBadgeCatalog.Get(tier);
             image.preserveAspect = true;
-            image.color = tier == RankTier.Bronze
-                ? new Color(0.72f, 0.34f, 0.12f, Mathf.Clamp01(alpha))
-                : new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
+            image.material = null;
+            image.color = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
             image.raycastTarget = false;
             return image;
         }

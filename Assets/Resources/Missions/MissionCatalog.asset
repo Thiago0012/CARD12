@@ -1,0 +1,448 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69c7eaf0394f4b4e94df96791bcc80d6, type: 3}
+  m_Name: MissionCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.Frontend.MissionCatalog
+  catalogVersion: 1
+  definitions:
+  - missionId: t1-destroy-5
+    displayName: Quebre a formação
+    description: Destrua 5 cartas.
+    tier: 1
+    category: 0
+    scope: 0
+    metric: 0
+    targetValue: 5
+    rewardCoins: 8
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-summon-10
+    displayName: Reúna suas forças
+    description: Invoque 10 monstros.
+    tier: 1
+    category: 0
+    scope: 0
+    metric: 1
+    targetValue: 10
+    rewardCoins: 8
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-online-2
+    displayName: Entre na arena
+    description: Conclua 2 duelos online.
+    tier: 1
+    category: 1
+    scope: 1
+    metric: 2
+    targetValue: 2
+    rewardCoins: 10
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-login
+    displayName: Presença confirmada
+    description: Entre no jogo neste ciclo.
+    tier: 1
+    category: 2
+    scope: 0
+    metric: 9
+    targetValue: 1
+    rewardCoins: 10
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-damage-3000
+    displayName: Primeiro impacto
+    description: Cause 3.000 de dano em duelos online.
+    tier: 1
+    category: 1
+    scope: 1
+    metric: 4
+    targetValue: 3000
+    rewardCoins: 10
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-trap-5
+    displayName: Armadilha preparada
+    description: Ative 5 Armadilhas.
+    tier: 1
+    category: 0
+    scope: 0
+    metric: 5
+    targetValue: 5
+    rewardCoins: 8
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-spell-5
+    displayName: Primeira fórmula
+    description: Ative 5 Magias.
+    tier: 1
+    category: 0
+    scope: 0
+    metric: 6
+    targetValue: 5
+    rewardCoins: 8
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-win-1
+    displayName: Primeira vitória online
+    description: Vença 1 duelo online.
+    tier: 1
+    category: 1
+    scope: 1
+    metric: 3
+    targetValue: 1
+    rewardCoins: 12
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-summon-6-online
+    displayName: Presença na rede
+    description: Invoque 6 monstros em duelos online.
+    tier: 1
+    category: 1
+    scope: 1
+    metric: 1
+    targetValue: 6
+    rewardCoins: 10
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-destroy-3-online
+    displayName: Ruptura conectada
+    description: Destrua 3 cartas em duelos online.
+    tier: 1
+    category: 1
+    scope: 1
+    metric: 0
+    targetValue: 3
+    rewardCoins: 10
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-damage-5000-global
+    displayName: Golpe de abertura
+    description: Cause 5.000 de dano em qualquer duelo.
+    tier: 1
+    category: 0
+    scope: 0
+    metric: 4
+    targetValue: 5000
+    rewardCoins: 9
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t1-ranked-play-1
+    displayName: Entrada competitiva
+    description: Conclua 1 duelo ranqueado.
+    tier: 1
+    category: 1
+    scope: 2
+    metric: 2
+    targetValue: 1
+    rewardCoins: 12
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-destroy-20
+    displayName: Campo desfeito
+    description: Destrua 20 cartas.
+    tier: 2
+    category: 0
+    scope: 0
+    metric: 0
+    targetValue: 20
+    rewardCoins: 20
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-summon-40
+    displayName: Exército arcano
+    description: Invoque 40 monstros.
+    tier: 2
+    category: 0
+    scope: 0
+    metric: 1
+    targetValue: 40
+    rewardCoins: 20
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-online-5
+    displayName: Duelista conectado
+    description: Conclua 5 duelos online.
+    tier: 2
+    category: 1
+    scope: 1
+    metric: 2
+    targetValue: 5
+    rewardCoins: 20
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-win-3
+    displayName: Sequência vitoriosa
+    description: Vença 3 duelos online.
+    tier: 2
+    category: 1
+    scope: 1
+    metric: 3
+    targetValue: 3
+    rewardCoins: 25
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-damage-10000
+    displayName: Pressão constante
+    description: Cause 10.000 de dano.
+    tier: 2
+    category: 0
+    scope: 0
+    metric: 4
+    targetValue: 10000
+    rewardCoins: 22
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-activate-15
+    displayName: Domínio das fórmulas
+    description: Ative 15 Magias ou Armadilhas.
+    tier: 2
+    category: 0
+    scope: 0
+    metric: 7
+    targetValue: 15
+    rewardCoins: 20
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-spell-12
+    displayName: Biblioteca arcana
+    description: Ative 12 Magias.
+    tier: 2
+    category: 0
+    scope: 0
+    metric: 6
+    targetValue: 12
+    rewardCoins: 20
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-trap-10
+    displayName: Rede de contenção
+    description: Ative 10 Armadilhas.
+    tier: 2
+    category: 0
+    scope: 0
+    metric: 5
+    targetValue: 10
+    rewardCoins: 20
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-ranked-play-3
+    displayName: Circuito competitivo
+    description: Conclua 3 duelos ranqueados.
+    tier: 2
+    category: 1
+    scope: 2
+    metric: 2
+    targetValue: 3
+    rewardCoins: 25
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-ranked-win-2
+    displayName: Ascensão ranqueada
+    description: Vença 2 duelos ranqueados.
+    tier: 2
+    category: 1
+    scope: 2
+    metric: 3
+    targetValue: 2
+    rewardCoins: 30
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-online-summon-25
+    displayName: Exército conectado
+    description: Invoque 25 monstros em duelos online.
+    tier: 2
+    category: 1
+    scope: 1
+    metric: 1
+    targetValue: 25
+    rewardCoins: 24
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t2-online-destroy-12
+    displayName: Demolição online
+    description: Destrua 12 cartas em duelos online.
+    tier: 2
+    category: 1
+    scope: 1
+    metric: 0
+    targetValue: 12
+    rewardCoins: 24
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-destroy-50-online
+    displayName: Ruptura total
+    description: Destrua 50 cartas em duelos online.
+    tier: 3
+    category: 1
+    scope: 1
+    metric: 0
+    targetValue: 50
+    rewardCoins: 40
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-win-6
+    displayName: Conquistador da rede
+    description: Vença 6 duelos online.
+    tier: 3
+    category: 1
+    scope: 1
+    metric: 3
+    targetValue: 6
+    rewardCoins: 45
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-online-10
+    displayName: Maratona de duelos
+    description: Conclua 10 duelos online.
+    tier: 3
+    category: 1
+    scope: 1
+    metric: 2
+    targetValue: 10
+    rewardCoins: 35
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-damage-25000
+    displayName: Poder esmagador
+    description: Cause 25.000 de dano em duelos online.
+    tier: 3
+    category: 1
+    scope: 1
+    metric: 4
+    targetValue: 25000
+    rewardCoins: 40
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-summon-100
+    displayName: Legião invocada
+    description: Invoque 100 monstros.
+    tier: 3
+    category: 0
+    scope: 0
+    metric: 1
+    targetValue: 100
+    rewardCoins: 40
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-coins-75
+    displayName: Tesouro conquistado
+    description: Ganhe 75 moedas em fontes elegíveis.
+    tier: 3
+    category: 3
+    scope: 5
+    metric: 8
+    targetValue: 75
+    rewardCoins: 50
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-ranked-play-8
+    displayName: Veterano competitivo
+    description: Conclua 8 duelos ranqueados.
+    tier: 3
+    category: 1
+    scope: 2
+    metric: 2
+    targetValue: 8
+    rewardCoins: 45
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-ranked-win-4
+    displayName: Dominador ranqueado
+    description: Vença 4 duelos ranqueados.
+    tier: 3
+    category: 1
+    scope: 2
+    metric: 3
+    targetValue: 4
+    rewardCoins: 50
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-ranked-damage-20000
+    displayName: Pressão competitiva
+    description: Cause 20.000 de dano em duelos ranqueados.
+    tier: 3
+    category: 1
+    scope: 2
+    metric: 4
+    targetValue: 20000
+    rewardCoins: 48
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-activate-30
+    displayName: Mestre das respostas
+    description: Ative 30 Magias ou Armadilhas.
+    tier: 3
+    category: 0
+    scope: 0
+    metric: 7
+    targetValue: 30
+    rewardCoins: 40
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-trap-25
+    displayName: Arquiteto de armadilhas
+    description: Ative 25 Armadilhas.
+    tier: 3
+    category: 0
+    scope: 0
+    metric: 5
+    targetValue: 25
+    rewardCoins: 40
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 
+  - missionId: t3-spell-25
+    displayName: Arquimago do duelo
+    description: Ative 25 Magias.
+    tier: 3
+    category: 0
+    scope: 0
+    metric: 6
+    targetValue: 25
+    rewardCoins: 40
+    weight: 1
+    active: 1
+    prerequisiteMissionId: 

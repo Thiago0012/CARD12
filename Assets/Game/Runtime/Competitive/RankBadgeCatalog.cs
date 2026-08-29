@@ -26,8 +26,8 @@ namespace ArcaneDuel.Game.Competitive
                 RankTier.Stone => "Frontend/Ranked/Badges/Stone",
                 RankTier.Iron => "Frontend/Ranked/Badges/Iron",
                 // O pacote visual ainda não possui um emblema Bronze
-                // dedicado. O desenho de Ouro é reutilizado e tingido pela
-                // apresentação, sem usar texto ou nome como identidade.
+                // dedicado. O desenho de Ouro é reutilizado em suas cores
+                // originais até a chegada do asset específico.
                 RankTier.Bronze => "Frontend/Ranked/Badges/Gold",
                 RankTier.Silver => "Frontend/Ranked/Badges/Silver",
                 RankTier.Gold => "Frontend/Ranked/Badges/Gold",

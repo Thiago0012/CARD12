@@ -1367,7 +1367,36 @@ namespace ArcaneArena.Frontend
         public void DecorateMainMenuFriendsButton(Button friendsButton)
         {
             _mainMenuFriendsButton = friendsButton;
+            EnsureMainMenuFriendsGroupIcon();
             UpdateMainMenuFriendsBadge();
+        }
+
+        private void EnsureMainMenuFriendsGroupIcon()
+        {
+            if (_mainMenuFriendsButton == null)
+                return;
+            const string iconName = "Ícone de Amigos · Três Duelistas";
+            Transform existing = _mainMenuFriendsButton.transform.Find(iconName);
+            if (existing != null)
+                return;
+            var iconObject = new GameObject(
+                iconName,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(MainMenuSocialGroupGraphic));
+            iconObject.transform.SetParent(
+                _mainMenuFriendsButton.transform,
+                false);
+            RectTransform rect = iconObject.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            MainMenuSocialGroupGraphic graphic =
+                iconObject.GetComponent<MainMenuSocialGroupGraphic>();
+            graphic.raycastTarget = false;
+            graphic.color = Color.white;
+            iconObject.transform.SetAsFirstSibling();
         }
 
         private void UpdateMainMenuFriendsBadge()
@@ -1412,6 +1441,7 @@ namespace ArcaneArena.Frontend
 
             if (badgeObject == null)
                 return;
+            badgeObject.transform.SetAsLastSibling();
             Image badgeImage = badgeObject.GetComponent<Image>();
             if (badgeImage != null)
                 badgeImage.raycastTarget = false;

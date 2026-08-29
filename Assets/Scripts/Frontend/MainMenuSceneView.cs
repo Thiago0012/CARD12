@@ -24,6 +24,7 @@ namespace ArcaneArena.Frontend
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button profileButton;
         [SerializeField] private Button friendsButton;
+        [SerializeField] private Button missionsButton;
 
         private GameFrontendBootstrap _boundController;
         private UnityAction _duelAction;
@@ -33,6 +34,7 @@ namespace ArcaneArena.Frontend
         private UnityAction _settingsAction;
         private UnityAction _profileAction;
         private UnityAction _friendsAction;
+        private UnityAction _missionsAction;
         private RectTransform _artworkViewport;
         private Image _artworkImage;
         private MainMenuArtworkFloat _artworkFloat;
@@ -58,7 +60,8 @@ namespace ArcaneArena.Frontend
             Button multiplayer,
             Button settings,
             Button profile,
-            Button friends = null)
+            Button friends = null,
+            Button missions = null)
         {
             sceneCanvas = canvas;
             mainMenuRoot = authoredRoot;
@@ -70,6 +73,7 @@ namespace ArcaneArena.Frontend
             settingsButton = settings;
             profileButton = profile;
             friendsButton = friends;
+            missionsButton = missions;
         }
 
         public void Bind(GameFrontendBootstrap controller)
@@ -78,6 +82,7 @@ namespace ArcaneArena.Frontend
                 return;
             Unbind();
             _boundController = controller;
+            EnsureMissionsButton();
             EnsureFriendsButton();
             BindButton(duelButton, ref _duelAction, controller.MainMenuDuel);
             BindButton(decksButton, ref _decksAction, controller.MainMenuDecks);
@@ -98,6 +103,10 @@ namespace ArcaneArena.Frontend
                 friendsButton,
                 ref _friendsAction,
                 controller.MainMenuFriends);
+            BindButton(
+                missionsButton,
+                ref _missionsAction,
+                controller.MainMenuMissions);
             controller.DecorateMainMenuProfileButton(profileButton);
             controller.DecorateMainMenuFriendsButton(friendsButton);
         }
@@ -144,6 +153,7 @@ namespace ArcaneArena.Frontend
             RemoveButton(settingsButton, ref _settingsAction);
             RemoveButton(profileButton, ref _profileAction);
             RemoveButton(friendsButton, ref _friendsAction);
+            RemoveButton(missionsButton, ref _missionsAction);
             _boundController = null;
         }
 
@@ -176,6 +186,34 @@ namespace ArcaneArena.Frontend
             Navigation navigation = friendsButton.navigation;
             navigation.mode = Navigation.Mode.None;
             friendsButton.navigation = navigation;
+        }
+
+        private void EnsureMissionsButton()
+        {
+            if (missionsButton != null || mainMenuRoot == null)
+                return;
+            var item = new GameObject(
+                "Ação MISSÕES (CORREIO)",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(Button));
+            item.transform.SetParent(mainMenuRoot, false);
+            RectTransform rect = item.GetComponent<RectTransform>();
+            // Área do envelope desenhado na barra superior da arte-base.
+            rect.anchorMin = new Vector2(0.842f, 0.918f);
+            rect.anchorMax = new Vector2(0.878f, 0.995f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            Image hitArea = item.GetComponent<Image>();
+            hitArea.color = new Color(1f, 1f, 1f, 0.001f);
+            missionsButton = item.GetComponent<Button>();
+            missionsButton.targetGraphic = hitArea;
+            missionsButton.transition = Selectable.Transition.None;
+            Navigation navigation = missionsButton.navigation;
+            navigation.mode = Navigation.Mode.None;
+            missionsButton.navigation = navigation;
         }
 
         private void EnsureArtworkViewport()

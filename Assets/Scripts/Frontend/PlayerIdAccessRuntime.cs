@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Globalization;
 using System.Text;
 using System.Threading.Tasks;
 using ArcaneDuel.Game.Accounts;
@@ -67,6 +68,10 @@ namespace ArcaneArena.Frontend
             "AccountControl/PlayerIdAccessSettings";
         private static PlayerIdAccessRuntime _instance;
         private static Task<PlayerIdAccessSnapshot> _readyTask;
+        private static bool _hasAuthoritativeUtc;
+        private static long _authoritativeUtcUnixSeconds;
+        private static float _authoritativeRealtimeAtCapture;
+        private static string _authoritativeClockSource = string.Empty;
 
         private Settings _settings;
         private PlayerIdAccessSnapshot _snapshot;
@@ -100,6 +105,45 @@ namespace ArcaneArena.Frontend
             _instance?._settings?.baseUrl ?? string.Empty;
         public static int CatalogRequestTimeoutSeconds =>
             _instance?._settings?.requestTimeoutSeconds ?? 10;
+
+        public static bool TryGetAuthoritativeUtc(
+            out long utcUnixSeconds,
+            out string source)
+        {
+            utcUnixSeconds = 0;
+            source = string.Empty;
+            if (!_hasAuthoritativeUtc || _authoritativeUtcUnixSeconds <= 0)
+                return false;
+            float elapsed = Mathf.Max(
+                0f,
+                Time.realtimeSinceStartup - _authoritativeRealtimeAtCapture);
+            utcUnixSeconds = _authoritativeUtcUnixSeconds +
+                             (long)Math.Floor(elapsed);
+            source = _authoritativeClockSource;
+            return true;
+        }
+
+        public static async Task<bool> ValidateAuthoritativeTimeAsync()
+        {
+            EnsureRuntimeExists();
+            await EnsureReadyAsync();
+            if (_instance == null || _instance._settings?.enabled != true ||
+                string.IsNullOrWhiteSpace(_instance._settings.baseUrl))
+            {
+                _hasAuthoritativeUtc = false;
+                return false;
+            }
+            try
+            {
+                await _instance.RefreshFromCatalogAsync("heartbeat");
+                return TryGetAuthoritativeUtc(out _, out _);
+            }
+            catch
+            {
+                _hasAuthoritativeUtc = false;
+                return false;
+            }
+        }
 
         /// <summary>
         /// Acesso a serviços remotos só é seguro enquanto a sessão Unity ainda
@@ -463,6 +507,8 @@ namespace ArcaneArena.Frontend
                         request.error);
                 }
 
+                CaptureAuthoritativeUtc(request.GetResponseHeader("Date"));
+
                 PlayerIdAccessSnapshot response = JsonUtility.FromJson<
                     PlayerIdAccessSnapshot>(request.downloadHandler.text);
                 if (response == null ||
@@ -475,7 +521,11 @@ namespace ArcaneArena.Frontend
                         "O catálogo devolveu um registro de outro jogador.");
                 }
 
-                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                long now = TryGetAuthoritativeUtc(
+                    out long serverNow,
+                    out _)
+                    ? serverNow
+                    : DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 if (response.validUntilUtcUnixSeconds <= now)
                 {
                     throw new InvalidOperationException(
@@ -488,12 +538,31 @@ namespace ArcaneArena.Frontend
             }
             catch
             {
+                _hasAuthoritativeUtc = false;
                 InvalidateServerAuthorization(
                     "A autorização online não pôde ser confirmada. " +
                     "Recursos online permanecerão bloqueados até a reconexão.",
                     stopHeartbeat: false);
                 throw;
             }
+        }
+
+        private static void CaptureAuthoritativeUtc(string httpDate)
+        {
+            if (string.IsNullOrWhiteSpace(httpDate) ||
+                !DateTimeOffset.TryParse(
+                    httpDate,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal |
+                    DateTimeStyles.AdjustToUniversal,
+                    out DateTimeOffset parsed))
+            {
+                return;
+            }
+            _authoritativeUtcUnixSeconds = parsed.ToUnixTimeSeconds();
+            _authoritativeRealtimeAtCapture = Time.realtimeSinceStartup;
+            _authoritativeClockSource = "HTTP Date · catálogo de jogadores";
+            _hasAuthoritativeUtc = _authoritativeUtcUnixSeconds > 0;
         }
 
         private void SubscribeAuthenticationEvents()

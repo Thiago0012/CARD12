@@ -15,7 +15,7 @@ namespace ArcaneArena.Frontend
     /// </summary>
     public sealed partial class DeckRepository
     {
-        private const int CurrentSchemaVersion = 13;
+        private const int CurrentSchemaVersion = 14;
         private const int StarterOnboardingSchemaVersion = 6;
         private const int MainDeckMinimum = 40;
         private const int MainDeckMaximum = 60;
@@ -94,6 +94,7 @@ namespace ArcaneArena.Frontend
             NormalizeCoinRewardAuthorizationState(loadedSchemaVersion);
             NormalizeRankState(loadedSchemaVersion);
             NormalizePlayerProfileState(loadedSchemaVersion);
+            NormalizeMissionState(loadedSchemaVersion);
             MigrateStarterOnboarding(loadedSchemaVersion);
 
             State.decks.RemoveAll(deck => deck == null);

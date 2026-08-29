@@ -724,6 +724,7 @@ namespace ArcaneArena.Frontend
 
         private void Update()
         {
+            UpdateMissionCountdown();
             if (Keyboard.current == null ||
                 !Keyboard.current.escapeKey.wasPressedThisFrame)
                 return;
@@ -757,6 +758,12 @@ namespace ArcaneArena.Frontend
                 Action backAction = _shopBackAction;
                 _shopBackAction = null;
                 backAction.Invoke();
+                return;
+            }
+
+            if (_missionsUiVisible)
+            {
+                ShowMainMenu();
                 return;
             }
 
@@ -5058,6 +5065,9 @@ namespace ArcaneArena.Frontend
 
         private void ClearScreen()
         {
+            _missionsUiVisible = false;
+            _missionCountdownText = null;
+            _missionStatusText = null;
             CancelPackOpeningPresentation();
             StopMainMenuConnectionMonitor();
             _duelMenuOverlay = null;

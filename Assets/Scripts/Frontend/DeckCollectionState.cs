@@ -10,7 +10,7 @@ namespace ArcaneArena.Frontend
     {
         public const int NewProfileCoinBalance = 200;
 
-        public int schemaVersion = 13;
+        public int schemaVersion = 14;
         public long lastModifiedUtcTicks;
         public long cloudRevision;
         public string localProfileId;
@@ -47,6 +47,7 @@ namespace ArcaneArena.Frontend
         public PlayerRankData rankData = new PlayerRankData();
         public ProfileCosmeticsState cosmetics = new ProfileCosmeticsState();
         public PlayerStatisticsState statistics = new PlayerStatisticsState();
+        public MissionState missions = new MissionState();
     }
 
     [Serializable]

@@ -1,0 +1,2215 @@
+{
+    "schemaVersion": 14,
+    "lastModifiedUtcTicks": 639236311351756577,
+    "cloudRevision": 270,
+    "localProfileId": "1f389d58798641079628d3cb99377a21",
+    "authenticatedPlayerId": "s4AhreEFqhUEE0NruGl6macd6pe3",
+    "playerDisplayName": "xinelodepobre",
+    "starterDeckClaimed": true,
+    "starterDeckId": "starter_724579",
+    "starterClaimTransactionId": "starter-claim:1f389d58798641079628d3cb99377a21",
+    "starterClaimedAtUtcTicks": 639234307851519315,
+    "starterCatalogVersion": 1,
+    "banlistVersionAtClaim": "tcg_eu_2026_05_18",
+    "selectedDeckId": "shop:mausoleum-lockdown-edison-724211",
+    "decks": [
+        {
+            "deckId": "starter:1f389d58798641079628d3cb99377a21",
+            "displayName": "Fusão do Mecanismo Antigo",
+            "caseTheme": 0,
+            "mainDeckCardIds": [
+                "59811955",
+                "59811955",
+                "67829249",
+                "67829249",
+                "04446672",
+                "37694547",
+                "37694547",
+                "92001300",
+                "92001300",
+                "30435145",
+                "30435145",
+                "00313513",
+                "00313513",
+                "50933533",
+                "50933533",
+                "83104731",
+                "83104731",
+                "83104731",
+                "01953925",
+                "10509340",
+                "56094445",
+                "56094445",
+                "74519184",
+                "74519184",
+                "74519184",
+                "48130397",
+                "70095154",
+                "70095154",
+                "15717011",
+                "79109599",
+                "27847700",
+                "69162969",
+                "37630732",
+                "37630732",
+                "74117290",
+                "74117290",
+                "00313513",
+                "23171610",
+                "73628505",
+                "86780027",
+                "86780027",
+                "77565204"
+            ],
+            "extraDeckCardIds": [
+                "12652643",
+                "12652643",
+                "01546123",
+                "74157028",
+                "74157028"
+            ],
+            "sideDeckCardIds": [],
+            "featuredCardIds": [
+                "59811955",
+                "67829249",
+                "04446672"
+            ]
+        },
+        {
+            "deckId": "shop:crimson-powerforce-637629",
+            "displayName": "Força do Poder Carmesim",
+            "caseTheme": 1,
+            "mainDeckCardIds": [
+                "77360173",
+                "77360173",
+                "77360173",
+                "40975574",
+                "40975574",
+                "40975574",
+                "34761841",
+                "34761841",
+                "34761841",
+                "98396890",
+                "19299793",
+                "19299793",
+                "19299793",
+                "5780210",
+                "62991792",
+                "62991792",
+                "62991792",
+                "52589809",
+                "52589809",
+                "52589809",
+                "25784595",
+                "25784595",
+                "25784595",
+                "23008320",
+                "23008320",
+                "23008320",
+                "98173209",
+                "98173209",
+                "8559524",
+                "8559524",
+                "51779204",
+                "51779204",
+                "5376159",
+                "5376159",
+                "24662957",
+                "24662957",
+                "50078509",
+                "50078509",
+                "50056656",
+                "50056656"
+            ],
+            "extraDeckCardIds": [
+                "66141736",
+                "66141736",
+                "87837090",
+                "70902743",
+                "87451661",
+                "9753964",
+                "36857073",
+                "97489701"
+            ],
+            "sideDeckCardIds": [],
+            "featuredCardIds": [
+                "77360173",
+                "40975574",
+                "34761841"
+            ]
+        },
+        {
+            "deckId": "shop:toon-test-718475",
+            "displayName": "Deck Toon",
+            "caseTheme": 0,
+            "mainDeckCardIds": [
+                "45536531",
+                "45536531",
+                "45536531",
+                "7293697",
+                "7293697",
+                "7293697",
+                "73628505",
+                "91500017",
+                "91500017",
+                "91500017",
+                "89997728",
+                "89997728",
+                "89997728",
+                "8915275",
+                "72921536",
+                "72921536",
+                "72921536",
+                "53183600",
+                "21296502",
+                "65458948",
+                "34314989",
+                "40366667",
+                "40366667",
+                "40366667",
+                "65681983",
+                "34298391",
+                "78114463",
+                "53094821",
+                "6325660",
+                "6325660",
+                "6325660",
+                "46565218",
+                "46565218",
+                "46565218",
+                "24508238",
+                "24508238",
+                "24508238",
+                "78114463",
+                "78114463",
+                "5832914"
+            ],
+            "extraDeckCardIds": [
+                "71808988",
+                "71808988",
+                "66011101",
+                "50277355",
+                "53904087",
+                "27519978",
+                "24842059",
+                "58036229",
+                "5043010",
+                "45112597",
+                "7594154",
+                "92422871",
+                "13203964",
+                "13203964",
+                "59400890"
+            ],
+            "sideDeckCardIds": [],
+            "featuredCardIds": [
+                "45536531",
+                "7293697",
+                "73628505"
+            ]
+        },
+        {
+            "deckId": "shop:mausoleum-lockdown-edison-724211",
+            "displayName": "Mausoléu Lockdown Edison",
+            "caseTheme": 2,
+            "mainDeckCardIds": [
+                "97077563",
+                "44095762",
+                "72302403",
+                "87910978",
+                "18144507",
+                "1475311",
+                "98380593",
+                "98380593",
+                "73628505",
+                "70368879",
+                "98645731",
+                "37694547",
+                "37694547",
+                "37694547",
+                "80921533",
+                "80921533",
+                "80921533",
+                "19665973",
+                "19665973",
+                "19665973",
+                "24317029",
+                "24317029",
+                "98777036",
+                "44330098",
+                "89111398",
+                "77585513",
+                "77585513",
+                "12298909",
+                "12298909",
+                "47084486",
+                "47084486",
+                "47084486",
+                "5556499",
+                "83104731",
+                "83104731",
+                "50933533",
+                "50933533",
+                "50933533",
+                "47297616",
+                "47297616"
+            ],
+            "extraDeckCardIds": [
+                "79229522",
+                "79229522",
+                "79229522",
+                "23693634",
+                "44508094",
+                "70780151",
+                "88643579",
+                "70902743",
+                "73580471",
+                "7391448",
+                "50321796",
+                "19974580",
+                "73580471",
+                "53714009",
+                "26593852"
+            ],
+            "sideDeckCardIds": [],
+            "featuredCardIds": [
+                "97077563",
+                "44095762",
+                "72302403"
+            ]
+        }
+    ],
+    "unlockedDeckProductIds": [
+        "crimson-powerforce-637629",
+        "toon-test-718475",
+        "mausoleum-lockdown-edison-724211"
+    ],
+    "coinBalance": 3700,
+    "cardQuantities": [
+        {
+            "cardId": "10509340",
+            "quantity": 1
+        },
+        {
+            "cardId": "12298909",
+            "quantity": 2
+        },
+        {
+            "cardId": "12652643",
+            "quantity": 2
+        },
+        {
+            "cardId": "13203964",
+            "quantity": 2
+        },
+        {
+            "cardId": "1475311",
+            "quantity": 1
+        },
+        {
+            "cardId": "1546123",
+            "quantity": 1
+        },
+        {
+            "cardId": "15717011",
+            "quantity": 1
+        },
+        {
+            "cardId": "18144507",
+            "quantity": 1
+        },
+        {
+            "cardId": "19299793",
+            "quantity": 3
+        },
+        {
+            "cardId": "1953925",
+            "quantity": 1
+        },
+        {
+            "cardId": "19665973",
+            "quantity": 3
+        },
+        {
+            "cardId": "19974580",
+            "quantity": 1
+        },
+        {
+            "cardId": "21296502",
+            "quantity": 1
+        },
+        {
+            "cardId": "23008320",
+            "quantity": 3
+        },
+        {
+            "cardId": "23171610",
+            "quantity": 1
+        },
+        {
+            "cardId": "23693634",
+            "quantity": 1
+        },
+        {
+            "cardId": "24317029",
+            "quantity": 2
+        },
+        {
+            "cardId": "24508238",
+            "quantity": 3
+        },
+        {
+            "cardId": "24662957",
+            "quantity": 2
+        },
+        {
+            "cardId": "24842059",
+            "quantity": 1
+        },
+        {
+            "cardId": "25784595",
+            "quantity": 3
+        },
+        {
+            "cardId": "26593852",
+            "quantity": 1
+        },
+        {
+            "cardId": "27519978",
+            "quantity": 1
+        },
+        {
+            "cardId": "27847700",
+            "quantity": 1
+        },
+        {
+            "cardId": "30435145",
+            "quantity": 2
+        },
+        {
+            "cardId": "313513",
+            "quantity": 3
+        },
+        {
+            "cardId": "34298391",
+            "quantity": 1
+        },
+        {
+            "cardId": "34314989",
+            "quantity": 1
+        },
+        {
+            "cardId": "34761841",
+            "quantity": 3
+        },
+        {
+            "cardId": "36857073",
+            "quantity": 1
+        },
+        {
+            "cardId": "37630732",
+            "quantity": 2
+        },
+        {
+            "cardId": "37694547",
+            "quantity": 5
+        },
+        {
+            "cardId": "40366667",
+            "quantity": 3
+        },
+        {
+            "cardId": "40975574",
+            "quantity": 3
+        },
+        {
+            "cardId": "44095762",
+            "quantity": 1
+        },
+        {
+            "cardId": "44330098",
+            "quantity": 1
+        },
+        {
+            "cardId": "4446672",
+            "quantity": 1
+        },
+        {
+            "cardId": "44508094",
+            "quantity": 1
+        },
+        {
+            "cardId": "45112597",
+            "quantity": 1
+        },
+        {
+            "cardId": "45536531",
+            "quantity": 3
+        },
+        {
+            "cardId": "46565218",
+            "quantity": 3
+        },
+        {
+            "cardId": "47084486",
+            "quantity": 3
+        },
+        {
+            "cardId": "47297616",
+            "quantity": 2
+        },
+        {
+            "cardId": "48130397",
+            "quantity": 1
+        },
+        {
+            "cardId": "50056656",
+            "quantity": 2
+        },
+        {
+            "cardId": "50078509",
+            "quantity": 2
+        },
+        {
+            "cardId": "50277355",
+            "quantity": 1
+        },
+        {
+            "cardId": "50321796",
+            "quantity": 1
+        },
+        {
+            "cardId": "5043010",
+            "quantity": 1
+        },
+        {
+            "cardId": "50933533",
+            "quantity": 5
+        },
+        {
+            "cardId": "51779204",
+            "quantity": 2
+        },
+        {
+            "cardId": "52589809",
+            "quantity": 3
+        },
+        {
+            "cardId": "53094821",
+            "quantity": 1
+        },
+        {
+            "cardId": "53183600",
+            "quantity": 1
+        },
+        {
+            "cardId": "53714009",
+            "quantity": 1
+        },
+        {
+            "cardId": "5376159",
+            "quantity": 2
+        },
+        {
+            "cardId": "53904087",
+            "quantity": 1
+        },
+        {
+            "cardId": "5556499",
+            "quantity": 1
+        },
+        {
+            "cardId": "56094445",
+            "quantity": 2
+        },
+        {
+            "cardId": "5780210",
+            "quantity": 1
+        },
+        {
+            "cardId": "58036229",
+            "quantity": 1
+        },
+        {
+            "cardId": "5832914",
+            "quantity": 1
+        },
+        {
+            "cardId": "59400890",
+            "quantity": 1
+        },
+        {
+            "cardId": "59811955",
+            "quantity": 2
+        },
+        {
+            "cardId": "62991792",
+            "quantity": 3
+        },
+        {
+            "cardId": "6325660",
+            "quantity": 3
+        },
+        {
+            "cardId": "65458948",
+            "quantity": 1
+        },
+        {
+            "cardId": "65681983",
+            "quantity": 1
+        },
+        {
+            "cardId": "66011101",
+            "quantity": 1
+        },
+        {
+            "cardId": "66141736",
+            "quantity": 2
+        },
+        {
+            "cardId": "67829249",
+            "quantity": 2
+        },
+        {
+            "cardId": "69162969",
+            "quantity": 1
+        },
+        {
+            "cardId": "70095154",
+            "quantity": 2
+        },
+        {
+            "cardId": "70368879",
+            "quantity": 1
+        },
+        {
+            "cardId": "70780151",
+            "quantity": 1
+        },
+        {
+            "cardId": "70902743",
+            "quantity": 2
+        },
+        {
+            "cardId": "71808988",
+            "quantity": 2
+        },
+        {
+            "cardId": "72302403",
+            "quantity": 1
+        },
+        {
+            "cardId": "72921536",
+            "quantity": 3
+        },
+        {
+            "cardId": "7293697",
+            "quantity": 3
+        },
+        {
+            "cardId": "73580471",
+            "quantity": 2
+        },
+        {
+            "cardId": "73628505",
+            "quantity": 3
+        },
+        {
+            "cardId": "7391448",
+            "quantity": 1
+        },
+        {
+            "cardId": "74117290",
+            "quantity": 2
+        },
+        {
+            "cardId": "74157028",
+            "quantity": 2
+        },
+        {
+            "cardId": "74519184",
+            "quantity": 3
+        },
+        {
+            "cardId": "7594154",
+            "quantity": 1
+        },
+        {
+            "cardId": "77360173",
+            "quantity": 3
+        },
+        {
+            "cardId": "77565204",
+            "quantity": 1
+        },
+        {
+            "cardId": "77585513",
+            "quantity": 2
+        },
+        {
+            "cardId": "78114463",
+            "quantity": 3
+        },
+        {
+            "cardId": "79109599",
+            "quantity": 1
+        },
+        {
+            "cardId": "79229522",
+            "quantity": 3
+        },
+        {
+            "cardId": "80921533",
+            "quantity": 3
+        },
+        {
+            "cardId": "83104731",
+            "quantity": 5
+        },
+        {
+            "cardId": "8559524",
+            "quantity": 2
+        },
+        {
+            "cardId": "86780027",
+            "quantity": 2
+        },
+        {
+            "cardId": "87451661",
+            "quantity": 1
+        },
+        {
+            "cardId": "87837090",
+            "quantity": 1
+        },
+        {
+            "cardId": "87910978",
+            "quantity": 1
+        },
+        {
+            "cardId": "88643579",
+            "quantity": 1
+        },
+        {
+            "cardId": "89111398",
+            "quantity": 1
+        },
+        {
+            "cardId": "8915275",
+            "quantity": 1
+        },
+        {
+            "cardId": "89997728",
+            "quantity": 3
+        },
+        {
+            "cardId": "91500017",
+            "quantity": 3
+        },
+        {
+            "cardId": "92001300",
+            "quantity": 2
+        },
+        {
+            "cardId": "92422871",
+            "quantity": 1
+        },
+        {
+            "cardId": "97077563",
+            "quantity": 1
+        },
+        {
+            "cardId": "97489701",
+            "quantity": 1
+        },
+        {
+            "cardId": "9753964",
+            "quantity": 1
+        },
+        {
+            "cardId": "98173209",
+            "quantity": 2
+        },
+        {
+            "cardId": "98380593",
+            "quantity": 2
+        },
+        {
+            "cardId": "98396890",
+            "quantity": 1
+        },
+        {
+            "cardId": "98645731",
+            "quantity": 1
+        },
+        {
+            "cardId": "98777036",
+            "quantity": 1
+        }
+    ],
+    "structureDeckPurchases": [
+        {
+            "productId": "crimson-powerforce-637629",
+            "purchaseCount": 1
+        },
+        {
+            "productId": "toon-test-718475",
+            "purchaseCount": 1
+        },
+        {
+            "productId": "mausoleum-lockdown-edison-724211",
+            "purchaseCount": 1
+        }
+    ],
+    "pendingPackOpenings": [],
+    "pendingDeckEditorNewCardIds": [],
+    "processedShopTransactions": [
+        {
+            "transactionId": "rank-promotion:v1:1f389d58798641079628d3cb99377a21:0",
+            "kind": "rank-promotion",
+            "productId": "MADEIRA",
+            "coinDelta": 40,
+            "balanceAfter": 40,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639234301869079303,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "starter-claim:1f389d58798641079628d3cb99377a21",
+            "kind": "starter-deck",
+            "productId": "starter_724579",
+            "coinDelta": 0,
+            "balanceAfter": 10040,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639234307851529325,
+            "grantedCardIds": [
+                "59811955",
+                "59811955",
+                "67829249",
+                "67829249",
+                "4446672",
+                "37694547",
+                "37694547",
+                "92001300",
+                "92001300",
+                "30435145",
+                "30435145",
+                "313513",
+                "313513",
+                "50933533",
+                "50933533",
+                "83104731",
+                "83104731",
+                "83104731",
+                "1953925",
+                "10509340",
+                "56094445",
+                "56094445",
+                "74519184",
+                "74519184",
+                "74519184",
+                "48130397",
+                "70095154",
+                "70095154",
+                "15717011",
+                "79109599",
+                "27847700",
+                "69162969",
+                "37630732",
+                "37630732",
+                "74117290",
+                "74117290",
+                "313513",
+                "23171610",
+                "73628505",
+                "86780027",
+                "86780027",
+                "77565204",
+                "12652643",
+                "12652643",
+                "1546123",
+                "74157028",
+                "74157028"
+            ]
+        },
+        {
+            "transactionId": "719989d35c2d493ba9fd7ae0fbf06168",
+            "kind": "profile-icon",
+            "productId": "icon-violet-eclipse-sorceress",
+            "coinDelta": -35,
+            "balanceAfter": 5,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639235359014617634,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "dev-entitlement:coins:v1:656728582265",
+            "kind": "admin-test",
+            "productId": "Crédito único da conta de desenvolvimento",
+            "coinDelta": 5000,
+            "balanceAfter": 5005,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639235410553658049,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "6b9e2d739b46495aa338f84603f7396e",
+            "kind": "structure-deck",
+            "productId": "crimson-powerforce-637629",
+            "coinDelta": -425,
+            "balanceAfter": 4580,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639235548431212583,
+            "grantedCardIds": [
+                "77360173",
+                "77360173",
+                "77360173",
+                "40975574",
+                "40975574",
+                "40975574",
+                "34761841",
+                "34761841",
+                "34761841",
+                "98396890",
+                "19299793",
+                "19299793",
+                "19299793",
+                "5780210",
+                "62991792",
+                "62991792",
+                "62991792",
+                "52589809",
+                "52589809",
+                "52589809",
+                "25784595",
+                "25784595",
+                "25784595",
+                "23008320",
+                "23008320",
+                "23008320",
+                "98173209",
+                "98173209",
+                "8559524",
+                "8559524",
+                "51779204",
+                "51779204",
+                "5376159",
+                "5376159",
+                "24662957",
+                "24662957",
+                "50078509",
+                "50078509",
+                "50056656",
+                "50056656",
+                "66141736",
+                "66141736",
+                "87837090",
+                "70902743",
+                "87451661",
+                "9753964",
+                "36857073",
+                "97489701"
+            ]
+        },
+        {
+            "transactionId": "7b6ebe5738994f848afe61476634fd62",
+            "kind": "structure-deck",
+            "productId": "toon-test-718475",
+            "coinDelta": -425,
+            "balanceAfter": 4155,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639235548470447788,
+            "grantedCardIds": [
+                "45536531",
+                "45536531",
+                "45536531",
+                "7293697",
+                "7293697",
+                "7293697",
+                "73628505",
+                "91500017",
+                "91500017",
+                "91500017",
+                "89997728",
+                "89997728",
+                "89997728",
+                "8915275",
+                "72921536",
+                "72921536",
+                "72921536",
+                "53183600",
+                "21296502",
+                "65458948",
+                "34314989",
+                "40366667",
+                "40366667",
+                "40366667",
+                "65681983",
+                "34298391",
+                "78114463",
+                "53094821",
+                "6325660",
+                "6325660",
+                "6325660",
+                "46565218",
+                "46565218",
+                "46565218",
+                "24508238",
+                "24508238",
+                "24508238",
+                "78114463",
+                "78114463",
+                "5832914",
+                "71808988",
+                "71808988",
+                "66011101",
+                "50277355",
+                "53904087",
+                "27519978",
+                "24842059",
+                "58036229",
+                "5043010",
+                "45112597",
+                "7594154",
+                "92422871",
+                "13203964",
+                "13203964",
+                "59400890"
+            ]
+        },
+        {
+            "transactionId": "22802adf4682426b9add3d5ebd58dfec",
+            "kind": "structure-deck",
+            "productId": "mausoleum-lockdown-edison-724211",
+            "coinDelta": -425,
+            "balanceAfter": 3730,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639235548537525501,
+            "grantedCardIds": [
+                "97077563",
+                "44095762",
+                "72302403",
+                "87910978",
+                "18144507",
+                "1475311",
+                "98380593",
+                "98380593",
+                "73628505",
+                "70368879",
+                "98645731",
+                "37694547",
+                "37694547",
+                "37694547",
+                "80921533",
+                "80921533",
+                "80921533",
+                "19665973",
+                "19665973",
+                "19665973",
+                "24317029",
+                "24317029",
+                "98777036",
+                "44330098",
+                "89111398",
+                "77585513",
+                "77585513",
+                "12298909",
+                "12298909",
+                "47084486",
+                "47084486",
+                "47084486",
+                "5556499",
+                "83104731",
+                "83104731",
+                "50933533",
+                "50933533",
+                "50933533",
+                "47297616",
+                "47297616",
+                "79229522",
+                "79229522",
+                "79229522",
+                "23693634",
+                "44508094",
+                "70780151",
+                "88643579",
+                "70902743",
+                "73580471",
+                "7391448",
+                "50321796",
+                "19974580",
+                "73580471",
+                "53714009",
+                "26593852"
+            ]
+        },
+        {
+            "transactionId": "006c31a8be6b4021969cfd76f1076070",
+            "kind": "profile-icon",
+            "productId": "icon-sapphire-swordsman",
+            "coinDelta": -35,
+            "balanceAfter": 3695,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639235575425464633,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "876ccccabda04f51a71f3230bc9c70d5",
+            "kind": "profile-icon",
+            "productId": "icon-cosmic-imperator",
+            "coinDelta": -35,
+            "balanceAfter": 3660,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639235575464499989,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "rank-promotion:v1:1f389d58798641079628d3cb99377a21:1",
+            "kind": "rank-promotion",
+            "productId": "PEDRA",
+            "coinDelta": 60,
+            "balanceAfter": 3720,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639235580386085181,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "916fa6597a40400bbbeb0034894072b5",
+            "kind": "profile-artwork",
+            "productId": "artwork-015",
+            "coinDelta": -100,
+            "balanceAfter": 3620,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639236142391263485,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "8a89c15b7e08445db3995c95c5732581:online-pvp-reward:v2:seat0",
+            "kind": "online-pvp-reward",
+            "productId": "",
+            "coinDelta": 0,
+            "balanceAfter": 3620,
+            "damageDealt": 2100,
+            "completedRounds": 6,
+            "winner": true,
+            "draw": false,
+            "matchId": "8a89c15b7e08445db3995c95c5732581",
+            "localPlayerId": "seat0",
+            "localProfileId": "1f389d58798641079628d3cb99377a21",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 2,
+            "rewardStatus": 2,
+            "createdUtcTicks": 639236188967548115,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "457fc1144bf74f3593d92aa6ff35c722:online-pvp-reward:v2:seat0",
+            "kind": "online-pvp-reward",
+            "productId": "",
+            "coinDelta": 0,
+            "balanceAfter": 3620,
+            "damageDealt": 8000,
+            "completedRounds": 4,
+            "winner": true,
+            "draw": false,
+            "matchId": "457fc1144bf74f3593d92aa6ff35c722",
+            "localPlayerId": "seat0",
+            "localProfileId": "1f389d58798641079628d3cb99377a21",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 2,
+            "rewardStatus": 2,
+            "createdUtcTicks": 639236199031086731,
+            "grantedCardIds": []
+        },
+        {
+            "transactionId": "rank-promotion:v1:1f389d58798641079628d3cb99377a21:2",
+            "kind": "rank-promotion",
+            "productId": "FERRO",
+            "coinDelta": 80,
+            "balanceAfter": 3700,
+            "damageDealt": 0,
+            "completedRounds": 0,
+            "winner": false,
+            "draw": false,
+            "matchId": "",
+            "localPlayerId": "",
+            "localProfileId": "",
+            "catalogEntryId": "",
+            "rewardRuleVersion": 0,
+            "rewardStatus": 0,
+            "createdUtcTicks": 639236199031532887,
+            "grantedCardIds": []
+        }
+    ],
+    "craftPoints": {
+        "cpN": 0,
+        "cpR": 0,
+        "cpSR": 0,
+        "cpUR": 0
+    },
+    "protectedCardQuantities": [
+        {
+            "cardId": "12298909",
+            "quantity": 2
+        },
+        {
+            "cardId": "13203964",
+            "quantity": 2
+        },
+        {
+            "cardId": "1475311",
+            "quantity": 1
+        },
+        {
+            "cardId": "18144507",
+            "quantity": 1
+        },
+        {
+            "cardId": "19299793",
+            "quantity": 3
+        },
+        {
+            "cardId": "19665973",
+            "quantity": 3
+        },
+        {
+            "cardId": "19974580",
+            "quantity": 1
+        },
+        {
+            "cardId": "21296502",
+            "quantity": 1
+        },
+        {
+            "cardId": "23008320",
+            "quantity": 3
+        },
+        {
+            "cardId": "23693634",
+            "quantity": 1
+        },
+        {
+            "cardId": "24317029",
+            "quantity": 2
+        },
+        {
+            "cardId": "24508238",
+            "quantity": 3
+        },
+        {
+            "cardId": "24662957",
+            "quantity": 2
+        },
+        {
+            "cardId": "24842059",
+            "quantity": 1
+        },
+        {
+            "cardId": "25784595",
+            "quantity": 3
+        },
+        {
+            "cardId": "26593852",
+            "quantity": 1
+        },
+        {
+            "cardId": "27519978",
+            "quantity": 1
+        },
+        {
+            "cardId": "34298391",
+            "quantity": 1
+        },
+        {
+            "cardId": "34314989",
+            "quantity": 1
+        },
+        {
+            "cardId": "34761841",
+            "quantity": 3
+        },
+        {
+            "cardId": "36857073",
+            "quantity": 1
+        },
+        {
+            "cardId": "37694547",
+            "quantity": 3
+        },
+        {
+            "cardId": "40366667",
+            "quantity": 3
+        },
+        {
+            "cardId": "40975574",
+            "quantity": 3
+        },
+        {
+            "cardId": "44095762",
+            "quantity": 1
+        },
+        {
+            "cardId": "44330098",
+            "quantity": 1
+        },
+        {
+            "cardId": "44508094",
+            "quantity": 1
+        },
+        {
+            "cardId": "45112597",
+            "quantity": 1
+        },
+        {
+            "cardId": "45536531",
+            "quantity": 3
+        },
+        {
+            "cardId": "46565218",
+            "quantity": 3
+        },
+        {
+            "cardId": "47084486",
+            "quantity": 3
+        },
+        {
+            "cardId": "47297616",
+            "quantity": 2
+        },
+        {
+            "cardId": "50056656",
+            "quantity": 2
+        },
+        {
+            "cardId": "50078509",
+            "quantity": 2
+        },
+        {
+            "cardId": "50277355",
+            "quantity": 1
+        },
+        {
+            "cardId": "50321796",
+            "quantity": 1
+        },
+        {
+            "cardId": "5043010",
+            "quantity": 1
+        },
+        {
+            "cardId": "50933533",
+            "quantity": 3
+        },
+        {
+            "cardId": "51779204",
+            "quantity": 2
+        },
+        {
+            "cardId": "52589809",
+            "quantity": 3
+        },
+        {
+            "cardId": "53094821",
+            "quantity": 1
+        },
+        {
+            "cardId": "53183600",
+            "quantity": 1
+        },
+        {
+            "cardId": "53714009",
+            "quantity": 1
+        },
+        {
+            "cardId": "5376159",
+            "quantity": 2
+        },
+        {
+            "cardId": "53904087",
+            "quantity": 1
+        },
+        {
+            "cardId": "5556499",
+            "quantity": 1
+        },
+        {
+            "cardId": "5780210",
+            "quantity": 1
+        },
+        {
+            "cardId": "58036229",
+            "quantity": 1
+        },
+        {
+            "cardId": "5832914",
+            "quantity": 1
+        },
+        {
+            "cardId": "59400890",
+            "quantity": 1
+        },
+        {
+            "cardId": "62991792",
+            "quantity": 3
+        },
+        {
+            "cardId": "6325660",
+            "quantity": 3
+        },
+        {
+            "cardId": "65458948",
+            "quantity": 1
+        },
+        {
+            "cardId": "65681983",
+            "quantity": 1
+        },
+        {
+            "cardId": "66011101",
+            "quantity": 1
+        },
+        {
+            "cardId": "66141736",
+            "quantity": 2
+        },
+        {
+            "cardId": "70368879",
+            "quantity": 1
+        },
+        {
+            "cardId": "70780151",
+            "quantity": 1
+        },
+        {
+            "cardId": "70902743",
+            "quantity": 2
+        },
+        {
+            "cardId": "71808988",
+            "quantity": 2
+        },
+        {
+            "cardId": "72302403",
+            "quantity": 1
+        },
+        {
+            "cardId": "72921536",
+            "quantity": 3
+        },
+        {
+            "cardId": "7293697",
+            "quantity": 3
+        },
+        {
+            "cardId": "73580471",
+            "quantity": 2
+        },
+        {
+            "cardId": "73628505",
+            "quantity": 2
+        },
+        {
+            "cardId": "7391448",
+            "quantity": 1
+        },
+        {
+            "cardId": "7594154",
+            "quantity": 1
+        },
+        {
+            "cardId": "77360173",
+            "quantity": 3
+        },
+        {
+            "cardId": "77585513",
+            "quantity": 2
+        },
+        {
+            "cardId": "78114463",
+            "quantity": 3
+        },
+        {
+            "cardId": "79229522",
+            "quantity": 3
+        },
+        {
+            "cardId": "80921533",
+            "quantity": 3
+        },
+        {
+            "cardId": "83104731",
+            "quantity": 2
+        },
+        {
+            "cardId": "8559524",
+            "quantity": 2
+        },
+        {
+            "cardId": "87451661",
+            "quantity": 1
+        },
+        {
+            "cardId": "87837090",
+            "quantity": 1
+        },
+        {
+            "cardId": "87910978",
+            "quantity": 1
+        },
+        {
+            "cardId": "88643579",
+            "quantity": 1
+        },
+        {
+            "cardId": "89111398",
+            "quantity": 1
+        },
+        {
+            "cardId": "8915275",
+            "quantity": 1
+        },
+        {
+            "cardId": "89997728",
+            "quantity": 3
+        },
+        {
+            "cardId": "91500017",
+            "quantity": 3
+        },
+        {
+            "cardId": "92422871",
+            "quantity": 1
+        },
+        {
+            "cardId": "97077563",
+            "quantity": 1
+        },
+        {
+            "cardId": "97489701",
+            "quantity": 1
+        },
+        {
+            "cardId": "9753964",
+            "quantity": 1
+        },
+        {
+            "cardId": "98173209",
+            "quantity": 2
+        },
+        {
+            "cardId": "98380593",
+            "quantity": 2
+        },
+        {
+            "cardId": "98396890",
+            "quantity": 1
+        },
+        {
+            "cardId": "98645731",
+            "quantity": 1
+        },
+        {
+            "cardId": "98777036",
+            "quantity": 1
+        }
+    ],
+    "craftTransactions": [],
+    "coinRewardAuthorization": {
+        "isAuthorized": false,
+        "isRevoked": false,
+        "catalogEntryId": "",
+        "originallyAuthorizedNickname": "",
+        "normalizedAuthorizedNickname": "",
+        "boundLocalProfileId": "",
+        "boundInstallId": "",
+        "authorizedAtUtcUnixSeconds": 0,
+        "catalogVersionAtAuthorization": 0,
+        "integrityTag": ""
+    },
+    "rankData": {
+        "rankedPoints": 52,
+        "stateVersion": 8,
+        "promotionShieldActive": true,
+        "promotionShieldTier": 2,
+        "updatedUtcTicks": 639236199031532887,
+        "receipts": [
+            {
+                "transactionId": "rank:2:bot-4d5749719fda4db4aacc94849c816dee:1f389d58798641079628d3cb99377a21",
+                "matchId": "bot-4d5749719fda4db4aacc94849c816dee",
+                "stablePlayerId": "1f389d58798641079628d3cb99377a21",
+                "opponentStablePlayerId": "BOT_003",
+                "policy": 1,
+                "source": 2,
+                "outcome": 1,
+                "oldPoints": 0,
+                "opponentPointsAtStart": 25,
+                "newPoints": 8,
+                "delta": 8,
+                "oldTier": 0,
+                "opponentTierAtStart": 1,
+                "newTier": 0,
+                "promoted": false,
+                "demoted": false,
+                "shieldWasActive": false,
+                "shieldConsumed": false,
+                "shieldPreventedDemotion": false,
+                "shieldGranted": false,
+                "shieldActiveAfter": false,
+                "shieldTierAfter": 0,
+                "abandonmentPenaltyApplied": false,
+                "stateVersionBefore": 1,
+                "stateVersionAfter": 2,
+                "rulesVersion": 2,
+                "rulesHash": "rank-v2-nine-leagues-2026-08-11",
+                "createdUtcTicks": 639235117722873870,
+                "status": 0
+            },
+            {
+                "transactionId": "rank:2:bot-74e27856d113424480cab1e9158323c4:1f389d58798641079628d3cb99377a21",
+                "matchId": "bot-74e27856d113424480cab1e9158323c4",
+                "stablePlayerId": "1f389d58798641079628d3cb99377a21",
+                "opponentStablePlayerId": "BOT_005",
+                "policy": 1,
+                "source": 2,
+                "outcome": 1,
+                "oldPoints": 8,
+                "opponentPointsAtStart": 25,
+                "newPoints": 16,
+                "delta": 8,
+                "oldTier": 0,
+                "opponentTierAtStart": 1,
+                "newTier": 0,
+                "promoted": false,
+                "demoted": false,
+                "shieldWasActive": false,
+                "shieldConsumed": false,
+                "shieldPreventedDemotion": false,
+                "shieldGranted": false,
+                "shieldActiveAfter": false,
+                "shieldTierAfter": 0,
+                "abandonmentPenaltyApplied": false,
+                "stateVersionBefore": 2,
+                "stateVersionAfter": 3,
+                "rulesVersion": 2,
+                "rulesHash": "rank-v2-nine-leagues-2026-08-11",
+                "createdUtcTicks": 639235123194739800,
+                "status": 0
+            },
+            {
+                "transactionId": "rank:2:bot-a5ca21394eab441a8bc8c80d4f0215cd:1f389d58798641079628d3cb99377a21",
+                "matchId": "bot-a5ca21394eab441a8bc8c80d4f0215cd",
+                "stablePlayerId": "1f389d58798641079628d3cb99377a21",
+                "opponentStablePlayerId": "BOT_004",
+                "policy": 1,
+                "source": 2,
+                "outcome": 1,
+                "oldPoints": 16,
+                "opponentPointsAtStart": 25,
+                "newPoints": 24,
+                "delta": 8,
+                "oldTier": 0,
+                "opponentTierAtStart": 1,
+                "newTier": 0,
+                "promoted": false,
+                "demoted": false,
+                "shieldWasActive": false,
+                "shieldConsumed": false,
+                "shieldPreventedDemotion": false,
+                "shieldGranted": false,
+                "shieldActiveAfter": false,
+                "shieldTierAfter": 0,
+                "abandonmentPenaltyApplied": false,
+                "stateVersionBefore": 3,
+                "stateVersionAfter": 4,
+                "rulesVersion": 2,
+                "rulesHash": "rank-v2-nine-leagues-2026-08-11",
+                "createdUtcTicks": 639235220756618583,
+                "status": 0
+            },
+            {
+                "transactionId": "rank:2:bot-ca101478781c4b0c8ca32267627444ed:1f389d58798641079628d3cb99377a21",
+                "matchId": "bot-ca101478781c4b0c8ca32267627444ed",
+                "stablePlayerId": "1f389d58798641079628d3cb99377a21",
+                "opponentStablePlayerId": "BOT_005",
+                "policy": 1,
+                "source": 2,
+                "outcome": 1,
+                "oldPoints": 24,
+                "opponentPointsAtStart": 25,
+                "newPoints": 32,
+                "delta": 8,
+                "oldTier": 0,
+                "opponentTierAtStart": 1,
+                "newTier": 1,
+                "promoted": true,
+                "demoted": false,
+                "shieldWasActive": false,
+                "shieldConsumed": false,
+                "shieldPreventedDemotion": false,
+                "shieldGranted": true,
+                "shieldActiveAfter": true,
+                "shieldTierAfter": 1,
+                "abandonmentPenaltyApplied": false,
+                "stateVersionBefore": 4,
+                "stateVersionAfter": 5,
+                "rulesVersion": 2,
+                "rulesHash": "rank-v2-nine-leagues-2026-08-11",
+                "createdUtcTicks": 639235580386065197,
+                "status": 0
+            },
+            {
+                "transactionId": "rank:2:bot-46d9eab9e27b4804b12695f71ac75c71:1f389d58798641079628d3cb99377a21",
+                "matchId": "bot-46d9eab9e27b4804b12695f71ac75c71",
+                "stablePlayerId": "1f389d58798641079628d3cb99377a21",
+                "opponentStablePlayerId": "BOT_001",
+                "policy": 1,
+                "source": 2,
+                "outcome": 1,
+                "oldPoints": 32,
+                "opponentPointsAtStart": 25,
+                "newPoints": 38,
+                "delta": 6,
+                "oldTier": 1,
+                "opponentTierAtStart": 1,
+                "newTier": 1,
+                "promoted": false,
+                "demoted": false,
+                "shieldWasActive": true,
+                "shieldConsumed": false,
+                "shieldPreventedDemotion": false,
+                "shieldGranted": false,
+                "shieldActiveAfter": true,
+                "shieldTierAfter": 1,
+                "abandonmentPenaltyApplied": false,
+                "stateVersionBefore": 5,
+                "stateVersionAfter": 6,
+                "rulesVersion": 2,
+                "rulesHash": "rank-v2-nine-leagues-2026-08-11",
+                "createdUtcTicks": 639235585797450496,
+                "status": 0
+            },
+            {
+                "transactionId": "rank:2:8a89c15b7e08445db3995c95c5732581:1f389d58798641079628d3cb99377a21",
+                "matchId": "8a89c15b7e08445db3995c95c5732581",
+                "stablePlayerId": "1f389d58798641079628d3cb99377a21",
+                "opponentStablePlayerId": "247f555c334a453c9d85211e270e6815",
+                "policy": 1,
+                "source": 0,
+                "outcome": 1,
+                "oldPoints": 38,
+                "opponentPointsAtStart": 55,
+                "newPoints": 45,
+                "delta": 7,
+                "oldTier": 1,
+                "opponentTierAtStart": 2,
+                "newTier": 1,
+                "promoted": false,
+                "demoted": false,
+                "shieldWasActive": true,
+                "shieldConsumed": false,
+                "shieldPreventedDemotion": false,
+                "shieldGranted": false,
+                "shieldActiveAfter": true,
+                "shieldTierAfter": 1,
+                "abandonmentPenaltyApplied": false,
+                "stateVersionBefore": 6,
+                "stateVersionAfter": 7,
+                "rulesVersion": 2,
+                "rulesHash": "rank-v2-nine-leagues-2026-08-11",
+                "createdUtcTicks": 639236188968308553,
+                "status": 0
+            },
+            {
+                "transactionId": "rank:2:457fc1144bf74f3593d92aa6ff35c722:1f389d58798641079628d3cb99377a21",
+                "matchId": "457fc1144bf74f3593d92aa6ff35c722",
+                "stablePlayerId": "1f389d58798641079628d3cb99377a21",
+                "opponentStablePlayerId": "247f555c334a453c9d85211e270e6815",
+                "policy": 1,
+                "source": 0,
+                "outcome": 1,
+                "oldPoints": 45,
+                "opponentPointsAtStart": 53,
+                "newPoints": 52,
+                "delta": 7,
+                "oldTier": 1,
+                "opponentTierAtStart": 2,
+                "newTier": 2,
+                "promoted": true,
+                "demoted": false,
+                "shieldWasActive": true,
+                "shieldConsumed": false,
+                "shieldPreventedDemotion": false,
+                "shieldGranted": true,
+                "shieldActiveAfter": true,
+                "shieldTierAfter": 2,
+                "abandonmentPenaltyApplied": false,
+                "stateVersionBefore": 7,
+                "stateVersionAfter": 8,
+                "rulesVersion": 2,
+                "rulesHash": "rank-v2-nine-leagues-2026-08-11",
+                "createdUtcTicks": 639236199031503014,
+                "status": 0
+            }
+        ]
+    },
+    "cosmetics": {
+        "equippedIconId": "icon-crimson-veil-arcanist",
+        "ownedIconIds": [
+            "icon-arcane-default",
+            "icon-azure-tempest-dragon",
+            "icon-cosmic-imperator",
+            "icon-crimson-veil-arcanist",
+            "icon-sapphire-swordsman",
+            "icon-violet-eclipse-sorceress"
+        ],
+        "equippedArtworkId": "artwork-015",
+        "ownedArtworkIds": [
+            "artwork-015",
+            "artwork-none"
+        ]
+    },
+    "statistics": {
+        "overall": {
+            "duelsPlayed": 11,
+            "wins": 11,
+            "losses": 0,
+            "draws": 0,
+            "monstersDestroyedByBattle": 26,
+            "monstersDestroyedByEffect": 8,
+            "spellsDestroyed": 2,
+            "trapsDestroyed": 3,
+            "spellsActivated": 100,
+            "trapsActivated": 0,
+            "damageDealt": 88950,
+            "damageReceived": 8300,
+            "maxDamageDealtInSingleDuel": 10750,
+            "maxDamageReceivedInSingleDuel": 3700,
+            "monstersSummoned": 49,
+            "specialSummons": 25
+        },
+        "online": {
+            "duelsPlayed": 2,
+            "wins": 2,
+            "losses": 0,
+            "draws": 0,
+            "monstersDestroyedByBattle": 4,
+            "monstersDestroyedByEffect": 1,
+            "spellsDestroyed": 0,
+            "trapsDestroyed": 3,
+            "spellsActivated": 25,
+            "trapsActivated": 0,
+            "damageDealt": 10400,
+            "damageReceived": 3700,
+            "maxDamageDealtInSingleDuel": 8300,
+            "maxDamageReceivedInSingleDuel": 3700,
+            "monstersSummoned": 11,
+            "specialSummons": 6
+        },
+        "ranked": {
+            "duelsPlayed": 7,
+            "wins": 7,
+            "losses": 0,
+            "draws": 0,
+            "monstersDestroyedByBattle": 13,
+            "monstersDestroyedByEffect": 3,
+            "spellsDestroyed": 0,
+            "trapsDestroyed": 3,
+            "spellsActivated": 57,
+            "trapsActivated": 0,
+            "damageDealt": 53050,
+            "damageReceived": 8300,
+            "maxDamageDealtInSingleDuel": 10750,
+            "maxDamageReceivedInSingleDuel": 3700,
+            "monstersSummoned": 24,
+            "specialSummons": 11
+        },
+        "processedResultIds": [
+            "result:bot-12bb54f870444d9e9a2bba4960bdcc6a",
+            "result:bot-4d5749719fda4db4aacc94849c816dee",
+            "result:bot-74e27856d113424480cab1e9158323c4",
+            "result:bot-a5ca21394eab441a8bc8c80d4f0215cd",
+            "result:bot-f537751e500542448b3c1094584b4397",
+            "result:bot-697af73bc3174462b1b515c074e297d0",
+            "result:bot-960e28debb18480dae5b419a219bc5fa",
+            "result:bot-ca101478781c4b0c8ca32267627444ed",
+            "result:bot-46d9eab9e27b4804b12695f71ac75c71",
+            "result:online:8a89c15b7e08445db3995c95c5732581:seat0",
+            "result:online:457fc1144bf74f3593d92aa6ff35c722:seat0"
+        ],
+        "processedEventIds": [
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:1:Summoning",
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:2:Chaining",
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:3:Chaining",
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:4:Move",
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:5:Chaining",
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:6:SpecialSummoning",
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:7:Battle",
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:8:Chaining",
+            "bot-12bb54f870444d9e9a2bba4960bdcc6a:confirmed:9:Battle",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:1:Chaining",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:2:Chaining",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:3:Chaining",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:4:Chaining",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:5:Summoning",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:6:Chaining",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:7:SpecialSummoning",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:8:Battle",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:9:Battle",
+            "bot-4d5749719fda4db4aacc94849c816dee:confirmed:10:Battle",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:1:Summoning",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:2:Chaining",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:3:Summoning",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:4:Battle",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:5:Chaining",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:6:Chaining",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:7:Summoning",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:8:Chaining",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:9:Battle",
+            "bot-74e27856d113424480cab1e9158323c4:confirmed:10:Summoning",
+            "bot-d08be4cb061c4ebca385a028d19ff177:confirmed:1:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:1:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:2:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:3:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:4:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:5:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:6:Summoning",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:7:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:8:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:9:Summoning",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:10:Battle",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:11:Chaining",
+            "bot-a5ca21394eab441a8bc8c80d4f0215cd:confirmed:12:SpecialSummoning",
+            "bot-f537751e500542448b3c1094584b4397:confirmed:1:SpecialSummoning",
+            "bot-f537751e500542448b3c1094584b4397:confirmed:2:Chaining",
+            "bot-f537751e500542448b3c1094584b4397:confirmed:3:Chaining",
+            "bot-f537751e500542448b3c1094584b4397:confirmed:4:SpecialSummoning",
+            "bot-f537751e500542448b3c1094584b4397:confirmed:5:Battle",
+            "bot-0a0b52672db04ceca56223bd60c0afe3:confirmed:1:Chaining",
+            "bot-0a0b52672db04ceca56223bd60c0afe3:confirmed:2:Chaining",
+            "bot-0a0b52672db04ceca56223bd60c0afe3:confirmed:3:Chaining",
+            "bot-0a0b52672db04ceca56223bd60c0afe3:confirmed:4:Chaining",
+            "bot-0a0b52672db04ceca56223bd60c0afe3:confirmed:5:Chaining",
+            "bot-0a0b52672db04ceca56223bd60c0afe3:confirmed:6:Summoning",
+            "bot-0a0b52672db04ceca56223bd60c0afe3:confirmed:7:Chaining",
+            "bot-9427bb2deb1e4bb596483e7bf597bb39:confirmed:1:Summoning",
+            "bot-9427bb2deb1e4bb596483e7bf597bb39:confirmed:2:Chaining",
+            "bot-9427bb2deb1e4bb596483e7bf597bb39:confirmed:3:Chaining",
+            "bot-64c6fe9fca314f79b2af9c1dd9d1106a:confirmed:1:Chaining",
+            "bot-64c6fe9fca314f79b2af9c1dd9d1106a:confirmed:2:Move",
+            "bot-e4465490833d4e56b6640589be0ee38e:confirmed:1:SpecialSummoning",
+            "bot-697af73bc3174462b1b515c074e297d0:confirmed:1:Chaining",
+            "bot-697af73bc3174462b1b515c074e297d0:confirmed:2:Chaining",
+            "bot-697af73bc3174462b1b515c074e297d0:confirmed:3:Summoning",
+            "bot-697af73bc3174462b1b515c074e297d0:confirmed:4:Chaining",
+            "bot-697af73bc3174462b1b515c074e297d0:confirmed:5:SpecialSummoning",
+            "bot-697af73bc3174462b1b515c074e297d0:confirmed:6:Battle",
+            "bot-697af73bc3174462b1b515c074e297d0:confirmed:7:SpecialSummoning",
+            "bot-b58cde7c56364a6da9df53faf45b8287:confirmed:1:Chaining",
+            "bot-b58cde7c56364a6da9df53faf45b8287:confirmed:2:Chaining",
+            "bot-b58cde7c56364a6da9df53faf45b8287:confirmed:3:Chaining",
+            "bot-b58cde7c56364a6da9df53faf45b8287:confirmed:4:Chaining",
+            "bot-b58cde7c56364a6da9df53faf45b8287:confirmed:5:SpecialSummoning",
+            "bot-b58cde7c56364a6da9df53faf45b8287:confirmed:6:Battle",
+            "bot-1907b9b56ed847e89ddea2222094dc50:confirmed:1:Chaining",
+            "bot-1907b9b56ed847e89ddea2222094dc50:confirmed:2:Chaining",
+            "bot-1907b9b56ed847e89ddea2222094dc50:confirmed:3:Chaining",
+            "bot-1907b9b56ed847e89ddea2222094dc50:confirmed:4:SpecialSummoning",
+            "bot-7e7b7491575c434f8cc8c858a08fe63f:confirmed:1:Chaining",
+            "bot-7e7b7491575c434f8cc8c858a08fe63f:confirmed:2:Summoning",
+            "bot-7e7b7491575c434f8cc8c858a08fe63f:confirmed:3:Battle",
+            "bot-7e7b7491575c434f8cc8c858a08fe63f:confirmed:4:Move",
+            "bot-7e7b7491575c434f8cc8c858a08fe63f:confirmed:5:Chaining",
+            "bot-7e7b7491575c434f8cc8c858a08fe63f:confirmed:6:Move",
+            "bot-7e7b7491575c434f8cc8c858a08fe63f:confirmed:7:Summoning",
+            "bot-960e28debb18480dae5b419a219bc5fa:confirmed:1:SpecialSummoning",
+            "bot-960e28debb18480dae5b419a219bc5fa:confirmed:2:Chaining",
+            "bot-960e28debb18480dae5b419a219bc5fa:confirmed:3:SpecialSummoning",
+            "bot-960e28debb18480dae5b419a219bc5fa:confirmed:4:Chaining",
+            "bot-960e28debb18480dae5b419a219bc5fa:confirmed:5:Battle",
+            "bot-8852776931724ab7b95c6738aaf6cb49:confirmed:1:Chaining",
+            "bot-8852776931724ab7b95c6738aaf6cb49:confirmed:2:Summoning",
+            "bot-8852776931724ab7b95c6738aaf6cb49:confirmed:3:Chaining",
+            "bot-8852776931724ab7b95c6738aaf6cb49:confirmed:4:SpecialSummoning",
+            "bot-8852776931724ab7b95c6738aaf6cb49:confirmed:5:SpecialSummoning",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:1:Chaining",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:2:Chaining",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:3:SpecialSummoning",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:4:Battle",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:5:Battle",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:6:Chaining",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:7:Summoning",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:8:Battle",
+            "bot-075facde32ec49e8a6fd8b0d500c0f66:confirmed:9:Move",
+            "bot-2723139d7cc54ca38007ee7cc79d09f6:confirmed:1:Chaining",
+            "bot-2723139d7cc54ca38007ee7cc79d09f6:confirmed:2:Move",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:1:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:2:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:3:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:4:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:5:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:6:Move",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:7:Move",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:8:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:9:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:10:SpecialSummoning",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:11:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:12:Chaining",
+            "bot-ca101478781c4b0c8ca32267627444ed:confirmed:13:Battle",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:1:Chaining",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:2:Chaining",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:3:Chaining",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:4:Chaining",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:5:SpecialSummoning",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:6:Summoning",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:7:Battle",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:8:Battle",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:9:Chaining",
+            "bot-46d9eab9e27b4804b12695f71ac75c71:confirmed:10:SpecialSummoning",
+            "ffded94c587a475f93f78a8715688f1d:confirmed:1:Chaining",
+            "ffded94c587a475f93f78a8715688f1d:confirmed:2:Chaining",
+            "ffded94c587a475f93f78a8715688f1d:confirmed:3:Chaining",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:1:Summoning",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:2:Chaining",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:3:Chaining",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:4:Summoning",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:5:Chaining",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:6:Battle",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:7:Summoning",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:8:Battle",
+            "bot-d27bccb9323a480790803bfd7634fb00:confirmed:9:Chaining",
+            "bot-eec7de772dc24577aa3c6d9e554eb62b:confirmed:1:Chaining",
+            "bot-eec7de772dc24577aa3c6d9e554eb62b:confirmed:2:SpecialSummoning",
+            "bot-eec7de772dc24577aa3c6d9e554eb62b:confirmed:3:Battle",
+            "bot-02ff02a887354361bccbbd2ac3a650da:confirmed:1:Chaining",
+            "bot-2031f829851e4051afdb8fb9b33614cd:confirmed:1:Chaining",
+            "bot-d9952675156e4585b35a0e67656816bd:confirmed:1:Chaining",
+            "bot-d9952675156e4585b35a0e67656816bd:confirmed:2:Move",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:1:Chaining",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:2:Chaining",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:3:SpecialSummoning",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:4:Chaining",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:5:Move",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:6:Chaining",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:7:Chaining",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:8:Chaining",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:9:Chaining",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:10:SpecialSummoning",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:11:Chaining",
+            "7f94afd29934410fb9c2cd76ccd52695:confirmed:12:SpecialSummoning",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:1:Chaining",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:2:Chaining",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:3:Chaining",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:4:SpecialSummoning",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:5:Chaining",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:6:SpecialSummoning",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:7:Chaining",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:8:Chaining",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:9:Battle",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:10:Chaining",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:11:SpecialSummoning",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:12:Battle",
+            "8a89c15b7e08445db3995c95c5732581:confirmed:13:Summoning",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:1:Chaining",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:2:Chaining",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:3:Chaining",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:4:Summoning",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:5:Chaining",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:6:Move",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:7:Move",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:8:Move",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:9:Chaining",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:10:Summoning",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:11:Battle",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:12:Chaining",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:13:Summoning",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:14:Summoning",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:15:Chaining",
+            "457fc1144bf74f3593d92aa6ff35c722:confirmed:16:Battle"
+        ]
+    },
+    "missions": {
+        "schemaVersion": 1,
+        "cycleId": "utc48h:10347",
+        "cycleStartUtcTicks": 639235584000000000,
+        "cycleEndUtcTicks": 639237312000000000,
+        "timeValidated": true,
+        "lastAuthoritativeUtcTicks": 639236311320000000,
+        "deviceSessionId": "ab62931e45394433a4e9cbefa40553b9",
+        "missions": [
+            {
+                "missionInstanceId": "utc48h:10347:t1-damage-3000",
+                "definitionId": "t1-damage-3000",
+                "displayName": "Primeiro impacto",
+                "description": "Cause 3.000 de dano em duelos online.",
+                "tier": 1,
+                "scope": 1,
+                "metric": 4,
+                "currentValue": 0,
+                "targetValue": 3000,
+                "rewardCoins": 10,
+                "completed": false,
+                "rewardClaimed": false
+            },
+            {
+                "missionInstanceId": "utc48h:10347:t1-destroy-5",
+                "definitionId": "t1-destroy-5",
+                "displayName": "Quebre a formação",
+                "description": "Destrua 5 cartas.",
+                "tier": 1,
+                "scope": 0,
+                "metric": 0,
+                "currentValue": 0,
+                "targetValue": 5,
+                "rewardCoins": 8,
+                "completed": false,
+                "rewardClaimed": false
+            },
+            {
+                "missionInstanceId": "utc48h:10347:t2-summon-40",
+                "definitionId": "t2-summon-40",
+                "displayName": "Exército arcano",
+                "description": "Invoque 40 monstros.",
+                "tier": 2,
+                "scope": 0,
+                "metric": 1,
+                "currentValue": 0,
+                "targetValue": 40,
+                "rewardCoins": 20,
+                "completed": false,
+                "rewardClaimed": false
+            },
+            {
+                "missionInstanceId": "utc48h:10347:t2-win-3",
+                "definitionId": "t2-win-3",
+                "displayName": "Sequência vitoriosa",
+                "description": "Vença 3 duelos online.",
+                "tier": 2,
+                "scope": 1,
+                "metric": 3,
+                "currentValue": 0,
+                "targetValue": 3,
+                "rewardCoins": 25,
+                "completed": false,
+                "rewardClaimed": false
+            },
+            {
+                "missionInstanceId": "utc48h:10347:t3-coins-75",
+                "definitionId": "t3-coins-75",
+                "displayName": "Tesouro conquistado",
+                "description": "Ganhe 75 moedas em fontes elegíveis.",
+                "tier": 3,
+                "scope": 5,
+                "metric": 8,
+                "currentValue": 0,
+                "targetValue": 75,
+                "rewardCoins": 50,
+                "completed": false,
+                "rewardClaimed": false
+            }
+        ],
+        "claimedMissionInstanceIds": [],
+        "resolvedRewardOperationIds": [],
+        "processedProgressEventIds": [
+            "login:utc48h:10347:1f389d58798641079628d3cb99377a21"
+        ]
+    }
+}

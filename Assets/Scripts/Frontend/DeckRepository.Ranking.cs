@@ -250,6 +250,12 @@ namespace ArcaneArena.Frontend
                     Array.Empty<string>());
                 record.rewardStatus = RewardReceiptStatus.Granted;
                 State.processedShopTransactions.Add(record);
+                RecordEligibleMissionCoins(
+                    transactionId,
+                    coins,
+                    true,
+                    true,
+                    false);
             }
         }
     }
