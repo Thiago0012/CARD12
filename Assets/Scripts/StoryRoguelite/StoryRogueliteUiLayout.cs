@@ -84,73 +84,20 @@ namespace ArcaneArena.StoryRoguelite
         {
             if (current == null)
                 return new Vector2(0.5f, 0.5f);
-
-            Vector2 primary = PrimaryDirection(current.MarkerOffset);
-            Vector2 perpendicular = new(-primary.y, primary.x);
-            var directions = new List<Vector2>
-            {
-                primary,
-                perpendicular,
-                -perpendicular,
-                -primary,
-                (primary + perpendicular).normalized,
-                (primary - perpendicular).normalized,
-                (-primary + perpendicular).normalized,
-                (-primary - perpendicular).normalized
-            };
-
+            // O emblema é um marcador de progresso, não um objeto que deve
+            // procurar uma rota vazia. Mantê-lo sempre acima do nó atual faz
+            // a leitura permanecer previsível: qualquer ponto escolhido
+            // mostra o perfil no mesmo lugar relativo ao seu botão.
             Vector2 currentHalf = NodeHalfSize(current.NodeType);
-            Vector2 markerCollisionHalf = MarkerCollisionHalfSize;
-            foreach (Vector2 direction in directions)
-            {
-                Vector2 distance = new(
-                    currentHalf.x + markerCollisionHalf.x +
-                    MarkerCollisionGap,
-                    currentHalf.y + markerCollisionHalf.y +
-                    MarkerCollisionGap);
-                Vector2 candidate = current.NormalizedPosition +
-                    DirectionalOffset(direction, distance);
-                if (IsInsideMap(candidate) &&
-                    !OverlapsAnyObjective(map, candidate))
-                {
-                    return candidate;
-                }
-            }
-
-            // Mapas procedurais podem formar corredores especialmente densos.
-            // Nesses casos, procura a posição livre mais próxima em uma grade
-            // estável. A leve preferência pela direção autoral mantém o
-            // marcador visualmente ligado ao nó sem sacrificar os cliques.
-            Vector2 best = new(0.5f, 0.5f);
-            float bestScore = float.PositiveInfinity;
-            const int gridSteps = 48;
-            float minimumX = MarkerLeftExtent + MapEdgeGap;
-            float maximumX = 1f - MarkerRightExtent - MapEdgeGap;
-            float minimumY = MarkerBottomExtent + MapEdgeGap;
+            float aboveNode = current.NormalizedPosition.y + currentHalf.y +
+                              MarkerBottomExtent + MarkerCollisionGap;
             float maximumY = 1f - MarkerTopExtent - MapEdgeGap;
-            for (int y = 0; y <= gridSteps; y++)
-            {
-                for (int x = 0; x <= gridSteps; x++)
-                {
-                    Vector2 candidate = new(
-                        Mathf.Lerp(minimumX, maximumX, x / (float)gridSteps),
-                        Mathf.Lerp(minimumY, maximumY, y / (float)gridSteps));
-                    if (OverlapsAnyObjective(map, candidate))
-                        continue;
-                    Vector2 difference = candidate -
-                                         current.NormalizedPosition;
-                    float preference = difference.sqrMagnitude > 0f
-                        ? Vector2.Dot(difference.normalized, primary)
-                        : 0f;
-                    float score = difference.sqrMagnitude -
-                                  preference * 0.0025f;
-                    if (score >= bestScore)
-                        continue;
-                    best = candidate;
-                    bestScore = score;
-                }
-            }
-            return best;
+            return new Vector2(
+                Mathf.Clamp(
+                    current.NormalizedPosition.x,
+                    MarkerLeftExtent + MapEdgeGap,
+                    1f - MarkerRightExtent - MapEdgeGap),
+                Mathf.Min(aboveNode, maximumY));
         }
 
         public static bool OverlapsAnyObjective(
