@@ -6,59 +6,100 @@ namespace ArcaneArena.Frontend
 {
     public sealed partial class GameFrontendBootstrap
     {
+        private Coroutine _accountBootstrapSpinner;
+
         private void ShowAccountBootstrapScreen()
         {
             SetDuelPresentation(false);
-            ClearScreen();
-            BuildSharedBackground("IDENTIDADE DO DUELISTA");
-
-            Image stage = CreatePanel(
+            // A conta ainda precisa ser confirmada antes de qualquer entrada
+            // no menu. Em vez de trocar toda a cena por um painel de espera,
+            // mantemos o menu visível e bloqueamos somente a interação até a
+            // resposta do servidor chegar.
+            ShowMainMenu();
+            Image inputGuard = CreatePanel(
                 _screenRoot,
-                "Verificação Inicial da Conta",
-                new Vector2(0.22f, 0.26f),
-                new Vector2(0.78f, 0.70f),
-                Color.clear);
-            Image panel = CreateArcaneSurface(
-                stage.transform,
-                "Painel de Verificação da Conta",
+                "Bloqueio Discreto da Verificação da Conta",
                 Vector2.zero,
                 Vector2.one,
+                Color.clear);
+            inputGuard.raycastTarget = true;
+
+            Image status = CreateArcaneSurface(
+                _screenRoot,
+                "Indicador de Entrada da Conta",
+                new Vector2(0.895f, 0.055f),
+                new Vector2(0.955f, 0.145f),
                 ArcaneCyan,
                 true,
-                0.88f);
-            CreatePanel(
-                panel.transform,
-                "Marcador de Verificação",
-                new Vector2(0.03f, 0.18f),
-                new Vector2(0.042f, 0.82f),
-                ArcaneGold).raycastTarget = false;
-            CreateText(
-                panel.transform,
-                "VERIFICANDO CONTA",
-                24,
-                FontStyle.Bold,
-                Color.white,
-                new Vector2(0.08f, 0.58f),
-                new Vector2(0.92f, 0.82f),
-                TextAnchor.MiddleLeft);
-            CreateText(
-                panel.transform,
-                "Carregando o ID numérico, a conta vinculada e o perfil salvo na nuvem.",
-                13,
-                FontStyle.Normal,
-                Muted,
-                new Vector2(0.08f, 0.38f),
-                new Vector2(0.92f, 0.58f),
-                TextAnchor.UpperLeft);
-            CreateText(
-                panel.transform,
-                PlayerCloudSaveRuntime.Status,
-                11,
-                FontStyle.Bold,
-                ArcaneGold,
-                new Vector2(0.08f, 0.20f),
-                new Vector2(0.92f, 0.33f),
-                TextAnchor.MiddleLeft);
+                0.62f);
+            Image spinner = CreatePanel(
+                status.transform,
+                "Símbolo de Login Carregando",
+                new Vector2(0.16f, 0.16f),
+                new Vector2(0.84f, 0.84f),
+                Color.clear);
+            spinner.raycastTarget = false;
+            Image[] spinnerTicks = CreateAccountBootstrapSpinner(spinner);
+
+            if (_accountBootstrapSpinner != null)
+                StopCoroutine(_accountBootstrapSpinner);
+            _accountBootstrapSpinner = StartCoroutine(
+                AnimateAccountBootstrapSpinner(spinner.transform, spinnerTicks));
+        }
+
+        private static Image[] CreateAccountBootstrapSpinner(Image spinner)
+        {
+            const int tickCount = 12;
+            var ticks = new Image[tickCount];
+            for (int index = 0; index < tickCount; index++)
+            {
+                float radians = index * Mathf.PI * 2f / tickCount;
+                Vector2 center = new(
+                    0.5f + Mathf.Cos(radians) * 0.35f,
+                    0.5f + Mathf.Sin(radians) * 0.35f);
+                const float size = 0.115f;
+                float alpha = Mathf.Lerp(0.20f, 1f,
+                    index / (float)(tickCount - 1));
+                ticks[index] = CreatePanel(
+                    spinner.transform,
+                    "Traço do Carregamento " + index,
+                    center - Vector2.one * (size * 0.5f),
+                    center + Vector2.one * (size * 0.5f),
+                    new Color(ArcaneCyan.r, ArcaneCyan.g, ArcaneCyan.b, alpha));
+                ticks[index].raycastTarget = false;
+            }
+
+            return ticks;
+        }
+
+        private System.Collections.IEnumerator AnimateAccountBootstrapSpinner(
+            Transform spinner,
+            Image[] ticks)
+        {
+            float elapsed = 0f;
+            while (spinner != null)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                spinner.localRotation = Quaternion.Euler(
+                    0f,
+                    0f,
+                    -elapsed * 240f);
+                for (int index = 0; index < ticks.Length; index++)
+                {
+                    if (ticks[index] == null)
+                        continue;
+                    float wave = Mathf.Repeat(
+                        elapsed * 1.65f + index / (float)ticks.Length,
+                        1f);
+                    Color color = ticks[index].color;
+                    color.a = Mathf.Lerp(0.18f, 1f, wave);
+                    ticks[index].color = color;
+                }
+
+                yield return null;
+            }
+
+            _accountBootstrapSpinner = null;
         }
 
         private void ShowAccountCenter()

@@ -200,9 +200,9 @@ namespace ArcaneArena.Multiplayer
             AddModernSurface(
                 panel,
                 "Superfície do Resultado Ranqueado",
-                new Color(0.93f, 0.66f, 0.18f, 1f),
-                0.95f,
-                18f);
+                new Color(0.15f, 0.82f, 1f, 1f),
+                0.68f,
+                22f);
 
             GameObject bannerObject = new GameObject(
                 "RankResultBanner",
@@ -237,6 +237,38 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.30f, 0.19f),
                 new Vector2(0.70f, 0.27f));
 
+            Image rankCoreFrame = CreateImage(
+                panel.transform,
+                "RankCinematicFrame",
+                Color.clear,
+                new Vector2(0.285f, 0.245f),
+                new Vector2(0.715f, 0.765f));
+            AddModernSurface(
+                rankCoreFrame,
+                "Moldura holográfica do elo",
+                new Color(0.24f, 0.88f, 1f, 1f),
+                0.38f,
+                20f);
+
+            RawImage cinematicViewport = CreateRawImage(
+                panel.transform,
+                "RankPromotionCinematicViewport",
+                new Vector2(0.285f, 0.245f),
+                new Vector2(0.715f, 0.765f));
+
+            Image currentMiniFrame = CreateImage(
+                panel.transform,
+                "CurrentRankMiniFrame",
+                Color.clear,
+                new Vector2(0.06f, 0.33f),
+                new Vector2(0.29f, 0.71f));
+            AddModernSurface(
+                currentMiniFrame,
+                "Moldura do elo atual",
+                new Color(0.20f, 0.75f, 1f, 1f),
+                0.30f,
+                13f);
+
             Image currentMini = CreateImage(
                 panel.transform,
                 "CurrentRankMini",
@@ -253,6 +285,19 @@ namespace ArcaneArena.Multiplayer
                 new Vector2(0.06f, 0.27f),
                 new Vector2(0.29f, 0.35f));
 
+            Image centerFrame = CreateImage(
+                panel.transform,
+                "CurrentRankCenterFrame",
+                Color.clear,
+                new Vector2(0.325f, 0.325f),
+                new Vector2(0.675f, 0.765f));
+            AddModernSurface(
+                centerFrame,
+                "Moldura central do elo",
+                new Color(0.26f, 0.90f, 1f, 1f),
+                0.42f,
+                22f);
+
             Image center = CreateImage(
                 panel.transform,
                 "CurrentRankLarge",
@@ -268,7 +313,20 @@ namespace ArcaneArena.Multiplayer
                 FontStyle.Bold,
                 new Vector2(0.28f, 0.27f),
                 new Vector2(0.72f, 0.36f));
-            centerLabel.color = new Color(0.95f, 0.78f, 0.30f, 1f);
+            centerLabel.color = new Color(0.60f, 0.94f, 1f, 1f);
+
+            Image nextMiniFrame = CreateImage(
+                panel.transform,
+                "NextRankMiniFrame",
+                Color.clear,
+                new Vector2(0.71f, 0.33f),
+                new Vector2(0.94f, 0.71f));
+            AddModernSurface(
+                nextMiniFrame,
+                "Moldura do próximo elo",
+                new Color(0.48f, 0.62f, 1f, 1f),
+                0.30f,
+                13f);
 
             Image nextMini = CreateImage(
                 panel.transform,
@@ -301,6 +359,16 @@ namespace ArcaneArena.Multiplayer
             barFill.type = Image.Type.Filled;
             barFill.fillMethod = Image.FillMethod.Horizontal;
             barFill.fillOrigin = 0;
+            Image barEnergyFlow = CreateImage(
+                barBackground.transform,
+                "RankBarEnergyFlow",
+                Color.clear,
+                Vector2.zero,
+                Vector2.one);
+            barEnergyFlow.type = Image.Type.Filled;
+            barEnergyFlow.fillMethod = Image.FillMethod.Horizontal;
+            barEnergyFlow.fillOrigin = 0;
+            barEnergyFlow.raycastTarget = false;
             Text barValue = CreateText(
                 barBackground.transform,
                 "RankBarValue",
@@ -342,9 +410,14 @@ namespace ArcaneArena.Multiplayer
                 Vector2.one);
             skipText.text = "PULAR ANIMAÇÃO";
 
+            // A textura 3D fica acima das molduras somente durante a troca.
+            // Seu CanvasGroup começa invisível, portanto não interfere com o
+            // emblema estático ou com os controles fora da animação.
+            cinematicViewport.transform.SetAsLastSibling();
+
             RankPointsBarView barView =
                 rankedRoot.AddComponent<RankPointsBarView>();
-            barView.Initialize(barFill, barValue, remaining);
+            barView.Initialize(barFill, barEnergyFlow, barValue, remaining);
             RankEmblemView emblemView =
                 rankedRoot.AddComponent<RankEmblemView>();
             emblemView.Initialize(center, centerLabel);
@@ -358,6 +431,9 @@ namespace ArcaneArena.Multiplayer
             RankResultBanner resultBanner =
                 bannerObject.AddComponent<RankResultBanner>();
             resultBanner.Initialize(result, delta, transition);
+            RankPromotionCinematic cinematic =
+                rankedRoot.AddComponent<RankPromotionCinematic>();
+            cinematic.Initialize(cinematicViewport);
             rankTransition =
                 rankedRoot.AddComponent<RankTransitionAnimator>();
             rankTransition.Initialize(
@@ -365,6 +441,7 @@ namespace ArcaneArena.Multiplayer
                 emblemView,
                 sideView,
                 resultBanner,
+                cinematic,
                 returnButton,
                 skipButton);
             rankedRoot.SetActive(false);
@@ -422,6 +499,24 @@ namespace ArcaneArena.Multiplayer
             Stretch(value.GetComponent<RectTransform>(), anchorMin, anchorMax);
             Image image = value.GetComponent<Image>();
             image.color = color;
+            return image;
+        }
+
+        private static RawImage CreateRawImage(
+            Transform parent,
+            string name,
+            Vector2 anchorMin,
+            Vector2 anchorMax)
+        {
+            GameObject value = new GameObject(
+                name,
+                typeof(RectTransform),
+                typeof(RawImage));
+            value.transform.SetParent(parent, false);
+            Stretch(value.GetComponent<RectTransform>(), anchorMin, anchorMax);
+            RawImage image = value.GetComponent<RawImage>();
+            image.color = Color.white;
+            image.raycastTarget = false;
             return image;
         }
 
