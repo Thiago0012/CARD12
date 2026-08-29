@@ -3675,8 +3675,30 @@ namespace ArcaneArena
             bool fieldCard = zone.Kind == DuelZoneKind.Monster ||
                              zone.Kind == DuelZoneKind.SpellTrap ||
                              zone.Kind == DuelZoneKind.Field;
-            return !fieldCard ||
-                   (zone.IsFaceUp && IsFaceUp(PositionAt(zone)));
+            return !fieldCard || IsPublicOpponentFieldCardFaceUp(zone);
+        }
+
+        private bool IsPublicOpponentFieldCardFaceUp(DuelZone3D zone)
+        {
+            if (zone == null)
+                return false;
+
+            uint position = PositionAt(zone);
+            if ((position & (FaceDownAttack | FaceDownDefense)) != 0)
+                return false;
+            if ((position & (FaceUpAttack | FaceUpDefense)) != 0)
+                return true;
+
+            // Some replica snapshots publish the world view one frame before
+            // their compact position vector.  The rendered view is a valid
+            // fallback only while it explicitly says that the public face is
+            // showing; it is never used to infer the identity of a set card.
+            WorldCardInstanceView view = zone.FindPresentedCard()
+                ?.GetComponent<WorldCardInstanceView>();
+            return position == 0 &&
+                   zone.IsFaceUp &&
+                   view != null &&
+                   view.IsFaceUp;
         }
 
         private bool CanInspectChoiceIdentity(DuelChoice choice)
@@ -4997,11 +5019,34 @@ namespace ArcaneArena
 
         private uint InspectableCodeAt(DuelZone3D zone, DuelPrompt prompt)
         {
+            if (zone == null)
+                return 0;
+
+            bool localZone = IsLocalZone(zone);
+            if (!localZone && !CanInspectZoneIdentity(zone))
+                return 0;
+
             uint code = CodeAt(zone);
-            if (code != 0 || zone == null || !IsLocalZone(zone) ||
-                prompt == null)
-            {
+            if (code != 0)
                 return code;
+
+            if (!localZone)
+            {
+                // A face-up opponent card is public information.  During a
+                // replica reconciliation the detailed instance reaches the
+                // world view before the summarized zone-code array.  Reading
+                // that already-public instance keeps a normal click working
+                // without creating any path to a face-down identity.
+                WorldCardInstanceView publicView = zone.FindPresentedCard()
+                    ?.GetComponent<WorldCardInstanceView>();
+                return publicView != null && publicView.IsFaceUp
+                    ? publicView.InstanceKey.DefinitionCode
+                    : 0;
+            }
+
+            if (prompt == null)
+            {
+                return 0;
             }
 
             byte controller = StatePlayerForZone(zone);

@@ -836,6 +836,24 @@ namespace ArcaneDuel.Tests.PlayMode
                 (byte)DuelLocation.MonsterZone,
                 4,
                 FaceDown));
+            state.Apply(MoveEvent(
+                BlueEyesWhiteDragon,
+                1,
+                0,
+                0,
+                1,
+                (byte)DuelLocation.MonsterZone,
+                3,
+                0x1U));
+            state.Apply(MoveEvent(
+                DarkMagicalCircle,
+                1,
+                0,
+                0,
+                1,
+                (byte)DuelLocation.SpellTrapZone,
+                2,
+                0x1U));
 
             BindingFlags flags = BindingFlags.Instance |
                                  BindingFlags.Public |
@@ -846,11 +864,17 @@ namespace ArcaneDuel.Tests.PlayMode
 
             Component localZone = FindZone("PlayerOne", "Monster", 4);
             Component opponentZone = FindZone("PlayerTwo", "Monster", 4);
+            Component faceUpOpponentMonster =
+                FindZone("PlayerTwo", "Monster", 3);
+            Component faceUpOpponentSpell =
+                FindZone("PlayerTwo", "SpellTrap", 2);
             GameObject details = arena.GetType()
                 .GetField("detailPanel", flags)
                 ?.GetValue(arena) as GameObject;
             Assert.That(localZone, Is.Not.Null);
             Assert.That(opponentZone, Is.Not.Null);
+            Assert.That(faceUpOpponentMonster, Is.Not.Null);
+            Assert.That(faceUpOpponentSpell, Is.Not.Null);
             Assert.That(details, Is.Not.Null);
 
             MethodInfo close = arena.GetType().GetMethod(
@@ -881,6 +905,46 @@ namespace ArcaneDuel.Tests.PlayMode
                 details.activeSelf,
                 Is.False,
                 "An opponent face-down card must remain opaque to the host and guest UI.");
+
+            MethodInfo click = arena.GetType().GetMethod(
+                "HandleZoneClick",
+                flags,
+                null,
+                new[] { faceUpOpponentMonster.GetType(), typeof(int) },
+                null);
+            Assert.That(click, Is.Not.Null);
+
+            click.Invoke(
+                arena,
+                new object[] { faceUpOpponentMonster, 1 });
+            Assert.That(
+                details.activeSelf,
+                Is.True,
+                "Clicking an opponent face-up monster must open its public details.");
+            Assert.That(
+                arena.GetType().GetField("inspectedCode", flags)
+                    ?.GetValue(arena),
+                Is.EqualTo(BlueEyesWhiteDragon));
+
+            close?.Invoke(arena, null);
+            click.Invoke(
+                arena,
+                new object[] { faceUpOpponentSpell, 1 });
+            Assert.That(
+                details.activeSelf,
+                Is.True,
+                "Clicking an opponent face-up Spell/Trap must open its public details.");
+            Assert.That(
+                arena.GetType().GetField("inspectedCode", flags)
+                    ?.GetValue(arena),
+                Is.EqualTo(DarkMagicalCircle));
+
+            close?.Invoke(arena, null);
+            click.Invoke(arena, new object[] { opponentZone, 1 });
+            Assert.That(
+                details.activeSelf,
+                Is.False,
+                "An actual click must never reveal an opponent face-down card.");
         }
 
         [UnityTest]
