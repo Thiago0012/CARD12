@@ -210,6 +210,26 @@ namespace ArcaneDuel.DuelEngine.Protocol
         public DuelPrompt Prompt { get; internal set; }
         public string Detail { get; internal set; }
         public bool IsUnknown { get; internal set; }
+
+        /// <summary>
+        /// Creates a presentation-compatible terminal event for an external,
+        /// authoritative duel condition such as a tournament clock. Card
+        /// rules and ordinary wins continue to come from ocgcore.
+        /// </summary>
+        public static DuelEvent CreateAuthoritativeWin(
+            byte winner,
+            uint reason,
+            string detail)
+        {
+            return new DuelEvent
+            {
+                Message = CoreMessage.Win,
+                RawMessage = (byte)CoreMessage.Win,
+                Player = winner,
+                Value = reason,
+                Detail = detail ?? string.Empty
+            };
+        }
     }
 
     public sealed class CoreProtocolException : Exception

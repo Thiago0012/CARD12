@@ -4320,7 +4320,11 @@ namespace ArcaneArena.Multiplayer
                 resultSequence = ++nextResultSequence,
                 winnerSeat = winnerSeat,
                 loserSeat = loserSeat,
-                endReason = draw ? "DRAW" : "ENGINE_WIN",
+                endReason = draw
+                    ? "DRAW"
+                    : duelEvent.Value == 0xFEU
+                        ? "TIMEOUT"
+                        : "ENGINE_WIN",
                 finalStateVersion = authoritativeStateVersion,
                 finishedAtServerTick = networkManager != null
                     ? networkManager.ServerTime.Tick
@@ -4581,6 +4585,15 @@ namespace ArcaneArena.Multiplayer
                 state,
                 hostController,
                 1);
+            state.hasDuelClock = hostController.HasDuelClock;
+            state.localDuelTimeRemaining =
+                hostController.DuelTimeRemaining(1);
+            state.opponentDuelTimeRemaining =
+                hostController.DuelTimeRemaining(0);
+            state.activeDuelClockPlayer =
+                hostController.ActiveDuelClockPlayer == 1
+                    ? (byte)0
+                    : (byte)1;
             state.matchId = currentMatchId;
             ulong publicHash = DuelNetworkProtocol
                 .ComputePublicProjectionHash(state);

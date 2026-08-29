@@ -11,6 +11,9 @@ namespace ArcaneArena
         public const int CurrentLayoutVersion = 16;
         public const float StaticFieldWidth = 18.8f;
         public const float StaticFieldDepth = 10.586f;
+        private const float VisualCardThickness = 0.012f;
+        private const float MinimumVisibleStackThickness = 0.035f;
+        private const float MaximumVisibleStackThickness = 0.72f;
         private const float SourceFieldWidth = 1672f;
         private const float SourceFieldHeight = 941f;
 
@@ -34,10 +37,15 @@ namespace ArcaneArena
         private Material _playerOneField;
         private Material _playerTwoField;
         private Material _invisibleZone;
+        private Texture2D _paperEdgeTexture;
         private Transform _playerOneMainDeck;
         private Transform _playerTwoMainDeck;
         private Transform _playerOneExtraDeck;
         private Transform _playerTwoExtraDeck;
+        private int _playerOneMainDeckCount = int.MinValue;
+        private int _playerTwoMainDeckCount = int.MinValue;
+        private int _playerOneExtraDeckCount = int.MinValue;
+        private int _playerTwoExtraDeckCount = int.MinValue;
 
         private void Awake()
         {
@@ -71,6 +79,10 @@ namespace ArcaneArena
                 transform.Find("Players/PLAYER_1/SpecialZones/ExtraDeck/Card Stack"));
 
             layoutVersion = CurrentLayoutVersion;
+            _playerOneMainDeckCount = int.MinValue;
+            _playerTwoMainDeckCount = int.MinValue;
+            _playerOneExtraDeckCount = int.MinValue;
+            _playerTwoExtraDeckCount = int.MinValue;
             for (var i = transform.childCount - 1; i >= 0; i--)
             {
                 var child = transform.GetChild(i).gameObject;
@@ -523,18 +535,21 @@ namespace ArcaneArena
             stack.transform.localScale = UseStaticField
                 ? new Vector3(0.84f, 1f, 0.84f)
                 : Vector3.one;
-            stack.transform.localPosition = UseStaticField
-                ? new Vector3(0f, mainDeck ? 0.20f : 0.15f, 0f)
-                : new Vector3(0, mainDeck ? 0.42f : 0.34f, 0);
-            var paperHeight = mainDeck ? 0.34f : 0.18f;
+            var initialCount = mainDeck ? 40 : 15;
+            var paperHeight = DeckThicknessForCardCount(initialCount);
+            var stackBaseY = UseStaticField ? 0.03f : 0.25f;
+            stack.transform.localPosition = new Vector3(
+                0f,
+                stackBaseY + paperHeight * 0.5f,
+                0f);
             CreateBlock(stack.transform, "Paper Edges", Vector3.zero,
-                new Vector3(1.42f, paperHeight, 1.94f), _paperEdges, false);
+                new Vector3(1.60f, paperHeight, 2.12f), _paperEdges, false);
 
             for (var i = 1; i <= 3; i++)
             {
                 var layerY = -paperHeight * 0.5f + paperHeight * i / 4f;
                 CreateBlock(stack.transform, $"Page Line {i}", new Vector3(0, layerY, 0),
-                    new Vector3(1.425f, 0.008f, 1.945f), _pageLines, false);
+                    new Vector3(1.605f, 0.008f, 2.125f), _pageLines, false);
             }
 
             CreateBlock(stack.transform, "Top Card Back",
@@ -555,7 +570,12 @@ namespace ArcaneArena
         {
             var deck = GetMainDeckTransform(side);
             if (deck != null)
-                return deck.position + deck.up * 0.65f;
+            {
+                Transform topCard = deck.Find("Card Stack/Top Card Back");
+                if (topCard != null && topCard.gameObject.activeInHierarchy)
+                    return topCard.position + topCard.up * 0.03f;
+                return deck.position + deck.up * 0.08f;
+            }
 
             return side == DuelPlayerSide.PlayerOne
                 ? FieldPixel(1374f, 845f, 0.8f)
@@ -574,6 +594,131 @@ namespace ArcaneArena
             return side == DuelPlayerSide.PlayerOne
                 ? _playerOneExtraDeck
                 : _playerTwoExtraDeck;
+        }
+
+        public static float DeckThicknessForCardCount(int cardCount)
+        {
+            if (cardCount <= 0)
+                return 0f;
+            return Mathf.Clamp(
+                cardCount * VisualCardThickness,
+                MinimumVisibleStackThickness,
+                MaximumVisibleStackThickness);
+        }
+
+        public void SetDeckCardCounts(
+            DuelPlayerSide side,
+            int mainDeckCount,
+            int extraDeckCount)
+        {
+            if (side == DuelPlayerSide.PlayerOne)
+            {
+                ApplyDeckStackCountIfChanged(
+                    GetMainDeckTransform(side),
+                    mainDeckCount,
+                    ref _playerOneMainDeckCount);
+                ApplyDeckStackCountIfChanged(
+                    GetExtraDeckTransform(side),
+                    extraDeckCount,
+                    ref _playerOneExtraDeckCount);
+                return;
+            }
+
+            ApplyDeckStackCountIfChanged(
+                GetMainDeckTransform(side),
+                mainDeckCount,
+                ref _playerTwoMainDeckCount);
+            ApplyDeckStackCountIfChanged(
+                GetExtraDeckTransform(side),
+                extraDeckCount,
+                ref _playerTwoExtraDeckCount);
+        }
+
+        private void ApplyDeckStackCountIfChanged(
+            Transform deck,
+            int cardCount,
+            ref int displayedCount)
+        {
+            cardCount = Mathf.Max(0, cardCount);
+            if (displayedCount == cardCount)
+                return;
+            displayedCount = cardCount;
+            ApplyDeckStackCount(deck, cardCount);
+        }
+
+        private void ApplyDeckStackCount(Transform deck, int cardCount)
+        {
+            Transform stack = deck != null ? deck.Find("Card Stack") : null;
+            if (stack == null)
+                return;
+
+            bool hasCards = cardCount > 0;
+            stack.gameObject.SetActive(hasCards);
+            if (!hasCards)
+                return;
+
+            float thickness = DeckThicknessForCardCount(cardCount);
+            float stackBaseY = UseStaticField ? 0.03f : 0.25f;
+            stack.localPosition = new Vector3(
+                stack.localPosition.x,
+                stackBaseY + thickness * 0.5f,
+                stack.localPosition.z);
+
+            Transform paper = stack.Find("Paper Edges");
+            Transform topCard = stack.Find("Top Card Back");
+            if (paper != null)
+            {
+                Vector3 scale = paper.localScale;
+                // A narrow exposed lip keeps the layered paper readable even
+                // from the arena's mostly top-down camera.
+                scale.x = 1.60f;
+                scale.y = thickness;
+                scale.z = 2.12f;
+                paper.localScale = scale;
+                paper.localPosition = Vector3.zero;
+                ApplyPaperEdgeTexture(paper);
+            }
+
+            for (int index = 1; index <= 3; index++)
+            {
+                Transform pageLine = stack.Find($"Page Line {index}");
+                if (pageLine == null)
+                    continue;
+                pageLine.gameObject.SetActive(cardCount >= index * 3);
+                pageLine.localPosition = new Vector3(
+                    pageLine.localPosition.x,
+                    -thickness * 0.5f + thickness * index / 4f,
+                    pageLine.localPosition.z);
+                pageLine.localScale = new Vector3(
+                    1.605f,
+                    0.008f,
+                    2.125f);
+            }
+
+            if (topCard != null)
+            {
+                topCard.localPosition = new Vector3(
+                    topCard.localPosition.x,
+                    thickness * 0.5f + 0.018f,
+                    topCard.localPosition.z);
+            }
+        }
+
+        private void ApplyPaperEdgeTexture(Transform paper)
+        {
+            Renderer renderer = paper != null
+                ? paper.GetComponent<Renderer>()
+                : null;
+            Material material = renderer?.sharedMaterial;
+            if (material == null)
+                return;
+            _paperEdgeTexture ??= GeneratePaperEdgeTexture();
+            material.mainTexture = _paperEdgeTexture;
+            material.mainTextureScale = new Vector2(2f, 7f);
+            if (material.HasProperty("_BaseMap"))
+                material.SetTexture("_BaseMap", _paperEdgeTexture);
+            if (material.HasProperty("_BaseColor"))
+                material.SetColor("_BaseColor", Color.white);
         }
 
         public Vector3 GetDrawPresentationWorldPosition(
@@ -597,33 +742,14 @@ namespace ArcaneArena
             if (deck == null)
                 return;
 
-            var stack = deck.Find("Card Stack");
-            if (stack == null)
-                return;
-
-            var paper = stack.Find("Paper Edges");
-            var topCard = stack.Find("Top Card Back");
-            if (paper == null || topCard == null)
-                return;
-
-            var scale = paper.localScale;
-            scale.y = Mathf.Max(0.08f, scale.y - 0.045f);
-            paper.localScale = scale;
-            paper.localPosition -= Vector3.up * 0.0225f;
-            for (var i = 1; i <= 3; i++)
-            {
-                var pageLine = stack.Find($"Page Line {i}");
-                if (pageLine == null)
-                    continue;
-                pageLine.localPosition = new Vector3(
-                    0f,
-                    paper.localPosition.y - scale.y * 0.5f + scale.y * i / 4f,
-                    0f);
-            }
-            topCard.localPosition = new Vector3(
-                0f,
-                paper.localPosition.y + scale.y * 0.5f + 0.018f,
-                0f);
+            // The Core snapshot already contains the post-draw count before
+            // this presentation callback. Reapply it without subtracting a
+            // second visual card from the pile.
+            int count = side == DuelPlayerSide.PlayerOne
+                ? _playerOneMainDeckCount
+                : _playerTwoMainDeckCount;
+            if (count != int.MinValue)
+                ApplyDeckStackCount(deck, count);
         }
 
         private DuelZone3D CreateWell(Transform parent, string name, Vector3 position, Material innerMaterial,
@@ -1116,7 +1242,13 @@ namespace ArcaneArena
             _gold = NewMaterial(shader, "Ancient Gold", new Color(0.62f, 0.43f, 0.12f, 1f), false);
             _blueWell = NewMaterial(shader, "Graveyard Energy", new Color(0.03f, 0.25f, 0.8f, 1f), false);
             _violetWell = NewMaterial(shader, "Banishment Energy", new Color(0.42f, 0.04f, 0.7f, 1f), false);
-            _paperEdges = NewMaterial(shader, "Warm Paper Edges", new Color(0.86f, 0.84f, 0.77f, 1f), false);
+            _paperEdgeTexture = GeneratePaperEdgeTexture();
+            _paperEdges = MaterialWithTexture(
+                shader,
+                "Warm Paper Edges",
+                _paperEdgeTexture,
+                Color.white);
+            _paperEdges.mainTextureScale = new Vector2(2f, 7f);
             _pageLines = NewMaterial(shader, "Paper Layer Lines", new Color(0.48f, 0.47f, 0.43f, 1f), false);
             var sharedBack = cardBackTexture != null
                 ? cardBackTexture
@@ -1235,6 +1367,47 @@ namespace ArcaneArena
             }
             texture.SetPixels(pixels);
             texture.Apply(false, false);
+            return texture;
+        }
+
+        private static Texture2D GeneratePaperEdgeTexture()
+        {
+            const int width = 128;
+            const int height = 128;
+            var texture = new Texture2D(
+                width,
+                height,
+                TextureFormat.RGBA32,
+                true)
+            {
+                name = "Layered Card Paper Edges",
+                wrapMode = TextureWrapMode.Repeat,
+                filterMode = FilterMode.Trilinear,
+                hideFlags = HideFlags.DontSave
+            };
+            var pixels = new Color[width * height];
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                float fiber = Mathf.PerlinNoise(
+                    x * 0.105f + 7.3f,
+                    y * 0.037f + 19.1f);
+                float fineFiber = Mathf.PerlinNoise(
+                    x * 0.31f + 2.7f,
+                    y * 0.16f + 5.9f);
+                float layer = Mathf.Abs(Mathf.Sin(y * Mathf.PI / 4f));
+                float layerShadow = Mathf.SmoothStep(0.86f, 1f, layer);
+                Color warmPaper = Color.Lerp(
+                    new Color(0.67f, 0.64f, 0.55f, 1f),
+                    new Color(0.93f, 0.90f, 0.79f, 1f),
+                    fiber * 0.72f + fineFiber * 0.28f);
+                pixels[y * width + x] = Color.Lerp(
+                    warmPaper,
+                    new Color(0.35f, 0.33f, 0.29f, 1f),
+                    layerShadow * 0.34f);
+            }
+            texture.SetPixels(pixels);
+            texture.Apply(true, false);
             return texture;
         }
 

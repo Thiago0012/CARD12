@@ -13,6 +13,10 @@ namespace ArcaneDuel.Game
     public interface IDuelNetworkState
     {
         string Status { get; }
+        bool HasDuelClock { get; }
+        float LocalDuelTimeRemaining { get; }
+        float OpponentDuelTimeRemaining { get; }
+        byte ActiveDuelClockPlayer { get; }
 
         void ApplyTo(
             DuelPresentationState state,

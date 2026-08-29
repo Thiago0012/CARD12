@@ -19,6 +19,9 @@ namespace ArcaneDuel.Game
     {
         private const float DesignWidth = 1920f;
         private const float DesignHeight = 1080f;
+        public const float InitialDuelTimeSeconds = 300f;
+        public const float QualifiedTurnTimeBonusSeconds = 3f;
+        private const uint TimeoutWinReason = 0xFEU;
 
         private OcgDuelEngine engine;
         private ArcaneField3DPresenter fieldPresenter;
@@ -114,27 +117,51 @@ namespace ArcaneDuel.Game
         private bool reconcileFailureRecorded;
         private IDuelNetworkState replicaNetworkState;
         private bool completionNotified;
+        private readonly float[] duelTimeRemaining =
+            { InitialDuelTimeSeconds, InitialDuelTimeSeconds };
+        private byte activeDuelClockPlayer;
+        private int cardsPlacedThisTurn;
+        private bool duelClockEnabled;
+        private bool duelClockObservedTurn;
+        private byte? duelClockWinner;
 
         public bool ExternalPresentation => externalPresentation;
         public bool IsCoreReady => database != null;
         public string InitializationFailure { get; private set; }
         public bool IsNetworkReplica => networkReplica;
         public byte NetworkLocalPlayer => networkLocalPlayer;
-        public DuelPrompt CurrentPrompt => networkReplica
-            ? replicaPrompt
-            : engine?.CurrentPrompt;
+        public DuelPrompt CurrentPrompt => duelClockWinner.HasValue
+            ? null
+            : networkReplica
+                ? replicaPrompt
+                : engine?.CurrentPrompt;
         public DuelPresentationState PresentationState => state;
         public CardDatabase Database => database;
         public IReadOnlyList<uint> PlayerExtraDeckCards => playerExtraCards;
-        public bool IsFinished => networkReplica
-            ? state != null && state.Winner.HasValue
-            : engine == null || engine.IsFinished;
+        public bool IsFinished => duelClockWinner.HasValue ||
+            (networkReplica
+                ? state != null && state.Winner.HasValue
+                : engine == null || engine.IsFinished);
+        public bool HasDuelClock => duelClockEnabled;
+        public byte ActiveDuelClockPlayer => activeDuelClockPlayer;
         public bool PresentationDecisionLocked =>
             presentationDecisionLocked;
         public event Action<DuelEvent> CoreEventPresented;
         public event Action<string> CoreFailure;
         public event Action PresentationStateChanged;
         public event Action<byte> DuelCompleted;
+
+        public float DuelTimeRemaining(byte player)
+        {
+            return player < duelTimeRemaining.Length
+                ? Mathf.Max(0f, duelTimeRemaining[player])
+                : 0f;
+        }
+
+        public static bool QualifiesForDuelClockBonus(int cardsPlaced)
+        {
+            return cardsPlaced >= 2;
+        }
 
         public bool TryGetCurrentCombatStats(
             byte controller,
@@ -270,6 +297,7 @@ namespace ArcaneDuel.Game
                 configuration.SimpleOpponentAi = !externalPresentation;
                 engine = OcgDuelEngine.CreateDefault(configuration);
                 engine.EventReceived += OnCoreEvent;
+                ResetDuelClock(configuration.StartingPlayer);
                 engine.Start();
                 status = tutorialMode
                     ? "Treino guiado ativo · siga o painel à esquerda"
@@ -288,6 +316,7 @@ namespace ArcaneDuel.Game
         {
             TrySubmitDeferredCoreResponse();
             animationQueue.Tick(Time.unscaledDeltaTime);
+            UpdateDuelClock();
             if (reconcileRequested && !networkReplica &&
                 Time.unscaledTime >= nextReconcileAttemptTime)
             {
@@ -330,7 +359,8 @@ namespace ArcaneDuel.Game
                 state.RestoreSnapshot(snapshot);
                 status = "Arena reconstruída integralmente do snapshot";
             }
-            if (engine == null ||
+            if (duelClockWinner.HasValue ||
+                engine == null ||
                 engine.IsFinished ||
                 engine.CurrentPrompt == null ||
                 presentationDecisionLocked ||
@@ -365,6 +395,120 @@ namespace ArcaneDuel.Game
                     : DeterministicDuelPolicy.Choose(engine.CurrentPrompt));
         }
 
+        private void ResetDuelClock(byte startingPlayer)
+        {
+            duelTimeRemaining[0] = InitialDuelTimeSeconds;
+            duelTimeRemaining[1] = InitialDuelTimeSeconds;
+            activeDuelClockPlayer = startingPlayer > 0 ? (byte)1 : (byte)0;
+            cardsPlacedThisTurn = 0;
+            duelClockObservedTurn = false;
+            duelClockWinner = null;
+            duelClockEnabled = true;
+        }
+
+        private void UpdateDuelClock()
+        {
+            if (!duelClockEnabled || duelClockWinner.HasValue ||
+                state == null || state.Winner.HasValue ||
+                state.TurnNumber <= 0 || presentationDecisionLocked)
+            {
+                return;
+            }
+
+            byte player = activeDuelClockPlayer > 0 ? (byte)1 : (byte)0;
+            if (networkReplica)
+            {
+                duelTimeRemaining[player] = Mathf.Max(
+                    0f,
+                    duelTimeRemaining[player] - Time.unscaledDeltaTime);
+                return;
+            }
+
+            // The clock measures actionable duel time. Native Core work and
+            // mandatory presentation sequences do not consume either player.
+            if (engine == null || engine.IsFinished ||
+                engine.CurrentPrompt == null)
+            {
+                return;
+            }
+
+            duelTimeRemaining[player] = Mathf.Max(
+                0f,
+                duelTimeRemaining[player] - Time.unscaledDeltaTime);
+            if (duelTimeRemaining[player] <= 0f)
+                EndDuelByTimeout(player);
+        }
+
+        private void TrackDuelClockEvent(
+            DuelEvent duelEvent,
+            byte previousTurnPlayer)
+        {
+            if (!duelClockEnabled || networkReplica || duelEvent == null)
+                return;
+
+            if (duelEvent.Message == CoreMessage.Win)
+            {
+                duelClockWinner = duelEvent.Player;
+                return;
+            }
+
+            if (duelEvent.Message == CoreMessage.NewTurn)
+            {
+                if (duelClockObservedTurn &&
+                    QualifiesForDuelClockBonus(cardsPlacedThisTurn))
+                {
+                    byte finishingPlayer = previousTurnPlayer > 0
+                        ? (byte)1
+                        : (byte)0;
+                    duelTimeRemaining[finishingPlayer] +=
+                        QualifiedTurnTimeBonusSeconds;
+                }
+
+                activeDuelClockPlayer = duelEvent.Player > 0
+                    ? (byte)1
+                    : (byte)0;
+                cardsPlacedThisTurn = 0;
+                duelClockObservedTurn = true;
+                return;
+            }
+
+            if (duelEvent.Message != CoreMessage.Move ||
+                duelEvent.Current == null ||
+                activeDuelClockPlayer != duelEvent.Current.Controller ||
+                !IsDuelFieldLocation(duelEvent.Current.Location) ||
+                IsDuelFieldLocation(duelEvent.Previous?.Location ?? 0))
+            {
+                return;
+            }
+
+            cardsPlacedThisTurn++;
+        }
+
+        private static bool IsDuelFieldLocation(uint location)
+        {
+            return (location & (DuelLocation.MonsterZone |
+                                DuelLocation.SpellTrapZone)) != 0;
+        }
+
+        private void EndDuelByTimeout(byte timedOutPlayer)
+        {
+            if (duelClockWinner.HasValue)
+                return;
+
+            timedOutPlayer = timedOutPlayer > 0 ? (byte)1 : (byte)0;
+            byte winner = (byte)(1 - timedOutPlayer);
+            duelTimeRemaining[timedOutPlayer] = 0f;
+            duelClockWinner = winner;
+            presentationDecisionLocked = true;
+            status = timedOutPlayer == 0
+                ? "Seu tempo terminou."
+                : "O tempo do oponente terminou.";
+            OnCoreEvent(DuelEvent.CreateAuthoritativeWin(
+                winner,
+                TimeoutWinReason,
+                $"Vitória por tempo: o jogador {timedOutPlayer + 1} esgotou os 300 segundos."));
+        }
+
         private void OnDestroy()
         {
             if (engine != null)
@@ -385,7 +529,9 @@ namespace ArcaneDuel.Game
 
         private void OnCoreEvent(DuelEvent duelEvent)
         {
+            byte previousTurnPlayer = state?.TurnPlayer ?? (byte)0;
             state.Apply(duelEvent);
+            TrackDuelClockEvent(duelEvent, previousTurnPlayer);
             if (state.Winner.HasValue && !completionNotified)
             {
                 completionNotified = true;
@@ -440,8 +586,9 @@ namespace ArcaneDuel.Game
                     this);
             }
             TrackPlayerExtraDeck(duelEvent);
-            DuelPrompt activePrompt =
-                duelEvent.Prompt ?? engine?.CurrentPrompt;
+            DuelPrompt activePrompt = duelClockWinner.HasValue
+                ? null
+                : duelEvent.Prompt ?? engine?.CurrentPrompt;
             PrepareRequiredPromptVisibility(activePrompt);
             choicePresenter.Rebuild(activePrompt);
             RecordEffectPrompt(activePrompt);
@@ -1644,6 +1791,13 @@ namespace ArcaneDuel.Game
             remotePlayerOneAuthority = false;
             replicaPrompt = null;
             replicaNetworkState = null;
+            duelClockEnabled = false;
+            duelClockObservedTurn = false;
+            duelClockWinner = null;
+            duelTimeRemaining[0] = InitialDuelTimeSeconds;
+            duelTimeRemaining[1] = InitialDuelTimeSeconds;
+            activeDuelClockPlayer = 0;
+            cardsPlacedThisTurn = 0;
             presentationDecisionLocked = false;
             deferredCoreResponse = null;
             deferredCoreResponseRequestId = 0;
@@ -1697,6 +1851,18 @@ namespace ArcaneDuel.Game
                     ? receivedPrompt
                     : previousPrompt;
                 replicaNetworkState = networkState;
+                duelClockEnabled = networkState.HasDuelClock;
+                duelTimeRemaining[0] = Mathf.Max(
+                    0f,
+                    networkState.LocalDuelTimeRemaining);
+                duelTimeRemaining[1] = Mathf.Max(
+                    0f,
+                    networkState.OpponentDuelTimeRemaining);
+                activeDuelClockPlayer =
+                    networkState.ActiveDuelClockPlayer > 0
+                        ? (byte)1
+                        : (byte)0;
+                duelClockWinner = state.Winner;
                 SynchronizePlayerExtraDeckCardsFromState();
                 if (promptChanged)
                 {
@@ -1979,6 +2145,7 @@ namespace ArcaneDuel.Game
                 BotRuntimeSelection.CurrentSeed);
             engine = OcgDuelEngine.CreateDefault(configuration);
             engine.EventReceived += OnCoreEvent;
+            ResetDuelClock(configuration.StartingPlayer);
             choicePresenter.Rebuild(null);
             contextualChoices.Clear();
             selectedPromptIndexes.Clear();
@@ -2005,6 +2172,7 @@ namespace ArcaneDuel.Game
             }
             catch
             {
+                duelClockEnabled = false;
                 engine.EventReceived -= OnCoreEvent;
                 engine.Dispose();
                 engine = null;
@@ -2028,7 +2196,8 @@ namespace ArcaneDuel.Game
             byte[] response,
             bool ignorePresentationLock = false)
         {
-            if (engine == null || response == null || response.Length == 0)
+            if (duelClockWinner.HasValue || engine == null ||
+                response == null || response.Length == 0)
                 return false;
             if (presentationDecisionLocked && !ignorePresentationLock)
             {

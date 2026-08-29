@@ -65,6 +65,13 @@ namespace ArcaneArena
         private Text chainIndicatorCount;
         private Text chainIndicatorDetails;
         private DuelHudSurfaceGraphic chainIndicatorSurface;
+        private GameObject duelTurnClock;
+        private DuelHudSurfaceGraphic duelTurnClockSurface;
+        private Image duelTurnClockAccent;
+        private Text duelTurnClockOwner;
+        private Text duelTurnClockValue;
+        private byte renderedDuelClockPlayer = byte.MaxValue;
+        private int renderedDuelClockSeconds = -1;
         private int activeChainLinks;
         private float experiencePulse;
         private bool experienceObscured;
@@ -74,6 +81,7 @@ namespace ArcaneArena
         {
             BuildDecisionRibbon();
             BuildOpponentHandFan();
+            BuildDuelTurnClock();
             BuildDuelHistoryPanel();
             BuildChainIndicator();
             if (status != null) status.gameObject.SetActive(false);
@@ -186,6 +194,56 @@ namespace ArcaneArena
             }
             if (opponentHandCount != null)
                 opponentHandCount.raycastTarget = false;
+        }
+
+        private void BuildDuelTurnClock()
+        {
+            duelTurnClock = CreatePanel(
+                frame,
+                "Cronômetro do Duelo",
+                new Vector2(0.849f, 0.601f),
+                new Vector2(0.973f, 0.681f),
+                Color.clear);
+            duelTurnClock.transform.SetAsLastSibling();
+            CanvasGroup group = duelTurnClock.AddComponent<CanvasGroup>();
+            group.interactable = false;
+            group.blocksRaycasts = false;
+            duelTurnClockSurface = AttachDuelSurface(
+                duelTurnClock,
+                "Superfície do Cronômetro",
+                Cyan,
+                true,
+                0.94f,
+                false,
+                9f);
+            duelTurnClockAccent = CreateImage(
+                duelTurnClock.transform,
+                "Acento do Cronômetro",
+                Vector2.zero,
+                new Vector2(0.025f, 1f),
+                Cyan);
+            duelTurnClockAccent.raycastTarget = false;
+            duelTurnClockOwner = CreateText(
+                duelTurnClock.transform,
+                "SEU TEMPO",
+                10,
+                FontStyle.Bold,
+                Cyan,
+                new Vector2(0.07f, 0.62f),
+                new Vector2(0.93f, 0.94f),
+                TextAnchor.MiddleCenter);
+            duelTurnClockValue = CreateText(
+                duelTurnClock.transform,
+                "300 s",
+                27,
+                FontStyle.Bold,
+                Color.white,
+                new Vector2(0.07f, 0.08f),
+                new Vector2(0.93f, 0.68f),
+                TextAnchor.MiddleCenter);
+            duelTurnClockOwner.raycastTarget = false;
+            duelTurnClockValue.raycastTarget = false;
+            duelTurnClock.SetActive(false);
         }
 
         private void DisableLegacyOpponentHandPreview()
@@ -370,7 +428,7 @@ namespace ArcaneArena
         private void BuildChainIndicator()
         {
             chainIndicator = CreatePanel(frame, "Indicador de Corrente",
-                new Vector2(0.745f, 0.405f), new Vector2(0.975f, 0.525f),
+                new Vector2(0.385f, 0.165f), new Vector2(0.615f, 0.285f),
                 Color.clear);
             chainIndicatorSurface = AttachDuelSurface(
                 chainIndicator,
@@ -416,6 +474,13 @@ namespace ArcaneArena
             duelHistorySummary = null;
             duelHistoryContentRect = null;
             duelHistoryScroll = null;
+            duelTurnClock = null;
+            duelTurnClockSurface = null;
+            duelTurnClockAccent = null;
+            duelTurnClockOwner = null;
+            duelTurnClockValue = null;
+            renderedDuelClockPlayer = byte.MaxValue;
+            renderedDuelClockSeconds = -1;
         }
 
         private void OpenDuelHistory()
@@ -597,6 +662,7 @@ namespace ArcaneArena
         private void RefreshDuelExperienceState()
         {
             if (state == null) return;
+            RefreshDuelTurnClock();
             UpdateChainIndicator();
             int count = state.Players[1].Hand.Count;
             if (count != renderedOpponentHandCount)
@@ -623,6 +689,61 @@ namespace ArcaneArena
             {
                 HideDecisionRibbon();
             }
+        }
+
+        private void RefreshDuelTurnClock()
+        {
+            if (duelTurnClock == null)
+                return;
+            if (core == null || !core.HasDuelClock)
+            {
+                duelTurnClock.SetActive(false);
+                return;
+            }
+
+            duelTurnClock.SetActive(true);
+            byte activePlayer = core.ActiveDuelClockPlayer > 0
+                ? (byte)1
+                : (byte)0;
+            int seconds = Mathf.Max(
+                0,
+                Mathf.CeilToInt(core.DuelTimeRemaining(activePlayer)));
+            if (activePlayer == renderedDuelClockPlayer &&
+                seconds == renderedDuelClockSeconds)
+            {
+                return;
+            }
+
+            renderedDuelClockPlayer = activePlayer;
+            renderedDuelClockSeconds = seconds;
+            bool localTurn = activePlayer == 0;
+            Color accent = seconds <= 30
+                ? Red
+                : localTurn
+                    ? Cyan
+                    : OpponentTurnRed;
+            if (duelTurnClockOwner != null)
+            {
+                duelTurnClockOwner.text = localTurn
+                    ? "SEU TEMPO"
+                    : "TEMPO DO OPONENTE";
+                duelTurnClockOwner.color = accent;
+            }
+            if (duelTurnClockValue != null)
+            {
+                duelTurnClockValue.text = $"{seconds} s";
+                duelTurnClockValue.color = seconds <= 30
+                    ? new Color(1f, 0.86f, 0.88f, 1f)
+                    : Color.white;
+            }
+            if (duelTurnClockAccent != null)
+                duelTurnClockAccent.color = accent;
+            duelTurnClockSurface?.SetStyle(
+                accent,
+                true,
+                0.94f,
+                false,
+                9f);
         }
 
         private void RebuildOpponentHandFan(int count)
@@ -948,7 +1069,13 @@ namespace ArcaneArena
                     accent = Gold;
                     break;
                 case CoreMessage.Win:
-                    entry = duelEvent.Player == 0 ? "Vitória!" : "Derrota";
+                    entry = duelEvent.Value == 0xFEU
+                        ? duelEvent.Player == 0
+                            ? "Vitória por tempo!"
+                            : "Derrota por tempo"
+                        : duelEvent.Player == 0
+                            ? "Vitória!"
+                            : "Derrota";
                     accent = duelEvent.Player == 0 ? Lime : Red;
                     break;
             }

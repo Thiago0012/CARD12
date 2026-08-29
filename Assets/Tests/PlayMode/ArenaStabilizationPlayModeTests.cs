@@ -282,6 +282,62 @@ namespace ArcaneDuel.Tests.PlayMode
                 Does.Contain("Duel.SendtoHand(c,nil,REASON_RULE)"));
         }
 
+        [Test]
+        public void DeckStackThicknessIsProportionalToItsCardCount()
+        {
+            System.Type arenaType = System.AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Select(assembly => assembly.GetType(
+                    "ArcaneArena.MasterDuelArena3D",
+                    false))
+                .First(type => type != null);
+            MethodInfo thickness = arenaType.GetMethod(
+                "DeckThicknessForCardCount",
+                BindingFlags.Static | BindingFlags.Public);
+            Assert.That(thickness, Is.Not.Null);
+            float empty = (float)thickness.Invoke(null, new object[] { 0 });
+            float extra = (float)thickness.Invoke(null, new object[] { 15 });
+            float forty = (float)thickness.Invoke(null, new object[] { 40 });
+            float sixty = (float)thickness.Invoke(null, new object[] { 60 });
+            Assert.That(
+                empty,
+                Is.EqualTo(0f));
+            Assert.That(
+                sixty,
+                Is.GreaterThan(forty));
+            Assert.That(
+                forty,
+                Is.GreaterThan(extra));
+        }
+
+        [Test]
+        public void DuelClockUsesFiveMinutesAndBonusesOnlyQualifiedTurns()
+        {
+            Assert.That(
+                DuelArenaController.InitialDuelTimeSeconds,
+                Is.EqualTo(300f));
+            Assert.That(
+                DuelArenaController.QualifiedTurnTimeBonusSeconds,
+                Is.EqualTo(3f));
+            Assert.That(
+                DuelArenaController.QualifiesForDuelClockBonus(0),
+                Is.False);
+            Assert.That(
+                DuelArenaController.QualifiesForDuelClockBonus(1),
+                Is.False);
+            Assert.That(
+                DuelArenaController.QualifiesForDuelClockBonus(2),
+                Is.True);
+
+            DuelEvent timeout = DuelEvent.CreateAuthoritativeWin(
+                1,
+                0xFEU,
+                "Vitória por tempo");
+            Assert.That(timeout.Message, Is.EqualTo(CoreMessage.Win));
+            Assert.That(timeout.Player, Is.EqualTo(1));
+            Assert.That(timeout.Value, Is.EqualTo(0xFEU));
+        }
+
         [UnityTest]
         public IEnumerator AuthoredArenaNeverConsumesThePlayersPromptsAutomatically()
         {

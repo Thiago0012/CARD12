@@ -25,10 +25,21 @@ namespace ArcaneArena.Multiplayer
         public ulong acknowledgedCommandId;
         public ulong acknowledgedResponseRequestId;
         public string status;
+        public bool hasDuelClock;
+        public float localDuelTimeRemaining;
+        public float opponentDuelTimeRemaining;
+        public byte activeDuelClockPlayer;
         public DuelNetworkSnapshot snapshot;
         public DuelNetworkPrompt prompt;
 
         string IDuelNetworkState.Status => status;
+        bool IDuelNetworkState.HasDuelClock => hasDuelClock;
+        float IDuelNetworkState.LocalDuelTimeRemaining =>
+            localDuelTimeRemaining;
+        float IDuelNetworkState.OpponentDuelTimeRemaining =>
+            opponentDuelTimeRemaining;
+        byte IDuelNetworkState.ActiveDuelClockPlayer =>
+            activeDuelClockPlayer;
 
         void IDuelNetworkState.ApplyTo(
             DuelPresentationState state,

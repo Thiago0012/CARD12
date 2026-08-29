@@ -115,6 +115,8 @@ namespace ArcaneArena
         private Text detailType;
         private Text detailStats;
         private Text detailEffect;
+        private Scrollbar detailEffectScrollbar;
+        private MasterDuelArena3D deckStackArena;
         private Image detailAttributeIcon;
         private Image detailLevelIcon;
         private Text detailLevel;
@@ -1295,6 +1297,7 @@ namespace ArcaneArena
                 RefreshInspectedCombatStats();
 
             UpdateLifeAndPhase();
+            RefreshDeckStackVolumes();
             DuelPrompt prompt = core.CurrentPrompt;
             // Snapshots received from the network may recreate the prompt
             // object while preserving its RequestId. Use the semantic prompt
@@ -4090,7 +4093,8 @@ namespace ArcaneArena
                 }
             }
 
-            ScrollRect scroll = detailPanel.GetComponent<ScrollRect>();
+            ScrollRect scroll = detailPanel.GetComponent<ScrollRect>() ??
+                                detailPanel.AddComponent<ScrollRect>();
             if (scroll != null)
             {
                 scroll.enabled = true;
@@ -4098,6 +4102,13 @@ namespace ArcaneArena
                     detailEffect.transform as RectTransform;
                 if (viewport != null)
                     scroll.viewport = viewport;
+                scroll.horizontal = false;
+                scroll.vertical = true;
+                scroll.inertia = true;
+                scroll.decelerationRate = 0.12f;
+                scroll.scrollSensitivity = 32f;
+                scroll.movementType = ScrollRect.MovementType.Clamped;
+                EnsureDetailEffectScrollbar(scroll, viewport);
                 scroll.verticalNormalizedPosition = 1f;
             }
 
@@ -4121,6 +4132,94 @@ namespace ArcaneArena
             Canvas.ForceUpdateCanvases();
             if (scroll != null)
                 scroll.verticalNormalizedPosition = 1f;
+            if (detailEffectScrollbar != null)
+                detailEffectScrollbar.transform.SetAsLastSibling();
+        }
+
+        private void EnsureDetailEffectScrollbar(
+            ScrollRect scroll,
+            RectTransform viewport)
+        {
+            if (scroll == null || viewport == null)
+                return;
+
+            if (detailEffectScrollbar == null)
+            {
+                Transform existing = FindTransform(
+                    viewport,
+                    "Barra de Rolagem do Efeito");
+                detailEffectScrollbar = existing != null
+                    ? existing.GetComponent<Scrollbar>()
+                    : null;
+            }
+
+            if (detailEffectScrollbar == null)
+            {
+                Image track = CreateImage(
+                    viewport,
+                    "Barra de Rolagem do Efeito",
+                    new Vector2(0.965f, 0.025f),
+                    new Vector2(0.992f, 0.975f),
+                    new Color(0.045f, 0.055f, 0.062f, 0.98f));
+                RectTransform slidingArea = CreateRect(
+                    track.transform,
+                    "Área Deslizante",
+                    Vector2.zero,
+                    Vector2.one,
+                    new Vector2(-3f, -3f));
+                slidingArea.offsetMin = new Vector2(2f, 2f);
+                slidingArea.offsetMax = new Vector2(-2f, -2f);
+                Image handle = CreateImage(
+                    slidingArea,
+                    "Alça",
+                    new Vector2(0f, 0.68f),
+                    Vector2.one,
+                    new Color(0.76f, 0.78f, 0.79f, 1f));
+                detailEffectScrollbar =
+                    track.gameObject.AddComponent<Scrollbar>();
+                detailEffectScrollbar.handleRect = handle.rectTransform;
+                detailEffectScrollbar.targetGraphic = handle;
+                detailEffectScrollbar.direction =
+                    Scrollbar.Direction.BottomToTop;
+                detailEffectScrollbar.navigation = new Navigation
+                {
+                    mode = Navigation.Mode.None
+                };
+            }
+
+            scroll.verticalScrollbar = detailEffectScrollbar;
+            scroll.verticalScrollbarVisibility =
+                ScrollRect.ScrollbarVisibility.AutoHide;
+            scroll.verticalScrollbarSpacing = 4f;
+            detailEffectScrollbar.gameObject.SetActive(true);
+            detailEffectScrollbar.transform.SetAsLastSibling();
+
+            if (detailEffect.transform is RectTransform effectRect)
+            {
+                Vector2 offsetMax = effectRect.offsetMax;
+                offsetMax.x = Mathf.Min(offsetMax.x, -18f);
+                effectRect.offsetMax = offsetMax;
+            }
+        }
+
+        private void RefreshDeckStackVolumes()
+        {
+            if (state == null)
+                return;
+            if (deckStackArena == null)
+                deckStackArena = FindAnyObjectByType<MasterDuelArena3D>();
+            if (deckStackArena == null)
+                return;
+
+            for (byte player = 0; player < 2; player++)
+            {
+                int extraCount = VisibleDeveloperFilteredPileCount(
+                    state.Players[player].ExtraDeckCards);
+                deckStackArena.SetDeckCardCounts(
+                    PhysicalSideForStatePlayer(player),
+                    Mathf.Max(0, state.Players[player].DeckCount),
+                    Mathf.Max(0, extraCount));
+            }
         }
 
         private CardCatalogEntry LegacyEntryFor(uint code)
