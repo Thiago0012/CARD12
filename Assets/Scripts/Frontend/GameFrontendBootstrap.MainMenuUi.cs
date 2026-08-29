@@ -29,6 +29,7 @@ namespace ArcaneArena.Frontend
             "https://services.api.unity.com";
 
         private Coroutine _connectionMonitor;
+        private Coroutine _offlineDuelPreparation;
         private Image[] _connectionBars;
         private Text _connectionStatus;
         private Text _relayRegionStatus;
@@ -355,7 +356,7 @@ namespace ArcaneArena.Frontend
                 "DUELAR OFFLINE",
                 new Vector2(0.020f, 0.679f),
                 new Vector2(0.315f, 0.866f),
-                OpenBotDuelSelectionFromMainMenu);
+                StartOfflineRandomDuelFromDuelHub);
             CreateInvisibleButton(
                 "PROCURAR RIVAL RANQUEADO",
                 new Vector2(0.020f, 0.477f),
@@ -675,6 +676,54 @@ namespace ArcaneArena.Frontend
             }
 
             ShowDeckGallery();
+        }
+
+        private void StartOfflineRandomDuelFromDuelHub()
+        {
+            if (!CanStartWithSelectedDeck())
+            {
+                ShowDeckGallery();
+                return;
+            }
+
+            if (_offlineDuelPreparation != null)
+                return;
+
+            _offlineDuelPreparation = StartCoroutine(
+                PrepareOfflineRandomDuel());
+        }
+
+        private IEnumerator PrepareOfflineRandomDuel()
+        {
+            OnlineLoadingScreenPresenter presenter = DuelOnlineSession
+                .EnsureInstance()
+                .TransitionPresenter;
+
+            // O modo Offline monta o confronto automaticamente. A transição
+            // informa apenas que a partida está sendo preparada, sem simular
+            // uma busca por outro jogador nem revelar detalhes internos do
+            // adversário antes do prelúdio. Ela não usa ShowFeatureTransition:
+            // esse recurso encerra o mesmo painel que o pedra-papel-tesoura
+            // precisa assumir no frame seguinte.
+            presenter?.ShowDuelLoading(
+                "PREPARANDO PARTIDA",
+                "Definindo o próximo confronto.",
+                0.12f);
+
+            const float preparationSeconds = 0.62f;
+            float startedAt = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - startedAt < preparationSeconds)
+            {
+                float progress = Mathf.InverseLerp(
+                    0f,
+                    preparationSeconds,
+                    Time.realtimeSinceStartup - startedAt);
+                presenter?.SetProgress(Mathf.Lerp(0.12f, 0.88f, progress));
+                yield return null;
+            }
+
+            _offlineDuelPreparation = null;
+            StartRandomBotDuel();
         }
 
         private void ShowMultiplayerRoom()

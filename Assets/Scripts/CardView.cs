@@ -33,6 +33,9 @@ namespace ArcaneArena
         private Color legalGlowPrimary;
         private Color legalGlowSecondary;
         private Coroutine poseRoutine;
+        private float nextLegalGlowRefreshAt;
+
+        private const float LegalGlowRefreshInterval = 1f / 30f;
 
         // Keep the authored prototype's restrained hand motion.  The larger
         // values previously used here pushed the selected card over the first
@@ -169,6 +172,12 @@ namespace ArcaneArena
         {
             if (!legalGlowEnabled || selected || outline == null)
                 return;
+
+            float now = Time.unscaledTime;
+            if (now < nextLegalGlowRefreshAt)
+                return;
+
+            nextLegalGlowRefreshAt = now + LegalGlowRefreshInterval;
             ApplyLegalGlow();
         }
 

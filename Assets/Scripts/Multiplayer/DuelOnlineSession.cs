@@ -2441,8 +2441,9 @@ namespace ArcaneArena.Multiplayer
             if (remoteLoadout == null && IsHost &&
                 remoteClientId != ulong.MaxValue)
             {
-                status = "O rival conectou, mas o deck nao chegou. " +
-                    "A conexao continua aberta para uma nova tentativa.";
+                EndDeckHandshake(
+                    "O rival não enviou o deck a tempo. A sala foi encerrada; " +
+                    "crie um novo código e tente novamente.");
             }
             helloRequestRetry = null;
         }
@@ -2515,10 +2516,29 @@ namespace ArcaneArena.Multiplayer
             if (!helloAccepted && role == SessionRole.Client &&
                 networkManager != null && networkManager.IsConnectedClient)
             {
-                status = "O host não confirmou o deck. Ele pode ter fechado " +
-                    "a sala, iniciado outra versão do jogo ou perdido a conexão.";
+                EndDeckHandshake(
+                    "O anfitrião não confirmou o deck a tempo. Você saiu da " +
+                    "sala; confirme a versão e tente novamente com um novo código.");
             }
             helloRetry = null;
+        }
+
+        /// <summary>
+        /// A deck handshake is the only gate before a private room can start.
+        /// Leaving either peer connected after its finite retry budget is
+        /// exhausted used to reserve the seat forever and present an endless
+        /// loading state. Finish the Session cleanly instead, so both the
+        /// code-room and the automatic queue become usable again.
+        /// </summary>
+        private void EndDeckHandshake(string failure)
+        {
+            if (matchStarted || role == SessionRole.None)
+                return;
+
+            Debug.LogWarning(
+                "[MP] stage=deck-handshake-timeout role=" + role);
+            ResetAfterFailedConnection(failure);
+            showPanel = true;
         }
 
         private void OnClientDisconnected(ulong clientId)
@@ -2550,6 +2570,19 @@ namespace ArcaneArena.Multiplayer
                     StopCoroutine(preludeResultRoutine);
                     preludeResultRoutine = null;
                 }
+
+                // Before BeginHostMatch there is no duel state to restore.
+                // Returning to a 45-second reconnect grace period here
+                // blocks the only seat in a private room after a bad deck,
+                // a cancelled join, or a phone closed during validation.
+                // Keep the host's room alive and make it immediately ready
+                // for a different player instead.
+                if (!matchStarted)
+                {
+                    ResetHostLobbyAfterPreMatchDisconnect();
+                    return;
+                }
+
                 remoteClientId = ulong.MaxValue;
                 hostAwaitingReconnect = true;
                 clientSynchronizing = true;
@@ -2580,6 +2613,46 @@ namespace ArcaneArena.Multiplayer
                     "Restaurando a conexão com o anfitrião.");
                 StartClientReconnect();
             }
+        }
+
+        private void ResetHostLobbyAfterPreMatchDisconnect()
+        {
+            if (helloRequestRetry != null)
+            {
+                StopCoroutine(helloRequestRetry);
+                helloRequestRetry = null;
+            }
+
+            remoteClientId = ulong.MaxValue;
+            remoteLoadout = null;
+            remoteDuelIdentity = null;
+            remoteCanonicalPlayerId = string.Empty;
+            remoteRankHandshake = null;
+            clientDeckReady = false;
+            clientReceivedStart = false;
+            clientArenaReady = false;
+            clientSynchronizing = false;
+            hostAwaitingReconnect = false;
+            hostAwaitingStateAckUnlock = false;
+            hostAwaitingLiveStateAck = false;
+            reconnectDeadline = 0f;
+            outboundWireTransfers.Clear();
+            inboundWireTransfers.Clear();
+            completedWireTransfers.Clear();
+
+            if (automaticRankedMatchmaking &&
+                competitivePolicy == CompetitivePolicy.Ranked)
+            {
+                status = "O rival saiu antes do duelo. Buscando outro rival...";
+                ScheduleRankedBotFallback();
+            }
+            else
+            {
+                status = "O rival saiu antes do duelo. A sala continua aberta " +
+                    "para outro jogador.";
+            }
+
+            Debug.Log("[MP] stage=pre-match-disconnect action=room-waiting");
         }
 
         private IEnumerator WaitForRemoteReconnect()
@@ -2783,12 +2856,17 @@ namespace ArcaneArena.Multiplayer
             disconnectReason = string.IsNullOrWhiteSpace(rejection.reason)
                 ? "O anfitriao recusou o deck enviado."
                 : rejection.reason;
-            status = disconnectReason;
             if (helloRetry != null)
             {
                 StopCoroutine(helloRetry);
                 helloRetry = null;
             }
+
+            // A rejection is terminal for this connection. Keeping the
+            // client in the Session made the following NGO disconnect look
+            // like a transient transport failure, which then started an
+            // unnecessary 45-second reconnect loop.
+            EndDeckHandshake(disconnectReason);
         }
 
         private IEnumerator DisconnectRejectedClient(ulong clientId)
@@ -3545,7 +3623,7 @@ namespace ArcaneArena.Multiplayer
         {
             const string reason =
                 "A sala usa conteúdo incompatível. Instale a mesma versão " +
-                "ONLINE v11 no PC e no celular e crie um novo código.";
+                "atual do jogo no PC e no celular e crie um novo código.";
             ResetAfterFailedConnection(reason);
             showPanel = true;
         }
@@ -5103,14 +5181,14 @@ namespace ArcaneArena.Multiplayer
                 hello.protocolVersion != ProtocolVersion)
             {
                 rejection = "O rival usa um protocolo online incompatível. " +
-                    "Ambos precisam instalar a versão ONLINE v11.";
+                    "Ambos precisam instalar a versão atual do jogo.";
                 return false;
             }
             if (hello.compatibility !=
                 ProjectIdentity.MultiplayerCompatibility)
             {
                 rejection = "O conteúdo do jogo é diferente entre os dois " +
-                    "dispositivos. Instale a mesma versão ONLINE v11 no PC " +
+                    "dispositivos. Instale a mesma versão atual no PC " +
                     "e no celular para usar todos os decks corretamente.";
                 return false;
             }
@@ -6983,7 +7061,7 @@ namespace ArcaneArena.Multiplayer
         {
             if (!HasOnlineRoom)
             {
-                return "ONLINE v12 • Relay " +
+                return "ONLINE " + ProjectIdentity.ProjectVersion + " • Relay " +
                     RelayTransportPolicy.DisplayName +
                     " • melhor região automática.";
             }
@@ -7002,7 +7080,8 @@ namespace ArcaneArena.Multiplayer
             string rtt = roundTrip < 0
                 ? "medindo RTT..."
                 : $"RTT real: {roundTrip} ms";
-            return $"ONLINE v12 • Relay {RelayTransportPolicy.DisplayName}: " +
+            return $"ONLINE {ProjectIdentity.ProjectVersion} • Relay " +
+                $"{RelayTransportPolicy.DisplayName}: " +
                 $"{GetRelayRegionLabel()}  •  {rtt}";
         }
 
