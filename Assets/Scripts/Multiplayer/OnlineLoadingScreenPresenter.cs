@@ -125,6 +125,7 @@ namespace ArcaneArena.Multiplayer
         private CanvasGroup resultPanelGroup;
         private Image preludeCinematicVeil;
         private Image preludeCinematicRay;
+        private Text preludeCinematicVersusLabel;
         private Color motionAccentA = new Color(0.12f, 0.76f, 1f, 1f);
         private Color motionAccentB = new Color(0.50f, 0.18f, 0.98f, 1f);
 
@@ -277,7 +278,7 @@ namespace ArcaneArena.Multiplayer
             if (resultOpponentChoiceIcon != null)
                 resultOpponentChoiceIcon.sprite = PreludeChoiceIcon(opponentChoice);
             if (resultVersusLabel != null)
-                resultVersusLabel.text = tie ? "=" : "VS";
+                resultVersusLabel.text = tie ? "=" : "VERSUS";
             preludeResultAnimationRoutine = StartCoroutine(
                 AnimatePreludeResult(
                     localChoice,
@@ -952,13 +953,15 @@ namespace ArcaneArena.Multiplayer
             {
                 preludeCinematicRay.gameObject.SetActive(true);
                 preludeCinematicRay.color = new Color(
-                    0.48f,
-                    0.92f,
-                    1f,
-                    0.96f);
+                    0.13f,
+                    0.56f,
+                    0.86f,
+                    0.42f);
                 preludeCinematicRay.rectTransform.localScale =
-                    new Vector3(0.12f, 1f, 1f);
+                    new Vector3(0.46f, 0.46f, 1f);
             }
+            if (preludeCinematicVersusLabel != null)
+                preludeCinematicVersusLabel.gameObject.SetActive(false);
         }
 
         private void BeginPreludeExitTransition()
@@ -992,12 +995,12 @@ namespace ArcaneArena.Multiplayer
                         Mathf.Sin(progress * Mathf.PI),
                         0.72f);
                     Color ray = preludeCinematicRay.color;
-                    ray.a = flare * 0.92f;
+                    ray.a = flare * 0.46f;
                     preludeCinematicRay.color = ray;
                     preludeCinematicRay.rectTransform.localScale =
                         new Vector3(
-                            Mathf.Lerp(0.12f, 1.34f, EaseOutCubic(progress)),
-                            Mathf.Lerp(1f, 0.38f, eased),
+                            Mathf.Lerp(0.46f, 1.36f, EaseOutCubic(progress)),
+                            Mathf.Lerp(0.46f, 1.36f, EaseOutCubic(progress)),
                             1f);
                 }
                 yield return null;
@@ -1023,6 +1026,13 @@ namespace ArcaneArena.Multiplayer
             {
                 preludeCinematicRay.gameObject.SetActive(true);
                 preludeCinematicRay.color = Color.clear;
+            }
+            if (preludeCinematicVersusLabel != null)
+            {
+                preludeCinematicVersusLabel.gameObject.SetActive(true);
+                preludeCinematicVersusLabel.color = Color.clear;
+                preludeCinematicVersusLabel.rectTransform.localScale =
+                    Vector3.one * 0.72f;
             }
 
             while (elapsed < duration)
@@ -1077,14 +1087,32 @@ namespace ArcaneArena.Multiplayer
                 }
                 if (preludeCinematicRay != null)
                 {
-                    Color ray = new Color(0.58f, 0.94f, 1f, 1f);
-                    ray.a = Mathf.Sin(progress * Mathf.PI) * 0.92f;
+                    Color ray = new Color(0.10f, 0.47f, 0.78f, 1f);
+                    ray.a = Mathf.Sin(progress * Mathf.PI) * 0.48f;
                     preludeCinematicRay.color = ray;
                     preludeCinematicRay.rectTransform.localScale =
                         new Vector3(
-                            Mathf.Lerp(0.06f, 1.26f, clashBlend),
-                            Mathf.Lerp(2.35f, 0.50f, clashBlend),
+                            Mathf.Lerp(0.38f, 1.20f, clashBlend),
+                            Mathf.Lerp(0.38f, 1.20f, clashBlend),
                             1f);
+                }
+                if (preludeCinematicVersusLabel != null)
+                {
+                    float titleReveal = Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        Mathf.InverseLerp(0.34f, 0.56f, progress));
+                    float titleFade = 1f - Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        Mathf.InverseLerp(0.70f, 0.98f, progress));
+                    Color title = new Color(0.79f, 0.96f, 1f,
+                        titleReveal * titleFade);
+                    preludeCinematicVersusLabel.color = title;
+                    float scale = Mathf.Lerp(0.72f, 1.12f,
+                        EaseOutBack(titleReveal));
+                    preludeCinematicVersusLabel.rectTransform.localScale =
+                        Vector3.one * scale;
                 }
                 yield return null;
             }
@@ -1125,6 +1153,13 @@ namespace ArcaneArena.Multiplayer
                 preludeCinematicRay.color = Color.clear;
                 preludeCinematicRay.rectTransform.localScale = Vector3.one;
                 preludeCinematicRay.gameObject.SetActive(false);
+            }
+            if (preludeCinematicVersusLabel != null)
+            {
+                preludeCinematicVersusLabel.color = Color.clear;
+                preludeCinematicVersusLabel.rectTransform.localScale =
+                    Vector3.one;
+                preludeCinematicVersusLabel.gameObject.SetActive(false);
             }
             if (preludeCinematicVeil != null)
             {
@@ -1502,12 +1537,12 @@ namespace ArcaneArena.Multiplayer
                 new Color(0.01f, 0.06f, 0.09f, 1f));
             backButton.onClick.AddListener(() => backAction?.Invoke());
             backButton.gameObject.SetActive(false);
-            BuildPreludeCinematicOverlay(safe.transform);
+            BuildPreludeCinematicOverlay(safe.transform, font);
             group.alpha = 0f;
             canvasObject.SetActive(false);
         }
 
-        private void BuildPreludeCinematicOverlay(Transform parent)
+        private void BuildPreludeCinematicOverlay(Transform parent, Font font)
         {
             preludeCinematicVeil = CreateImage(
                 parent,
@@ -1518,11 +1553,34 @@ namespace ArcaneArena.Multiplayer
             preludeCinematicVeil.raycastTarget = false;
             preludeCinematicRay = CreateImage(
                 preludeCinematicVeil.transform,
-                "Pulso da fenda",
+                "Névoa do confronto",
                 Color.clear,
-                new Vector2(0.16f, 0.475f),
-                new Vector2(0.84f, 0.525f));
+                new Vector2(0.5f, 0.5f),
+                new Vector2(0.5f, 0.5f));
             preludeCinematicRay.raycastTarget = false;
+            preludeCinematicRay.sprite = CreateProceduralBurstSprite(false);
+            preludeCinematicRay.preserveAspect = true;
+            preludeCinematicRay.rectTransform.sizeDelta =
+                new Vector2(920f, 920f);
+            preludeCinematicVersusLabel = CreateText(
+                preludeCinematicVeil.transform,
+                "Versus cinematográfico",
+                font,
+                74,
+                FontStyle.Bold,
+                new Vector2(0.30f, 0.405f),
+                new Vector2(0.70f, 0.595f));
+            preludeCinematicVersusLabel.text = "VERSUS";
+            preludeCinematicVersusLabel.color = Color.clear;
+            Outline titleOutline = preludeCinematicVersusLabel.gameObject
+                .AddComponent<Outline>();
+            titleOutline.effectColor = new Color(0.01f, 0.04f, 0.12f, 0.96f);
+            titleOutline.effectDistance = new Vector2(3f, -3f);
+            Shadow titleShadow = preludeCinematicVersusLabel.gameObject
+                .AddComponent<Shadow>();
+            titleShadow.effectColor = new Color(0.20f, 0.78f, 1f, 0.42f);
+            titleShadow.effectDistance = new Vector2(0f, -10f);
+            preludeCinematicVersusLabel.gameObject.SetActive(false);
             preludeCinematicVeil.gameObject.SetActive(false);
         }
 
@@ -3257,10 +3315,14 @@ namespace ArcaneArena.Multiplayer
             opponentShadow.effectColor = new Color(0f, 0f, 0.02f, 0.92f);
             opponentShadow.effectDistance = new Vector2(8f, -9f);
             resultVersusLabel = CreateText(
-                panel.transform, "Versus", font, 32, FontStyle.Bold,
-                new Vector2(0.43f, 0.365f), new Vector2(0.57f, 0.515f));
-            resultVersusLabel.text = "VS";
+                panel.transform, "Versus", font, 62, FontStyle.Bold,
+                new Vector2(0.34f, 0.355f), new Vector2(0.66f, 0.535f));
+            resultVersusLabel.text = "VERSUS";
             resultVersusLabel.color = new Color(0.66f, 0.93f, 1f, 1f);
+            Outline versusOutline = resultVersusLabel.gameObject
+                .AddComponent<Outline>();
+            versusOutline.effectColor = new Color(0.005f, 0.025f, 0.075f, 0.94f);
+            versusOutline.effectDistance = new Vector2(2f, -2f);
             resultPanel.SetActive(false);
         }
 
