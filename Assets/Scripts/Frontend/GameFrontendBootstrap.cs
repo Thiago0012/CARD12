@@ -3388,15 +3388,32 @@ namespace ArcaneArena.Frontend
 
         private void StartRandomBotDuel()
         {
+            if (!CanStartWithSelectedDeck())
+                return;
+
+            _pendingRankedBotDuel = false;
             ulong selector = BitConverter.ToUInt64(
                 Guid.NewGuid().ToByteArray(),
                 0);
-            DeckRecord botDeck = DeckShopCatalog.ChooseOpponentDeck(
-                _repository.SelectedDeck?.deckId,
-                selector);
-            if (botDeck == null)
+            if (!TryChooseLegalOpponentDeck(
+                    _repository.SelectedDeck?.deckId,
+                    selector,
+                    out DeckRecord botDeck,
+                    out string deckRejection))
             {
-                ShowBotDeckSelection();
+                Debug.LogError(
+                    "[Offline duel] Não foi possível montar um confronto legal. " +
+                    deckRejection);
+                ShowDuelHub();
+                if (_duelRoomStatus != null)
+                {
+                    _duelRoomStatus.text =
+                        "PARTIDA INDISPONÍVEL\n" +
+                        (string.IsNullOrWhiteSpace(deckRejection)
+                            ? "Nenhum deck adversário válido foi encontrado."
+                            : deckRejection);
+                    _duelRoomStatus.color = Danger;
+                }
                 return;
             }
             int profileIndex = (int)(selector %
@@ -3476,12 +3493,12 @@ namespace ArcaneArena.Frontend
                 }
                 else
                 {
-                    ShowBotDeckSelection();
+                    ShowDuelHub();
                 }
                 if (_duelRoomStatus != null)
                 {
                     _duelRoomStatus.text =
-                        $"DECK DO BOT INVÁLIDO\n{rejection}";
+                        $"DECK DO ADVERSÁRIO INVÁLIDO\n{rejection}";
                     _duelRoomStatus.color = Danger;
                 }
                 return;
@@ -3496,11 +3513,11 @@ namespace ArcaneArena.Frontend
             _pendingBotLoadout = DuelDeckLoadout.Create(
                 botStableId,
                 botDeck,
-                botProfile?.displayName ?? "OPONENTE IA");
+                botProfile?.displayName ?? "OPONENTE");
             _pendingBotLoadout.identity = new DuelIdentitySnapshot
             {
                 stablePlayerId = botStableId,
-                nickname = botProfile?.displayName ?? "OPONENTE IA",
+                nickname = botProfile?.displayName ?? "OPONENTE",
                 equippedIconId = ProfileIconCatalog.ResolveForStableIdentity(
                     botStableId),
                 rankTier = RankRules.ResolveTier(

@@ -345,7 +345,7 @@ namespace ArcaneArena.Frontend
                 "DUELAR OFFLINE",
                 new Vector2(0.020f, 0.679f),
                 new Vector2(0.315f, 0.866f),
-                OpenBotDuelSelectionFromMainMenu);
+                StartOfflineRandomDuelFromDuelHub);
             CreateInvisibleButton(
                 "PROCURAR RIVAL RANQUEADO",
                 new Vector2(0.020f, 0.477f),
@@ -665,6 +665,25 @@ namespace ArcaneArena.Frontend
             }
 
             ShowDeckGallery();
+        }
+
+        private void StartOfflineRandomDuelFromDuelHub()
+        {
+            if (!CanStartWithSelectedDeck())
+            {
+                ShowDeckGallery();
+                return;
+            }
+
+            // O modo Offline monta o confronto automaticamente. A transição
+            // informa apenas que a partida está sendo preparada, sem simular
+            // uma busca por outro jogador nem revelar detalhes internos do
+            // adversário antes do prelúdio.
+            RunMainMenuFeatureTransition(
+                StartRandomBotDuel,
+                LoadingCardMotionStyle.DuelCharge,
+                "PREPARANDO PARTIDA",
+                "Definindo o próximo confronto.");
         }
 
         private void ShowMultiplayerRoom()

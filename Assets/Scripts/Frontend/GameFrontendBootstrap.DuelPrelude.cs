@@ -34,7 +34,7 @@ namespace ArcaneArena.Frontend
             else
             {
                 string opponentName = _pendingDuelMode == PendingDuelMode.Bot
-                    ? _pendingBotLoadout?.displayName ?? "OPONENTE IA"
+                    ? _pendingBotLoadout?.displayName ?? "OPONENTE"
                     : "OPONENTE";
                 int round = 1;
                 while (true)
