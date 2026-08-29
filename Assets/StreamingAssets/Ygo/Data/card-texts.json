@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "count": 3350,
+  "count": 3352,
   "cards": [
     {
       "code": 483,
@@ -80362,6 +80362,54 @@
       "strings": [
         "Bana todos os outros cards no campo, nas mãos e nos Cemitérios",
         "Bana todos os cards que seu oponente controla",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 99990002,
+      "englishName": "Women Repellent",
+      "name": "Repelente de Mulheres",
+      "description": "Enquanto este card estiver com a face para cima no campo, seu oponente não pode Invocar monstros. Este card não pode ser destruído por efeitos de monstros ou de Cards de Magia. Sempre que um dos jogadores jogar um card no campo, seu oponente perde 100 PV.",
+      "strings": [
+        "Seu oponente não pode Invocar monstros",
+        "Seu oponente perde 100 PV",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "code": 99990003,
+      "englishName": "Probability Zone Approaching Zero - Imminent Misfortune",
+      "name": "Zona de Probabilidade Tendendo a Zero - Azar Iminente",
+      "description": "Quando ativado: coloque este card na Zona do Campo do seu oponente. Sempre que o controlador deste card jogar um card no campo, existe uma probabilidade de o card jogado ser destruído sem que seu efeito seja ativado. Cards Baixados que não forem destruídos podem ser ativados normalmente depois. Este efeito não pode ser negado.",
+      "strings": [
+        "Coloque este card na Zona do Campo do seu oponente",
+        "Aplique o azar iminente ao card jogado",
         "",
         "",
         "",

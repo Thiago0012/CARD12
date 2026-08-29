@@ -2,15 +2,20 @@
 -- Mixael, the Cursed Gaze
 local s,id=GetID()
 function s.initial_effect(c)
-	-- The client injects this card only for an authorized development account
-	-- in an offline duel. This procedure keeps the shortcut Core-authoritative:
-	-- the Core still asks the player to select a legal empty Monster Zone.
+	-- The game injects this card only for an authenticated development account.
+	-- Online injection happens in the host's authoritative Core; the Core still
+	-- asks the player to select a legal empty Monster Zone in every mode.
 	local e0=Effect.CreateEffect(c)
 	e0:SetType(EFFECT_TYPE_FIELD)
 	e0:SetCode(EFFECT_SPSUMMON_PROC)
 	e0:SetProperty(EFFECT_FLAG_UNCOPYABLE+EFFECT_FLAG_CANNOT_DISABLE)
 	e0:SetRange(LOCATION_EXTRA)
 	e0:SetCondition(s.development_summon_condition)
+	-- The MMM procedure has no materials, but it is still this card's
+	-- developer Synchro Summon.  Marking the summon type in the Core makes the
+	-- mandatory on-Synchro-Summon trigger below resolve in local and online
+	-- authoritative duels instead of treating MMM as a generic Special Summon.
+	e0:SetValue(SUMMON_TYPE_SYNCHRO)
 	c:RegisterEffect(e0)
 	Synchro.AddProcedure(c,nil,3,3,Synchro.NonTuner(nil),3,3,nil,nil,nil,nil,s.material_requirement)
 	c:EnableReviveLimit()

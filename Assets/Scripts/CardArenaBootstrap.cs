@@ -48,7 +48,11 @@ namespace ArcaneArena
         private const float MobilePassiveRefreshInterval = 0.20f;
         private const uint DeveloperMixaelCode =
             DeveloperAccountRegistry.MixaelCardCode;
-        private const float DeveloperMixaelComboWindow = 1.1f;
+        private const uint DeveloperWomenRepellentCode =
+            DeveloperAccountRegistry.WomenRepellentCardCode;
+        private const uint DeveloperImminentMisfortuneCode =
+            DeveloperAccountRegistry.ImminentMisfortuneCardCode;
+        private const float DeveloperShortcutComboWindow = 1.1f;
 
         [SerializeField] private List<Sprite> cardSprites = new();
         [SerializeField] private Sprite cardBackSprite;
@@ -168,6 +172,10 @@ namespace ArcaneArena
         private bool developerMixaelInjected;
         private int developerMixaelKeyPresses;
         private float lastDeveloperMixaelKeyPressTime = -100f;
+        private int developerWomenRepellentKeyPresses;
+        private float lastDeveloperWomenRepellentKeyPressTime = -100f;
+        private int developerImminentMisfortuneKeyPresses;
+        private float lastDeveloperImminentMisfortuneKeyPressTime = -100f;
 
         private bool InteractionLocked =>
             criticalInteractionLocked ||
@@ -396,24 +404,38 @@ namespace ArcaneArena
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
             UpdateDeveloperMixaelShortcut();
+            UpdateDeveloperSpellShortcuts();
             EnsureRequiredResponseTrayVisible();
             if (Time.unscaledTime >= nextPassiveRefreshTime)
                 RefreshEverything(false);
         }
 
-        private bool CanInjectDeveloperMixael()
+        private bool CanUseDeveloperCards()
         {
-            return core != null &&
-                   !core.IsNetworkReplica &&
-                   DuelOnlineSession.Instance?.IsOnlineDuelActive != true &&
+            if (core == null)
+                return false;
+
+            DuelOnlineSession online = DuelOnlineSession.Instance;
+            if (online?.IsOnlineDuelActive == true)
+            {
+                // In an online duel the host inserts the card into the
+                // authoritative Core only after the authenticated Relay/Lobby
+                // identity is confirmed.  A replica may therefore submit the
+                // normal Core choice, but it never creates a local card.
+                return online.DeveloperCardsAllowed &&
+                       PlayerIdAccessRuntime.HasAuthorizedSession &&
+                       DeveloperAccountRegistry.IsDeveloperCanonicalId(
+                           PlayerIdAccessRuntime.CanonicalPlayerId);
+            }
+
+            return !core.IsNetworkReplica &&
                    DeveloperAccountRegistry.IsDeveloperPublicId(
                        PlayerIdAccessRuntime.PublicPlayerId);
         }
 
         private void UpdateDeveloperMixaelShortcut()
         {
-            if (!developerMixaelInjected ||
-                !CanInjectDeveloperMixael() ||
+            if (!CanUseDeveloperCards() ||
                 core == null ||
                 core.IsFinished)
             {
@@ -429,7 +451,7 @@ namespace ArcaneArena
 
             float now = Time.unscaledTime;
             if (now - lastDeveloperMixaelKeyPressTime >
-                DeveloperMixaelComboWindow)
+                DeveloperShortcutComboWindow)
             {
                 developerMixaelKeyPresses = 0;
             }
@@ -441,15 +463,7 @@ namespace ArcaneArena
             developerMixaelKeyPresses = 0;
             DuelPrompt prompt = core.CurrentPrompt;
             DuelChoice summon = prompt?.Choices.FirstOrDefault(choice =>
-                choice != null &&
-                choice.CardCode == DeveloperMixaelCode &&
-                choice.HasLocation &&
-                choice.Controller == 0 &&
-                (choice.Location & DuelLocation.Extra) != 0 &&
-                string.Equals(
-                    choice.Label,
-                    "Invocação especial",
-                    StringComparison.Ordinal));
+                IsDeveloperMixaelSummonChoice(choice));
             if (prompt == null ||
                 prompt.Message != CoreMessage.SelectIdleCommand ||
                 prompt.Player != 0 ||
@@ -465,6 +479,96 @@ namespace ArcaneArena
             SetStatus(
                 "MIXAEL · escolha uma zona de monstro livre.",
                 Cyan);
+        }
+
+        private void UpdateDeveloperSpellShortcuts()
+        {
+            if (!CanUseDeveloperCards() ||
+                core == null ||
+                core.IsFinished)
+            {
+                developerWomenRepellentKeyPresses = 0;
+                developerImminentMisfortuneKeyPresses = 0;
+                return;
+            }
+
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            UpdateDeveloperSpellShortcut(
+                keyboard?.lKey.wasPressedThisFrame == true,
+                ref developerWomenRepellentKeyPresses,
+                ref lastDeveloperWomenRepellentKeyPressTime,
+                DeveloperWomenRepellentCode,
+                "REPELENTE DE MULHERES");
+            UpdateDeveloperSpellShortcut(
+                keyboard?.rKey.wasPressedThisFrame == true,
+                ref developerImminentMisfortuneKeyPresses,
+                ref lastDeveloperImminentMisfortuneKeyPressTime,
+                DeveloperImminentMisfortuneCode,
+                "AZAR IMINENTE");
+        }
+
+        private void UpdateDeveloperSpellShortcut(
+            bool pressedThisFrame,
+            ref int pressCount,
+            ref float lastPressTime,
+            uint cardCode,
+            string displayName)
+        {
+            if (!pressedThisFrame)
+                return;
+
+            float now = Time.unscaledTime;
+            if (now - lastPressTime > DeveloperShortcutComboWindow)
+                pressCount = 0;
+            lastPressTime = now;
+            pressCount++;
+            if (pressCount < 3)
+                return;
+
+            pressCount = 0;
+            DuelPrompt prompt = core.CurrentPrompt;
+            DuelChoice activation = prompt?.Choices.FirstOrDefault(choice =>
+                IsDeveloperSpellActivationChoice(
+                    prompt,
+                    choice,
+                    cardCode));
+            if (prompt == null ||
+                prompt.Message != CoreMessage.SelectIdleCommand ||
+                prompt.Player != 0 ||
+                activation == null)
+            {
+                SetStatus(
+                    $"{displayName} só pode ser ativada com prioridade na Fase Principal e uma zona legal livre.",
+                    Gold);
+                return;
+            }
+
+            core.SubmitChoice(activation);
+            SetStatus($"{displayName} · ativação enviada ao Core.", Cyan);
+        }
+
+        private static bool IsDeveloperSpellActivationChoice(
+            DuelPrompt prompt,
+            DuelChoice choice,
+            uint cardCode)
+        {
+            return choice != null &&
+                   choice.CardCode == cardCode &&
+                   choice.HasLocation &&
+                   choice.Controller == 0 &&
+                   (choice.Location & DuelLocation.Hand) != 0 &&
+                   IsEffectActivationChoice(prompt, choice);
+        }
+
+        private static bool IsDeveloperMixaelSummonChoice(
+            DuelChoice choice)
+        {
+            return choice != null &&
+                   choice.CardCode == DeveloperMixaelCode &&
+                   choice.HasLocation &&
+                   choice.Controller == 0 &&
+                   (choice.Location & DuelLocation.Extra) != 0 &&
+                   IsSummonChoice(choice);
         }
 
         private void LateUpdate()
@@ -603,7 +707,10 @@ namespace ArcaneArena
             uint[] playerExtra = ParseCodes(player.extraDeckCardIds);
             uint[] opponentMain = ParseCodes(opponent.mainDeckCardIds);
             uint[] opponentExtra = ParseCodes(opponent.extraDeckCardIds);
-            developerMixaelInjected = CanInjectDeveloperMixael();
+            developerMixaelInjected = CanUseDeveloperCards();
+            uint[] developerInitialHandCards = developerMixaelInjected
+                ? DeveloperAccountRegistry.CreateDeveloperInitialHandCards()
+                : Array.Empty<uint>();
             if (developerMixaelInjected &&
                 !playerExtra.Contains(DeveloperMixaelCode))
             {
@@ -650,7 +757,9 @@ namespace ArcaneArena
                         startingPlayer,
                         minimumMain,
                         (uint)(storyContext?.playerLifePoints ?? 8000),
-                        (uint)(storyContext?.opponentLifePoints ?? 8000)))
+                        (uint)(storyContext?.opponentLifePoints ?? 8000),
+                        developerInitialHandCards,
+                        Array.Empty<uint>()))
                 {
                     throw new InvalidOperationException(
                         "O ygopro-core não confirmou o início do duelo.");

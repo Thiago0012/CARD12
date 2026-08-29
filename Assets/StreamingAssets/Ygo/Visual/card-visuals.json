@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "count": 3277,
-  "catalogSha256": "33764E90509F60AA816934E9843F41C066D9321A334AADDBDC5FF58368A187EA",
+  "count": 3279,
+  "catalogSha256": "4F3054602B13595581AC2440410F82AEA03CC0947CFC907CEFD29AA9087448C5",
   "cards": [
     {
       "officialCode": 483,
@@ -51621,6 +51621,34 @@
       "presentationTags": [
         "Monstro Sincro",
         "extra_deck",
+        "custom_dev_only"
+      ]
+    },
+    {
+      "officialCode": 99990002,
+      "artFile": "99990002.png",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "D",
+      "scriptStatus": "custom",
+      "scriptFile": "c99990002.lua",
+      "presentationTags": [
+        "Carta de Magia Contínua",
+        "custom_dev_only"
+      ]
+    },
+    {
+      "officialCode": 99990003,
+      "artFile": "99990003.png",
+      "frameStyle": "spell",
+      "summonVfx": "none",
+      "activationSfx": "arcane_activation",
+      "riskLevel": "D",
+      "scriptStatus": "custom",
+      "scriptFile": "c99990003.lua",
+      "presentationTags": [
+        "Carta de Magia de Campo",
         "custom_dev_only"
       ]
     },

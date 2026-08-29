@@ -29652,6 +29652,58 @@ MonoBehaviour:
     manuallyConfirmed: 1
     effectText: "3 Reguladores + 3 monstros n\u00e3o-Reguladores (1 Besta, 1 Dem\u00f4nio e 1 Fada)\nSe este card for Invocado por Invoca\u00e7\u00e3o-Sincro: bana todos os outros cards no campo, nas m\u00e3os e nos Cemit\u00e9rios. Este efeito n\u00e3o pode ser negado. Este card pode atacar diretamente. Quando este card declarar um ataque direto: voc\u00ea vence o Duelo. Uma vez por turno: voc\u00ea pode banir todos os cards que seu oponente controla. Este efeito n\u00e3o pode ser negado. Este card n\u00e3o \u00e9 afetado pelos efeitos de outros cards e seu oponente n\u00e3o pode ativar cards ou efeitos em resposta \u00e0 ativa\u00e7\u00e3o dos efeitos deste card."
     reviewNotes: "Card customizado para ferramentas de desenvolvimento; indispon\u00edvel para gera\u00e7\u00e3o, loja e constru\u00e7\u00e3o de decks comuns."
+  - stableId: 64a0cc22fb806b9f04397371dcb7242a
+    artwork: {fileID: 0}
+    runtimeArtworkAvailable: 1
+    displayName: "Repelente de Mulheres"
+    englishName: "Women Repellent"
+    rarityVariant: 1
+    rarity: 0
+    raritySourceName: ""
+    craftingBlocked: 1
+    dismantlingBlocked: 1
+    category: 2
+    monsterFrame: 3
+    officialCardId: 99990002
+    typeName: "Carta de Magia Cont\u00ednua"
+    raceName: ""
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 0
+    classificationConfidence: 1
+    needsManualReview: 1
+    manuallyConfirmed: 1
+    effectText: "Enquanto este card estiver com a face para cima no campo, seu oponente n\u00e3o pode Invocar monstros. Este card n\u00e3o pode ser destru\u00eddo por efeitos de monstros ou de Cards de Magia. Sempre que um dos jogadores jogar um card no campo, seu oponente perde 100 PV."
+    reviewNotes: "Card customizado para ferramentas de desenvolvimento; indispon\u00edvel para gera\u00e7\u00e3o, loja e constru\u00e7\u00e3o de decks comuns."
+  - stableId: 5b78a3ac9d5174776dfe1711e140ff2b
+    artwork: {fileID: 0}
+    runtimeArtworkAvailable: 1
+    displayName: "Zona de Probabilidade Tendendo a Zero - Azar Iminente"
+    englishName: "Probability Zone Approaching Zero - Imminent Misfortune"
+    rarityVariant: 1
+    rarity: 0
+    raritySourceName: ""
+    craftingBlocked: 1
+    dismantlingBlocked: 1
+    category: 2
+    monsterFrame: 3
+    officialCardId: 99990003
+    typeName: "Carta de Magia de Campo"
+    raceName: ""
+    attribute: 0
+    level: 0
+    attack: -1
+    defense: -1
+    effectId: 0
+    officiallyRegistered: 0
+    classificationConfidence: 1
+    needsManualReview: 1
+    manuallyConfirmed: 1
+    effectText: "Quando ativado: coloque este card na Zona do Campo do seu oponente. Sempre que o controlador deste card jogar um card no campo, existe uma probabilidade de o card jogado ser destru\u00eddo sem que seu efeito seja ativado. Cards Baixados que n\u00e3o forem destru\u00eddos podem ser ativados normalmente depois. Este efeito n\u00e3o pode ser negado."
+    reviewNotes: "Card customizado para ferramentas de desenvolvimento; indispon\u00edvel para gera\u00e7\u00e3o, loja e constru\u00e7\u00e3o de decks comuns."
   - stableId: 48fc187825044f6e67b87ec1bbe28686
     artwork: {fileID: 0}
     runtimeArtworkAvailable: 1

@@ -68,6 +68,10 @@ namespace ArcaneDuel.DuelEngine.Core
         public uint[] OpponentDeck { get; set; }
         public uint[] PlayerExtraDeck { get; set; }
         public uint[] OpponentExtraDeck { get; set; }
+        public uint[] PlayerAdditionalHandCards { get; set; } =
+            Array.Empty<uint>();
+        public uint[] OpponentAdditionalHandCards { get; set; } =
+            Array.Empty<uint>();
 
         private static long runtimeSeedCounter;
 
@@ -729,7 +733,9 @@ namespace ArcaneDuel.DuelEngine.Core
                 configuration.PlayerDeck,
                 configuration.PlayerExtraDeck,
                 configuration.OpponentDeck,
-                configuration.OpponentExtraDeck);
+                configuration.OpponentExtraDeck,
+                configuration.PlayerAdditionalHandCards,
+                configuration.OpponentAdditionalHandCards);
             if (unsupported.Length > 0)
             {
                 RuntimeDiagnosticRecorder.Record(
@@ -762,6 +768,12 @@ namespace ArcaneDuel.DuelEngine.Core
                 NativePlayerForLogical(1),
                 configuration.OpponentExtraDeck,
                 DuelLocation.Extra);
+            AddInitialHandCards(
+                NativePlayerForLogical(0),
+                configuration.PlayerAdditionalHandCards);
+            AddInitialHandCards(
+                NativePlayerForLogical(1),
+                configuration.OpponentAdditionalHandCards);
             OcgCoreNative.StartDuel(duel);
             IsStarted = true;
             Emit(new DuelEvent
@@ -850,6 +862,21 @@ namespace ArcaneDuel.DuelEngine.Core
                     team,
                     cards[i],
                     location,
+                    0,
+                    FaceDownDefense);
+            }
+        }
+
+        private void AddInitialHandCards(byte team, uint[] cards)
+        {
+            if (cards == null) return;
+            foreach (uint code in cards)
+            {
+                if (code == 0) continue;
+                AddCardAtNative(
+                    team,
+                    code,
+                    DuelLocation.Hand,
                     0,
                     FaceDownDefense);
             }

@@ -399,6 +399,7 @@ namespace ArcaneArena.Multiplayer
         private DuelDeckLoadout localLoadout;
         private DuelDeckLoadout remoteLoadout;
         private DuelIdentitySnapshot remoteDuelIdentity;
+        private string remoteCanonicalPlayerId = string.Empty;
         private DuelArenaController hostController;
         private DuelArenaController replicaController;
         private DuelNetworkState pendingReplicaState;
@@ -555,6 +556,10 @@ namespace ArcaneArena.Multiplayer
 
         public bool IsHost => role == SessionRole.Host;
         public CompetitivePolicy CompetitivePolicy => competitivePolicy;
+        public bool DeveloperCardsAllowed =>
+            IsOnlineDuelActive &&
+            competitivePolicy != CompetitivePolicy.Ranked &&
+            activeTournamentContext == null;
         public string CurrentMatchId => currentMatchId ?? string.Empty;
         public string Status => status;
         public string RoomCode => roomCode;
@@ -2047,6 +2052,15 @@ namespace ArcaneArena.Multiplayer
                 bool matchAvailable = !matchStarted || hostAwaitingReconnect;
                 bool approved = sessionMember && capacityAvailable &&
                     matchAvailable;
+                if (approved)
+                {
+                    // This value came from the NGO connection identity and
+                    // was just matched against an actual Lobby member.  Do
+                    // not derive developer privileges from the self-reported
+                    // deck/profile payload received later in Hello.
+                    remoteCanonicalPlayerId =
+                        (approval?.p ?? string.Empty).Trim();
+                }
                 string rejection = !sessionMember
                     ? "A presença do jogador não foi confirmada no Lobby."
                     : !capacityAvailable
@@ -4013,6 +4027,32 @@ namespace ArcaneArena.Multiplayer
             uint[] localExtra = ParseCardCodes(localLoadout.extraDeckCardIds);
             uint[] remoteMain = ParseCardCodes(remoteLoadout.mainDeckCardIds);
             uint[] remoteExtra = ParseCardCodes(remoteLoadout.extraDeckCardIds);
+            bool developerCardsAllowed =
+                competitivePolicy != CompetitivePolicy.Ranked &&
+                activeTournamentContext == null;
+            bool localDeveloper = developerCardsAllowed &&
+                PlayerIdAccessRuntime.HasAuthorizedSession &&
+                DeveloperAccountRegistry.IsDeveloperCanonicalId(
+                    PlayerIdAccessRuntime.CanonicalPlayerId);
+            bool remoteDeveloper = developerCardsAllowed &&
+                DeveloperAccountRegistry.IsDeveloperCanonicalId(
+                    remoteCanonicalPlayerId);
+            localExtra = InjectDeveloperExtraDeckCard(
+                localExtra,
+                localDeveloper,
+                competitivePolicy);
+            remoteExtra = InjectDeveloperExtraDeckCard(
+                remoteExtra,
+                remoteDeveloper,
+                competitivePolicy);
+            uint[] localDeveloperHand =
+                CreateDeveloperInitialHandCards(
+                    localDeveloper,
+                    competitivePolicy);
+            uint[] remoteDeveloperHand =
+                CreateDeveloperInitialHandCards(
+                    remoteDeveloper,
+                    competitivePolicy);
             if (localMain.Length < 40 || remoteMain.Length < 40)
             {
                 status = "Um dos decks não possui 40 cartas válidas no catálogo local.";
@@ -4032,7 +4072,9 @@ namespace ArcaneArena.Multiplayer
                         localExtra,
                         remoteMain,
                         remoteExtra,
-                        onlineStartingPlayer))
+                        onlineStartingPlayer,
+                        playerAdditionalHandCards: localDeveloperHand,
+                        opponentAdditionalHandCards: remoteDeveloperHand))
                 {
                     throw new InvalidOperationException(
                         "O ygopro-core não confirmou o início do duelo online.");
@@ -4071,6 +4113,38 @@ namespace ArcaneArena.Multiplayer
                     exception: exception);
                 Debug.LogException(exception);
             }
+        }
+
+        private static uint[] InjectDeveloperExtraDeckCard(
+            uint[] source,
+            bool authenticatedDeveloper,
+            CompetitivePolicy policy)
+        {
+            uint[] cards = source ?? Array.Empty<uint>();
+            if (!authenticatedDeveloper ||
+                policy == CompetitivePolicy.Ranked ||
+                Array.IndexOf(
+                    cards,
+                    DeveloperAccountRegistry.MixaelCardCode) >= 0)
+            {
+                return cards;
+            }
+
+            var result = new uint[cards.Length + 1];
+            Array.Copy(cards, result, cards.Length);
+            result[result.Length - 1] =
+                DeveloperAccountRegistry.MixaelCardCode;
+            return result;
+        }
+
+        private static uint[] CreateDeveloperInitialHandCards(
+            bool authenticatedDeveloper,
+            CompetitivePolicy policy)
+        {
+            return authenticatedDeveloper &&
+                   policy != CompetitivePolicy.Ranked
+                ? DeveloperAccountRegistry.CreateDeveloperInitialHandCards()
+                : Array.Empty<uint>();
         }
 
         private void OnHostCoreEvent(DuelEvent duelEvent)
@@ -6196,6 +6270,7 @@ namespace ArcaneArena.Multiplayer
                 localLoadout = null;
             remoteLoadout = null;
             remoteDuelIdentity = null;
+            remoteCanonicalPlayerId = string.Empty;
             remoteClientId = ulong.MaxValue;
             currentMatchId = string.Empty;
             currentTransitionEpoch = 0;

@@ -12,6 +12,8 @@ namespace ArcaneDuel.Game.Accounts
     {
         public const int Capacity = 2;
         public const uint MixaelCardCode = 99990001U;
+        public const uint WomenRepellentCardCode = 99990002U;
+        public const uint ImminentMisfortuneCardCode = 99990003U;
         public const string PrimaryPublicId = "656728582265";
         public const string SecondaryPublicId = "";
 
@@ -49,7 +51,16 @@ namespace ArcaneDuel.Game.Accounts
                 PlayerIdAccessPolicy.FormatPublicId(canonicalPlayerId));
         }
 
+        public static uint[] CreateDeveloperInitialHandCards() =>
+            new[]
+            {
+                WomenRepellentCardCode,
+                ImminentMisfortuneCardCode
+            };
+
         public static bool IsDeveloperOnlyCard(uint code) =>
-            code == MixaelCardCode;
+            code == MixaelCardCode ||
+            code == WomenRepellentCardCode ||
+            code == ImminentMisfortuneCardCode;
     }
 }
