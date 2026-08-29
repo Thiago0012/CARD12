@@ -3623,7 +3623,7 @@ namespace ArcaneArena.Multiplayer
         {
             const string reason =
                 "A sala usa conteúdo incompatível. Instale a mesma versão " +
-                "ONLINE v11 no PC e no celular e crie um novo código.";
+                "atual do jogo no PC e no celular e crie um novo código.";
             ResetAfterFailedConnection(reason);
             showPanel = true;
         }
@@ -5181,14 +5181,14 @@ namespace ArcaneArena.Multiplayer
                 hello.protocolVersion != ProtocolVersion)
             {
                 rejection = "O rival usa um protocolo online incompatível. " +
-                    "Ambos precisam instalar a versão ONLINE v11.";
+                    "Ambos precisam instalar a versão atual do jogo.";
                 return false;
             }
             if (hello.compatibility !=
                 ProjectIdentity.MultiplayerCompatibility)
             {
                 rejection = "O conteúdo do jogo é diferente entre os dois " +
-                    "dispositivos. Instale a mesma versão ONLINE v11 no PC " +
+                    "dispositivos. Instale a mesma versão atual no PC " +
                     "e no celular para usar todos os decks corretamente.";
                 return false;
             }
@@ -7061,7 +7061,7 @@ namespace ArcaneArena.Multiplayer
         {
             if (!HasOnlineRoom)
             {
-                return "ONLINE v12 • Relay " +
+                return "ONLINE " + ProjectIdentity.ProjectVersion + " • Relay " +
                     RelayTransportPolicy.DisplayName +
                     " • melhor região automática.";
             }
@@ -7080,7 +7080,8 @@ namespace ArcaneArena.Multiplayer
             string rtt = roundTrip < 0
                 ? "medindo RTT..."
                 : $"RTT real: {roundTrip} ms";
-            return $"ONLINE v12 • Relay {RelayTransportPolicy.DisplayName}: " +
+            return $"ONLINE {ProjectIdentity.ProjectVersion} • Relay " +
+                $"{RelayTransportPolicy.DisplayName}: " +
                 $"{GetRelayRegionLabel()}  •  {rtt}";
         }
 
