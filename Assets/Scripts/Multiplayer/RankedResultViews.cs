@@ -421,7 +421,6 @@ namespace ArcaneArena.Multiplayer
             if (viewport == null || oldTier == newTier)
                 yield break;
 
-            skipRequested = false;
             EnsureScene();
             if (renderCamera == null || stage == null)
                 yield break;
@@ -462,6 +461,12 @@ namespace ArcaneArena.Multiplayer
         public void Skip()
         {
             skipRequested = true;
+            Hide();
+        }
+
+        public void ResetSequence()
+        {
+            skipRequested = false;
             Hide();
         }
 
@@ -929,7 +934,7 @@ namespace ArcaneArena.Multiplayer
                 skipButton.onClick.RemoveAllListeners();
                 skipButton.onClick.AddListener(SkipToFinal);
             }
-            cinematic?.Hide();
+            cinematic?.ResetSequence();
             emblem.SetTier(receipt.oldTier);
             sides.SetTier(receipt.oldTier);
             bar.SetState(receipt.oldPoints);
