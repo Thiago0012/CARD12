@@ -3414,6 +3414,7 @@ namespace ArcaneArena.Frontend
                             : deckRejection);
                     _duelRoomStatus.color = Danger;
                 }
+                DuelOnlineSession.Instance?.TransitionPresenter?.Hide();
                 return;
             }
             int profileIndex = (int)(selector %
@@ -3501,6 +3502,7 @@ namespace ArcaneArena.Frontend
                         $"DECK DO ADVERSÁRIO INVÁLIDO\n{rejection}";
                     _duelRoomStatus.color = Danger;
                 }
+                DuelOnlineSession.Instance?.TransitionPresenter?.Hide();
                 return;
             }
 
