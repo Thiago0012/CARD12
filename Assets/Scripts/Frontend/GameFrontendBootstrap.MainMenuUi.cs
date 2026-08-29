@@ -550,10 +550,14 @@ namespace ArcaneArena.Frontend
             progressObject.transform.SetParent(_screenRoot, false);
             RectTransform progressRect =
                 progressObject.GetComponent<RectTransform>();
-            progressRect.anchorMin = new Vector2(0.373f, 0.224f);
-            progressRect.anchorMax = new Vector2(0.802f, 0.268f);
-            progressRect.offsetMin = Vector2.zero;
-            progressRect.offsetMax = Vector2.zero;
+            ApplyCapturedRectTransform(
+                progressRect,
+                new Vector2(0.373f, 0.224f),
+                new Vector2(0.802f, 0.268f),
+                26.8411f,
+                -4.944245f,
+                28.2537f,
+                4.237945f);
             ArcaneRankProgressGraphic progressGraphic =
                 progressObject.GetComponent<ArcaneRankProgressGraphic>();
             progressGraphic.SetProgress(
@@ -595,13 +599,21 @@ namespace ArcaneArena.Frontend
             }
             else
             {
-                CreateRankBadgeImage(
+                Image nextRankBadge = CreateRankBadgeImage(
                     _screenRoot,
                     "Próximo elo",
                     rank.NextTier,
                     new Vector2(0.835f, 0.095f),
                     new Vector2(0.952f, 0.278f),
                     0.95f);
+                ApplyCapturedRectTransform(
+                    nextRankBadge.rectTransform,
+                    new Vector2(0.835f, 0.095f),
+                    new Vector2(0.952f, 0.278f),
+                    -9.5f,
+                    0f,
+                    9.5f,
+                    0f);
             }
         }
 

@@ -4134,6 +4134,25 @@ namespace ArcaneArena.Frontend
                         1f,
                         0f);
                 }
+                bool isCapturedDuelHubThirdCard =
+                    i == 2 &&
+                    Mathf.Abs(cardMin.x - 0.53944f) < 0.0001f &&
+                    Mathf.Abs(cardMin.y - 0.55605f) < 0.0001f &&
+                    Mathf.Abs(cardMax.x - 0.59976f) < 0.0001f &&
+                    Mathf.Abs(cardMax.y - 0.76995f) < 0.0001f;
+                if (isCapturedDuelHubThirdCard)
+                {
+                    ApplyCapturedRectTransform(
+                        card.rectTransform,
+                        new Vector2(0.53944f, 0.55605f),
+                        new Vector2(0.59976f, 0.76995f),
+                        11.8f,
+                        -0.59996f,
+                        -11.8f,
+                        0.59996f,
+                        1f,
+                        0f);
+                }
             }
         }
 
