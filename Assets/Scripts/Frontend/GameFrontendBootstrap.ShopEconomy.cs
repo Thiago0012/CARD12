@@ -14,7 +14,8 @@ namespace ArcaneArena.Frontend
         {
             Packages,
             StructureDecks,
-            ProfileIcons
+            ProfileIcons,
+            Artwork
         }
 
         [Header("Loja e economia")]
@@ -199,28 +200,42 @@ namespace ArcaneArena.Frontend
             CreateShopTabButton(
                 "PACOTES",
                 ShopTab.Packages,
-                new Vector2(0.08f, 0.855f),
-                new Vector2(0.29f, 0.905f));
+                new Vector2(0.055f, 0.855f),
+                new Vector2(0.21f, 0.905f));
             CreateShopTabButton(
                 "DECKS ESTRUTURAIS",
                 ShopTab.StructureDecks,
-                new Vector2(0.30f, 0.855f),
-                new Vector2(0.55f, 0.905f));
+                new Vector2(0.22f, 0.855f),
+                new Vector2(0.405f, 0.905f));
             CreateShopTabButton(
                 "ÍCONES",
                 ShopTab.ProfileIcons,
-                new Vector2(0.56f, 0.855f),
-                new Vector2(0.72f, 0.905f));
+                new Vector2(0.415f, 0.855f),
+                new Vector2(0.565f, 0.905f));
+            CreateShopTabButton(
+                "ARTWORK",
+                ShopTab.Artwork,
+                new Vector2(0.575f, 0.855f),
+                new Vector2(0.745f, 0.905f));
 
             bool iconCatalog = _shopTab == ShopTab.ProfileIcons;
+            bool artworkCatalog = _shopTab == ShopTab.Artwork;
             RectTransform content = CreateShopScrollGrid(
                 _screenRoot,
                 "Vitrine da Loja",
                 new Vector2(0.055f, 0.055f),
                 new Vector2(0.945f, 0.79f),
-                iconCatalog ? new Vector2(385f, 210f) : new Vector2(510f, 210f),
-                iconCatalog ? new Vector2(18f, 20f) : new Vector2(24f, 20f),
-                iconCatalog ? 4 : 3);
+                artworkCatalog
+                    ? new Vector2(430f, 300f)
+                    : iconCatalog
+                        ? new Vector2(385f, 210f)
+                        : new Vector2(510f, 210f),
+                artworkCatalog
+                    ? new Vector2(18f, 20f)
+                    : iconCatalog
+                        ? new Vector2(18f, 20f)
+                        : new Vector2(24f, 20f),
+                artworkCatalog ? 3 : iconCatalog ? 4 : 3);
 
             PopulateShopCatalog(content);
         }
@@ -252,6 +267,11 @@ namespace ArcaneArena.Frontend
                 {
                     FrontendClickAudio.Play();
                     SelectShopTab(ShopTab.ProfileIcons);
+                },
+                () =>
+                {
+                    FrontendClickAudio.Play();
+                    SelectShopTab(ShopTab.Artwork);
                 });
             _shopSceneView.SetBalance(_repository?.CoinBalance ?? 0);
             _shopSceneView.SetFeedback(
@@ -265,7 +285,8 @@ namespace ArcaneArena.Frontend
                 Lime,
                 Cyan);
             _shopSceneView.ConfigureCatalogLayout(
-                _shopTab == ShopTab.ProfileIcons);
+                _shopTab == ShopTab.ProfileIcons,
+                _shopTab == ShopTab.Artwork);
             _shopSceneView.SetVisible(true);
             PopulateShopCatalog(_shopSceneView.CatalogContent);
             return true;
@@ -298,6 +319,16 @@ namespace ArcaneArena.Frontend
                         content,
                         DeckShopCatalog.Products[index],
                         index);
+                }
+                return;
+            }
+
+            if (_shopTab == ShopTab.Artwork)
+            {
+                foreach (ProfileArtworkDefinition artwork in
+                         ProfileArtworkCatalog.StoreVisible)
+                {
+                    CreateArtworkShopTile(content, artwork);
                 }
                 return;
             }

@@ -33,6 +33,9 @@ namespace ArcaneArena.Frontend
         private UnityAction _settingsAction;
         private UnityAction _profileAction;
         private UnityAction _friendsAction;
+        private RectTransform _artworkViewport;
+        private Image _artworkImage;
+        private MainMenuArtworkFloat _artworkFloat;
 
         public Canvas SceneCanvas => sceneCanvas;
         public RectTransform DynamicRoot => dynamicRoot;
@@ -107,6 +110,20 @@ namespace ArcaneArena.Frontend
                 dynamicRoot.gameObject.SetActive(!visible);
         }
 
+        public void SetEquippedArtwork(Sprite sprite, string artworkId)
+        {
+            EnsureArtworkViewport();
+            if (_artworkViewport == null || _artworkImage == null)
+                return;
+
+            bool hasArtwork = sprite != null;
+            _artworkViewport.gameObject.SetActive(hasArtwork);
+            _artworkImage.sprite = sprite;
+            _artworkImage.enabled = hasArtwork;
+            if (hasArtwork)
+                _artworkFloat?.Configure(artworkId);
+        }
+
         private static void BindButton(
             Button button,
             ref UnityAction storedAction,
@@ -159,6 +176,50 @@ namespace ArcaneArena.Frontend
             Navigation navigation = friendsButton.navigation;
             navigation.mode = Navigation.Mode.None;
             friendsButton.navigation = navigation;
+        }
+
+        private void EnsureArtworkViewport()
+        {
+            if (_artworkViewport != null || mainMenuRoot == null)
+                return;
+
+            var viewportObject = new GameObject(
+                "Artwork Equipada - Recorte da Moldura",
+                typeof(RectTransform),
+                typeof(RectMask2D));
+            viewportObject.transform.SetParent(mainMenuRoot, false);
+            _artworkViewport = viewportObject.GetComponent<RectTransform>();
+            // Interior medido da moldura direita da arte oficial. O pequeno
+            // recuo conserva os filetes ciano/dourado sempre visíveis.
+            _artworkViewport.anchorMin = new Vector2(0.365f, 0.165f);
+            _artworkViewport.anchorMax = new Vector2(0.955f, 0.845f);
+            _artworkViewport.offsetMin = Vector2.zero;
+            _artworkViewport.offsetMax = Vector2.zero;
+            _artworkViewport.pivot = new Vector2(0.5f, 0.5f);
+            _artworkViewport.SetAsLastSibling();
+
+            var imageObject = new GameObject(
+                "Arte Flutuante",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image),
+                typeof(CanvasGroup),
+                typeof(MainMenuArtworkFloat));
+            imageObject.transform.SetParent(_artworkViewport, false);
+            RectTransform imageRect = imageObject.GetComponent<RectTransform>();
+            imageRect.anchorMin = new Vector2(0.025f, 0.025f);
+            imageRect.anchorMax = new Vector2(0.975f, 0.975f);
+            imageRect.offsetMin = Vector2.zero;
+            imageRect.offsetMax = Vector2.zero;
+            imageRect.pivot = new Vector2(0.5f, 0.5f);
+
+            _artworkImage = imageObject.GetComponent<Image>();
+            _artworkImage.preserveAspect = true;
+            _artworkImage.raycastTarget = false;
+            _artworkFloat = imageObject.GetComponent<MainMenuArtworkFloat>();
+            CanvasGroup canvasGroup = imageObject.GetComponent<CanvasGroup>();
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
         }
 
         private static void RemoveButton(

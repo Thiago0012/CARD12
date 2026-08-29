@@ -20,6 +20,7 @@ namespace ArcaneArena.Frontend
         [SerializeField] private Button packagesButton;
         [SerializeField] private Button structureDecksButton;
         [SerializeField] private Button profileIconsButton;
+        [SerializeField] private Button artworkButton;
 
         [Header("Dados dinamicos")]
         [SerializeField] private Text coinBalanceText;
@@ -38,10 +39,18 @@ namespace ArcaneArena.Frontend
         [SerializeField] private Vector2 iconSpacing = new Vector2(18f, 20f);
         [SerializeField, Min(1)] private int iconColumns = 4;
 
+        [Header("Layout de artworks")]
+        [SerializeField] private Vector2 artworkCellSize =
+            new Vector2(430f, 300f);
+        [SerializeField] private Vector2 artworkSpacing =
+            new Vector2(18f, 20f);
+        [SerializeField, Min(1)] private int artworkColumns = 3;
+
         private UnityAction _backAction;
         private UnityAction _packagesAction;
         private UnityAction _structureDecksAction;
         private UnityAction _profileIconsAction;
+        private UnityAction _artworkAction;
         private bool _professionalThemeApplied;
         private Sprite _runtimeProfessionalBackground;
 
@@ -103,8 +112,10 @@ namespace ArcaneArena.Frontend
             UnityAction back,
             UnityAction packages,
             UnityAction structureDecks,
-            UnityAction profileIcons)
+            UnityAction profileIcons,
+            UnityAction artwork)
         {
+            EnsureArtworkButton();
             Unbind();
             BindButton(backButton, ref _backAction, back);
             BindButton(packagesButton, ref _packagesAction, packages);
@@ -116,6 +127,7 @@ namespace ArcaneArena.Frontend
                 profileIconsButton,
                 ref _profileIconsAction,
                 profileIcons);
+            BindButton(artworkButton, ref _artworkAction, artwork);
         }
 
         public void SetVisible(bool visible)
@@ -147,6 +159,7 @@ namespace ArcaneArena.Frontend
                     ShopAmber.g, ShopAmber.b, 0.34f));
             SetShopTabState(structureDecksButton, selectedTab == 1);
             SetShopTabState(profileIconsButton, selectedTab == 2);
+            SetShopTabState(artworkButton, selectedTab == 3);
         }
 
         /// <summary>
@@ -168,17 +181,23 @@ namespace ArcaneArena.Frontend
             StyleFeedback();
         }
 
-        public void ConfigureCatalogLayout(bool icons)
+        public void ConfigureCatalogLayout(bool icons, bool artworks = false)
         {
             if (catalogGrid == null)
                 return;
 
-            catalogGrid.cellSize = icons ? iconCellSize : productCellSize;
-            catalogGrid.spacing = icons ? iconSpacing : productSpacing;
+            catalogGrid.cellSize = artworks
+                ? artworkCellSize
+                : icons ? iconCellSize : productCellSize;
+            catalogGrid.spacing = artworks
+                ? artworkSpacing
+                : icons ? iconSpacing : productSpacing;
             catalogGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            catalogGrid.constraintCount = icons
-                ? Mathf.Max(1, iconColumns)
-                : Mathf.Max(1, productColumns);
+            catalogGrid.constraintCount = artworks
+                ? Mathf.Max(1, artworkColumns)
+                : icons
+                    ? Mathf.Max(1, iconColumns)
+                    : Mathf.Max(1, productColumns);
             if (catalogScroll != null)
                 catalogScroll.verticalNormalizedPosition = 1f;
         }
@@ -377,11 +396,12 @@ namespace ArcaneArena.Frontend
             RectTransform tabs = root.Find("Category Tabs") as RectTransform;
             if (tabs == null)
                 return;
+            EnsureArtworkButton();
             SetAnchors(tabs,
                 new Vector2(0.055f, 0.838f),
                 new Vector2(0.945f, 0.895f));
-            const float gap = 0.012f;
-            float width = (1f - gap * 2f) / 3f;
+            const float gap = 0.010f;
+            float width = (1f - gap * 3f) / 4f;
             SetAnchors(packagesButton?.transform as RectTransform,
                 Vector2.zero,
                 new Vector2(width, 1f));
@@ -390,11 +410,43 @@ namespace ArcaneArena.Frontend
                 new Vector2(width * 2f + gap, 1f));
             SetAnchors(profileIconsButton?.transform as RectTransform,
                 new Vector2(width * 2f + gap * 2f, 0f),
+                new Vector2(width * 3f + gap * 2f, 1f));
+            SetAnchors(artworkButton?.transform as RectTransform,
+                new Vector2(width * 3f + gap * 3f, 0f),
                 Vector2.one);
 
             StylePermanentButton(packagesButton, ShopGold, true);
             StylePermanentButton(structureDecksButton, ShopAmber, false);
             StylePermanentButton(profileIconsButton, ShopAmber, false);
+            StylePermanentButton(artworkButton, ShopAmber, false);
+        }
+
+        private void EnsureArtworkButton()
+        {
+            if (artworkButton != null || profileIconsButton == null)
+                return;
+
+            Transform existing = profileIconsButton.transform.parent
+                ?.Find("Artwork Tab");
+            if (existing != null)
+            {
+                artworkButton = existing.GetComponent<Button>();
+                if (artworkButton != null)
+                    return;
+            }
+
+            GameObject clone = Instantiate(
+                profileIconsButton.gameObject,
+                profileIconsButton.transform.parent,
+                false);
+            clone.name = "Artwork Tab";
+            artworkButton = clone.GetComponent<Button>();
+            if (artworkButton == null)
+                return;
+            artworkButton.onClick = new Button.ButtonClickedEvent();
+            Text label = artworkButton.GetComponentInChildren<Text>(true);
+            if (label != null)
+                label.text = "ARTWORK";
         }
 
         private void StyleCatalog()
@@ -634,6 +686,7 @@ namespace ArcaneArena.Frontend
             RemoveButton(packagesButton, ref _packagesAction);
             RemoveButton(structureDecksButton, ref _structureDecksAction);
             RemoveButton(profileIconsButton, ref _profileIconsAction);
+            RemoveButton(artworkButton, ref _artworkAction);
         }
 
         private static void RemoveButton(Button button, ref UnityAction action)

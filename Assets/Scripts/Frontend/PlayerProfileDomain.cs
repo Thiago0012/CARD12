@@ -12,6 +12,9 @@ namespace ArcaneArena.Frontend
     {
         public string equippedIconId = ProfileIconCatalog.DefaultIconId;
         public List<string> ownedIconIds = new List<string>();
+        public string equippedArtworkId =
+            ProfileArtworkCatalog.DefaultArtworkId;
+        public List<string> ownedArtworkIds = new List<string>();
     }
 
     [Serializable]

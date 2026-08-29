@@ -33,6 +33,19 @@ namespace ArcaneArena.Frontend
             }
         }
 
+        public string EquippedArtworkId => ProfileArtworkCatalog.ResolveId(
+            State?.cosmetics?.equippedArtworkId);
+
+        public IReadOnlyCollection<string> OwnedArtworkIds
+        {
+            get
+            {
+                if (State?.cosmetics?.ownedArtworkIds == null)
+                    return Array.Empty<string>();
+                return State.cosmetics.ownedArtworkIds.AsReadOnly();
+            }
+        }
+
         public PlayerStatisticsState Statistics => State?.statistics;
 
         private void NormalizePlayerProfileState(int loadedSchemaVersion)
@@ -60,6 +73,29 @@ namespace ArcaneArena.Frontend
             {
                 State.cosmetics.equippedIconId =
                     ProfileIconCatalog.DefaultIconId;
+            }
+
+            State.cosmetics.ownedArtworkIds ??= new List<string>();
+            State.cosmetics.ownedArtworkIds = State.cosmetics.ownedArtworkIds
+                .Select(ProfileArtworkCatalog.ResolveId)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToList();
+            if (!State.cosmetics.ownedArtworkIds.Contains(
+                    ProfileArtworkCatalog.DefaultArtworkId))
+            {
+                State.cosmetics.ownedArtworkIds.Insert(
+                    0, ProfileArtworkCatalog.DefaultArtworkId);
+            }
+            State.cosmetics.equippedArtworkId =
+                ProfileArtworkCatalog.ResolveId(
+                    State.cosmetics.equippedArtworkId);
+            if (!State.cosmetics.ownedArtworkIds.Contains(
+                    State.cosmetics.equippedArtworkId))
+            {
+                State.cosmetics.equippedArtworkId =
+                    ProfileArtworkCatalog.DefaultArtworkId;
             }
 
             State.statistics ??= new PlayerStatisticsState();
@@ -241,6 +277,99 @@ namespace ArcaneArena.Frontend
                 return false;
             }
             State.cosmetics.equippedIconId = resolved;
+            Save();
+            return true;
+        }
+
+        public bool OwnsArtwork(string artworkId)
+        {
+            string resolved = ProfileArtworkCatalog.ResolveId(artworkId);
+            return State?.cosmetics?.ownedArtworkIds?.Contains(resolved) == true;
+        }
+
+        public bool TryPurchaseArtwork(
+            string artworkId,
+            string transactionId,
+            out ShopTransactionRecord receipt,
+            out string rejection)
+        {
+            receipt = null;
+            rejection = string.Empty;
+            ProfileArtworkDefinition definition =
+                ProfileArtworkCatalog.Resolve(artworkId);
+            if (definition == null || !definition.IsPurchasable ||
+                !string.Equals(definition.ArtworkId, artworkId,
+                    StringComparison.Ordinal))
+            {
+                rejection = "Esta artwork não está disponível para compra.";
+                return false;
+            }
+            if (!TryPrepareTransaction(
+                    transactionId,
+                    "profile-artwork",
+                    definition.ArtworkId,
+                    out ShopTransactionRecord existing,
+                    out rejection))
+            {
+                if (existing != null)
+                {
+                    receipt = existing;
+                    return OwnsArtwork(definition.ArtworkId);
+                }
+                return false;
+            }
+            if (OwnsArtwork(definition.ArtworkId))
+            {
+                rejection = "Esta artwork já pertence ao seu perfil.";
+                return false;
+            }
+            if (CoinBalance < definition.PriceCoins)
+            {
+                rejection = $"Saldo insuficiente: faltam " +
+                    $"{definition.PriceCoins - CoinBalance} moedas.";
+                return false;
+            }
+
+            string snapshot = JsonUtility.ToJson(State);
+            try
+            {
+                State.coinBalance -= definition.PriceCoins;
+                State.cosmetics.ownedArtworkIds.Add(definition.ArtworkId);
+                receipt = CreateTransaction(
+                    transactionId,
+                    "profile-artwork",
+                    definition.ArtworkId,
+                    -definition.PriceCoins,
+                    Array.Empty<string>());
+                State.processedShopTransactions.Add(receipt);
+                Save();
+                return true;
+            }
+            catch (Exception exception)
+            {
+                RestoreEconomySnapshot(snapshot);
+                rejection = exception.GetBaseException().Message;
+                receipt = null;
+                return false;
+            }
+        }
+
+        public bool TryEquipArtwork(string artworkId, out string rejection)
+        {
+            rejection = string.Empty;
+            if (State?.cosmetics == null)
+            {
+                rejection = "O perfil local ainda não foi carregado.";
+                return false;
+            }
+            string resolved = ProfileArtworkCatalog.ResolveId(artworkId);
+            if (!string.Equals(resolved, artworkId, StringComparison.Ordinal) ||
+                !OwnsArtwork(resolved))
+            {
+                rejection = "Compre esta artwork antes de equipá-la.";
+                return false;
+            }
+            State.cosmetics.equippedArtworkId = resolved;
             Save();
             return true;
         }

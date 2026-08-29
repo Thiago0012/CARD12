@@ -58,6 +58,7 @@ namespace ArcaneArena.Frontend
             {
                 _mainMenuSceneView.Bind(this);
                 _mainMenuSceneView.SetMainMenuVisible(true);
+                RefreshAuthoredMainMenuArtwork();
                 return;
             }
             BuildTemplateMainMenu();
@@ -275,6 +276,7 @@ namespace ArcaneArena.Frontend
             CreateFullCanvasArtwork(
                 "Nova Tela Inicial",
                 _mainMenuAssets.mainMenu);
+            CreateRuntimeMainMenuArtwork();
 
             CreateInvisibleButton(
                 "DUELAR",
