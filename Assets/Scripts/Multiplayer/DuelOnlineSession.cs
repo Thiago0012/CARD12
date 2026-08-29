@@ -48,6 +48,12 @@ namespace ArcaneArena.Multiplayer
         private const string ResponseMessage = "arcane.duel.response.v4";
         private const string ResponseFastMessage =
             "arcane.duel.response-fast.v1";
+        // A readiness acknowledgement is tiny but it decides whether the
+        // host may build the authoritative Core. Keep a direct reliable copy
+        // beside the chunked wire transfer so a delayed initial wire ACK does
+        // not strand a phone on the arena loading screen.
+        private const string ClientReadyFastMessage =
+            "arcane.duel.client-ready-fast.v1";
         private const string StateAckMessage = "arcane.duel.state-ack.v4";
         private const string ResyncRequestMessage = "arcane.duel.resync.v4";
         private const string BeginDuelMessage = "arcane.duel.begin.v8";
@@ -66,6 +72,7 @@ namespace ArcaneArena.Multiplayer
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
         private const int MaximumFastResponseBytes = 900;
+        private const int MaximumFastControlBytes = 1024;
         private const ushort NgoProtocolVersion = 14;
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
@@ -89,6 +96,8 @@ namespace ArcaneArena.Multiplayer
         private const int WirePacketsPerTransferPump = 8;
         private const int WirePacketsPerFrame = 24;
         private const int MaximumConcurrentWireTransfers = 128;
+        private const int MaximumTransitionRecoveryAttempts = 1;
+        private const float TransitionRecoveryWindowSeconds = 20f;
         private const int CompressionThresholdBytes = 512;
         private const int CommandSchemaVersion = 1;
         private const float CommandRatePerSecond = 10f;
@@ -463,6 +472,7 @@ namespace ArcaneArena.Multiplayer
         private bool beginDuelReceived;
         private bool beginDuelApplied;
         private bool clientBeginApplied;
+        private int transitionRecoveryAttempts;
         private int onlinePreludeRound;
         private DuelPreludeChoice hostPreludeChoice;
         private DuelPreludeChoice clientPreludeChoice;
@@ -841,6 +851,7 @@ namespace ArcaneArena.Multiplayer
                     : OnlineMatchFlowState.InSessionWaiting);
             SceneManager.sceneLoaded += OnDuelSceneLoaded;
             sessionCoordinator.NetworkStartFailed += OnRelayNetworkStartFailed;
+            sessionCoordinator.HostChanged += OnSessionHostChanged;
             DuelOnlineBridge.SubmitReplicaChoice = SubmitRemoteChoice;
             DuelOnlineBridge.SubmitReplicaResponse = SubmitRemoteResponse;
             persistedReconnectCoroutine = StartCoroutine(
@@ -911,11 +922,39 @@ namespace ArcaneArena.Multiplayer
             StartClientReconnect();
         }
 
+        private void OnSessionHostChanged()
+        {
+            if (role == SessionRole.None ||
+                matchRewardFinalized ||
+                flowState == OnlineMatchFlowState.ResultScreen ||
+                flowState == OnlineMatchFlowState.Menu)
+            {
+                return;
+            }
+
+            // Relay can reconnect after a short transport interruption, but
+            // it cannot reconstruct this duel after a Lobby host change: the
+            // native Core exists only in the original host process. Ending
+            // immediately is clearer and prevents a client from remaining on
+            // the loading screen until the generic reconnect deadline.
+            bool wasInArena = SceneManager.GetActiveScene().name ==
+                DuelArenaScene;
+            const string reason =
+                "O anfitrião saiu da sala. Esta partida foi encerrada.";
+            Debug.LogWarning("[MP] stage=host-changed-cleanup scene=" +
+                SceneManager.GetActiveScene().name);
+            ResetAfterFailedConnection(reason);
+            showPanel = !wasInArena;
+            if (wasInArena)
+                StartCoroutine(ReturnToMainMenuAfterDisconnect());
+        }
+
         private void OnDestroy()
         {
             DuelOnlineBridge.CompleteOnlineArenaTransition();
             SceneManager.sceneLoaded -= OnDuelSceneLoaded;
             sessionCoordinator.NetworkStartFailed -= OnRelayNetworkStartFailed;
+            sessionCoordinator.HostChanged -= OnSessionHostChanged;
             if (arenaAttachRetry != null)
                 StopCoroutine(arenaAttachRetry);
             if (helloRetry != null)
@@ -1409,6 +1448,9 @@ namespace ArcaneArena.Multiplayer
             networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
                 ResponseFastMessage,
                 OnFastResponseMessage);
+            networkManager.CustomMessagingManager.RegisterNamedMessageHandler(
+                ClientReadyFastMessage,
+                OnFastClientReadyMessage);
             handlersRegistered = true;
         }
 
@@ -1425,6 +1467,8 @@ namespace ArcaneArena.Multiplayer
                 WirePacketMessage);
             networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
                 ResponseFastMessage);
+            networkManager.CustomMessagingManager.UnregisterNamedMessageHandler(
+                ClientReadyFastMessage);
             handlersRegistered = false;
         }
 
@@ -2867,6 +2911,7 @@ namespace ArcaneArena.Multiplayer
             clientArenaReady = false;
             localSceneReady = false;
             localSceneLoadRequested = false;
+            transitionRecoveryAttempts = 0;
             beginDuelReceived = false;
             beginDuelApplied = false;
             clientBeginApplied = false;
@@ -3375,7 +3420,7 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
-            SendToServer(ClientReadyMessage, new ClientReadyPayload
+            var readiness = new ClientReadyPayload
             {
                 protocolVersion = ProtocolVersion,
                 compatibility = ProjectIdentity.MultiplayerCompatibility,
@@ -3386,7 +3431,17 @@ namespace ArcaneArena.Multiplayer
                 arenaReady = arenaReady,
                 beginApplied = beginDuelApplied,
                 rankPlayer = CaptureLocalRankSnapshot()
-            }, NetworkDelivery.ReliableSequenced);
+            };
+
+            // Keep the resilient v4 transfer as the canonical path. The
+            // direct copy is intentionally best-effort and only accelerates
+            // the readiness gate when a device finishes scene loading before
+            // the host has completed its first wire-transfer cycle.
+            SendFastClientReadyToHost(readiness);
+            SendToServer(
+                ClientReadyMessage,
+                readiness,
+                NetworkDelivery.ReliableSequenced);
         }
 
         private void ProcessClientReadyMessage(
@@ -4788,6 +4843,63 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
+        private bool SendFastClientReadyToHost(ClientReadyPayload readiness)
+        {
+            if (readiness == null || role != SessionRole.Client ||
+                networkManager?.CustomMessagingManager == null ||
+                !networkManager.IsConnectedClient)
+            {
+                return false;
+            }
+
+            byte[] jsonBytes;
+            try
+            {
+                jsonBytes = Encoding.UTF8.GetBytes(
+                    JsonUtility.ToJson(readiness));
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            if (jsonBytes.Length == 0 ||
+                jsonBytes.Length > MaximumFastControlBytes)
+            {
+                // An unusually large payload still travels through the
+                // chunked channel below; never reject the player because the
+                // optional accelerator is unavailable.
+                return false;
+            }
+
+            var writer = new FastBufferWriter(
+                jsonBytes.Length + sizeof(ushort),
+                Allocator.Temp,
+                MaximumFastControlBytes + sizeof(ushort));
+            try
+            {
+                writer.WriteValueSafe((ushort)jsonBytes.Length);
+                writer.WriteBytesSafe(jsonBytes);
+                networkManager.CustomMessagingManager.SendNamedMessage(
+                    ClientReadyFastMessage,
+                    NetworkManager.ServerClientId,
+                    writer,
+                    NetworkDelivery.ReliableSequenced);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Arcane Duel Online] Ready direto indisponivel; " +
+                    "mantendo o envio v4: " +
+                    exception.GetBaseException().Message);
+                return false;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
         private void OnFastResponseMessage(
             ulong senderClientId,
             FastBufferReader reader)
@@ -4810,6 +4922,32 @@ namespace ArcaneArena.Multiplayer
             {
                 Debug.LogWarning(
                     "[Arcane Duel Online] Fast response invalida: " +
+                    exception.GetBaseException().Message);
+            }
+        }
+
+        private void OnFastClientReadyMessage(
+            ulong senderClientId,
+            FastBufferReader reader)
+        {
+            if (!IsHost || senderClientId != remoteClientId)
+                return;
+
+            try
+            {
+                reader.ReadValueSafe(out ushort length);
+                if (length == 0 || length > MaximumFastControlBytes)
+                    return;
+                var jsonBytes = new byte[length];
+                reader.ReadBytesSafe(ref jsonBytes, length);
+                ClientReadyPayload readiness = JsonUtility.FromJson<
+                    ClientReadyPayload>(Encoding.UTF8.GetString(jsonBytes));
+                ProcessClientReadyMessage(senderClientId, readiness);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[Arcane Duel Online] Ready direto invalido: " +
                     exception.GetBaseException().Message);
             }
         }
@@ -5451,11 +5589,70 @@ namespace ArcaneArena.Multiplayer
 
             bool snapshotTimeout =
                 OnlineMatchFlowPolicy.UsesSnapshotTimeout(flowState);
-            float timeout = snapshotTimeout
+            float configuredTimeout = snapshotTimeout
                 ? flowConfig.SnapshotApplyTimeoutSeconds
                 : flowConfig.SceneLoadTimeoutSeconds;
+            // Give a stalled first attempt a short, explicit recovery pass
+            // before showing a terminal screen. A backgrounded Android can
+            // finish shader/asset initialization just after the normal scene
+            // budget, while a genuinely broken connection still returns to a
+            // usable error screen instead of loading forever.
+            float timeout = transitionRecoveryAttempts > 0
+                ? Mathf.Min(
+                    configuredTimeout,
+                    TransitionRecoveryWindowSeconds)
+                : configuredTimeout;
             if (now - flowStateEnteredAt < timeout)
                 return;
+
+            if (transitionRecoveryAttempts <
+                MaximumTransitionRecoveryAttempts)
+            {
+                transitionRecoveryAttempts++;
+                flowStateEnteredAt = now;
+                status = snapshotTimeout
+                    ? "Conexão lenta. Reenviando a sincronização inicial..."
+                    : "Conexão lenta. Confirmando a arena novamente...";
+                loadingPresenter?.ShowDuelLoading(
+                    "RECUPERANDO CONEXÃO",
+                    snapshotTimeout
+                        ? "Reenviando o estado inicial do duelo."
+                        : "Confirmando que as duas arenas estão prontas.",
+                    snapshotTimeout ? 0.74f : 0.56f);
+
+                if (role == SessionRole.Client)
+                {
+                    SendClientReady(true, localSceneReady);
+                    if (snapshotTimeout)
+                        RequestResync("initial-sync-watchdog");
+                    else if (!localSceneReady)
+                        StartArenaTransitionAfterBlack();
+                }
+                else if (IsHost)
+                {
+                    StartHostStartHandshake();
+                    if (snapshotTimeout)
+                    {
+                        BroadcastState();
+                        StartStateHeartbeat();
+                    }
+                    else if (localSceneReady)
+                    {
+                        TryStartHostDuel();
+                    }
+                    else
+                    {
+                        StartArenaTransitionAfterBlack();
+                    }
+                }
+
+                Debug.LogWarning(
+                    $"[MP] stage=transition-recovery " +
+                    $"kind={(snapshotTimeout ? "snapshot" : "scene")} " +
+                    $"attempt={transitionRecoveryAttempts} " +
+                    $"epoch={currentTransitionEpoch}");
+                return;
+            }
 
             string code = snapshotTimeout
                 ? "INITIAL_SYNC_FAILED"
@@ -5539,6 +5736,8 @@ namespace ArcaneArena.Multiplayer
                 replicaController == null || pendingReplicaState != null ||
                 networkManager == null ||
                 !networkManager.IsConnectedClient ||
+                flowState == OnlineMatchFlowState.RecoverableError ||
+                flowState == OnlineMatchFlowState.FatalError ||
                 now < nextClientArenaReadyRetryTime)
             {
                 return;
@@ -6302,6 +6501,7 @@ namespace ArcaneArena.Multiplayer
             reconnectDeadline = 0f;
             matchStarted = false;
             hostCoreStarted = false;
+            transitionRecoveryAttempts = 0;
             helloAccepted = false;
             clientDeckReady = false;
             clientReceivedStart = false;

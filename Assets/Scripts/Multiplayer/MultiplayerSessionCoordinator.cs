@@ -41,6 +41,7 @@ namespace ArcaneArena.Multiplayer
         private Task leaveTask;
 
         public event Action<SessionError> NetworkStartFailed;
+        public event Action HostChanged;
 
         public ISession CurrentSession => currentSession;
         public bool HasSession => currentSession != null && currentSession.IsMember;
@@ -206,6 +207,19 @@ namespace ArcaneArena.Multiplayer
                     new FilterOption(
                         FilterField.StringIndex3,
                         ComputeCompatibilityHash(),
+                        FilterOperation.Equal),
+                    // A public room can remain visible briefly while Relay
+                    // releases a disconnected host. Restrict quick join to a
+                    // lobby that is explicitly waiting and still marked as
+                    // joinable, rather than attaching a player to a duel
+                    // already transitioning or finishing.
+                    new FilterOption(
+                        FilterField.StringIndex4,
+                        "waiting",
+                        FilterOperation.Equal),
+                    new FilterOption(
+                        FilterField.StringIndex5,
+                        "true",
                         FilterOperation.Equal),
                     new FilterOption(
                         FilterField.AvailableSlots,
@@ -414,6 +428,12 @@ namespace ArcaneArena.Multiplayer
             PropertyIndex compatibilityIndex = indexedForMatchmaking
                 ? PropertyIndex.String3
                 : PropertyIndex.None;
+            PropertyIndex statusIndex = indexedForMatchmaking
+                ? PropertyIndex.String4
+                : PropertyIndex.None;
+            PropertyIndex joinableIndex = indexedForMatchmaking
+                ? PropertyIndex.String5
+                : PropertyIndex.None;
             return new Dictionary<string, SessionProperty>
             {
                 [AppVersionKey] = PublicProperty(ProjectIdentity.ProjectVersion),
@@ -433,8 +453,8 @@ namespace ArcaneArena.Multiplayer
                 [CompatibilityKey] = PublicProperty(
                     ComputeCompatibilityHash(),
                     compatibilityIndex),
-                [StatusKey] = PublicProperty("waiting"),
-                [JoinableKey] = PublicProperty("true"),
+                [StatusKey] = PublicProperty("waiting", statusIndex),
+                [JoinableKey] = PublicProperty("true", joinableIndex),
                 [MatchIdKey] = MemberSessionProperty(string.Empty),
                 [HostEpochKey] = MemberSessionProperty("1")
             };
@@ -658,12 +678,13 @@ namespace ArcaneArena.Multiplayer
             Debug.Log("[MP] stage=relay-network-state value=" + state);
         }
 
-        private static void OnHostChanged(string _)
+        private void OnHostChanged(string _)
         {
             // Host migration is intentionally disabled for this authoritative
             // OCG Core. A replacement client cannot safely reconstruct its
             // private native engine state.
             Debug.LogWarning("[MP] stage=host-changed action=end-match");
+            HostChanged?.Invoke();
         }
 
         private static SessionProperty PublicProperty(
