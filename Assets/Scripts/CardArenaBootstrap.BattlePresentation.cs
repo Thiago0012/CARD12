@@ -63,6 +63,11 @@ namespace ArcaneArena
         private Material battlePresentationMaterial;
         private Coroutine battlePresentationRoutine;
         private Coroutine duelConclusionSlowMotionRoutine;
+        private Coroutine arenaCameraShakeRoutine;
+        private Transform shakenCameraTransform;
+        private Vector3 shakenCameraOrigin;
+        private Coroutine localDamageVignetteRoutine;
+        private GameObject localDamageVignette;
         private float duelConclusionOriginalTimeScale = 1f;
         private bool duelConclusionTimeScaleApplied;
         private float damagePresentationDeadline = -1f;
@@ -118,6 +123,8 @@ namespace ArcaneArena
             RestoreDuelConclusionTimeScale();
             if (turnOwnershipGlowRoutine != null)
                 StopCoroutine(turnOwnershipGlowRoutine);
+            StopArenaCameraShake();
+            StopLocalDamageVignette();
             ResetLifePointPresentations();
             ResetBattlePresentationVisuals();
             if (battlePresentationMaterial != null)
@@ -1210,7 +1217,7 @@ namespace ArcaneArena
             battlePresentationLine.SetPosition(1, end);
             if (targetZone != null)
                 targetZone.SetDropHighlight(true);
-            StartCoroutine(ShakeArenaCamera(0.16f, 0.055f));
+            StartArenaCameraShake(0.16f, 0.036f);
             yield return new WaitForSecondsRealtime(
                 DuelAnimationPreferences.MonsterDuration(0.12f));
             if (latestBattleEvent != null)
@@ -1400,9 +1407,24 @@ namespace ArcaneArena
             ArcaneAudioDirector audio = core != null
                 ? core.GetComponent<ArcaneAudioDirector>()
                 : null;
-            float impactLead = !recovering && audio != null
-                ? audio.PlayDamageImpactCue()
-                : 0f;
+            float impactLead = 0f;
+            if (!recovering)
+            {
+                impactLead = audio != null
+                    ? audio.PlayDamageImpactCue()
+                    : 0f;
+                bool localPlayerWasHit = player == 0;
+                StartArenaCameraShake(
+                    localPlayerWasHit ? 0.30f : 0.20f,
+                    localPlayerWasHit ? 0.105f : 0.052f);
+                if (localPlayerWasHit)
+                {
+                    StartLocalDamageVignette(
+                        audio != null
+                            ? audio.DamageImpactCueDuration
+                            : 0.38f);
+                }
+            }
             float lifeCountDuration = audio != null
                 ? audio.LifePointLossCueDuration
                 : 0.72f;
@@ -1632,15 +1654,26 @@ namespace ArcaneArena
                    overshoot * shifted * shifted;
         }
 
+        private void StartArenaCameraShake(
+            float baseDuration,
+            float strength)
+        {
+            StopArenaCameraShake();
+            Camera camera = Camera.main;
+            if (camera == null)
+                return;
+            shakenCameraTransform = camera.transform;
+            shakenCameraOrigin = shakenCameraTransform.localPosition;
+            arenaCameraShakeRoutine = StartCoroutine(
+                ShakeArenaCamera(baseDuration, strength));
+        }
+
         private IEnumerator ShakeArenaCamera(
             float baseDuration,
             float strength)
         {
-            Camera camera = Camera.main;
-            if (camera == null)
-                yield break;
-            Transform cameraTransform = camera.transform;
-            Vector3 origin = cameraTransform.localPosition;
+            Transform cameraTransform = shakenCameraTransform;
+            Vector3 origin = shakenCameraOrigin;
             float duration =
                 DuelAnimationPreferences.Duration(baseDuration);
             for (float elapsed = 0f;
@@ -1661,6 +1694,93 @@ namespace ArcaneArena
             }
             if (cameraTransform != null)
                 cameraTransform.localPosition = origin;
+            arenaCameraShakeRoutine = null;
+            shakenCameraTransform = null;
+        }
+
+        private void StopArenaCameraShake()
+        {
+            if (arenaCameraShakeRoutine != null)
+            {
+                StopCoroutine(arenaCameraShakeRoutine);
+                arenaCameraShakeRoutine = null;
+            }
+            if (shakenCameraTransform != null)
+                shakenCameraTransform.localPosition = shakenCameraOrigin;
+            shakenCameraTransform = null;
+        }
+
+        private void StartLocalDamageVignette(float duration)
+        {
+            StopLocalDamageVignette();
+            if (frame == null)
+                return;
+
+            localDamageVignette = new GameObject(
+                "Impacto Vermelho de Dano Local",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(DuelDamageVignetteGraphic),
+                typeof(CanvasGroup));
+            localDamageVignette.transform.SetParent(frame, false);
+            RectTransform rect =
+                localDamageVignette.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            DuelDamageVignetteGraphic graphic =
+                localDamageVignette.GetComponent<DuelDamageVignetteGraphic>();
+            graphic.color = new Color(1f, 0.035f, 0.06f, 0.92f);
+            graphic.raycastTarget = false;
+            CanvasGroup group = localDamageVignette.GetComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.interactable = false;
+            group.blocksRaycasts = false;
+            localDamageVignette.transform.SetAsLastSibling();
+            localDamageVignetteRoutine = StartCoroutine(
+                PlayLocalDamageVignette(
+                    group,
+                    Mathf.Max(0.24f, duration)));
+        }
+
+        private IEnumerator PlayLocalDamageVignette(
+            CanvasGroup group,
+            float duration)
+        {
+            for (float elapsed = 0f;
+                 elapsed < duration && group != null;
+                 elapsed += Time.unscaledDeltaTime)
+            {
+                float t = Mathf.Clamp01(elapsed / duration);
+                float envelope = t < 0.16f
+                    ? Mathf.SmoothStep(0f, 1f, t / 0.16f)
+                    : 1f - Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        (t - 0.16f) / 0.84f);
+                float impactPulse =
+                    0.88f + Mathf.Sin(t * Mathf.PI * 7f) * 0.12f;
+                group.alpha = Mathf.Clamp01(envelope * impactPulse);
+                yield return null;
+            }
+
+            if (localDamageVignette != null)
+                Destroy(localDamageVignette);
+            localDamageVignette = null;
+            localDamageVignetteRoutine = null;
+        }
+
+        private void StopLocalDamageVignette()
+        {
+            if (localDamageVignetteRoutine != null)
+            {
+                StopCoroutine(localDamageVignetteRoutine);
+                localDamageVignetteRoutine = null;
+            }
+            if (localDamageVignette != null)
+                Destroy(localDamageVignette);
+            localDamageVignette = null;
         }
 
         private void EnsureBattlePresentationLine()
@@ -1811,6 +1931,94 @@ namespace ArcaneArena
                 (phase & 0x100U) != 0)
                 return Hex("#C8FF19");
             return Hex("#52E8E0");
+        }
+    }
+
+    /// <summary>
+    /// Procedural screen-edge impact.  Keeping the center transparent makes
+    /// the duel readable and avoids another full-screen texture dependency.
+    /// </summary>
+    internal sealed class DuelDamageVignetteGraphic : MaskableGraphic
+    {
+        protected override void OnPopulateMesh(VertexHelper helper)
+        {
+            helper.Clear();
+            Rect outer = rectTransform.rect;
+            if (outer.width <= 0f || outer.height <= 0f)
+                return;
+
+            float insetX = outer.width * 0.17f;
+            float insetY = outer.height * 0.20f;
+            Rect inner = Rect.MinMaxRect(
+                outer.xMin + insetX,
+                outer.yMin + insetY,
+                outer.xMax - insetX,
+                outer.yMax - insetY);
+            Color32 edge = color;
+            Color transparent = color;
+            transparent.a = 0f;
+            Color32 clear = transparent;
+
+            AddGradientQuad(
+                helper,
+                new Vector2(outer.xMin, outer.yMax),
+                new Vector2(outer.xMax, outer.yMax),
+                new Vector2(inner.xMax, inner.yMax),
+                new Vector2(inner.xMin, inner.yMax),
+                edge,
+                edge,
+                clear,
+                clear);
+            AddGradientQuad(
+                helper,
+                new Vector2(outer.xMax, outer.yMax),
+                new Vector2(outer.xMax, outer.yMin),
+                new Vector2(inner.xMax, inner.yMin),
+                new Vector2(inner.xMax, inner.yMax),
+                edge,
+                edge,
+                clear,
+                clear);
+            AddGradientQuad(
+                helper,
+                new Vector2(outer.xMax, outer.yMin),
+                new Vector2(outer.xMin, outer.yMin),
+                new Vector2(inner.xMin, inner.yMin),
+                new Vector2(inner.xMax, inner.yMin),
+                edge,
+                edge,
+                clear,
+                clear);
+            AddGradientQuad(
+                helper,
+                new Vector2(outer.xMin, outer.yMin),
+                new Vector2(outer.xMin, outer.yMax),
+                new Vector2(inner.xMin, inner.yMax),
+                new Vector2(inner.xMin, inner.yMin),
+                edge,
+                edge,
+                clear,
+                clear);
+        }
+
+        private static void AddGradientQuad(
+            VertexHelper helper,
+            Vector2 first,
+            Vector2 second,
+            Vector2 third,
+            Vector2 fourth,
+            Color32 firstColor,
+            Color32 secondColor,
+            Color32 thirdColor,
+            Color32 fourthColor)
+        {
+            int start = helper.currentVertCount;
+            helper.AddVert(first, firstColor, Vector2.zero);
+            helper.AddVert(second, secondColor, Vector2.right);
+            helper.AddVert(third, thirdColor, Vector2.one);
+            helper.AddVert(fourth, fourthColor, Vector2.up);
+            helper.AddTriangle(start, start + 1, start + 2);
+            helper.AddTriangle(start, start + 2, start + 3);
         }
     }
 }

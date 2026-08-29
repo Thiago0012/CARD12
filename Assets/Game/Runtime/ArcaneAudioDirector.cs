@@ -66,6 +66,10 @@ namespace ArcaneDuel.Game
             ? Mathf.Max(0f, damageHitClip.length - 0.5f)
             : 0f;
 
+        public float DamageImpactCueDuration => damageHitClip != null
+            ? Mathf.Max(0.08f, damageHitClip.length)
+            : 0.38f;
+
         public float LifePointLossCueDuration => lifePointLossClip != null
             ? Mathf.Max(0.08f, lifePointLossClip.length)
             : 0.72f;
