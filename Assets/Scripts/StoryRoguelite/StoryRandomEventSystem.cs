@@ -473,7 +473,7 @@ namespace ArcaneArena.StoryRoguelite
                         StoryNpcRecord npc = StoryContentCatalog.ResolveNpc(npcId);
                         Add(pending, "echo-" + npcId,
                             "ENFRENTAR " + (npc?.displayName ?? npcId).ToUpperInvariant(),
-                            "Eco com IA +1 e +3.000 LP. Vitória: +6 Fragmentos.",
+                            "Eco com dificuldade +1 e +3.000 LP. Vitória: +6 Fragmentos.",
                             "Alto", true, true, 0, null, null, npcId);
                     }
                     Add(pending, "refuse", "RECUSAR",

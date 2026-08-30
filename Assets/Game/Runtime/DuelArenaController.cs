@@ -712,7 +712,7 @@ namespace ArcaneDuel.Game
         {
             DrawLifeBadge(
                 new Rect(1510, 18, 382, 92),
-                "OPONENTE · IA DO CORE",
+                "OPONENTE · DUELO SOLO",
                 state.Players[1].LifePoints,
                 new Color(0.28f, 0.46f, 1f),
                 true);

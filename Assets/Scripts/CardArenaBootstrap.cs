@@ -856,7 +856,7 @@ namespace ArcaneArena
             opponentDuelIdentity = ResolveDuelIdentity(
                 opponent,
                 versusBot ? "bot-opponent" : "local-opponent",
-                versusBot ? "OPONENTE IA" : "OPONENTE");
+                "OPONENTE");
             localPlayerDisplayName =
                 string.IsNullOrWhiteSpace(localDuelIdentity.nickname)
                     ? "DUELISTA LOCAL"
@@ -935,7 +935,7 @@ namespace ArcaneArena
                 RefreshEverything(true);
                 SetStatus(
                     versusBot
-                        ? "DUELO CONTRA IA TÁTICA · REGRAS PELO YGOPRO-CORE"
+                        ? "DUELO SOLO · REGRAS PELO YGOPRO-CORE"
                         : "TREINO LOCAL P1 / P2 · REGRAS PELO YGOPRO-CORE",
                     Lime);
                 return true;
@@ -2477,7 +2477,7 @@ namespace ArcaneArena
                 SetStatus(
                     online
                         ? "TURNO DO OPONENTE · aguardando a decisão do outro jogador."
-                        : "TURNO DA IA · o adversário está analisando uma ação válida.",
+                        : "TURNO DO OPONENTE · aguardando uma ação válida.",
                     Gold);
                 return true;
             }
@@ -4557,7 +4557,7 @@ namespace ArcaneArena
             }
             SetStatus(
                 prompt.Player == 1
-                    ? "A IA está resolvendo o turno dela."
+                    ? "O oponente está resolvendo o turno."
                     : "Conclua a escolha atual antes de avançar a fase.",
                 Gold);
         }

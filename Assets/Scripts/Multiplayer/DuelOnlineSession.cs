@@ -1848,8 +1848,8 @@ namespace ArcaneArena.Multiplayer
                 int remaining = Mathf.Max(
                     1,
                     Mathf.CeilToInt(deadline - Time.realtimeSinceStartup));
-                status = "Buscando rival ranqueado compativel... " +
-                    $"IA disponivel em ate {remaining}s.";
+                status = "Buscando oponente ranqueado compatível... " +
+                    $"previsão de até {remaining}s.";
                 yield return new WaitForSecondsRealtime(1f);
             }
 
@@ -1880,8 +1880,8 @@ namespace ArcaneArena.Multiplayer
             rankedBotFallbackDeadline = 0f;
             automaticRankedMatchmaking = false;
             connectionOperationInProgress = true;
-            status = "Nenhum jogador entrou na fila. Preparando um rival IA " +
-                "compativel com seu elo...";
+            status = "Busca concluída. Preparando um oponente compatível " +
+                "com seu elo...";
             await LeaveRoomAsync(false);
             showPanel = false;
             rankedBotFallbackInProgress = false;
@@ -1893,8 +1893,8 @@ namespace ArcaneArena.Multiplayer
                     FindObjectsInactive.Include);
             if (frontend == null)
             {
-                status = "A fila expirou, mas a Central de Duelos nao esta " +
-                    "disponivel para iniciar a IA.";
+                status = "A busca expirou, mas a Central de Duelos não está " +
+                    "disponível para iniciar o confronto.";
                 showPanel = true;
                 return;
             }

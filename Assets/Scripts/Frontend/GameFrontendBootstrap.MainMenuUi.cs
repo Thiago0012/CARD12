@@ -1002,7 +1002,7 @@ namespace ArcaneArena.Frontend
             CreateButton(side, "RIVAL ALEATÓRIO",
                 new Vector2(0.09f, 0.28f), new Vector2(0.91f, 0.40f), Cyan,
                 ArcaneArenaMultiplayerController.StartRankedMatchmaking);
-            CreateButton(side, "BUSCAR RIVAL IA",
+            CreateButton(side, "DUELO DE TREINO",
                 new Vector2(0.09f, 0.13f), new Vector2(0.91f, 0.25f), Blue,
                 ShowRankedBotDeckSelection);
             CreateText(side,

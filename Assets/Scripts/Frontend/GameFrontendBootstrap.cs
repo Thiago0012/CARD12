@@ -1639,7 +1639,7 @@ namespace ArcaneArena.Frontend
                 if (_duelRoomStatus != null)
                 {
                     _duelRoomStatus.text =
-                        "RIVAL IA INDISPONÍVEL\n" +
+                        "RIVAL INDISPONÍVEL\n" +
                         (string.IsNullOrWhiteSpace(deckRejection)
                             ? "Nenhum deck automático válido foi encontrado."
                             : deckRejection);
@@ -1689,7 +1689,7 @@ namespace ArcaneArena.Frontend
             CreateText(
                 instruction.transform,
                 _pendingRankedBotDuel
-                    ? "SELECIONE UMA IA COMPATÍVEL OU SORTEIE UM RIVAL · O DECK ATIVO SERÁ VALIDADO"
+                    ? "SELECIONE UM OPONENTE COMPATÍVEL OU SORTEIE UM RIVAL · O DECK ATIVO SERÁ VALIDADO"
                     : "ESCOLHA UM DECK TEMÁTICO COMPLETO OU SORTEIE UM OPONENTE · MAIN E EXTRA PERMANECEM JUNTOS",
                 16,
                 FontStyle.Bold,
@@ -1765,8 +1765,8 @@ namespace ArcaneArena.Frontend
             CreateText(
                 tile.transform,
                 _pendingRankedBotDuel
-                    ? "IA DINÂMICA  •  PARTIDA RANQUEADA"
-                    : "IA TÁTICA  •  SORTEIO INTEGRAL DE ARQUÉTIPO",
+                    ? "RIVAL DINÂMICO  •  PARTIDA RANQUEADA"
+                    : "OPONENTE TÁTICO  •  SORTEIO INTEGRAL DE ARQUÉTIPO",
                 11,
                 FontStyle.Bold,
                 accent,

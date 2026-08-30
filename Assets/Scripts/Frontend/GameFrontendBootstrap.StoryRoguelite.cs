@@ -779,7 +779,7 @@ namespace ArcaneArena.Frontend
                 TextAnchor.MiddleLeft);
             CreateText(dialogue.transform,
                 $"LP  {encounter.playerLifePoints:N0}  ×  {encounter.opponentLifePoints:N0}\n" +
-                $"IA  NÍVEL {encounter.aiTier}" +
+                $"DIFICULDADE  NÍVEL {encounter.aiTier}" +
                 (_storyManager.HasArtifact("duelist-lens")
                     ? "\nESTILO  " + encounter.enemyDeckId
                     : string.Empty),
