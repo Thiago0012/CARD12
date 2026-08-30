@@ -59,8 +59,9 @@ namespace ArcaneDuel.Game
             {
                 if (string.IsNullOrEmpty(passcode))
                     continue;
-                copies.TryGetValue(passcode, out int count);
-                copies[passcode] = count + 1;
+                string restrictionKey = banlist.RestrictionKey(passcode);
+                copies.TryGetValue(restrictionKey, out int count);
+                copies[restrictionKey] = count + 1;
             }
 
             foreach (KeyValuePair<string, int> copy in copies)

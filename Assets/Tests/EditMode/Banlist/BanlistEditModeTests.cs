@@ -133,6 +133,34 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void B08_AlternateArtworksShareRestrictionAndCopyCount()
+        {
+            BanlistService service = BanlistService.Active;
+
+            Assert.That(service.MaximumCopies("18144506"), Is.EqualTo(1));
+            Assert.That(service.MaximumCopies("18144507"), Is.EqualTo(1));
+            Assert.That(service.MaximumCopies("83764718"), Is.EqualTo(1));
+            Assert.That(service.MaximumCopies("83764719"), Is.EqualTo(1));
+            Assert.That(service.MaximumCopies("04280258"), Is.Zero);
+            Assert.That(service.MaximumCopies("04280259"), Is.Zero);
+            Assert.That(
+                service.RestrictionKey("18144506"),
+                Is.EqualTo(service.RestrictionKey("18144507")));
+
+            List<string> main = Filler(38);
+            main.Add("18144506");
+            main.Add("18144507");
+            DeckLegalityResult mixedArtworkDeck =
+                DeckLegalityValidator.Validate(main, null, null, service);
+
+            Assert.That(mixedArtworkDeck.IsLegal, Is.False);
+            Assert.That(
+                mixedArtworkDeck.Summary,
+                Does.Contain("Harpie's Feather Duster"));
+            Assert.That(mixedArtworkDeck.Summary, Does.Contain("máximo 1"));
+        }
+
+        [Test]
         public void ManifestHash_IsStableAcrossSectionReordering()
         {
             string first = DeckManifestHasher.ComputeSha256(

@@ -32,6 +32,9 @@ namespace ArcaneArena
         private bool dropHighlighted;
         private Color dropHighlightColor =
             new Color(0.08f, 0.58f, 1f, 1f);
+        private bool selectionEmphasized;
+        private Color selectionEmphasisColor =
+            new Color(1f, 0.76f, 0.16f, 1f);
         private bool disabledByCore;
         private static readonly Color DisabledByCoreColor =
             new Color(0.34f, 0.055f, 0.07f, 1f);
@@ -50,6 +53,7 @@ namespace ArcaneArena
         public DuelMonsterPosition MonsterPosition => monsterPosition;
         public bool AcceptsLocalInput => acceptsLocalInput;
         public bool IsDisabledByCore => disabledByCore;
+        public bool IsSelectionEmphasized => selectionEmphasized;
         public Transform CardPresentationAnchor
         {
             get
@@ -254,6 +258,8 @@ namespace ArcaneArena
         public void SetDropHighlight(bool enabled, Color color)
         {
             dropHighlighted = enabled;
+            if (!enabled)
+                selectionEmphasized = false;
             if (enabled)
             {
                 // Destinos de invocação/baixar compartilham a leitura azul do
@@ -281,6 +287,23 @@ namespace ArcaneArena
                         ? DisabledByCoreColor
                         : dropSurfaceColor;
             }
+        }
+
+        /// <summary>
+        /// Distinguishes the exact field card selected inside a Core choice
+        /// prompt from the other legal candidates. The regular blue outline
+        /// remains the legal-action language; the selected card receives a
+        /// stronger gold pulse without changing any duel state.
+        /// </summary>
+        public void SetSelectionEmphasis(bool enabled, Color color)
+        {
+            if (enabled && !dropHighlighted)
+                SetDropHighlight(true);
+            selectionEmphasized = enabled && UsesPlacementPulse();
+            if (selectionEmphasized)
+                selectionEmphasisColor = color;
+            RefreshSpecialZoneOutline(dropHighlighted);
+            ApplyPlacementDustPalette();
         }
 
         /// <summary>
@@ -346,13 +369,14 @@ namespace ArcaneArena
                 // Zonas principais usam o anel de energia; a pedra do campo
                 // recebe apenas uma leve reflexão azul, sem o antigo bloco
                 // opaco que escondia a posição real do slot.
+                Color effectiveColor = EffectiveHighlightColor();
                 dropSurfaceMaterial.color = UsesPlacementPulse()
                     ? Color.Lerp(
                         dropSurfaceColor,
-                        dropHighlightColor,
-                        0.08f)
+                        effectiveColor,
+                        selectionEmphasized ? 0.22f : 0.08f)
                     : Color.Lerp(
-                        dropHighlightColor,
+                        effectiveColor,
                         Color.white,
                         0.14f);
                 return;
@@ -377,6 +401,7 @@ namespace ArcaneArena
                 specialZoneOutline.enabled = enabled;
             if (placementDust != null)
             {
+                ApplyPlacementDustPalette();
                 if (enabled && UsesPlacementPulse())
                     placementDust.Play(true);
                 else
@@ -538,30 +563,64 @@ namespace ArcaneArena
             placementDust.Stop(
                 true,
                 ParticleSystemStopBehavior.StopEmittingAndClear);
+            ApplyPlacementDustPalette();
         }
 
         private void UpdateSpecialZoneOutline()
         {
             if (specialZoneOutline == null || !dropHighlighted)
                 return;
+            Color effectiveColor = EffectiveHighlightColor();
+            float pulseSpeed = selectionEmphasized ? 8.4f : 4.8f;
+            float pulse =
+                (Mathf.Sin(Time.unscaledTime * pulseSpeed) + 1f) * 0.5f;
             Color color = new Color(
-                dropHighlightColor.r,
-                dropHighlightColor.g,
-                dropHighlightColor.b,
+                effectiveColor.r,
+                effectiveColor.g,
+                effectiveColor.b,
                 UsesPlacementPulse()
-                    ? Mathf.Lerp(
-                        0.38f,
-                        0.94f,
-                        (Mathf.Sin(Time.unscaledTime * 4.8f) + 1f) * 0.5f)
+                    ? selectionEmphasized
+                        ? Mathf.Lerp(0.72f, 1f, pulse)
+                        : Mathf.Lerp(0.38f, 0.94f, pulse)
                     : 0.86f);
             specialZoneOutline.startColor = color;
             specialZoneOutline.endColor = color;
             specialZoneOutline.widthMultiplier = UsesPlacementPulse()
-                ? Mathf.Lerp(
-                    0.035f,
-                    0.075f,
-                    (Mathf.Sin(Time.unscaledTime * 4.8f) + 1f) * 0.5f)
+                ? selectionEmphasized
+                    ? Mathf.Lerp(0.085f, 0.145f, pulse)
+                    : Mathf.Lerp(0.035f, 0.075f, pulse)
                 : 0.05f;
+        }
+
+        private Color EffectiveHighlightColor()
+        {
+            return selectionEmphasized
+                ? selectionEmphasisColor
+                : dropHighlightColor;
+        }
+
+        private void ApplyPlacementDustPalette()
+        {
+            if (placementDust == null)
+                return;
+            ParticleSystem.MainModule main = placementDust.main;
+            ParticleSystem.EmissionModule emission = placementDust.emission;
+            if (selectionEmphasized)
+            {
+                main.startColor = new ParticleSystem.MinMaxGradient(
+                    new Color(1f, 0.56f, 0.08f, 0.48f),
+                    new Color(1f, 0.95f, 0.50f, 1f));
+                main.startSize = new ParticleSystem.MinMaxCurve(0.035f, 0.085f);
+                emission.rateOverTime = 24f;
+            }
+            else
+            {
+                main.startColor = new ParticleSystem.MinMaxGradient(
+                    new Color(0.18f, 0.68f, 1f, 0.25f),
+                    new Color(0.42f, 0.92f, 1f, 0.78f));
+                main.startSize = new ParticleSystem.MinMaxCurve(0.025f, 0.065f);
+                emission.rateOverTime = 14f;
+            }
         }
 
         private void OnDestroy()

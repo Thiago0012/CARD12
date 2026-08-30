@@ -28,6 +28,8 @@ namespace ArcaneArena
             choiceTrayVisuals = new();
         private readonly List<int> orderedPromptIndexes = new();
         private readonly Dictionary<int, ushort> selectedPromptAmounts = new();
+        private readonly HashSet<DuelZone3D> emphasizedChoiceFieldZones =
+            new();
         private RectTransform choiceViewport;
         private ScrollRect choiceScroll;
         private Scrollbar choiceScrollbar;
@@ -684,6 +686,7 @@ namespace ArcaneArena
             }
 
             UpdateChoiceTrayVisuals(visualIndex);
+            RefreshChoiceFieldSelectionHighlights(prompt);
             ShowChoiceInspector(choice);
             choiceConfirm.interactable = IsMultiChoicePrompt(prompt)
                 ? stagedSingleChoice != null ||
@@ -835,6 +838,51 @@ namespace ArcaneArena
                     visual.Label.text = ChoiceTrayLabel(visual.Choice) + suffix;
                 }
             }
+        }
+
+        private void RefreshChoiceFieldSelectionHighlights(DuelPrompt prompt)
+        {
+            ClearChoiceFieldSelectionHighlights();
+            if (prompt == null)
+                return;
+
+            IEnumerable<DuelChoice> selectedChoices;
+            if (stagedSingleChoice != null)
+            {
+                selectedChoices = new[] { stagedSingleChoice };
+            }
+            else
+            {
+                selectedChoices = prompt.Choices.Where(choice =>
+                    choice != null &&
+                    selectedPromptIndexes.Contains(choice.ChoiceIndex));
+            }
+
+            foreach (DuelChoice choice in selectedChoices)
+            {
+                if (choice == null || !choice.HasLocation ||
+                    (choice.Location &
+                     (DuelLocation.MonsterZone |
+                      DuelLocation.SpellTrapZone)) == 0)
+                {
+                    continue;
+                }
+
+                DuelZone3D zone = FindZone(
+                    choice.Controller,
+                    choice.Location,
+                    (int)choice.Sequence);
+                if (zone == null || !emphasizedChoiceFieldZones.Add(zone))
+                    continue;
+                zone.SetSelectionEmphasis(true, Gold);
+            }
+        }
+
+        private void ClearChoiceFieldSelectionHighlights()
+        {
+            foreach (DuelZone3D zone in emphasizedChoiceFieldZones)
+                zone?.SetSelectionEmphasis(false, Gold);
+            emphasizedChoiceFieldZones.Clear();
         }
 
         private string ChoiceTrayLabel(DuelChoice choice)
@@ -1011,6 +1059,7 @@ namespace ArcaneArena
 
         private void ResetChoiceSelectionState()
         {
+            ClearChoiceFieldSelectionHighlights();
             selectedPromptIndexes.Clear();
             orderedPromptIndexes.Clear();
             selectedPromptAmounts.Clear();

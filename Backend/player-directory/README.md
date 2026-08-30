@@ -54,3 +54,19 @@ Relay publicamente. O fluxo persistente é:
 
 Convites expiram automaticamente, uma conta não pode manter dois desafios
 ativos e qualquer participante pode cancelar antes da entrada na sala.
+
+## Conta privada no site
+
+O jogo envia, junto do `open` e do `heartbeat`, um resumo privado do perfil:
+moedas, tamanhos da coleção, decks, cosméticos, pontos de criação e revisão do
+save. A revisão é monotônica, por isso um heartbeat antigo não substitui dados
+mais recentes.
+
+`GET /v1/player/me` exige o JWT da Unity no cabeçalho `Authorization` e devolve
+somente o registro cujo PlayerId veio do token assinado. Essa rota não é usada
+pela busca pública. O site guarda o JWT apenas em cookie `HttpOnly` e nunca
+armazena a senha do jogador.
+
+O resumo serve para consulta. O servidor não deve usar valores enviados pelo
+cliente, como saldo ou coleção, para autorizar compras, recompensas ou vantagens
+competitivas.

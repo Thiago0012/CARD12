@@ -23,7 +23,7 @@ export default {
     try {
       const url = new URL(request.url);
       if (request.method === "GET" && url.pathname === "/health") {
-        return json({ ok: true, service: "card12-player-directory", schemaVersion: 4 });
+        return json({ ok: true, service: "card12-player-directory", schemaVersion: 5 });
       }
 
       if (url.pathname.startsWith("/v1/admin/")) {
@@ -42,6 +42,9 @@ export default {
       }
       if (request.method === "GET" && url.pathname === "/v1/player/search") {
         return await searchPlayer(env, identity, url.searchParams.get("query") || "");
+      }
+      if (request.method === "GET" && url.pathname === "/v1/player/me") {
+        return await getPrivateAccount(env, identity);
       }
       if (request.method === "GET" &&
           url.pathname === "/v1/duel/challenges") {
@@ -92,6 +95,7 @@ async function openOrHeartbeat(request, env, identity, operation) {
 
   const displayName = cleanDisplayName(body.playerDisplayName) || player.display_name;
   const publicProfile = await normalizePublicProfile(env, body, player, now);
+  const privateProfile = normalizePrivateProfile(body, player, now);
   await env.DB.prepare(
     `UPDATE players
        SET display_name = ?, normalized_name = ?, last_seen_utc = ?,
@@ -127,6 +131,39 @@ async function openOrHeartbeat(request, env, identity, operation) {
         publicProfile.revisionUtcMilliseconds,
         identity.playerId,
         publicProfile.revisionUtcMilliseconds)
+      .run();
+  }
+
+  if (privateProfile.shouldUpdate) {
+    await env.DB.prepare(
+      `UPDATE players
+          SET private_profile_schema_version = ?,
+              private_profile_revision_utc_ms = ?, coin_balance = ?,
+              owned_icon_count = ?, owned_artwork_count = ?,
+              owned_card_copies = ?, unique_card_count = ?, deck_count = ?,
+              unlocked_deck_count = ?, craft_points_n = ?, craft_points_r = ?,
+              craft_points_sr = ?, craft_points_ur = ?, equipped_artwork_id = ?,
+              private_profile_updated_utc = ?
+        WHERE unity_player_id = ?
+          AND private_profile_revision_utc_ms < ?`)
+      .bind(
+        privateProfile.schemaVersion,
+        privateProfile.revisionUtcMilliseconds,
+        privateProfile.coinBalance,
+        privateProfile.ownedIconCount,
+        privateProfile.ownedArtworkCount,
+        privateProfile.ownedCardCopies,
+        privateProfile.uniqueCardCount,
+        privateProfile.deckCount,
+        privateProfile.unlockedDeckCount,
+        privateProfile.craftPointsN,
+        privateProfile.craftPointsR,
+        privateProfile.craftPointsSR,
+        privateProfile.craftPointsUR,
+        privateProfile.equippedArtworkId,
+        privateProfile.updatedUtc,
+        identity.playerId,
+        privateProfile.revisionUtcMilliseconds)
       .run();
   }
 
@@ -688,6 +725,61 @@ async function searchPlayer(env, requester, rawQuery) {
   });
 }
 
+async function getPrivateAccount(env, identity) {
+  const player = await env.DB.prepare(
+    "SELECT * FROM players WHERE unity_player_id = ?")
+    .bind(identity.playerId)
+    .first();
+  if (!player) {
+    throw httpError(
+      404,
+      "Abra o jogo ao menos uma vez para sincronizar esta conta com o site.");
+  }
+
+  const now = unixNow();
+  const active = await env.DB.prepare(
+    `SELECT 1 AS online FROM player_sessions
+     WHERE unity_player_id = ? AND last_heartbeat_utc >= ? LIMIT 1`)
+    .bind(identity.playerId, now - SESSION_TTL_SECONDS)
+    .first();
+  return json({
+    schemaVersion: 1,
+    playerId: player.unity_player_id,
+    publicId: player.public_id,
+    displayName: player.display_name,
+    equippedIconId: player.equipped_icon_id,
+    equippedArtworkId: player.equipped_artwork_id,
+    rankTier: resolveRankTier(player.ranked_points),
+    rankedPoints: player.ranked_points,
+    duelsPlayed: player.duels_played,
+    wins: player.wins,
+    losses: player.losses,
+    draws: player.draws,
+    coinBalance: player.coin_balance,
+    ownedIconCount: player.owned_icon_count,
+    ownedArtworkCount: player.owned_artwork_count,
+    ownedCardCopies: player.owned_card_copies,
+    uniqueCardCount: player.unique_card_count,
+    deckCount: player.deck_count,
+    unlockedDeckCount: player.unlocked_deck_count,
+    craftPoints: {
+      n: player.craft_points_n,
+      r: player.craft_points_r,
+      sr: player.craft_points_sr,
+      ur: player.craft_points_ur
+    },
+    profileReady: player.private_profile_schema_version > 0,
+    profileUpdatedUtcUnixSeconds: player.private_profile_updated_utc,
+    lastSeenUtcUnixSeconds: player.last_seen_utc,
+    buildVersion: player.last_build_version,
+    platform: player.last_platform,
+    online: Boolean(active),
+    message: player.private_profile_schema_version > 0
+      ? "Conta sincronizada com o jogo."
+      : "Abra uma versão atualizada do jogo para enviar moedas e coleção ao site."
+  });
+}
+
 async function handleAdmin(request, env, url) {
   const expected = String(env.ADMIN_TOKEN || "");
   const supplied = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
@@ -852,6 +944,45 @@ async function normalizePublicProfile(env, body, current, now) {
     draws,
     updatedUtc: now,
     revisionUtcMilliseconds: requestedRevision
+  };
+}
+
+function normalizePrivateProfile(body, current, now) {
+  const requestedVersion = clampInteger(
+    body.privateProfileSchemaVersion,
+    0,
+    16);
+  const requestedRevision = clampInteger(
+    body.privateProfileRevisionUtcMilliseconds,
+    0,
+    Number.MAX_SAFE_INTEGER);
+  const currentRevision = clampInteger(
+    current.private_profile_revision_utc_ms,
+    0,
+    Number.MAX_SAFE_INTEGER);
+  if (requestedVersion < 1 || requestedRevision <= 0 ||
+      requestedRevision <= currentRevision) {
+    return { shouldUpdate: false };
+  }
+
+  const artwork = cleanShort(body.equippedArtworkId, 64).trim();
+  return {
+    shouldUpdate: true,
+    schemaVersion: requestedVersion,
+    revisionUtcMilliseconds: requestedRevision,
+    coinBalance: clampInteger(body.coinBalance, 0, 2147483647),
+    ownedIconCount: clampInteger(body.ownedIconCount, 0, 10000),
+    ownedArtworkCount: clampInteger(body.ownedArtworkCount, 0, 10000),
+    ownedCardCopies: clampInteger(body.ownedCardCopies, 0, 2147483647),
+    uniqueCardCount: clampInteger(body.uniqueCardCount, 0, 1000000),
+    deckCount: clampInteger(body.deckCount, 0, 10000),
+    unlockedDeckCount: clampInteger(body.unlockedDeckCount, 0, 10000),
+    craftPointsN: clampInteger(body.craftPointsN, 0, 2147483647),
+    craftPointsR: clampInteger(body.craftPointsR, 0, 2147483647),
+    craftPointsSR: clampInteger(body.craftPointsSR, 0, 2147483647),
+    craftPointsUR: clampInteger(body.craftPointsUR, 0, 2147483647),
+    equippedArtworkId: KEY_PATTERN.test(artwork) ? artwork : "",
+    updatedUtc: now
   };
 }
 

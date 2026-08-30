@@ -257,6 +257,19 @@ namespace ArcaneArena.Frontend
                 _publicProfileReadyForUpload = true;
             DuelStatisticsScope statistics = _repository?.Statistics?.overall ??
                                               new DuelStatisticsScope();
+            int ownedCardCopies = 0;
+            int uniqueCardCount = 0;
+            foreach (CardQuantityRecord card in _repository.State.cardQuantities)
+            {
+                if (card == null || card.quantity <= 0)
+                    continue;
+                uniqueCardCount++;
+                ownedCardCopies = (int)Math.Min(
+                    int.MaxValue,
+                    (long)ownedCardCopies + card.quantity);
+            }
+            PlayerCraftWallet craftPoints = _repository.State.craftPoints ??
+                                            new PlayerCraftWallet();
             PlayerIdAccessRuntime.SetPlayerPublicProfile(
                 _repository?.EquippedIconId,
                 _repository?.CaptureRankSnapshot()?.rankedPoints ?? 0,
@@ -264,6 +277,18 @@ namespace ArcaneArena.Frontend
                 statistics.wins,
                 statistics.losses,
                 statistics.draws,
+                _repository.CoinBalance,
+                _repository.OwnedIconIds.Count,
+                _repository.OwnedArtworkIds.Count,
+                ownedCardCopies,
+                uniqueCardCount,
+                _repository.State.decks?.Count ?? 0,
+                _repository.State.unlockedDeckProductIds?.Count ?? 0,
+                craftPoints.cpN,
+                craftPoints.cpR,
+                craftPoints.cpSR,
+                craftPoints.cpUR,
+                _repository.EquippedArtworkId,
                 PlayerIdAccessPolicy.PublicProfileRevisionUtcMilliseconds(
                     _repository.State.lastModifiedUtcTicks),
                 _publicProfileReadyForUpload);
