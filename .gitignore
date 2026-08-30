@@ -13,6 +13,10 @@
 [Mm]emoryCaptures/
 [Rr]ecordings/
 
+# Estado local gerado em execução (perfil, identidade e caches de conteúdo).
+# Nunca deve acompanhar o repositório nem ser usado como dado de distribuição.
+ArcaneArena/
+
 # Unity Performance Test Framework generates these transient Resources assets
 Assets/Resources/PerformanceTestRunInfo.json
 Assets/Resources/PerformanceTestRunInfo.json.meta
