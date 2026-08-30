@@ -1,6 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using ArcaneArena.Frontend;
+using ArcaneArena.Presentation;
+using ArcaneDuel.Game;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,23 +13,26 @@ namespace ArcaneArena.Multiplayer
 {
     public sealed class RankPointsBarView : MonoBehaviour
     {
-        private Image fill;
+        private ArcaneRankProgressGraphic integratedBar;
         private Image energyFlow;
         private Text valueLabel;
         private Text remainingLabel;
-        private Color restingColor;
+        private float currentProgress;
+        private readonly Color restingEnergy =
+            new(0.10f, 0.82f, 0.95f, 1f);
+        private readonly Color restingMetal =
+            new(0.92f, 0.65f, 0.24f, 1f);
 
         public void Initialize(
-            Image fillImage,
+            ArcaneRankProgressGraphic progressGraphic,
             Image energyFlowImage,
             Text value,
             Text remaining)
         {
-            fill = fillImage;
+            integratedBar = progressGraphic;
             energyFlow = energyFlowImage;
             valueLabel = value;
             remainingLabel = remaining;
-            restingColor = fill != null ? fill.color : Color.white;
         }
 
         public void SetState(int points)
@@ -37,8 +44,11 @@ namespace ArcaneArena.Multiplayer
         public void SetVisual(RankTier tier, float progress, int absolutePoints)
         {
             progress = Mathf.Clamp01(progress);
-            if (fill != null)
-                fill.fillAmount = progress;
+            currentProgress = progress;
+            integratedBar?.SetProgress(
+                progress,
+                restingEnergy,
+                restingMetal);
             RankDefinition definition = RankRules.Definition(tier);
             int inside = Mathf.Clamp(
                 absolutePoints - definition.Minimum,
@@ -75,11 +85,13 @@ namespace ArcaneArena.Multiplayer
             Color accent = positive
                 ? new Color(0.54f, 1f, 0.34f, 1f)
                 : new Color(1f, 0.34f, 0.32f, 1f);
-            if (fill != null)
-                fill.color = Color.Lerp(restingColor, accent, pulse * 0.46f);
+            integratedBar?.SetProgress(
+                currentProgress,
+                Color.Lerp(restingEnergy, accent, pulse * 0.46f),
+                Color.Lerp(restingMetal, Color.white, pulse * 0.20f));
             if (energyFlow != null)
             {
-                energyFlow.fillAmount = fill != null ? fill.fillAmount : 0f;
+                energyFlow.fillAmount = currentProgress;
                 energyFlow.color = new Color(
                     accent.r,
                     accent.g,
@@ -98,8 +110,10 @@ namespace ArcaneArena.Multiplayer
 
         public void ClearMotionEnergy()
         {
-            if (fill != null)
-                fill.color = restingColor;
+            integratedBar?.SetProgress(
+                currentProgress,
+                restingEnergy,
+                restingMetal);
             if (energyFlow != null)
                 energyFlow.color = Color.clear;
             if (valueLabel != null)
@@ -228,15 +242,17 @@ namespace ArcaneArena.Multiplayer
         {
             SetImage(current, tier);
             if (currentLabel != null)
-                currentLabel.text = RankRules.DisplayName(tier);
+                currentLabel.text =
+                    "ELO ATUAL\n" + RankRules.DisplayName(tier);
             bool hasNext = tier < RankTier.GrandMaster;
             if (next != null)
                 next.gameObject.SetActive(hasNext);
             if (nextLabel != null)
             {
                 nextLabel.text = hasNext
-                    ? RankRules.DisplayName((RankTier)((int)tier + 1))
-                    : "MAX";
+                    ? "PRÓXIMO ELO\n" +
+                      RankRules.DisplayName((RankTier)((int)tier + 1))
+                    : "PRÓXIMO ELO\nMAX";
             }
             if (hasNext)
                 SetImage(next, (RankTier)((int)tier + 1));
@@ -359,6 +375,149 @@ namespace ArcaneArena.Multiplayer
         }
     }
 
+    [DisallowMultipleComponent]
+    public sealed class RankPromotionAudioCue : MonoBehaviour
+    {
+        private const int SampleRate = 22050;
+        private static AudioClip windClip;
+        private static AudioClip metalClip;
+        private AudioSource windSource;
+        private AudioSource impactSource;
+
+        private void Awake()
+        {
+            windSource = gameObject.AddComponent<AudioSource>();
+            impactSource = gameObject.AddComponent<AudioSource>();
+            Configure(windSource);
+            Configure(impactSource);
+        }
+
+        public void Begin()
+        {
+            EnsureClips();
+            ApplyPreferences();
+            if (windSource == null || windClip == null)
+                return;
+            windSource.clip = windClip;
+            windSource.pitch = 1f;
+            windSource.time = 0f;
+            windSource.Play();
+        }
+
+        public void PlayMetalImpact(float pitch)
+        {
+            EnsureClips();
+            ApplyPreferences();
+            if (impactSource == null || metalClip == null)
+                return;
+            impactSource.pitch = Mathf.Clamp(pitch, 0.72f, 1.30f);
+            impactSource.PlayOneShot(metalClip);
+        }
+
+        public void StopPlayback()
+        {
+            windSource?.Stop();
+            impactSource?.Stop();
+        }
+
+        private void Update()
+        {
+            if ((windSource != null && windSource.isPlaying) ||
+                (impactSource != null && impactSource.isPlaying))
+            {
+                ApplyPreferences();
+            }
+        }
+
+        private void ApplyPreferences()
+        {
+            float volume = ArcaneAudioPreferences.Enabled
+                ? ArcaneAudioPreferences.Volume
+                : 0f;
+            if (windSource != null)
+                windSource.volume = volume * 0.28f;
+            if (impactSource != null)
+                impactSource.volume = volume * 0.48f;
+        }
+
+        private static void Configure(AudioSource source)
+        {
+            source.playOnAwake = false;
+            source.loop = false;
+            source.spatialBlend = 0f;
+            source.dopplerLevel = 0f;
+            source.ignoreListenerPause = true;
+            source.priority = 24;
+        }
+
+        private static void EnsureClips()
+        {
+            windClip ??= CreateWindClip();
+            metalClip ??= CreateMetalClip();
+        }
+
+        private static AudioClip CreateWindClip()
+        {
+            int sampleCount = SampleRate * 6;
+            float[] samples = new float[sampleCount];
+            uint state = 0x9E3779B9U;
+            float filtered = 0f;
+            for (int index = 0; index < sampleCount; index++)
+            {
+                state = state * 1664525U + 1013904223U;
+                float noise = ((state >> 8) / 16777215f) * 2f - 1f;
+                filtered = Mathf.Lerp(filtered, noise, 0.026f);
+                float time = index / (float)SampleRate;
+                float enter = Mathf.Clamp01(time / 0.42f);
+                float exit = Mathf.Clamp01((6f - time) / 0.70f);
+                float gust = 0.64f +
+                    Mathf.Sin(time * Mathf.PI * 0.86f) * 0.16f +
+                    Mathf.Sin(time * Mathf.PI * 2.7f) * 0.06f;
+                samples[index] = filtered * enter * exit * gust * 0.72f;
+            }
+            AudioClip clip = AudioClip.Create(
+                "Vento da promoção de elo",
+                sampleCount,
+                1,
+                SampleRate,
+                false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private static AudioClip CreateMetalClip()
+        {
+            int sampleCount = Mathf.RoundToInt(SampleRate * 1.25f);
+            float[] samples = new float[sampleCount];
+            uint state = 0xA341316CU;
+            for (int index = 0; index < sampleCount; index++)
+            {
+                float time = index / (float)SampleRate;
+                float decay = Mathf.Exp(-time * 4.1f);
+                float ring =
+                    Mathf.Sin(time * Mathf.PI * 2f * 118f) * 0.46f +
+                    Mathf.Sin(time * Mathf.PI * 2f * 237f) * 0.29f +
+                    Mathf.Sin(time * Mathf.PI * 2f * 421f) * 0.18f;
+                state = state * 1103515245U + 12345U;
+                float strikeNoise =
+                    (((state >> 9) / 8388607f) * 2f - 1f) *
+                    Mathf.Exp(-time * 34f) * 0.36f;
+                samples[index] = Mathf.Clamp(
+                    (ring * decay + strikeNoise) * 0.82f,
+                    -1f,
+                    1f);
+            }
+            AudioClip clip = AudioClip.Create(
+                "Impacto metálico da promoção de elo",
+                sampleCount,
+                1,
+                SampleRate,
+                false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+    }
+
     /// <summary>
     /// Pequena cena em tempo real para a troca de patente. Ela usa os emblemas
     /// aprovados pelo catálogo, mas os apresenta sobre uma medalha, aro e
@@ -375,6 +534,9 @@ namespace ArcaneArena.Multiplayer
             public Transform root;
             public SpriteRenderer badge;
             public Renderer[] body;
+            public Vector3[] bodyPositions;
+            public Quaternion[] bodyRotations;
+            public Vector3[] bodyScales;
             public Material metal;
             public Material glow;
         }
@@ -384,6 +546,11 @@ namespace ArcaneArena.Multiplayer
         private readonly List<Vector3> fragmentOrigins = new List<Vector3>();
         private RawImage viewport;
         private CanvasGroup viewportGroup;
+        private CanvasGroup fullscreenGroup;
+        private DuelRankMasteryBurstGraphic atmosphere;
+        private Text cinematicTitle;
+        private Text cinematicSubtitle;
+        private RankPromotionAudioCue audioCue;
         private RenderTexture renderTexture;
         private GameObject sceneRoot;
         private Transform stage;
@@ -394,9 +561,20 @@ namespace ArcaneArena.Multiplayer
         private Material fragmentMaterial;
         private bool skipRequested;
 
-        public void Initialize(RawImage output)
+        public void Initialize(
+            RawImage output,
+            CanvasGroup fullscreen,
+            DuelRankMasteryBurstGraphic burst,
+            Text title,
+            Text subtitle)
         {
             viewport = output;
+            fullscreenGroup = fullscreen;
+            atmosphere = burst;
+            cinematicTitle = title;
+            cinematicSubtitle = subtitle;
+            audioCue = GetComponent<RankPromotionAudioCue>() ??
+                       gameObject.AddComponent<RankPromotionAudioCue>();
             if (viewport != null)
             {
                 viewport.raycastTarget = false;
@@ -404,6 +582,9 @@ namespace ArcaneArena.Multiplayer
             }
             if (EnsureViewportGroup())
                 viewportGroup.alpha = 0f;
+            if (fullscreenGroup != null)
+                fullscreenGroup.alpha = 0f;
+            atmosphere?.SetAnimation(Color.white, 0f, 0f, 0f);
         }
 
         public IEnumerator Play(
@@ -424,8 +605,15 @@ namespace ArcaneArena.Multiplayer
             ConfigureModel(outgoing, oldTier, outgoingColor);
             ConfigureModel(incoming, newTier, incomingColor);
             PrepareTransition(promotion, incomingColor);
+            if (cinematicTitle != null)
+                cinematicTitle.text = "ELO ATUAL";
+            if (cinematicSubtitle != null)
+                cinematicSubtitle.text = RankRules.DisplayName(oldTier);
+            audioCue?.Begin();
 
-            float duration = promotion ? 1.72f : 1.34f;
+            const float duration = 6f;
+            bool firstImpactPlayed = false;
+            bool secondImpactPlayed = false;
             for (float elapsed = 0f; elapsed < duration;
                  elapsed += Time.unscaledDeltaTime)
             {
@@ -435,12 +623,33 @@ namespace ArcaneArena.Multiplayer
                     yield break;
                 }
                 float time = Mathf.Clamp01(elapsed / duration);
-                UpdateTransition(time, promotion, incomingColor);
+                if (!firstImpactPlayed && time >= 0.40f)
+                {
+                    firstImpactPlayed = true;
+                    audioCue?.PlayMetalImpact(promotion ? 0.92f : 0.82f);
+                }
+                if (!secondImpactPlayed && time >= 0.57f)
+                {
+                    secondImpactPlayed = true;
+                    audioCue?.PlayMetalImpact(promotion ? 1.08f : 0.94f);
+                }
+                UpdateTransition(
+                    time,
+                    elapsed,
+                    promotion,
+                    oldTier,
+                    newTier,
+                    incomingColor);
                 yield return null;
             }
 
-            UpdateTransition(1f, promotion, incomingColor);
-            yield return new WaitForSecondsRealtime(promotion ? 0.16f : 0.08f);
+            UpdateTransition(
+                1f,
+                duration,
+                promotion,
+                oldTier,
+                newTier,
+                incomingColor);
             Hide();
         }
 
@@ -448,6 +657,10 @@ namespace ArcaneArena.Multiplayer
         {
             if (EnsureViewportGroup())
                 viewportGroup.alpha = 0f;
+            if (fullscreenGroup != null)
+                fullscreenGroup.alpha = 0f;
+            atmosphere?.SetAnimation(Color.white, 0f, 0f, 0f);
+            audioCue?.StopPlayback();
             if (stage != null)
                 stage.gameObject.SetActive(false);
         }
@@ -638,11 +851,18 @@ namespace ArcaneArena.Multiplayer
             badge.sortingOrder = 3;
             badge.color = Color.white;
 
+            Renderer[] body = renderers.ToArray();
             return new BadgeModel
             {
                 root = root,
                 badge = badge,
-                body = renderers.ToArray(),
+                body = body,
+                bodyPositions = body.Select(renderer =>
+                    renderer.transform.localPosition).ToArray(),
+                bodyRotations = body.Select(renderer =>
+                    renderer.transform.localRotation).ToArray(),
+                bodyScales = body.Select(renderer =>
+                    renderer.transform.localScale).ToArray(),
                 metal = metal,
                 glow = glow
             };
@@ -735,16 +955,24 @@ namespace ArcaneArena.Multiplayer
             incoming.root.localScale = Vector3.one * 0.24f;
             SetModelOpacity(outgoing, 1f);
             SetModelOpacity(incoming, 0f);
+            RestoreModelPieces(outgoing);
+            RestoreModelPieces(incoming);
             SetMaterialColor(fragmentMaterial, accent, true);
             foreach (Transform fragment in energyFragments)
                 fragment.gameObject.SetActive(true);
         }
 
-        private void UpdateTransition(float time, bool promotion, Color accent)
+        private void UpdateTransition(
+            float time,
+            float elapsedSeconds,
+            bool promotion,
+            RankTier oldTier,
+            RankTier newTier,
+            Color accent)
         {
-            float entry = SmoothRange(time, 0f, 0.18f);
-            float handoff = SmoothRange(time, 0.28f, 0.62f);
-            float settle = SmoothRange(time, 0.62f, 1f);
+            float entry = SmoothRange(time, 0f, 0.08f);
+            float handoff = SmoothRange(time, 0.30f, 0.68f);
+            float exit = SmoothRange(time, 0.94f, 1f);
             float direction = promotion ? 1f : -1f;
             float cinematicArc = Mathf.Sin(
                 Mathf.SmoothStep(0f, 1f, time) * Mathf.PI);
@@ -752,7 +980,36 @@ namespace ArcaneArena.Multiplayer
             if (EnsureViewportGroup())
             {
                 viewportGroup.alpha = Mathf.Clamp01(
-                    Mathf.Min(entry * 1.35f, (1f - settle) * 1.85f));
+                    entry * (1f - exit));
+            }
+            if (fullscreenGroup != null)
+                fullscreenGroup.alpha = entry * (1f - exit);
+            float pulse = Mathf.Clamp01(
+                Mathf.Sin(SmoothRange(time, 0.33f, 0.76f) * Mathf.PI));
+            atmosphere?.SetAnimation(
+                accent,
+                entry * (1f - exit),
+                pulse,
+                elapsedSeconds);
+            if (cinematicTitle != null && cinematicSubtitle != null)
+            {
+                if (time < 0.31f)
+                {
+                    cinematicTitle.text = "ELO ATUAL";
+                    cinematicSubtitle.text = RankRules.DisplayName(oldTier);
+                }
+                else if (time < 0.70f)
+                {
+                    cinematicTitle.text = promotion
+                        ? "PROMOÇÃO DE ELO"
+                        : "MUDANÇA DE ELO";
+                    cinematicSubtitle.text = "FORJANDO NOVO EMBLEMA";
+                }
+                else
+                {
+                    cinematicTitle.text = "NOVO ELO";
+                    cinematicSubtitle.text = RankRules.DisplayName(newTier);
+                }
             }
             stage.localRotation = Quaternion.Euler(
                 cinematicArc * 7f,
@@ -784,6 +1041,7 @@ namespace ArcaneArena.Multiplayer
                 Mathf.Lerp(-145f * direction, 0f, handoff),
                 0f);
             SetModelOpacity(incoming, handoff);
+            AssembleModelPieces(incoming, time, direction);
 
             if (keyLight != null)
                 keyLight.intensity = Mathf.Lerp(0.95f, 2.15f, cinematicArc);
@@ -830,6 +1088,64 @@ namespace ArcaneArena.Multiplayer
             {
                 if (renderer != null)
                     renderer.enabled = visible;
+            }
+        }
+
+        private static void RestoreModelPieces(BadgeModel model)
+        {
+            if (model?.body == null || model.bodyPositions == null)
+                return;
+            for (int index = 0; index < model.body.Length; index++)
+            {
+                Renderer renderer = model.body[index];
+                if (renderer == null || index >= model.bodyPositions.Length)
+                    continue;
+                renderer.transform.localPosition = model.bodyPositions[index];
+                renderer.transform.localRotation = model.bodyRotations[index];
+                renderer.transform.localScale = model.bodyScales[index];
+            }
+        }
+
+        private static void AssembleModelPieces(
+            BadgeModel model,
+            float time,
+            float direction)
+        {
+            if (model?.body == null || model.bodyPositions == null)
+                return;
+            int count = model.body.Length;
+            for (int index = 0; index < count; index++)
+            {
+                Renderer renderer = model.body[index];
+                if (renderer == null)
+                    continue;
+                float stagger = count <= 1
+                    ? 0f
+                    : index / (float)(count - 1) * 0.12f;
+                float assembly = SmoothRange(
+                    time,
+                    0.35f + stagger,
+                    0.59f + stagger);
+                float angle = index / (float)Mathf.Max(1, count) *
+                              Mathf.PI * 2f;
+                Vector3 radial = new(
+                    Mathf.Cos(angle) * 1.25f,
+                    Mathf.Sin(angle) * 1.25f,
+                    0.72f + (index % 3) * 0.20f);
+                Transform piece = renderer.transform;
+                piece.localPosition = Vector3.Lerp(
+                    model.bodyPositions[index] + radial * direction,
+                    model.bodyPositions[index],
+                    assembly);
+                piece.localRotation = Quaternion.Slerp(
+                    Quaternion.Euler(
+                        120f + index * 21f,
+                        direction * (165f + index * 17f),
+                        index * 43f) * model.bodyRotations[index],
+                    model.bodyRotations[index],
+                    assembly);
+                piece.localScale = model.bodyScales[index] *
+                    Mathf.Lerp(0.16f, 1f, assembly);
             }
         }
 

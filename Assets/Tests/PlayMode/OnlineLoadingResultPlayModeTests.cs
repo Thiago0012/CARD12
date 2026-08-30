@@ -143,6 +143,20 @@ namespace ArcaneDuel.Tests.PlayMode
                     "O jogador não pode sair antes de ver a progressão.");
                 Assert.That(skipButton, Is.Not.Null);
                 Assert.That(skipButton.gameObject.activeSelf, Is.True);
+                Assert.That(FindDescendant(root.transform,
+                    "CurrentRankLarge"), Is.Null,
+                    "O resultado ranqueado deve mostrar somente elo atual e próximo elo.");
+                Text currentRank = FindDescendant(root.transform,
+                        "CurrentRankMiniLabel")?.GetComponent<Text>();
+                Text nextRank = FindDescendant(root.transform,
+                        "NextRankMiniLabel")?.GetComponent<Text>();
+                Assert.That(currentRank?.text, Does.StartWith("ELO ATUAL"));
+                Assert.That(nextRank?.text, Does.StartWith("PRÓXIMO ELO"));
+                RectTransform fullscreen = FindDescendant(root.transform,
+                    "RankPromotionFullscreen") as RectTransform;
+                Assert.That(fullscreen, Is.Not.Null);
+                Assert.That(fullscreen.anchorMin, Is.EqualTo(Vector2.zero));
+                Assert.That(fullscreen.anchorMax, Is.EqualTo(Vector2.one));
 
                 skipButton.onClick.Invoke();
                 yield return null;
@@ -152,6 +166,77 @@ namespace ArcaneDuel.Tests.PlayMode
                     .First(text => text.gameObject.name == "Transition");
                 Assert.That(transition.text,
                     Is.EqualTo("PROMOÇÃO CONCLUÍDA"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator VictorySummaryShowsCoinsPerformanceAndMissionProgress()
+        {
+            GameObject root = new GameObject("Victory summary test");
+            try
+            {
+                Type presenterType = TypeByName(
+                    "ArcaneArena.Multiplayer.OnlineDuelResultPresenter");
+                Type resultType = TypeByName(
+                    "ArcaneArena.Multiplayer.OnlineDuelResultKind");
+                Type summaryType = TypeByName(
+                    "ArcaneArena.Multiplayer.DuelResultSummary");
+                Type missionType = TypeByName(
+                    "ArcaneArena.Multiplayer.DuelResultMissionSummary");
+                Component presenter = root.AddComponent(presenterType);
+                object summary = Activator.CreateInstance(summaryType);
+                summaryType.GetField("showsCoinReward")
+                    ?.SetValue(summary, true);
+                summaryType.GetField("coinsEarned")?.SetValue(summary, 42);
+                summaryType.GetField("balanceAfter")?.SetValue(summary, 318);
+                summaryType.GetField("damageDealt")?.SetValue(summary, 5600L);
+                summaryType.GetField("damageReceived")
+                    ?.SetValue(summary, 1400L);
+                summaryType.GetField("roundsOrTurns")
+                    ?.SetValue(summary, 7);
+                object mission = Activator.CreateInstance(missionType);
+                missionType.GetField("name")
+                    ?.SetValue(mission, "VITÓRIA IMPECÁVEL");
+                missionType.GetField("current")?.SetValue(mission, 3L);
+                missionType.GetField("target")?.SetValue(mission, 5L);
+                ((IList)summaryType.GetField("missions")
+                    ?.GetValue(summary))?.Add(mission);
+
+                object victory = Enum.Parse(resultType, "Victory");
+                presenterType.GetMethod("ShowWithSummary")?.Invoke(
+                    presenter,
+                    new object[]
+                    {
+                        victory,
+                        "Resultado confirmado.",
+                        summary,
+                        new Action(() => { })
+                    });
+                yield return null;
+
+                Transform panel = FindDescendant(root.transform,
+                    "DuelResultSummary");
+                Assert.That(panel, Is.Not.Null);
+                Assert.That(panel.gameObject.activeSelf, Is.True);
+                Text coinText = FindDescendant(panel,
+                        "DuelResultStat1")
+                    ?.GetComponentInChildren<Text>(true);
+                Assert.That(coinText?.text, Does.Contain("+42"));
+                Assert.That(coinText?.text, Does.Contain("SALDO 318"));
+                Text missionText = FindDescendant(panel,
+                        "DuelResultMission1")
+                    ?.GetComponentInChildren<Text>(true);
+                Assert.That(missionText?.text,
+                    Does.Contain("VITÓRIA IMPECÁVEL"));
+                Image missionFill = FindDescendant(panel,
+                        "MissionProgressFill")
+                    ?.GetComponent<Image>();
+                Assert.That(missionFill?.fillAmount,
+                    Is.EqualTo(0.6f).Within(0.01f));
             }
             finally
             {

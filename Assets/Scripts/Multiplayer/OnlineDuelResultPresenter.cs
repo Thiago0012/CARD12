@@ -1,11 +1,87 @@
 using System;
+using System.Collections.Generic;
 using ArcaneArena.Frontend;
+using ArcaneArena.Presentation;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace ArcaneArena.Multiplayer
 {
+    [Serializable]
+    public sealed class DuelResultMissionSummary
+    {
+        public string name;
+        public long current;
+        public long target;
+        public bool completed;
+        public int rewardCoins;
+    }
+
+    [Serializable]
+    public sealed class DuelResultSummary
+    {
+        public bool showsCoinReward;
+        public int coinsEarned;
+        public int balanceAfter;
+        public long damageDealt;
+        public long damageReceived;
+        public int roundsOrTurns;
+        public int confirmedPlays;
+        public List<DuelResultMissionSummary> missions = new();
+
+        public string PerformanceLabel()
+        {
+            if (damageDealt <= 0 && damageReceived <= 0)
+                return "OBJETIVO CONCLUÍDO";
+            if (damageDealt >= damageReceived + 2000)
+                return "PRESSÃO OFENSIVA";
+            if (damageReceived >= damageDealt + 2000)
+                return "RESISTÊNCIA DECISIVA";
+            return "VITÓRIA CONTROLADA";
+        }
+
+        public static DuelResultSummary Capture(
+            GameFrontendBootstrap frontend,
+            bool showsCoinReward,
+            int coinsEarned,
+            int balanceAfter,
+            long damageDealt,
+            long damageReceived,
+            int roundsOrTurns,
+            int confirmedPlays)
+        {
+            var summary = new DuelResultSummary
+            {
+                showsCoinReward = showsCoinReward,
+                coinsEarned = Math.Max(0, coinsEarned),
+                balanceAfter = balanceAfter,
+                damageDealt = Math.Max(0L, damageDealt),
+                damageReceived = Math.Max(0L, damageReceived),
+                roundsOrTurns = Math.Max(0, roundsOrTurns),
+                confirmedPlays = Math.Max(0, confirmedPlays)
+            };
+            IReadOnlyList<MissionProgressState> progress =
+                frontend?.CaptureMissionProgress(3);
+            if (progress == null)
+                return summary;
+            foreach (MissionProgressState mission in progress)
+            {
+                if (mission == null)
+                    continue;
+                summary.missions.Add(new DuelResultMissionSummary
+                {
+                    name = mission.displayName ?? "MISSÃO",
+                    current = mission.currentValue,
+                    target = Math.Max(1L, mission.targetValue),
+                    completed = mission.completed,
+                    rewardCoins = Math.Max(0, mission.rewardCoins)
+                });
+            }
+            return summary;
+        }
+    }
+
     [DisallowMultipleComponent]
     public sealed class OnlineDuelResultPresenter : MonoBehaviour
     {
@@ -17,6 +93,12 @@ namespace ArcaneArena.Multiplayer
         private GameObject rankedRoot;
         private Button skipButton;
         private RankTransitionAnimator rankTransition;
+        private GameObject summaryRoot;
+        private Text summaryTitle;
+        private readonly Text[] summaryStats = new Text[3];
+        private readonly GameObject[] missionRows = new GameObject[3];
+        private readonly Text[] missionLabels = new Text[3];
+        private readonly Image[] missionFills = new Image[3];
         private Action returnAction;
         private Rect lastSafeArea;
 
@@ -37,6 +119,24 @@ namespace ArcaneArena.Multiplayer
             string detail,
             Action onReturn)
         {
+            ShowInternal(result, detail, null, onReturn);
+        }
+
+        public void ShowWithSummary(
+            OnlineDuelResultKind result,
+            string detail,
+            DuelResultSummary summary,
+            Action onReturn)
+        {
+            ShowInternal(result, detail, summary, onReturn);
+        }
+
+        private void ShowInternal(
+            OnlineDuelResultKind result,
+            string detail,
+            DuelResultSummary summary,
+            Action onReturn)
+        {
             EnsureView();
             rankedRoot.SetActive(false);
             skipButton.gameObject.SetActive(false);
@@ -45,6 +145,7 @@ namespace ArcaneArena.Multiplayer
             titleLabel.text = Title(result);
             titleLabel.color = ColorFor(result);
             detailLabel.text = detail ?? string.Empty;
+            PresentSummary(result, summary);
             returnAction = onReturn;
             returnButton.interactable = true;
             canvas.gameObject.SetActive(true);
@@ -58,9 +159,39 @@ namespace ArcaneArena.Multiplayer
             RankChangeReceipt committedReceipt,
             Action onReturn)
         {
+            ShowRankedInternal(
+                result,
+                detail,
+                committedReceipt,
+                null,
+                onReturn);
+        }
+
+        public void ShowRankedWithSummary(
+            OnlineDuelResultKind result,
+            string detail,
+            RankChangeReceipt committedReceipt,
+            DuelResultSummary summary,
+            Action onReturn)
+        {
+            ShowRankedInternal(
+                result,
+                detail,
+                committedReceipt,
+                summary,
+                onReturn);
+        }
+
+        private void ShowRankedInternal(
+            OnlineDuelResultKind result,
+            string detail,
+            RankChangeReceipt committedReceipt,
+            DuelResultSummary summary,
+            Action onReturn)
+        {
             if (!CanPresentRankTransition(committedReceipt))
             {
-                Show(result, detail, onReturn);
+                ShowInternal(result, detail, summary, onReturn);
                 return;
             }
 
@@ -68,6 +199,7 @@ namespace ArcaneArena.Multiplayer
             titleLabel.gameObject.SetActive(false);
             detailLabel.gameObject.SetActive(false);
             returnAction = onReturn;
+            PresentSummary(result, summary);
             rankedRoot.SetActive(true);
             canvas.gameObject.SetActive(true);
             ApplySafeArea();
@@ -90,6 +222,8 @@ namespace ArcaneArena.Multiplayer
             DuelResultAudioPlayer.StopPlayback();
             if (skipButton != null)
                 skipButton.gameObject.SetActive(false);
+            if (summaryRoot != null)
+                summaryRoot.SetActive(false);
             if (canvas != null)
                 canvas.gameObject.SetActive(false);
         }
@@ -140,24 +274,24 @@ namespace ArcaneArena.Multiplayer
                 font,
                 72,
                 FontStyle.Bold,
-                new Vector2(0.08f, 0.53f),
-                new Vector2(0.92f, 0.72f));
+                new Vector2(0.08f, 0.61f),
+                new Vector2(0.92f, 0.80f));
             detailLabel = CreateText(
                 safe.transform,
                 "ResultDetail",
                 font,
                 25,
                 FontStyle.Normal,
-                new Vector2(0.14f, 0.39f),
-                new Vector2(0.86f, 0.53f));
+                new Vector2(0.14f, 0.43f),
+                new Vector2(0.86f, 0.60f));
             detailLabel.color = new Color(0.78f, 0.84f, 0.90f, 1f);
 
             Image buttonImage = CreateImage(
                 safe.transform,
                 "ReturnToMenuButton",
                 Color.clear,
-                new Vector2(0.34f, 0.20f),
-                new Vector2(0.66f, 0.29f));
+                new Vector2(0.36f, 0.025f),
+                new Vector2(0.64f, 0.09f));
             returnButton = buttonImage.gameObject.AddComponent<Button>();
             returnButton.targetGraphic = AddModernSurface(
                 buttonImage,
@@ -176,8 +310,172 @@ namespace ArcaneArena.Multiplayer
                 Vector2.one);
             buttonText.text = "VOLTAR AO MENU";
             buttonText.color = Color.white;
+            BuildSummaryView(safe.transform, font);
             BuildRankedView(safe.transform, font);
             canvasObject.SetActive(false);
+        }
+
+        private void BuildSummaryView(Transform parent, Font font)
+        {
+            Image panel = CreateImage(
+                parent,
+                "DuelResultSummary",
+                Color.clear,
+                new Vector2(0.06f, 0.105f),
+                new Vector2(0.94f, 0.30f));
+            summaryRoot = panel.gameObject;
+            AddModernSurface(
+                panel,
+                "Superfície do Resumo do Duelo",
+                new Color(0.15f, 0.82f, 1f, 1f),
+                0.88f,
+                15f);
+            summaryTitle = CreateText(
+                panel.transform,
+                "DuelResultSummaryTitle",
+                font,
+                17,
+                FontStyle.Bold,
+                new Vector2(0.025f, 0.80f),
+                new Vector2(0.475f, 0.98f));
+            summaryTitle.alignment = TextAnchor.MiddleLeft;
+            summaryTitle.color = new Color(0.62f, 0.94f, 1f, 1f);
+            Text missionHeading = CreateText(
+                panel.transform,
+                "DuelResultMissionHeading",
+                font,
+                14,
+                FontStyle.Bold,
+                new Vector2(0.505f, 0.80f),
+                new Vector2(0.975f, 0.98f));
+            missionHeading.text = "PROGRESSO ATUAL DAS MISSÕES";
+            missionHeading.alignment = TextAnchor.MiddleLeft;
+            missionHeading.color = new Color(0.92f, 0.76f, 0.36f, 1f);
+
+            for (int index = 0; index < summaryStats.Length; index++)
+            {
+                float left = 0.025f + index * 0.15f;
+                Image tile = CreateImage(
+                    panel.transform,
+                    $"DuelResultStat{index + 1}",
+                    Color.clear,
+                    new Vector2(left, 0.10f),
+                    new Vector2(left + 0.137f, 0.76f));
+                AddModernSurface(
+                    tile,
+                    "Superfície da Estatística",
+                    index == 0
+                        ? new Color(0.92f, 0.72f, 0.24f, 1f)
+                        : new Color(0.18f, 0.76f, 1f, 1f),
+                    0.44f,
+                    8f);
+                summaryStats[index] = CreateText(
+                    tile.transform,
+                    "Value",
+                    font,
+                    15,
+                    FontStyle.Bold,
+                    new Vector2(0.06f, 0.06f),
+                    new Vector2(0.94f, 0.94f));
+            }
+
+            for (int index = 0; index < missionRows.Length; index++)
+            {
+                float top = 0.76f - index * 0.235f;
+                Image row = CreateImage(
+                    panel.transform,
+                    $"DuelResultMission{index + 1}",
+                    Color.clear,
+                    new Vector2(0.505f, top - 0.19f),
+                    new Vector2(0.975f, top));
+                missionRows[index] = row.gameObject;
+                AddModernSurface(
+                    row,
+                    "Superfície da Missão",
+                    new Color(0.18f, 0.76f, 1f, 1f),
+                    0.32f,
+                    6f);
+                missionLabels[index] = CreateText(
+                    row.transform,
+                    "MissionLabel",
+                    font,
+                    12,
+                    FontStyle.Bold,
+                    new Vector2(0.025f, 0.30f),
+                    new Vector2(0.975f, 0.96f));
+                missionLabels[index].alignment = TextAnchor.MiddleLeft;
+                Image track = CreateImage(
+                    row.transform,
+                    "MissionProgressTrack",
+                    new Color(0.006f, 0.025f, 0.05f, 0.92f),
+                    new Vector2(0.025f, 0.09f),
+                    new Vector2(0.975f, 0.23f));
+                Image fill = CreateImage(
+                    track.transform,
+                    "MissionProgressFill",
+                    new Color(0.16f, 0.86f, 1f, 1f),
+                    Vector2.zero,
+                    Vector2.one);
+                fill.type = Image.Type.Filled;
+                fill.fillMethod = Image.FillMethod.Horizontal;
+                fill.fillOrigin = 0;
+                fill.raycastTarget = false;
+                missionFills[index] = fill;
+            }
+            summaryRoot.SetActive(false);
+        }
+
+        private void PresentSummary(
+            OnlineDuelResultKind result,
+            DuelResultSummary summary)
+        {
+            bool visible = result == OnlineDuelResultKind.Victory &&
+                           summary != null && summaryRoot != null;
+            summaryRoot?.SetActive(visible);
+            if (!visible)
+                return;
+
+            summaryTitle.text =
+                "RESUMO DO DUELO  ·  " + summary.PerformanceLabel();
+            summaryStats[0].text = summary.showsCoinReward
+                ? $"MOEDAS\n+{Mathf.Max(0, summary.coinsEarned)}" +
+                  (summary.balanceAfter >= 0
+                      ? $"\nSALDO {summary.balanceAfter:N0}"
+                      : string.Empty)
+                : summary.confirmedPlays > 0
+                    ? $"JOGADAS\n{summary.confirmedPlays}"
+                    : "RESULTADO\nVITÓRIA";
+            summaryStats[1].text =
+                $"DANO CAUSADO\n{Math.Max(0L, summary.damageDealt):N0}";
+            summaryStats[2].text =
+                $"DANO RECEBIDO\n{Math.Max(0L, summary.damageReceived):N0}" +
+                (summary.roundsOrTurns > 0
+                    ? $"\n{summary.roundsOrTurns} TURNOS"
+                    : string.Empty);
+
+            IReadOnlyList<DuelResultMissionSummary> missions =
+                summary.missions ?? new List<DuelResultMissionSummary>();
+            for (int index = 0; index < missionRows.Length; index++)
+            {
+                bool hasMission = index < missions.Count &&
+                                  missions[index] != null;
+                missionRows[index].SetActive(hasMission);
+                if (!hasMission)
+                    continue;
+                DuelResultMissionSummary mission = missions[index];
+                long target = Math.Max(1L, mission.target);
+                long current = Math.Max(0L, Math.Min(mission.current, target));
+                missionLabels[index].text = mission.completed
+                    ? $"{mission.name}  ·  CONCLUÍDA  ·  +{Mathf.Max(0, mission.rewardCoins)} MOEDAS"
+                    : $"{mission.name}  ·  {current:N0}/{target:N0}";
+                missionLabels[index].color = mission.completed
+                    ? new Color(0.68f, 1f, 0.22f, 1f)
+                    : Color.white;
+                missionFills[index].fillAmount = current / (float)target;
+                missionFills[index].color = mission.completed
+                    ? new Color(0.64f, 1f, 0.18f, 1f)
+                    : new Color(0.16f, 0.86f, 1f, 1f);
+            }
         }
 
         private void BuildRankedView(Transform parent, Font font)
@@ -188,7 +486,7 @@ namespace ArcaneArena.Multiplayer
             rankedRoot.transform.SetParent(parent, false);
             Stretch(
                 rankedRoot.GetComponent<RectTransform>(),
-                new Vector2(0.05f, 0.28f),
+                new Vector2(0.05f, 0.31f),
                 new Vector2(0.95f, 0.94f));
 
             Image panel = CreateImage(
@@ -232,135 +530,98 @@ namespace ArcaneArena.Multiplayer
                 panel.transform,
                 "Transition",
                 font,
-                21,
+                18,
                 FontStyle.Bold,
-                new Vector2(0.30f, 0.19f),
-                new Vector2(0.70f, 0.27f));
-
-            Image rankCoreFrame = CreateImage(
-                panel.transform,
-                "RankCinematicFrame",
-                Color.clear,
-                new Vector2(0.285f, 0.245f),
-                new Vector2(0.715f, 0.765f));
-            AddModernSurface(
-                rankCoreFrame,
-                "Moldura holográfica do elo",
-                new Color(0.24f, 0.88f, 1f, 1f),
-                0.38f,
-                20f);
-
-            RawImage cinematicViewport = CreateRawImage(
-                panel.transform,
-                "RankPromotionCinematicViewport",
-                new Vector2(0.285f, 0.245f),
-                new Vector2(0.715f, 0.765f));
+                new Vector2(0.25f, 0.73f),
+                new Vector2(0.75f, 0.79f));
 
             Image currentMiniFrame = CreateImage(
                 panel.transform,
                 "CurrentRankMiniFrame",
                 Color.clear,
-                new Vector2(0.06f, 0.33f),
-                new Vector2(0.29f, 0.71f));
+                new Vector2(0.10f, 0.34f),
+                new Vector2(0.47f, 0.75f));
             AddModernSurface(
                 currentMiniFrame,
                 "Moldura do elo atual",
                 new Color(0.20f, 0.75f, 1f, 1f),
-                0.30f,
-                13f);
+                0.38f,
+                18f);
 
             Image currentMini = CreateImage(
                 panel.transform,
                 "CurrentRankMini",
                 Color.white,
-                new Vector2(0.08f, 0.35f),
-                new Vector2(0.27f, 0.69f));
+                new Vector2(0.15f, 0.385f),
+                new Vector2(0.42f, 0.705f));
             currentMini.preserveAspect = true;
             Text currentMiniLabel = CreateText(
                 panel.transform,
                 "CurrentRankMiniLabel",
                 font,
-                17,
+                19,
                 FontStyle.Bold,
-                new Vector2(0.06f, 0.27f),
-                new Vector2(0.29f, 0.35f));
-
-            Image centerFrame = CreateImage(
-                panel.transform,
-                "CurrentRankCenterFrame",
-                Color.clear,
-                new Vector2(0.325f, 0.325f),
-                new Vector2(0.675f, 0.765f));
-            AddModernSurface(
-                centerFrame,
-                "Moldura central do elo",
-                new Color(0.26f, 0.90f, 1f, 1f),
-                0.42f,
-                22f);
-
-            Image center = CreateImage(
-                panel.transform,
-                "CurrentRankLarge",
-                Color.white,
-                new Vector2(0.34f, 0.34f),
-                new Vector2(0.66f, 0.75f));
-            center.preserveAspect = true;
-            Text centerLabel = CreateText(
-                panel.transform,
-                "CurrentRankLabel",
-                font,
-                28,
-                FontStyle.Bold,
-                new Vector2(0.28f, 0.27f),
-                new Vector2(0.72f, 0.36f));
-            centerLabel.color = new Color(0.60f, 0.94f, 1f, 1f);
+                new Vector2(0.10f, 0.255f),
+                new Vector2(0.47f, 0.355f));
+            currentMiniLabel.color = new Color(0.60f, 0.94f, 1f, 1f);
 
             Image nextMiniFrame = CreateImage(
                 panel.transform,
                 "NextRankMiniFrame",
                 Color.clear,
-                new Vector2(0.71f, 0.33f),
-                new Vector2(0.94f, 0.71f));
+                new Vector2(0.53f, 0.34f),
+                new Vector2(0.90f, 0.75f));
             AddModernSurface(
                 nextMiniFrame,
                 "Moldura do próximo elo",
                 new Color(0.48f, 0.62f, 1f, 1f),
-                0.30f,
-                13f);
+                0.38f,
+                18f);
 
             Image nextMini = CreateImage(
                 panel.transform,
                 "NextRankMini",
                 Color.white,
-                new Vector2(0.73f, 0.35f),
-                new Vector2(0.92f, 0.69f));
+                new Vector2(0.58f, 0.385f),
+                new Vector2(0.85f, 0.705f));
             nextMini.preserveAspect = true;
             Text nextMiniLabel = CreateText(
                 panel.transform,
                 "NextRankMiniLabel",
                 font,
-                17,
+                19,
                 FontStyle.Bold,
-                new Vector2(0.71f, 0.27f),
-                new Vector2(0.94f, 0.35f));
+                new Vector2(0.53f, 0.255f),
+                new Vector2(0.90f, 0.355f));
+            nextMiniLabel.color = new Color(0.78f, 0.85f, 1f, 1f);
 
-            Image barBackground = CreateImage(
+            CreateText(
                 panel.transform,
+                "ProgressTitle",
+                font,
+                15,
+                FontStyle.Bold,
+                new Vector2(0.18f, 0.185f),
+                new Vector2(0.82f, 0.235f)).text = "PROGRESSO DE ELO";
+            GameObject progressObject = new GameObject(
                 "RankBarBackground",
-                new Color(0.002f, 0.010f, 0.020f, 0.82f),
-                new Vector2(0.22f, 0.11f),
-                new Vector2(0.78f, 0.17f));
-            Image barFill = CreateImage(
-                barBackground.transform,
-                "RankBarFill",
-                new Color(0.15f, 0.82f, 1f, 1f),
-                Vector2.zero,
-                Vector2.one);
-            barFill.type = Image.Type.Filled;
-            barFill.fillMethod = Image.FillMethod.Horizontal;
-            barFill.fillOrigin = 0;
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(ArcaneRankProgressGraphic));
+            progressObject.transform.SetParent(panel.transform, false);
+            Stretch(
+                progressObject.GetComponent<RectTransform>(),
+                new Vector2(0.16f, 0.105f),
+                new Vector2(0.84f, 0.18f));
+            ArcaneRankProgressGraphic progressGraphic =
+                progressObject.GetComponent<ArcaneRankProgressGraphic>();
+            progressGraphic.SetProgress(
+                0f,
+                new Color(0.10f, 0.82f, 0.95f, 1f),
+                new Color(0.92f, 0.65f, 0.24f, 1f));
+            progressGraphic.raycastTarget = false;
             Image barEnergyFlow = CreateImage(
-                barBackground.transform,
+                progressObject.transform,
                 "RankBarEnergyFlow",
                 Color.clear,
                 Vector2.zero,
@@ -370,7 +631,7 @@ namespace ArcaneArena.Multiplayer
             barEnergyFlow.fillOrigin = 0;
             barEnergyFlow.raycastTarget = false;
             Text barValue = CreateText(
-                barBackground.transform,
+                progressObject.transform,
                 "RankBarValue",
                 font,
                 23,
@@ -383,16 +644,72 @@ namespace ArcaneArena.Multiplayer
                 font,
                 16,
                 FontStyle.Bold,
-                new Vector2(0.20f, 0.035f),
-                new Vector2(0.80f, 0.105f));
+                new Vector2(0.20f, 0.025f),
+                new Vector2(0.80f, 0.10f));
             remaining.color = new Color(0.65f, 0.80f, 0.93f, 1f);
+
+            Image cinematicBackdrop = CreateImage(
+                parent,
+                "RankPromotionFullscreen",
+                new Color(0.001f, 0.004f, 0.012f, 0.97f),
+                Vector2.zero,
+                Vector2.one);
+            cinematicBackdrop.raycastTarget = false;
+            CanvasGroup cinematicGroup =
+                cinematicBackdrop.gameObject.AddComponent<CanvasGroup>();
+            cinematicGroup.alpha = 0f;
+            cinematicGroup.interactable = false;
+            cinematicGroup.blocksRaycasts = false;
+
+            GameObject burstObject = new GameObject(
+                "Atmosfera da Promoção",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(DuelRankMasteryBurstGraphic));
+            burstObject.transform.SetParent(cinematicBackdrop.transform, false);
+            Stretch(
+                burstObject.GetComponent<RectTransform>(),
+                new Vector2(0.12f, 0.02f),
+                new Vector2(0.88f, 0.98f));
+            DuelRankMasteryBurstGraphic cinematicBurst =
+                burstObject.GetComponent<DuelRankMasteryBurstGraphic>();
+            cinematicBurst.raycastTarget = false;
+
+            RawImage cinematicViewport = CreateRawImage(
+                cinematicBackdrop.transform,
+                "RankPromotionCinematicViewport",
+                new Vector2(0.255f, 0.055f),
+                new Vector2(0.745f, 0.945f));
+            AspectRatioFitter cinematicAspect =
+                cinematicViewport.gameObject.AddComponent<AspectRatioFitter>();
+            cinematicAspect.aspectMode =
+                AspectRatioFitter.AspectMode.FitInParent;
+            cinematicAspect.aspectRatio = 1f;
+            Text cinematicTitle = CreateText(
+                cinematicBackdrop.transform,
+                "RankPromotionTitle",
+                font,
+                31,
+                FontStyle.Bold,
+                new Vector2(0.18f, 0.83f),
+                new Vector2(0.82f, 0.94f));
+            cinematicTitle.color = new Color(0.64f, 0.94f, 1f, 1f);
+            Text cinematicSubtitle = CreateText(
+                cinematicBackdrop.transform,
+                "RankPromotionSubtitle",
+                font,
+                24,
+                FontStyle.Bold,
+                new Vector2(0.18f, 0.08f),
+                new Vector2(0.82f, 0.18f));
+            cinematicSubtitle.color = Color.white;
 
             Image skipImage = CreateImage(
                 parent,
                 "SkipRankAnimation",
                 Color.clear,
-                new Vector2(0.70f, 0.20f),
-                new Vector2(0.86f, 0.27f));
+                new Vector2(0.72f, 0.025f),
+                new Vector2(0.92f, 0.09f));
             skipButton = skipImage.gameObject.AddComponent<Button>();
             skipButton.targetGraphic = AddModernSurface(
                 skipImage,
@@ -410,17 +727,16 @@ namespace ArcaneArena.Multiplayer
                 Vector2.one);
             skipText.text = "PULAR ANIMAÇÃO";
 
-            // A textura 3D fica acima das molduras somente durante a troca.
-            // Seu CanvasGroup começa invisível, portanto não interfere com o
-            // emblema estático ou com os controles fora da animação.
-            cinematicViewport.transform.SetAsLastSibling();
-
             RankPointsBarView barView =
                 rankedRoot.AddComponent<RankPointsBarView>();
-            barView.Initialize(barFill, barEnergyFlow, barValue, remaining);
+            barView.Initialize(
+                progressGraphic,
+                barEnergyFlow,
+                barValue,
+                remaining);
             RankEmblemView emblemView =
                 rankedRoot.AddComponent<RankEmblemView>();
-            emblemView.Initialize(center, centerLabel);
+            emblemView.Initialize(currentMini, currentMiniLabel);
             RankSideSlotView sideView =
                 rankedRoot.AddComponent<RankSideSlotView>();
             sideView.Initialize(
@@ -433,7 +749,12 @@ namespace ArcaneArena.Multiplayer
             resultBanner.Initialize(result, delta, transition);
             RankPromotionCinematic cinematic =
                 rankedRoot.AddComponent<RankPromotionCinematic>();
-            cinematic.Initialize(cinematicViewport);
+            cinematic.Initialize(
+                cinematicViewport,
+                cinematicGroup,
+                cinematicBurst,
+                cinematicTitle,
+                cinematicSubtitle);
             rankTransition =
                 rankedRoot.AddComponent<RankTransitionAnimator>();
             rankTransition.Initialize(

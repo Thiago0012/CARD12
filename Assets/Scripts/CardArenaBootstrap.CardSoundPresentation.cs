@@ -230,7 +230,10 @@ namespace ArcaneArena
                         request.SummonMethodVfx,
                         request.SummonFrame,
                         request.MaterialCodes);
-                    ReleaseDeferredMonsterArrival(request);
+                    // The trigger/selection window belongs after the card is
+                    // visibly established on its zone, not merely after the
+                    // enlarged summon artwork has faded away.
+                    yield return ReleaseDeferredMonsterArrival(request);
                     activeCardSoundPresentation = null;
                 }
             }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -463,5 +464,42 @@ namespace ArcaneArena.Frontend
             MissionScope.Collection => "CONTA",
             _ => string.Empty
         };
+
+        /// <summary>
+        /// Returns detached mission values for result presentation. The
+        /// result screen can never mutate mission state or claim rewards.
+        /// </summary>
+        public IReadOnlyList<MissionProgressState> CaptureMissionProgress(
+            int maximum = 3)
+        {
+            if (_repository?.Missions?.missions == null || maximum <= 0)
+                return Array.Empty<MissionProgressState>();
+
+            return _repository.Missions.missions
+                .Where(mission => mission != null && !mission.rewardClaimed)
+                .OrderByDescending(mission => mission.completed)
+                .ThenByDescending(mission =>
+                    mission.targetValue <= 0
+                        ? 0d
+                        : mission.currentValue / (double)mission.targetValue)
+                .ThenBy(mission => mission.tier)
+                .Take(maximum)
+                .Select(mission => new MissionProgressState
+                {
+                    missionInstanceId = mission.missionInstanceId,
+                    definitionId = mission.definitionId,
+                    displayName = mission.displayName,
+                    description = mission.description,
+                    tier = mission.tier,
+                    scope = mission.scope,
+                    metric = mission.metric,
+                    currentValue = mission.currentValue,
+                    targetValue = mission.targetValue,
+                    rewardCoins = mission.rewardCoins,
+                    completed = mission.completed,
+                    rewardClaimed = mission.rewardClaimed
+                })
+                .ToArray();
+        }
     }
 }

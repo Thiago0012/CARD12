@@ -139,16 +139,16 @@ namespace ArcaneArena
             StartCardTransitionNow(snapshot);
         }
 
-        private void StartCardTransitionNow(CardTransitionSnapshot snapshot)
+        private float StartCardTransitionNow(CardTransitionSnapshot snapshot)
         {
             if (snapshot == null || snapshot.Released)
-                return;
+                return 0f;
             snapshot.Released = true;
 
             if (!TransitionDestinationStillCurrent(snapshot))
             {
                 RevealTransitionTarget(snapshot.HiddenTarget);
-                return;
+                return 0f;
             }
 
             float duration = CardTransitionDuration(
@@ -159,7 +159,7 @@ namespace ArcaneArena
             if (duration <= 0f)
             {
                 RevealTransitionTarget(snapshot.HiddenTarget);
-                return;
+                return 0f;
             }
 
             bool foundDestination = TryGetLocationScreenPoint(
@@ -178,7 +178,7 @@ namespace ArcaneArena
             if (!foundDestination)
             {
                 RevealTransitionTarget(snapshot.HiddenTarget);
-                return;
+                return 0f;
             }
 
             if (!TryScreenToFrameLocal(
@@ -189,7 +189,7 @@ namespace ArcaneArena
                     out Vector2 destination))
             {
                 RevealTransitionTarget(snapshot.HiddenTarget);
-                return;
+                return 0f;
             }
 
             // A destruição parte da zona anterior. Esconder a zona atual
@@ -207,7 +207,7 @@ namespace ArcaneArena
                     duration,
                     target,
                     snapshot.DestinationWell));
-                return;
+                return duration;
             }
 
             StartCoroutine(AnimateCardTravel(
@@ -225,6 +225,7 @@ namespace ArcaneArena
                     : null,
                 snapshot.EntersSpecialPile,
                 snapshot.DestinationWell));
+            return duration;
         }
 
         private bool ShouldDeferMonsterArrival(
@@ -329,16 +330,24 @@ namespace ArcaneArena
                    request.Sequence == snapshot.Current.Sequence;
         }
 
-        private void ReleaseDeferredMonsterArrival(
+        private IEnumerator ReleaseDeferredMonsterArrival(
             CardSoundPresentationRequest request)
         {
             CardTransitionSnapshot snapshot = deferredMonsterArrivals
                 .FirstOrDefault(candidate =>
                     SummonPresentationMatches(request, candidate));
             if (snapshot == null)
-                return;
+                yield break;
             deferredMonsterArrivals.Remove(snapshot);
-            StartCardTransitionNow(snapshot);
+            float duration = StartCardTransitionNow(snapshot);
+            if (duration > 0f)
+            {
+                yield return new WaitForSecondsRealtime(duration);
+                // AnimateCardTravel reveals the authoritative zone at the
+                // end of its last frame.  Waiting one extra frame guarantees
+                // that the prompt cannot race that reveal.
+                yield return null;
+            }
         }
 
         private IEnumerator ReleaseDeferredMonsterArrivalAfterTimeout(

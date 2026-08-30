@@ -351,6 +351,10 @@ namespace ArcaneArena
                         battlePresentationRoutine = null;
                     }
                     ResetBattlePresentationVisuals();
+                    SetDuelExperienceObscured(false);
+                    criticalInteractionLocked = false;
+                    ResetPromptPresentationIdentity();
+                    RefreshEverything(true);
                     StartCoroutine(
                         ShowTimedBattleStatus(
                             "ATAQUE NEGADO",
@@ -1088,6 +1092,29 @@ namespace ArcaneArena
                     : $"{attackerName} ATACA!",
                 $"{attackerName}  →  {targetName}",
                 attack.DirectAttack ? Red : Gold);
+
+            // MSG_ATTACK is the authoritative declaration: attacker and
+            // target are already fixed, but the Core may now ask either
+            // player for a Chain response.  Keep the declaration visible and
+            // interaction unlocked until MSG_BATTLE confirms that every
+            // response has resolved.  MSG_ATTACK_DISABLED cancels this
+            // coroutine through the normal event path.
+            criticalInteractionLocked = false;
+            ResetPromptPresentationIdentity();
+            RefreshEverything(true);
+            while (latestBattleEvent == null && core != null)
+            {
+                EnsureRequiredResponseTrayVisible();
+                yield return null;
+            }
+            if (core == null)
+            {
+                HideBattleHud();
+                SetDuelExperienceObscured(false);
+                battlePresentationRoutine = null;
+                yield break;
+            }
+            criticalInteractionLocked = true;
 
             Transform card =
                 attackerZone.FindPresentedCard();

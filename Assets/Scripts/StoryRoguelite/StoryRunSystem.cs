@@ -1860,6 +1860,19 @@ namespace ArcaneArena.StoryRoguelite
             return true;
         }
 
+        public static int CurrentDuelAccountCoinReward()
+        {
+            string encounterId = DuelContext?.encounterId;
+            if (string.IsNullOrWhiteSpace(encounterId) || Manager == null)
+                return 0;
+            string operationId = encounterId + ":account-coins:v1";
+            StoryAccountCoinReward reward = Manager.PendingAccountCoinRewards
+                .FirstOrDefault(candidate => candidate != null &&
+                    string.Equals(candidate.operationId, operationId,
+                        StringComparison.Ordinal));
+            return Math.Max(0, reward?.amount ?? 0);
+        }
+
         public static bool ForfeitActiveDuel()
         {
             if (DuelContext == null || Manager?.Save == null) return false;

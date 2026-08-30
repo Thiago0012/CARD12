@@ -146,6 +146,7 @@ namespace ArcaneArena
         private bool statisticsRanked;
         private long localDamageDealtInDuel;
         private long localDamageReceivedInDuel;
+        private int localConfirmedPlaysInDuel;
         private ulong confirmedStatisticEventSequence;
         private Text status;
         private GameObject phaseControlPanel;
@@ -326,18 +327,34 @@ namespace ArcaneArena
                     : winner == 0
                         ? "Vitória confirmada contra o bot."
                         : "Derrota confirmada contra o bot.";
+            int storyCoins = storyResult && winner == 0
+                ? StoryRogueliteRuntime.CurrentDuelAccountCoinReward()
+                : 0;
+            DuelResultSummary summary = kind == OnlineDuelResultKind.Victory
+                ? DuelResultSummary.Capture(
+                    GameFrontendBootstrap.Instance,
+                    storyCoins > 0,
+                    storyCoins,
+                    -1,
+                    localDamageDealtInDuel,
+                    localDamageReceivedInDuel,
+                    state?.TurnNumber ?? 0,
+                    localConfirmedPlaysInDuel)
+                : null;
             StartCoroutine(PresentOfflineDuelResultAfterSlowMotion(
                 presenter,
                 kind,
                 detail,
-                rankReceipt));
+                rankReceipt,
+                summary));
         }
 
         private IEnumerator PresentOfflineDuelResultAfterSlowMotion(
             OnlineDuelResultPresenter presenter,
             OnlineDuelResultKind kind,
             string detail,
-            RankChangeReceipt rankReceipt)
+            RankChangeReceipt rankReceipt,
+            DuelResultSummary summary)
         {
             float pendingDamageSeconds = Mathf.Max(
                 0f,
@@ -352,17 +369,19 @@ namespace ArcaneArena
             if (OnlineDuelResultPresenter.CanPresentRankTransition(
                     rankReceipt))
             {
-                presenter.ShowRanked(
+                presenter.ShowRankedWithSummary(
                     kind,
                     detail,
                     rankReceipt,
+                    summary,
                     ReturnToMenuAfterBotResult);
             }
             else
             {
-                presenter.Show(
+                presenter.ShowWithSummary(
                     kind,
                     detail,
+                    summary,
                     ReturnToMenuAfterBotResult);
             }
         }
@@ -809,6 +828,7 @@ namespace ArcaneArena
             developerMenuOverlay?.SetActive(false);
             localDamageDealtInDuel = 0;
             localDamageReceivedInDuel = 0;
+            localConfirmedPlaysInDuel = 0;
             responseWindowLimiter.Reset();
             confirmedStatisticEventSequence = 0;
             statisticsOnline = false;
@@ -1162,18 +1182,20 @@ namespace ArcaneArena
                 CancelAttackTargeting();
             }
             PrepareTurnFlowPresentation(duelEvent);
+            // Card presentations must acquire their decision lock before the
+            // prompt is refreshed.  MSG_*_SUMMONED can expose the monster's
+            // trigger prompt in the very same Core burst; refreshing first
+            // made that tray appear behind the full-screen summon card.
+            QueueCardSoundPresentation(duelEvent);
             RefreshEverything(true);
             ValidatePresentationConsistency(duelEvent, true);
             HandleArenaPresentationEvent(duelEvent);
-            QueueCardSoundPresentation(duelEvent);
             BeginCardTransition(cardTransition);
         }
 
         private void RecordConfirmedStatistics(DuelEvent duelEvent)
         {
-            if (duelEvent == null ||
-                StoryRogueliteRuntime.IsStoryDuel ||
-                string.IsNullOrWhiteSpace(statisticsSessionId))
+            if (duelEvent == null)
                 return;
 
             if (duelEvent.Message == CoreMessage.Damage && duelEvent.Player == 1)
@@ -1227,6 +1249,17 @@ namespace ArcaneArena
                     break;
             }
             if (!statistic.HasValue)
+                return;
+
+            if (statistic == DuelStatisticEventType.MonsterSummoned ||
+                statistic == DuelStatisticEventType.SpecialSummon ||
+                statistic == DuelStatisticEventType.SpellActivated ||
+                statistic == DuelStatisticEventType.TrapActivated)
+            {
+                localConfirmedPlaysInDuel++;
+            }
+            if (StoryRogueliteRuntime.IsStoryDuel ||
+                string.IsNullOrWhiteSpace(statisticsSessionId))
                 return;
 
             string eventId = string.Concat(
@@ -2444,6 +2477,18 @@ namespace ArcaneArena
             CloseFieldActionMenu();
             CloseZoneBrowser();
             ClosePhaseNavigator();
+            if (cardPresentationDecisionLocked)
+            {
+                SetHandPlacementMode(false);
+                ClearHandSelection();
+                if (phaseButton != null)
+                    phaseButton.interactable = false;
+                HideDecisionRibbon();
+                // Do not mark this request as presented.  The card
+                // presentation releases the lock, clears the identity and
+                // refreshes this exact authoritative prompt afterwards.
+                return false;
+            }
             if (phasePresentationLocked)
             {
                 SetHandPlacementMode(false);

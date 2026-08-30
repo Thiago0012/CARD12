@@ -4505,7 +4505,11 @@ namespace ArcaneArena.Multiplayer
                 result,
                 0,
                 hostDetail,
-                localRankResultReceipt);
+                localRankResultReceipt,
+                hostReceipt,
+                hostStatisticsDamageDealt,
+                hostStatisticsDamageReceived,
+                completedRewardRounds);
 
             if (remoteClientId != ulong.MaxValue)
             {
@@ -4610,14 +4614,26 @@ namespace ArcaneArena.Multiplayer
                 }
             }
             localRankResultReceipt = committedRank;
-            HandleAuthoritativeResult(reward, 1, detail, committedRank);
+            HandleAuthoritativeResult(
+                reward,
+                1,
+                detail,
+                committedRank,
+                receipt,
+                reward.statisticsDamageDealt,
+                reward.statisticsDamageReceived,
+                reward.completedRounds);
         }
 
         private void HandleAuthoritativeResult(
             MatchRewardPayload result,
             byte localSeat,
             string detail,
-            RankChangeReceipt rankReceipt = null)
+            RankChangeReceipt rankReceipt,
+            RewardReceipt rewardReceipt,
+            long localDamageDealt,
+            long localDamageReceived,
+            int completedRounds)
         {
             if (result == null || result.resultSequence == 0 ||
                 result.resultSequence <= lastAppliedResultSequence)
@@ -4638,20 +4654,34 @@ namespace ArcaneArena.Multiplayer
                 result.endReason);
             SetFlowState(OnlineMatchFlowState.ResultScreen);
             status = detail ?? string.Empty;
+            DuelResultSummary summary =
+                kind == OnlineDuelResultKind.Victory
+                    ? DuelResultSummary.Capture(
+                        GameFrontendBootstrap.Instance,
+                        rewardReceipt?.WasGranted == true,
+                        rewardReceipt?.coins ?? 0,
+                        rewardReceipt?.balanceAfter ?? -1,
+                        localDamageDealt,
+                        localDamageReceived,
+                        completedRounds,
+                        0)
+                    : null;
             if (OnlineDuelResultPresenter.CanPresentRankTransition(
                     rankReceipt))
             {
-                resultPresenter?.ShowRanked(
+                resultPresenter?.ShowRankedWithSummary(
                     kind,
                     detail,
                     rankReceipt,
+                    summary,
                     ReturnToMenuAfterOnlineMatch);
             }
             else
             {
-                resultPresenter?.Show(
+                resultPresenter?.ShowWithSummary(
                     kind,
                     detail,
+                    summary,
                     ReturnToMenuAfterOnlineMatch);
             }
             Debug.Log(
