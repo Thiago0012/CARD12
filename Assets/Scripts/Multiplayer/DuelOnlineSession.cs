@@ -77,6 +77,10 @@ namespace ArcaneArena.Multiplayer
         private const uint NetworkTickRate = 20;
         private const int TransportHeartbeatMilliseconds = 1000;
         private const int TransportDisconnectTimeoutMilliseconds = 120000;
+        // Unity Transport defaults to 128 packets. A deck snapshot and its
+        // ACKs can legitimately overlap while Android is loading the arena;
+        // keep headroom without making the queue unbounded on mobile.
+        private const int TransportMaxPacketQueueSize = 512;
         private const int ConnectionApprovalTimeoutSeconds = 30;
         private const int MaximumHandshakeAttempts = 80;
         private const int MaximumStartAttempts = 80;
@@ -88,13 +92,14 @@ namespace ArcaneArena.Multiplayer
         private const float ResponseRetrySeconds = 0.75f;
         private const float ResponseResyncSeconds = 3f;
         private const float WireRetrySeconds = 0.35f;
-        private const float WirePumpSeconds = 0.02f;
+        private const float WirePumpSeconds = 0.04f;
+        private const float WireUnavailableRetrySeconds = 0.25f;
         private const float WireAssemblyTimeoutSeconds = 45f;
         private const int MaximumPrivateRelayStartAttempts = 3;
         private const float PrivateRelayRetrySeconds = 3f;
         private const float WireReceiptLifetimeSeconds = 120f;
-        private const int WirePacketsPerTransferPump = 8;
-        private const int WirePacketsPerFrame = 24;
+        private const int WirePacketsPerTransferPump = 4;
+        private const int WirePacketsPerFrame = 12;
         private const int MaximumConcurrentWireTransfers = 128;
         private const int MaximumTransitionRecoveryAttempts = 1;
         private const float TransitionRecoveryWindowSeconds = 20f;
@@ -1389,13 +1394,17 @@ namespace ArcaneArena.Multiplayer
             transport.HeartbeatTimeoutMS = TransportHeartbeatMilliseconds;
             transport.DisconnectTimeoutMS =
                 TransportDisconnectTimeoutMilliseconds;
+            transport.MaxPacketQueueSize = Math.Max(
+                TransportMaxPacketQueueSize,
+                transport.MaxPacketQueueSize);
             RelayTransportPolicy.ApplyTo(
                 transport,
                 sessionCoordinator.ActiveRelayProtocol);
             Debug.Log(
                 "[MP] stage=relay-transport-config protocol=" +
                 sessionCoordinator.ActiveRelayProtocol +
-                " useWebSockets=" + transport.UseWebSockets);
+                " useWebSockets=" + transport.UseWebSockets +
+                " maxPacketQueue=" + transport.MaxPacketQueueSize);
             networkManager = GetComponent<NetworkManager>() ??
                              NetworkManager.Singleton ??
                              gameObject.AddComponent<NetworkManager>();
@@ -2565,6 +2574,14 @@ namespace ArcaneArena.Multiplayer
 
             if (clientId == remoteClientId && IsHost)
             {
+                // A reconnect receives a fresh start/state handshake. The
+                // old Relay client id must never retain queued packets: it
+                // cannot ACK them and would otherwise keep filling UTP's
+                // queue while the new connection is being established.
+                outboundWireTransfers.Clear();
+                inboundWireTransfers.Clear();
+                completedWireTransfers.Clear();
+                outgoingPresentationEvents.Clear();
                 if (!hostCoreStarted && preludeResultRoutine != null)
                 {
                     StopCoroutine(preludeResultRoutine);
@@ -4872,8 +4889,7 @@ namespace ArcaneArena.Multiplayer
         private bool SendFastResponseToServer(ResponsePayload response)
         {
             if (response == null || role != SessionRole.Client ||
-                networkManager?.CustomMessagingManager == null ||
-                !networkManager.IsConnectedClient)
+                !CanSendToPeer(NetworkManager.ServerClientId))
             {
                 return false;
             }
@@ -4926,8 +4942,7 @@ namespace ArcaneArena.Multiplayer
         private bool SendFastClientReadyToHost(ClientReadyPayload readiness)
         {
             if (readiness == null || role != SessionRole.Client ||
-                networkManager?.CustomMessagingManager == null ||
-                !networkManager.IsConnectedClient)
+                !CanSendToPeer(NetworkManager.ServerClientId))
             {
                 return false;
             }
@@ -5405,8 +5420,7 @@ namespace ArcaneArena.Multiplayer
             // control messages additionally use NGO reliable delivery so a
             // response or state-repair command cannot sit behind presentation
             // traffic after an isolated packet loss.
-            if (networkManager == null ||
-                networkManager.CustomMessagingManager == null)
+            if (!CanSendToPeer(target))
             {
                 return false;
             }
@@ -5513,6 +5527,28 @@ namespace ArcaneArena.Multiplayer
                 new WireTransferKey(target, transfer.TransferId),
                 pending);
             return true;
+        }
+
+        private bool CanSendToPeer(ulong target)
+        {
+            if (networkManager == null ||
+                networkManager.CustomMessagingManager == null ||
+                networkManager.ShutdownInProgress ||
+                !networkManager.IsListening)
+            {
+                return false;
+            }
+
+            if (target == NetworkManager.ServerClientId)
+            {
+                return role == SessionRole.Client &&
+                       networkManager.IsConnectedClient;
+            }
+
+            return role == SessionRole.Host &&
+                   networkManager.IsServer &&
+                   target == remoteClientId &&
+                   networkManager.ConnectedClientsIds.Contains(target);
         }
 
         private static NetworkDelivery ResolveWireDelivery(
@@ -5797,6 +5833,16 @@ namespace ArcaneArena.Multiplayer
                     continue;
                 }
 
+                // NGO can still own the component for one frame after Relay
+                // closes it. Never push queued packets into that stale
+                // transport: UTP would report an invalid connection state
+                // and the queued retry loop could then fill its send queue.
+                if (!CanSendToPeer(pending.Target))
+                {
+                    pending.NextSendTime = now + WireUnavailableRetrySeconds;
+                    continue;
+                }
+
                 remainingBudget -= PumpOutboundWireTransfer(
                     pending,
                     now,
@@ -5838,8 +5884,14 @@ namespace ArcaneArena.Multiplayer
             int packetBudget)
         {
             if (pending == null || packetBudget <= 0 ||
-                pending.AckTracker.TransferAcknowledged)
+                pending.AckTracker.TransferAcknowledged ||
+                !CanSendToPeer(pending.Target))
             {
+                if (pending != null)
+                {
+                    pending.NextSendTime = now +
+                                           WireUnavailableRetrySeconds;
+                }
                 return 0;
             }
 
@@ -5856,10 +5908,15 @@ namespace ArcaneArena.Multiplayer
                 while (sentWhileAwaitingFinalAck < packetBudget &&
                        pending.MissingCursor < chunkCount)
                 {
-                    SendWirePacket(
+                    if (!SendWirePacket(
                         pending.Target,
                         pending.Transfer.GetPacket(pending.MissingCursor++),
-                        pending.Delivery);
+                        pending.Delivery))
+                    {
+                        pending.NextSendTime = now +
+                                               WireUnavailableRetrySeconds;
+                        return sentWhileAwaitingFinalAck;
+                    }
                     sentWhileAwaitingFinalAck++;
                 }
 
@@ -5890,10 +5947,15 @@ namespace ArcaneArena.Multiplayer
                     completedScan = true;
                 if (pending.AckTracker.IsChunkAcknowledged(packetIndex))
                     continue;
-                SendWirePacket(
+                if (!SendWirePacket(
                     pending.Target,
                     pending.Transfer.GetPacket(packetIndex),
-                    pending.Delivery);
+                    pending.Delivery))
+                {
+                    pending.NextSendTime = now +
+                                           WireUnavailableRetrySeconds;
+                    return sent;
+                }
                 sent++;
             }
 
@@ -5909,13 +5971,13 @@ namespace ArcaneArena.Multiplayer
             return sent;
         }
 
-        private void SendWirePacket(
+        private bool SendWirePacket(
             ulong target,
             DuelWirePacket packet,
             NetworkDelivery delivery = NetworkDelivery.Unreliable)
         {
-            if (packet == null || networkManager?.CustomMessagingManager == null)
-                return;
+            if (packet == null || !CanSendToPeer(target))
+                return false;
 
             var writer = new FastBufferWriter(
                 DuelWireProtocol.MaximumWriterPacketBytes,
@@ -5930,7 +5992,7 @@ namespace ArcaneArena.Multiplayer
                 {
                     Debug.LogWarning(
                         $"[Arcane Duel Online] Pacote v3 nao foi codificado: {error}");
-                    return;
+                    return false;
                 }
 
                 networkManager.CustomMessagingManager.SendNamedMessage(
@@ -5938,12 +6000,14 @@ namespace ArcaneArena.Multiplayer
                     target,
                     writer,
                     delivery);
+                return true;
             }
             catch (Exception exception)
             {
                 Debug.LogWarning(
                     "[Arcane Duel Online] Falha temporaria ao enviar pacote " +
                     $"{packet.TransferId}: {exception.GetBaseException().Message}");
+                return false;
             }
             finally
             {

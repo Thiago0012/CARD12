@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 69c7eaf0394f4b4e94df96791bcc80d6, type: 3}
+  m_Script: {fileID: 11500000, guid: acd406d9b5134f25ae7de95df088605e, type: 3}
   m_Name: MissionCatalog
   m_EditorClassIdentifier: Assembly-CSharp::ArcaneArena.Frontend.MissionCatalog
   catalogVersion: 1
