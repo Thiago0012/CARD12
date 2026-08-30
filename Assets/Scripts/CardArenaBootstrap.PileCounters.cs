@@ -158,7 +158,7 @@ namespace ArcaneArena
                 int owner = StatePlayerForZone(visual.Zone);
                 int count = visual.IsExtraDeck
                     ? state.Players[owner].ExtraDeckCount
-                    : state.Players[owner].DeckCount;
+                    : PresentedMainDeckCount(owner);
                 count = Mathf.Max(0, count);
                 if (!force && visual.DisplayedCount == count)
                     continue;

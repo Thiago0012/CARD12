@@ -640,7 +640,21 @@ namespace ArcaneArena
             ref int displayedCount)
         {
             cardCount = Mathf.Max(0, cardCount);
-            if (displayedCount == cardCount)
+            Transform stack = deck != null ? deck.Find("Card Stack") : null;
+            if (stack == null)
+            {
+                // A replica can receive its first state before the authored
+                // arena has finished rebuilding its zone registry. Do not
+                // cache that state as presented until there is a real stack
+                // to which it can be applied.
+                displayedCount = int.MinValue;
+                return;
+            }
+
+            bool expectedVisible = cardCount > 0;
+            bool visibilityMatches =
+                stack.gameObject.activeSelf == expectedVisible;
+            if (displayedCount == cardCount && visibilityMatches)
                 return;
             displayedCount = cardCount;
             ApplyDeckStackCount(deck, cardCount);

@@ -22,6 +22,7 @@ namespace ArcaneArena
             public byte Player;
             public uint[] Codes;
             public CardView[] DrawnCards;
+            public int HeldDeckCount;
         }
 
         private const float DrawClickTimeoutSeconds = 5f;
@@ -48,6 +49,7 @@ namespace ArcaneArena
         private bool drawRevealCanFastForward;
         private bool drawRevealFastForwardRequested;
         private float turnFlowPresentationStartedAt;
+        private readonly int[] heldDrawDeckCounts = new int[2];
 
         private void PrepareTurnFlowPresentation(DuelEvent duelEvent)
         {
@@ -60,6 +62,54 @@ namespace ArcaneArena
                 IsTurnDrawEvent(duelEvent);
             if (startsPresentation)
                 BeginTurnFlowPresentation();
+            if (IsTurnDrawEvent(duelEvent))
+                HoldDrawDeckCount(duelEvent.Player, duelEvent.Codes.Length);
+        }
+
+        private int PresentedMainDeckCount(int player)
+        {
+            if (state?.Players == null || player < 0 ||
+                player >= state.Players.Length)
+            {
+                return 0;
+            }
+            int held = player < heldDrawDeckCounts.Length
+                ? heldDrawDeckCounts[player]
+                : 0;
+            return Mathf.Max(0, state.Players[player].DeckCount + held);
+        }
+
+        private void HoldDrawDeckCount(byte player, int count)
+        {
+            if (player >= heldDrawDeckCounts.Length || count <= 0)
+                return;
+            heldDrawDeckCounts[player] += count;
+        }
+
+        private void ReleaseDrawDeckCount(
+            DrawPresentationRequest request,
+            int count)
+        {
+            if (request == null || request.Player >= heldDrawDeckCounts.Length ||
+                request.HeldDeckCount <= 0 || count <= 0)
+            {
+                return;
+            }
+            int released = Mathf.Min(count, request.HeldDeckCount);
+            request.HeldDeckCount -= released;
+            heldDrawDeckCounts[request.Player] = Mathf.Max(
+                0,
+                heldDrawDeckCounts[request.Player] - released);
+            RefreshDeckStackVolumes();
+            RefreshPileCounterPresentation(false);
+        }
+
+        private void ReleaseAllDrawDeckCounts()
+        {
+            for (int player = 0; player < heldDrawDeckCounts.Length; player++)
+                heldDrawDeckCounts[player] = 0;
+            RefreshDeckStackVolumes();
+            RefreshPileCounterPresentation(false);
         }
 
         private bool IsTurnDrawEvent(DuelEvent duelEvent)
@@ -135,7 +185,8 @@ namespace ArcaneArena
                     {
                         Player = duelEvent.Player,
                         Codes = duelEvent.Codes.ToArray(),
-                        DrawnCards = drawnCards
+                        DrawnCards = drawnCards,
+                        HeldDeckCount = count
                     }
                 });
             TryStartAnnouncementQueue();
@@ -154,6 +205,7 @@ namespace ArcaneArena
             Transform deck = arena3D?.GetMainDeckTransform(side);
             if (deck == null)
             {
+                ReleaseDrawDeckCount(request, request.HeldDeckCount);
                 RevealDrawnCards(request);
                 activeDrawRequest = null;
                 yield return new WaitForSecondsRealtime(0.15f);
@@ -168,6 +220,28 @@ namespace ArcaneArena
             HideDecisionRibbon();
 
             bool localDraw = request.Player == 0;
+            if (!localDraw)
+            {
+                uint[] remoteCodes = request.Codes ??
+                                     System.Array.Empty<uint>();
+                for (int index = 0; index < remoteCodes.Length; index++)
+                {
+                    Vector3 start = DrawGhostWorldPosition(deck, 0.08f);
+                    arena3D.NotifyCardDrawn(side);
+                    ReleaseDrawDeckCount(request, 1);
+                    yield return AnimateDrawnCard(
+                        remoteCodes[index],
+                        side,
+                        start,
+                        false);
+                }
+                ReleaseDrawDeckCount(request, request.HeldDeckCount);
+                RevealDrawnCards(request);
+                RestoreActiveDrawDeck();
+                activeDrawRequest = null;
+                yield break;
+            }
+
             if (localDraw)
             {
                 awaitingDrawDeckClick = true;
@@ -224,12 +298,14 @@ namespace ArcaneArena
                 for (int index = 0; index < codes.Length; index++)
                 {
                     arena3D.NotifyCardDrawn(side);
+                    ReleaseDrawDeckCount(request, 1);
                     yield return AnimateDrawnCard(
                         codes[index],
                         side,
                         index == 0
                             ? activeDrawStartPosition
-                            : DrawGhostWorldPosition(deck, 0.08f));
+                            : DrawGhostWorldPosition(deck, 0.08f),
+                        true);
                     RevealDrawnCard(request, index);
                 }
             }
@@ -244,6 +320,7 @@ namespace ArcaneArena
                 deck.rotation,
                 activeDrawDeckRotation);
             RestoreActiveDrawDeck();
+            ReleaseDrawDeckCount(request, request.HeldDeckCount);
             RevealDrawnCards(request);
             activeDrawRequest = null;
         }
@@ -414,11 +491,12 @@ namespace ArcaneArena
         private IEnumerator AnimateDrawnCard(
             uint code,
             DuelPlayerSide side,
-            Vector3 start)
+            Vector3 start,
+            bool localDraw)
         {
             cardAudioDirector ??= GetComponent<ArcaneAudioDirector>();
             cardAudioDirector?.PlayCardCue(ArcaneCardSound.Draw);
-            if (side == DuelPlayerSide.PlayerOne && arenaCanvas != null)
+            if (localDraw && arenaCanvas != null)
             {
                 yield return AnimateLocalDrawnCard(code, start);
                 yield break;
@@ -427,7 +505,6 @@ namespace ArcaneArena
             var cardObject = new GameObject("Carta comprada · apresentação");
             activeDrawCard = cardObject;
             SpriteRenderer renderer = cardObject.AddComponent<SpriteRenderer>();
-            bool localDraw = side == DuelPlayerSide.PlayerOne;
             Sprite front = localDraw ? SpriteFor(code) : cardBackSprite;
             renderer.sprite = cardBackSprite != null
                 ? cardBackSprite
@@ -841,6 +918,7 @@ namespace ArcaneArena
             if (activeDrawCard != null)
                 Destroy(activeDrawCard);
             activeDrawCard = null;
+            ReleaseAllDrawDeckCounts();
         }
 
         private void RestoreActiveDrawDeck()

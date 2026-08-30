@@ -3023,7 +3023,10 @@ namespace ArcaneArena
                     renderedZones[zone.StableId] = default;
                     continue;
                 }
-                bool occupied = code != 0 || instance != null;
+                bool authoredPile = UsesAuthoredPilePresentation(zone);
+                bool occupied = authoredPile
+                    ? PresentedPileCount(zone) > 0
+                    : code != 0 || instance != null;
                 CardInstanceKey key = instance != null
                     ? instance.Key
                     : new CardInstanceKey(
@@ -3037,7 +3040,7 @@ namespace ArcaneArena
                 renderedZones.TryGetValue(
                     zone.StableId,
                     out CardInstanceKey previous);
-                if (UsesAuthoredPilePresentation(zone))
+                if (authoredPile)
                 {
                     if (key != previous)
                     {
@@ -3107,6 +3110,20 @@ namespace ArcaneArena
             Transform pile = zone?.transform.Find("Card Stack");
             if (pile != null && pile.gameObject.activeSelf != visible)
                 pile.gameObject.SetActive(visible);
+        }
+
+        private int PresentedPileCount(DuelZone3D zone)
+        {
+            if (zone == null || state == null)
+                return 0;
+            int owner = StatePlayerForZone(zone);
+            if (owner < 0 || owner >= state.Players.Length)
+                return 0;
+            return zone.Kind == DuelZoneKind.MainDeck
+                ? PresentedMainDeckCount(owner)
+                : zone.Kind == DuelZoneKind.ExtraDeck
+                    ? Mathf.Max(0, state.Players[owner].ExtraDeckCount)
+                    : 0;
         }
 
         private CardInstanceState InstanceAt(DuelZone3D zone)
@@ -4221,7 +4238,7 @@ namespace ArcaneArena
                     state.Players[player].ExtraDeckCards);
                 deckStackArena.SetDeckCardCounts(
                     PhysicalSideForStatePlayer(player),
-                    Mathf.Max(0, state.Players[player].DeckCount),
+                    PresentedMainDeckCount(player),
                     Mathf.Max(0, extraCount));
             }
         }
