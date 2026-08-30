@@ -1260,7 +1260,10 @@ namespace ArcaneArena.Frontend
                 Image actionButton = CreateButton(tile.transform, action,
                     new Vector2(0.08f, 0.04f),
                     new Vector2(0.92f, 0.19f), accent, () =>
-                    HandleProfileIconShopAction(icon));
+                    {
+                        CaptureShopCatalogPosition(tile.transform);
+                        HandleProfileIconShopAction(icon);
+                    });
                 DecorateRuntimeShopButton(
                     actionButton,
                     accent,
@@ -1273,7 +1276,10 @@ namespace ArcaneArena.Frontend
                     ProfileIconCatalog.IconPriceCoins,
                     new Vector2(0.08f, 0.04f),
                     new Vector2(0.92f, 0.19f), Gold, () =>
-                    HandleProfileIconShopAction(icon));
+                    {
+                        CaptureShopCatalogPosition(tile.transform);
+                        HandleProfileIconShopAction(icon);
+                    });
             }
         }
 
@@ -1379,6 +1385,7 @@ namespace ArcaneArena.Frontend
                         ? $"{icon.DisplayName} adquirido."
                         : rejection;
                     _shopFeedbackIsError = !ok;
+                    _shopTab = ShopTab.ProfileIcons;
                     ShowEconomyShop();
                 });
         }

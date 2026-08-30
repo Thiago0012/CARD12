@@ -89,6 +89,44 @@ namespace ArcaneArena.StoryRoguelite
         public int amount;
     }
 
+    /// <summary>
+    /// Applies the economy bonus requested for Chronicle runs without using
+    /// floating-point arithmetic. The percentage is stable for each reward,
+    /// varies from 40% to 45%, and integer division always floors fractions.
+    /// </summary>
+    public static class StoryRunRewardEconomy
+    {
+        public const int MinimumBoostPercent = 40;
+        public const int MaximumBoostPercent = 45;
+
+        public static int ResolveBoostPercent(
+            long seed,
+            string rewardId,
+            string currencyKind)
+        {
+            int span = MaximumBoostPercent - MinimumBoostPercent + 1;
+            return MinimumBoostPercent + StoryDeterminism.Index(
+                span,
+                seed,
+                rewardId ?? string.Empty,
+                currencyKind ?? string.Empty,
+                "story-run-reward-boost-v1");
+        }
+
+        public static int Increase(
+            int baseAmount,
+            long seed,
+            string rewardId,
+            string currencyKind)
+        {
+            if (baseAmount <= 0) return baseAmount;
+
+            int percent = ResolveBoostPercent(seed, rewardId, currencyKind);
+            long increased = (long)baseAmount * (100 + percent) / 100;
+            return increased > int.MaxValue ? int.MaxValue : (int)increased;
+        }
+    }
+
     [Serializable]
     public sealed class StoryChoiceOption
     {
@@ -754,13 +792,17 @@ namespace ArcaneArena.StoryRoguelite
             StoryRuntimeNode runtime = RuntimeNode(CurrentNode.nodeId);
             if (runtime == null || runtime.resolved) return null;
 
-            RogueliteNodeType type = runtime.NodeType;
-            if (IsCombat(type)) return EnsureEncounter(type);
+            // A resolução pendente pertence ao nó atual. Em especial, após
+            // uma vitória, recriar o encontro antes de entregar a recompensa
+            // prendia o jogador em uma sequência infinita de adversários.
             if (Save.pendingReward != null || Save.pendingChoice != null ||
                 Save.pendingRelicReward != null ||
                 Save.pendingRelicReplacement != null ||
                 Save.pendingRandomEvent != null)
                 return null;
+
+            RogueliteNodeType type = runtime.NodeType;
+            if (IsCombat(type)) return EnsureEncounter(type);
 
             switch (type)
             {
@@ -777,8 +819,11 @@ namespace ArcaneArena.StoryRoguelite
                     break;
                 case RogueliteNodeType.TreasureVault:
                     CreateReward("COFRE DO TESOURO", 3);
-                    Save.fragments += StoryRelicService.VaultFragmentBonus(
+                    int vaultFragments = StoryRelicService.VaultFragmentBonus(
                         Save);
+                    GrantRunFragments(
+                        vaultFragments,
+                        $"{Save.currentMapId}:{Save.currentNodeId}:vault");
                     break;
                 case RogueliteNodeType.CardMerchant:
                     CreateReward("MERCADOR DE CARTAS",
@@ -1392,15 +1437,47 @@ namespace ArcaneArena.StoryRoguelite
             string body,
             params StoryChoiceOption[] options)
         {
+            string choiceId =
+                $"{Save.runId}:{Save.currentMapId}:{Save.currentNodeId}:choice";
+            List<StoryChoiceOption> resolvedOptions = options?.ToList() ??
+                new List<StoryChoiceOption>();
+            foreach (StoryChoiceOption option in resolvedOptions)
+            {
+                if (option == null || option.fragmentDelta <= 0) continue;
+                int baseAmount = option.fragmentDelta;
+                option.fragmentDelta = IncreaseRunFragmentReward(
+                    baseAmount,
+                    $"{choiceId}:{option.optionId}");
+                option.description = ReplaceFragmentRewardAmount(
+                    option.description,
+                    baseAmount,
+                    option.fragmentDelta);
+            }
+
             Save.pendingChoice = new StoryPendingChoice
             {
-                choiceId =
-                    $"{Save.runId}:{Save.currentMapId}:{Save.currentNodeId}:choice",
+                choiceId = choiceId,
                 sourceNodeId = Save.currentNodeId,
                 title = title,
                 body = body,
-                options = options?.ToList() ?? new List<StoryChoiceOption>()
+                options = resolvedOptions
             };
+        }
+
+        private static string ReplaceFragmentRewardAmount(
+            string description,
+            int baseAmount,
+            int increasedAmount)
+        {
+            if (string.IsNullOrWhiteSpace(description) ||
+                baseAmount == increasedAmount)
+                return description;
+
+            return description
+                .Replace($"{baseAmount} fragmentos",
+                    $"{increasedAmount} fragmentos")
+                .Replace($"{baseAmount} Fragmentos",
+                    $"{increasedAmount} Fragmentos");
         }
 
         private void CreateRelicChoice()
@@ -1454,6 +1531,25 @@ namespace ArcaneArena.StoryRoguelite
                 Save.seed, encounter.encounterId, encounter.NodeType);
         }
 
+        private int IncreaseRunFragmentReward(
+            int baseAmount,
+            string rewardId)
+        {
+            return StoryRunRewardEconomy.Increase(
+                baseAmount,
+                Save.seed,
+                rewardId,
+                "run-fragments");
+        }
+
+        private int GrantRunFragments(int baseAmount, string rewardId)
+        {
+            int amount = IncreaseRunFragmentReward(baseAmount, rewardId);
+            if (amount > 0)
+                Save.fragments = checked(Save.fragments + amount);
+            return amount;
+        }
+
         public static int CalculateAccountCoinReward(
             long seed,
             string encounterId,
@@ -1462,8 +1558,13 @@ namespace ArcaneArena.StoryRoguelite
             bool hard = IsHardEncounter(nodeType);
             int minimum = hard ? 10 : 1;
             int span = hard ? 16 : 5;
-            return minimum + StoryDeterminism.Index(
+            int baseReward = minimum + StoryDeterminism.Index(
                 span, seed, encounterId, "account-coins");
+            return StoryRunRewardEconomy.Increase(
+                baseReward,
+                seed,
+                encounterId,
+                "account-coins");
         }
 
         private void QueueAccountCoinReward(

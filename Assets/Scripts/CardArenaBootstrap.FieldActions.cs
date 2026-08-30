@@ -199,6 +199,12 @@ namespace ArcaneArena
             DuelZone3D zone,
             DuelChoice choice)
         {
+            string contextual =
+                DuelEffectDescriptionResolver.ContextualActionLabel(
+                    choice,
+                    database);
+            if (Contains(contextual, "Pêndulo"))
+                return contextual.ToUpperInvariant();
             if (Contains(choice?.Label, "Ativar"))
                 return "ATIVAR EFEITO";
             if (Contains(choice?.Label, "posi"))
@@ -210,7 +216,7 @@ namespace ArcaneArena
             }
             if (Contains(choice?.Label, "Atacar"))
                 return "ATACAR";
-            return (choice?.Label ?? "ESCOLHER").ToUpperInvariant();
+            return (contextual ?? "ESCOLHER").ToUpperInvariant();
         }
 
         private Color FieldActionAccent(DuelChoice choice)

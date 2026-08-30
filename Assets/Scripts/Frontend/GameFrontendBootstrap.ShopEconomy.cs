@@ -52,6 +52,8 @@ namespace ArcaneArena.Frontend
         private Vector3 shopPackCardRotations = new(11f, 0f, -11f);
 
         private ShopTab _shopTab = ShopTab.Packages;
+        private readonly float[] _shopCatalogScrollPositions =
+            { 1f, 1f, 1f, 1f };
         private Action _shopBackAction;
         private string _activePackOpeningId = string.Empty;
         private bool _packOpeningStarted;
@@ -238,6 +240,7 @@ namespace ArcaneArena.Frontend
                 artworkCatalog ? 3 : iconCatalog ? 4 : 3);
 
             PopulateShopCatalog(content);
+            RestoreShopCatalogPosition(content);
         }
 
         private bool TryShowAuthoredEconomyShop()
@@ -289,11 +292,13 @@ namespace ArcaneArena.Frontend
                 _shopTab == ShopTab.Artwork);
             _shopSceneView.SetVisible(true);
             PopulateShopCatalog(_shopSceneView.CatalogContent);
+            RestoreShopCatalogPosition(_shopSceneView.CatalogContent);
             return true;
         }
 
         private void SelectShopTab(ShopTab tab)
         {
+            CaptureShopCatalogPosition();
             _shopTab = tab;
             ShowEconomyShop();
         }
@@ -463,11 +468,7 @@ namespace ArcaneArena.Frontend
                 min,
                 max,
                 selected ? Lime : Cyan,
-                () =>
-                {
-                    _shopTab = tab;
-                    ShowEconomyShop();
-                });
+                () => SelectShopTab(tab));
             DecorateRuntimeShopButton(
                 button,
                 selected ? Gold : new Color(0.78f, 0.48f, 0.12f, 1f),
@@ -506,10 +507,18 @@ namespace ArcaneArena.Frontend
                 13, FontStyle.Bold, Muted,
                 new Vector2(0.34f, 0.32f), new Vector2(0.94f, 0.62f),
                 TextAnchor.MiddleLeft);
-            AddButtonBehaviour(tile, () => ShowPackDetails(pack));
+            AddButtonBehaviour(tile, () =>
+            {
+                CaptureShopCatalogPosition(tile.transform);
+                ShowPackDetails(pack);
+            });
             CreateShopPriceButton(tile.transform, "COMPRAR", pack.PriceCoins,
                 new Vector2(0.34f, 0.07f), new Vector2(0.94f, 0.28f),
-                Gold, () => ShowPackPurchaseConfirmation(pack));
+                Gold, () =>
+                {
+                    CaptureShopCatalogPosition(tile.transform);
+                    ShowPackPurchaseConfirmation(pack);
+                });
         }
 
         private void CreatePackCardFanPreview(
@@ -588,19 +597,31 @@ namespace ArcaneArena.Frontend
                 13, FontStyle.Bold, Muted,
                 new Vector2(0.51f, 0.35f), new Vector2(0.94f, 0.62f),
                 TextAnchor.MiddleLeft);
-            AddButtonBehaviour(tile, () => ShowStructureDeckDetails(product));
+            AddButtonBehaviour(tile, () =>
+            {
+                CaptureShopCatalogPosition(tile.transform);
+                ShowStructureDeckDetails(product);
+            });
             if (purchased >= product.MaxPurchases)
             {
                 CreateButton(tile.transform, "LIMITE ATINGIDO",
                     new Vector2(0.55f, 0.07f), new Vector2(0.94f, 0.31f),
-                    Danger, () => ShowStructureDeckPurchaseConfirmation(product));
+                    Danger, () =>
+                    {
+                        CaptureShopCatalogPosition(tile.transform);
+                        ShowStructureDeckPurchaseConfirmation(product);
+                    });
             }
             else
             {
                 CreateShopPriceButton(tile.transform, "COMPRAR",
                     product.PriceCoins, new Vector2(0.55f, 0.07f),
                     new Vector2(0.94f, 0.31f), Gold,
-                    () => ShowStructureDeckPurchaseConfirmation(product));
+                    () =>
+                    {
+                        CaptureShopCatalogPosition(tile.transform);
+                        ShowStructureDeckPurchaseConfirmation(product);
+                    });
             }
         }
 
@@ -1089,6 +1110,7 @@ namespace ArcaneArena.Frontend
                 "PACOTE PREMIUM",
                 $"5 CARTAS  •  {pack.CardIds.Count} POSSÍVEIS",
                 ResolveShopBoosterPackSprite(),
+                () => ShowPackDetails(pack),
                 () =>
                 {
                     if (_shopPurchaseBusy)
@@ -1127,6 +1149,7 @@ namespace ArcaneArena.Frontend
                 $"{product.MainDeckCardIds.Count} PRINCIPAL  •  " +
                 $"{product.ExtraDeckCardIds.Count} ADICIONAL",
                 DeckRepository.ResolveCard(_catalog, product.CoverCardId)?.Artwork,
+                () => ShowStructureDeckDetails(product),
                 () =>
                 {
                     string transactionId = Guid.NewGuid().ToString("N");
@@ -1136,7 +1159,8 @@ namespace ArcaneArena.Frontend
                     {
                         _shopFeedback = $"{product.DisplayName} foi adicionado à coleção.";
                         _shopFeedbackIsError = false;
-                        ShowEconomyShop();
+                        _shopTab = ShopTab.StructureDecks;
+                        ShowStructureDeckDetails(product);
                     }
                     else
                     {
@@ -1153,13 +1177,15 @@ namespace ArcaneArena.Frontend
             string productType,
             string productMetric,
             Sprite productArtwork,
+            Action returnAction,
             Action confirm)
         {
+            Action safeReturn = returnAction ?? ShowEconomyShop;
             SetDuelPresentation(false);
             ClearScreen();
-            _shopBackAction = ShowEconomyShop;
+            _shopBackAction = safeReturn;
             BuildShopBackground(section);
-            BuildProfessionalShopHeader(section, ShowEconomyShop);
+            BuildProfessionalShopHeader(section, safeReturn);
             CreateCoinBalance(_screenRoot);
             Image panel = CreatePanel(_screenRoot, "Confirmação de Compra",
                 new Vector2(0.16f, 0.18f), new Vector2(0.84f, 0.80f),
@@ -1215,7 +1241,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.92f, 0.30f), amountColor);
             Image cancelButton = CreateButton(panel.transform, "CANCELAR",
                 new Vector2(0.055f, 0.055f), new Vector2(0.31f, 0.20f),
-                Danger, ShowEconomyShop);
+                Danger, safeReturn);
             DecorateRuntimeShopButton(cancelButton, Danger, false, 8f);
             Image confirmButton = CreateButton(panel.transform, "CONFIRMAR COMPRA",
                 new Vector2(0.35f, 0.035f), new Vector2(0.92f, 0.14f),
@@ -1737,7 +1763,7 @@ namespace ArcaneArena.Frontend
                         _packOpeningStarted = false;
                         _shopFeedback = "Pacote concluído. As cartas já estão na coleção.";
                         _shopFeedbackIsError = false;
-                        ShowEconomyShop();
+                        ReturnToPurchasedPack(opening.packId);
                     }
                     else
                     {
@@ -1745,6 +1771,61 @@ namespace ArcaneArena.Frontend
                     }
                 });
             DecorateRuntimeShopButton(finishButton, Gold, true, 9f);
+        }
+
+        private void ReturnToPurchasedPack(string packId)
+        {
+            _shopPurchaseBusy = false;
+            _packRevealBusy = false;
+            _shopTab = ShopTab.Packages;
+            ShopPackDefinition pack = ShopPackCatalog.Find(packId);
+            if (pack != null)
+            {
+                ShowPackDetails(pack);
+                return;
+            }
+            ShowEconomyShop();
+        }
+
+        private void CaptureShopCatalogPosition(Transform source = null)
+        {
+            ScrollRect scroll = source != null
+                ? source.GetComponentInParent<ScrollRect>()
+                : null;
+            if (scroll == null && _shopSceneView != null &&
+                _shopSceneView.IsConfigured &&
+                _shopSceneView.Root != null &&
+                _shopSceneView.Root.gameObject.activeInHierarchy)
+            {
+                scroll = _shopSceneView.CatalogScroll;
+            }
+            if (scroll == null)
+                return;
+
+            int index = Mathf.Clamp(
+                (int)_shopTab,
+                0,
+                _shopCatalogScrollPositions.Length - 1);
+            _shopCatalogScrollPositions[index] =
+                Mathf.Clamp01(scroll.verticalNormalizedPosition);
+        }
+
+        private void RestoreShopCatalogPosition(RectTransform content)
+        {
+            if (content == null)
+                return;
+            ScrollRect scroll = content.GetComponentInParent<ScrollRect>();
+            if (scroll == null)
+                return;
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+            Canvas.ForceUpdateCanvases();
+            int index = Mathf.Clamp(
+                (int)_shopTab,
+                0,
+                _shopCatalogScrollPositions.Length - 1);
+            scroll.verticalNormalizedPosition =
+                _shopCatalogScrollPositions[index];
         }
 
         private Sprite ResolveShopMysteryCardSprite()

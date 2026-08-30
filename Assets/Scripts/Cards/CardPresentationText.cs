@@ -50,7 +50,7 @@ namespace ArcaneArena.Cards
             string localized = LocalizeKnownHeadings(value.Trim());
             return LooksEnglish(localized)
                 ? TranslationReviewMessage
-                : localized;
+                : ExplainPendulumSections(localized);
         }
 
         private static string LocalizeKnownHeadings(string value)
@@ -58,12 +58,35 @@ namespace ArcaneArena.Cards
             return value
                 .Replace("[ Pendulum Effect ]", "[ Efeito de Pêndulo ]")
                 .Replace("[Pendulum Effect]", "[Efeito de Pêndulo]")
+                .Replace("[Efeito de Pêndulo]", "[ Efeito de Pêndulo ]")
                 .Replace("[ Monster Effect ]", "[ Efeito de Monstro ]")
                 .Replace("[Monster Effect]", "[Efeito de Monstro]")
+                .Replace("[Efeito de Monstro]", "[ Efeito de Monstro ]")
                 .Replace("[ Spell Effect ]", "[ Efeito de Magia ]")
                 .Replace("[Spell Effect]", "[Efeito de Magia]")
+                .Replace("[Efeito de Magia]", "[ Efeito de Magia ]")
                 .Replace("[ Trap Effect ]", "[ Efeito de Armadilha ]")
-                .Replace("[Trap Effect]", "[Efeito de Armadilha]");
+                .Replace("[Trap Effect]", "[Efeito de Armadilha]")
+                .Replace("[Efeito de Armadilha]", "[ Efeito de Armadilha ]");
+        }
+
+        private static string ExplainPendulumSections(string value)
+        {
+            const string heading = "[ Efeito de Pêndulo ]";
+            const string compactHeading = "[Efeito de Pêndulo]";
+            const string explanation =
+                "(Como Card de Magia na Zona de Pêndulo)";
+            if (value.Contains(explanation, StringComparison.Ordinal))
+                return value;
+            if (value.Contains(heading, StringComparison.Ordinal))
+                return value.Replace(
+                    heading,
+                    heading + "\n" + explanation);
+            if (value.Contains(compactHeading, StringComparison.Ordinal))
+                return value.Replace(
+                    compactHeading,
+                    compactHeading + "\n" + explanation);
+            return value;
         }
 
         private static bool LooksEnglish(string value)

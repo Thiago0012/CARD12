@@ -123,8 +123,10 @@ namespace ArcaneArena.StoryRoguelite
 
             if (encounter.nestedRandomEventDuel)
             {
-                Save.fragments += Math.Max(0,
-                    encounter.eventVictoryFragments);
+                int eventFragments = GrantRunFragments(
+                    Math.Max(0, encounter.eventVictoryFragments),
+                    encounter.sourceEventOperationId +
+                    ":nested-duel-victory");
                 if (Save.pendingRandomEvent != null)
                     Save.pendingRandomEvent.waitingForNestedDuel = false;
                 if (string.Equals(
@@ -138,7 +140,7 @@ namespace ArcaneArena.StoryRoguelite
                 else
                 {
                     CompletePendingRandomEvent(
-                        $"Vitória: +{encounter.eventVictoryFragments} Fragmentos.");
+                        $"Vitória: +{eventFragments} Fragmentos.");
                 }
                 Persist();
                 return;
@@ -151,9 +153,10 @@ namespace ArcaneArena.StoryRoguelite
                 RogueliteNodeType.EliteDuel => 5,
                 _ => 2
             };
-            int fragmentsAwarded = StoryRelicService.VictoryFragments(
-                Save, encounter.NodeType, baseFragments);
-            Save.fragments += fragmentsAwarded;
+            int fragmentsAwarded = GrantRunFragments(
+                StoryRelicService.VictoryFragments(
+                    Save, encounter.NodeType, baseFragments),
+                encounter.encounterId + ":duel-victory");
             int accountCoins = encounter.suppressAccountCoins
                 ? 0
                 : AccountCoinReward(encounter);
@@ -282,13 +285,20 @@ namespace ArcaneArena.StoryRoguelite
             switch (pending.eventId)
             {
                 case "unstable-vault":
-                    if (choiceId == "careful") Save.fragments += 3;
+                    if (choiceId == "careful")
+                        GrantRunFragments(3,
+                            pending.operationId + ":" + choiceId);
                     else if (choiceId == "force")
                     {
                         int delta = firstRoll < .60d ? 8 :
                             firstRoll < .90d ? 5 :
                             -Math.Min(2, Save.fragments);
-                        Save.fragments = Math.Max(0, Save.fragments + delta);
+                        if (delta > 0)
+                            delta = GrantRunFragments(delta,
+                                pending.operationId + ":" + choiceId);
+                        else
+                            Save.fragments = Math.Max(0,
+                                Save.fragments + delta);
                         summary = $"Resultado do cofre: {Signed(delta)} Fragmentos.";
                     }
                     break;
@@ -303,13 +313,16 @@ namespace ArcaneArena.StoryRoguelite
                 case "wounded-duelist":
                     if (choiceId == "help")
                         Save.seals = Math.Min(MaxSeals, Save.seals + 1);
-                    else if (choiceId == "advice") Save.fragments += 2;
+                    else if (choiceId == "advice")
+                        GrantRunFragments(2,
+                            pending.operationId + ":" + choiceId);
                     break;
                 case "blood-pact":
                     if (choiceId.StartsWith("pact-", StringComparison.Ordinal))
                     {
                         Save.seals = Math.Max(1, Save.seals - 1);
-                        Save.fragments += 9;
+                        GrantRunFragments(9,
+                            pending.operationId + ":" + choiceId);
                         AddCardToReserve(option.cardId);
                     }
                     break;
@@ -323,7 +336,9 @@ namespace ArcaneArena.StoryRoguelite
                 case "cracked-relic":
                     if (choiceId.StartsWith("restore-", StringComparison.Ordinal))
                         RestoreRelicCharge(option.relicId);
-                    else if (choiceId == "dismantle") Save.fragments += 3;
+                    else if (choiceId == "dismantle")
+                        GrantRunFragments(3,
+                            pending.operationId + ":" + choiceId);
                     break;
                 case "lightning-arena":
                     if (choiceId == "challenge")
@@ -336,16 +351,24 @@ namespace ArcaneArena.StoryRoguelite
                     if (choiceId.StartsWith("bet-", StringComparison.Ordinal))
                     {
                         int bet = option.fragmentCost;
-                        if (firstRoll < .55d) Save.fragments += bet * 2;
+                        int netReward = -bet;
+                        if (firstRoll < .55d)
+                        {
+                            int payout = GrantRunFragments(
+                                bet * 2,
+                                pending.operationId + ":" + choiceId);
+                            netReward = payout - bet;
+                        }
                         summary = firstRoll < .55d
-                            ? $"Aposta vencida: +{bet} Fragmentos líquidos."
+                            ? $"Aposta vencida: +{netReward} Fragmentos líquidos."
                             : $"Aposta perdida: -{bet} Fragmentos.";
                     }
                     break;
                 case "cursed-seal":
                     if (choiceId == "accept")
                     {
-                        Save.fragments += 7;
+                        GrantRunFragments(7,
+                            pending.operationId + ":" + choiceId);
                         AddNextDuelModifier(pending.operationId,
                             0, 3000, 0);
                     }
@@ -363,7 +386,9 @@ namespace ArcaneArena.StoryRoguelite
                 case "arcane-spring":
                     if (choiceId == "seal")
                         Save.seals = Math.Min(MaxSeals, Save.seals + 1);
-                    else Save.fragments += 4;
+                    else
+                        GrantRunFragments(4,
+                            pending.operationId + ":" + choiceId);
                     break;
                 case "thousand-eyes-trial":
                     int trialDelta = choiceId switch
@@ -374,8 +399,13 @@ namespace ArcaneArena.StoryRoguelite
                             firstRoll < .80d ? 5 : 0,
                         _ => 0
                     };
-                    Save.fragments = Math.Max(0,
-                        Save.fragments + trialDelta);
+                    if (trialDelta > 0)
+                        trialDelta = GrantRunFragments(
+                            trialDelta,
+                            pending.operationId + ":" + choiceId);
+                    else
+                        Save.fragments = Math.Max(0,
+                            Save.fragments + trialDelta);
                     if (choiceId == "audacity" && firstRoll >= .80d)
                         AddNextDuelModifier(pending.operationId,
                             -1500, 0, 0);
@@ -385,7 +415,9 @@ namespace ArcaneArena.StoryRoguelite
                     if (choiceId == "hand")
                         AddNextDuelModifier(pending.operationId,
                             0, 0, 1);
-                    else Save.fragments += 2;
+                    else
+                        GrantRunFragments(2,
+                            pending.operationId + ":" + choiceId);
                     break;
             }
 

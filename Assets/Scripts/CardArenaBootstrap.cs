@@ -247,6 +247,7 @@ namespace ArcaneArena
             presentationReady = false;
             criticalInteractionLocked = false;
             phasePresentationLocked = false;
+            StopRankMasteryPresentation();
             CancelAttackTargeting();
             if (core != null)
             {
@@ -399,6 +400,7 @@ namespace ArcaneArena
         private void Update()
         {
             HandleDuelUiBackInput();
+            UpdateRankMasteryShortcut();
             UpdateAttackTargetingPointer();
             UpdateDuelExperienceAnimation();
             UpdateDrawRevealFastForward();
@@ -802,6 +804,7 @@ namespace ArcaneArena
             DuelDeckLoadout requestedPlayer,
             byte startingPlayer)
         {
+            StopRankMasteryPresentation();
             developerMenuKeyPresses = 0;
             developerMenuOverlay?.SetActive(false);
             localDamageDealtInDuel = 0;

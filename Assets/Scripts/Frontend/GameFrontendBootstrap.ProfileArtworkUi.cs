@@ -131,7 +131,11 @@ namespace ArcaneArena.Frontend
                     new Vector2(0.08f, 0.04f),
                     new Vector2(0.92f, 0.18f),
                     accent,
-                    () => HandleArtworkShopAction(artwork));
+                    () =>
+                    {
+                        CaptureShopCatalogPosition(tile.transform);
+                        HandleArtworkShopAction(artwork);
+                    });
                 DecorateRuntimeShopButton(button, accent, !equipped, 8f);
             }
             else
@@ -142,7 +146,11 @@ namespace ArcaneArena.Frontend
                     new Vector2(0.08f, 0.04f),
                     new Vector2(0.92f, 0.18f),
                     Gold,
-                    () => HandleArtworkShopAction(artwork));
+                    () =>
+                    {
+                        CaptureShopCatalogPosition(tile.transform);
+                        HandleArtworkShopAction(artwork);
+                    });
             }
         }
 
@@ -257,6 +265,7 @@ namespace ArcaneArena.Frontend
                         ? $"{artwork.DisplayName} adquirida. Agora você pode equipá-la."
                         : rejection;
                     _shopFeedbackIsError = !ok;
+                    _shopTab = ShopTab.Artwork;
                     ShowEconomyShop();
                 });
         }

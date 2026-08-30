@@ -30,6 +30,8 @@ namespace ArcaneArena.Frontend
         private bool IsDuelMenuVisible =>
             _duelMenuOverlay != null && _duelMenuOverlay.activeInHierarchy;
 
+        public bool HandlesDuelEscape => _duelPresentationVisible;
+
         private void ToggleDuelMenu()
         {
             if (!_duelPresentationVisible)

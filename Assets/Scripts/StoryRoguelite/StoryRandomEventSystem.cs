@@ -354,10 +354,17 @@ namespace ArcaneArena.StoryRoguelite
             switch (pending.eventId)
             {
                 case "unstable-vault":
+                    int carefulReward = BoostedFragmentReward(
+                        pending, save, "careful", 3);
+                    int forceHighReward = BoostedFragmentReward(
+                        pending, save, "force", 8);
+                    int forceMediumReward = BoostedFragmentReward(
+                        pending, save, "force", 5);
                     Add(pending, "careful", "ABRIR COM CUIDADO",
-                        "Receba 3 Fragmentos.", "Baixo");
+                        $"Receba {carefulReward} Fragmentos.", "Baixo");
                     Add(pending, "force", "FORÇAR A FECHADURA",
-                        "60%: +8, 30%: +5, 10%: perde até 2 Fragmentos.",
+                        $"60%: +{forceHighReward}, 30%: +{forceMediumReward}, " +
+                        "10%: perde até 2 Fragmentos.",
                         "Alto", true);
                     break;
                 case "forbidden-library":
@@ -378,17 +385,22 @@ namespace ArcaneArena.StoryRoguelite
                         true, save.fragments >= 2 &&
                               save.seals < StoryRelicService.MaxSeals(save), 2);
                     Add(pending, "advice", "OUVIR O CONSELHO",
-                        "Receba 2 Fragmentos.", "Baixo");
+                        $"Receba {BoostedFragmentReward(pending, save, "advice", 2)} " +
+                        "Fragmentos.", "Baixo");
                     break;
                 case "blood-pact":
                     pending.generatedCardIds = StoryRewardService
                         .PickCardChoices(save.seed, pending.operationId,
                             catalog, 3, false, CardCategory.Monster);
                     foreach (string cardId in pending.generatedCardIds)
+                    {
+                        string choiceId = "pact-" + cardId;
                         AddCard(pending, "pact-" + cardId,
                             "ACEITAR O PACTO", cardId,
-                            "Perca 1 Selo, receba 9 Fragmentos e esta carta.",
+                            $"Perca 1 Selo, receba {BoostedFragmentReward(pending, save, choiceId, 9)} " +
+                            "Fragmentos e esta carta.",
                             "Alto", true);
+                    }
                     Add(pending, "refuse", "RECUSAR",
                         "Encerre sem penalidade.", "Baixo");
                     break;
@@ -431,24 +443,33 @@ namespace ArcaneArena.StoryRoguelite
                             true, save.fragments >= 2, 2, null, state.relicId);
                     }
                     Add(pending, "dismantle", "DESMONTAR O NÚCLEO",
-                        "Receba 3 Fragmentos.", "Baixo");
+                        $"Receba {BoostedFragmentReward(pending, save, "dismantle", 3)} " +
+                        "Fragmentos.", "Baixo");
                     break;
                 case "lightning-arena":
                     Add(pending, "challenge", "DESAFIAR",
-                        "Inicie um duelo opcional sem moedas permanentes.",
+                        "Inicie um duelo opcional sem moedas permanentes. " +
+                        $"Vitória: +{BoostedFragmentReward(pending, save, "nested-duel-victory", 7)} Fragmentos.",
                         "Alto", true);
                     Add(pending, "refuse", "RECUSAR",
                         "Encerre sem efeito.", "Baixo");
                     break;
                 case "fate-table":
                     foreach (int amount in new[] { 2, 4, 6 })
+                    {
+                        string choiceId = "bet-" + amount;
+                        int payout = BoostedFragmentReward(
+                            pending, save, choiceId, amount * 2);
                         Add(pending, "bet-" + amount, $"APOSTAR {amount}",
-                            "55%: ganho líquido igual à aposta; 45%: perde a aposta.",
+                            $"55%: ganho líquido de {payout - amount} Fragmentos; " +
+                            "45%: perde a aposta.",
                             "Alto", true, save.fragments >= amount, amount);
+                    }
                     break;
                 case "cursed-seal":
                     Add(pending, "accept", "ACEITAR A MALDIÇÃO",
-                        "Receba 7 Fragmentos; próximo inimigo não-Boss recebe +3.000 LP.",
+                        $"Receba {BoostedFragmentReward(pending, save, "accept", 7)} " +
+                        "Fragmentos; próximo inimigo não-Boss recebe +3.000 LP.",
                         "Alto", true);
                     Add(pending, "purify", "PURIFICAR",
                         "Custa 3 Fragmentos e encerra sem modificador.", "Baixo",
@@ -473,7 +494,10 @@ namespace ArcaneArena.StoryRoguelite
                         StoryNpcRecord npc = StoryContentCatalog.ResolveNpc(npcId);
                         Add(pending, "echo-" + npcId,
                             "ENFRENTAR " + (npc?.displayName ?? npcId).ToUpperInvariant(),
-                            "Eco com dificuldade +1 e +3.000 LP. Vitória: +6 Fragmentos.",
+                            "Eco com dificuldade +1 e +3.000 LP. Vitória: +" +
+                            BoostedFragmentReward(
+                                pending, save, "nested-duel-victory", 6) +
+                            " Fragmentos.",
                             "Alto", true, true, 0, null, null, npcId);
                     }
                     Add(pending, "refuse", "RECUSAR",
@@ -484,15 +508,20 @@ namespace ArcaneArena.StoryRoguelite
                         "Recupere 1 Selo até o máximo.", "Baixo", true,
                         save.seals < StoryRelicService.MaxSeals(save));
                     Add(pending, "energy", "ABSORVER ENERGIA",
-                        "Receba 4 Fragmentos.", "Baixo");
+                        $"Receba {BoostedFragmentReward(pending, save, "energy", 4)} " +
+                        "Fragmentos.", "Baixo");
                     break;
                 case "thousand-eyes-trial":
                     Add(pending, "caution", "PRUDÊNCIA",
-                        "Receba 2 Fragmentos garantidos.", "Baixo");
+                        $"Receba {BoostedFragmentReward(pending, save, "caution", 2)} " +
+                        "Fragmentos garantidos.", "Baixo");
                     Add(pending, "balance", "EQUILÍBRIO",
-                        "70%: +5 Fragmentos; 30%: perde 1.", "Médio", true);
+                        $"70%: +{BoostedFragmentReward(pending, save, "balance", 5)} " +
+                        "Fragmentos; 30%: perde 1.", "Médio", true);
                     Add(pending, "audacity", "AUDÁCIA",
-                        "45%: +10; 35%: +5; 20%: -1.500 LP no próximo duelo.",
+                        $"45%: +{BoostedFragmentReward(pending, save, "audacity", 10)}; " +
+                        $"35%: +{BoostedFragmentReward(pending, save, "audacity", 5)}; " +
+                        "20%: -1.500 LP no próximo duelo.",
                         "Alto", true);
                     break;
                 case "duelist-sanctuary":
@@ -502,9 +531,23 @@ namespace ArcaneArena.StoryRoguelite
                         "dois duelistas.",
                         "Baixo", true, false, 4);
                     Add(pending, "meditate", "MEDITAR",
-                        "Receba 2 Fragmentos.", "Baixo");
+                        $"Receba {BoostedFragmentReward(pending, save, "meditate", 2)} " +
+                        "Fragmentos.", "Baixo");
                     break;
             }
+        }
+
+        private static int BoostedFragmentReward(
+            StoryPendingRandomEvent pending,
+            StoryRunSave save,
+            string choiceId,
+            int baseAmount)
+        {
+            return StoryRunRewardEconomy.Increase(
+                baseAmount,
+                save.seed,
+                pending.operationId + ":" + choiceId,
+                "run-fragments");
         }
 
         private static void AddCard(

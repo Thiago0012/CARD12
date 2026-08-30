@@ -1,4 +1,5 @@
 using ArcaneDuel.DuelEngine.Protocol;
+using ArcaneArena.Frontend;
 using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -168,6 +169,13 @@ namespace ArcaneArena
         {
             bool backPressed =
                 Keyboard.current?.escapeKey.wasPressedThisFrame == true;
+            if (backPressed &&
+                GameFrontendBootstrap.Instance?.HandlesDuelEscape == true)
+            {
+                // O frontend abre/fecha o menu principal do duelo com Esc.
+                // O mesmo toque não pode também cancelar uma decisão do Core.
+                backPressed = false;
+            }
             bool rightClick =
                 Mouse.current?.rightButton.wasPressedThisFrame == true;
             if (!backPressed && !rightClick)

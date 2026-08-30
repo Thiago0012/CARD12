@@ -80,5 +80,74 @@ namespace ArcaneDuel.Tests.EditMode
             Assert.That(coinDragon.Description,
                 Does.Not.Contain("Once per turn"));
         }
+
+        [Test]
+        public void PendulumDescriptionSeparatesItsSpellAndMonsterSections()
+        {
+            CardRecord card = CardDatabase.LoadDefault().Get(41546);
+            Assert.That(card.Description,
+                Does.Contain("[ Efeito de Pêndulo ]"));
+            Assert.That(card.Description,
+                Does.Contain("[ Efeito de Monstro ]"));
+            Assert.That(card.Description,
+                Does.Not.Contain("em revisão"));
+        }
+
+        [Test]
+        public void EntireCatalogIsPresentedWithoutTranslationReviewPlaceholders()
+        {
+            CardDatabase database = CardDatabase.LoadDefault();
+            foreach (CardRecord card in database.Cards)
+            {
+                Assert.That(
+                    LooksLikeUntranslatedEnglish(card.Description),
+                    Is.False,
+                    $"{card.Code} · {card.Name}");
+            }
+        }
+
+        [Test]
+        public void EveryPendulumCardSeparatesSpellAndMonsterText()
+        {
+            const uint pendulumType = 0x01000000U;
+            CardDatabase database = CardDatabase.LoadDefault();
+            foreach (CardRecord card in database.Cards)
+            {
+                if ((card.Type & pendulumType) == 0U)
+                    continue;
+
+                Assert.That(
+                    card.Description,
+                    Does.Contain("[ Efeito de Pêndulo ]"),
+                    $"{card.Code} · {card.Name}");
+                Assert.That(
+                    card.Description,
+                    Does.Contain("[ Efeito de Monstro ]"),
+                    $"{card.Code} · {card.Name}");
+            }
+        }
+
+        private static bool LooksLikeUntranslatedEnglish(string value)
+        {
+            string normalized = " " + (value ?? string.Empty)
+                .ToLowerInvariant()
+                .Replace('\r', ' ')
+                .Replace('\n', ' ') + " ";
+            string[] markers =
+            {
+                " once per ", " you can ", " your opponent ",
+                " this card ", " this turn ", " target 1 ",
+                " special summon", " normal summon", " from your ",
+                " to your hand", " on the field", " in your graveyard",
+                " destroy that", " banish that", " when this ",
+                " if this ", " during your "
+            };
+            foreach (string marker in markers)
+            {
+                if (normalized.Contains(marker))
+                    return true;
+            }
+            return false;
+        }
     }
 }

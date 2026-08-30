@@ -732,6 +732,15 @@ namespace ArcaneArena.Frontend
             if (_packOpeningSequenceActive)
                 return;
 
+            // Durante um duelo, Esc pertence ao próprio duelo. A ação de
+            // retorno da tela anterior pode ter sido registrada antes da
+            // transição e jamais deve encerrar a partida diretamente.
+            if (_duelPresentationVisible)
+            {
+                ToggleDuelMenu();
+                return;
+            }
+
             if (_deckEditorZoomOverlay != null &&
                 _deckEditorZoomOverlay.activeSelf)
             {
@@ -767,8 +776,6 @@ namespace ArcaneArena.Frontend
                 return;
             }
 
-            if (_duelPresentationVisible)
-                ToggleDuelMenu();
         }
 
         private void InitializeScenePresentation()
@@ -3904,6 +3911,7 @@ namespace ArcaneArena.Frontend
         {
             SetDuelPresentation(true);
             ClearScreen();
+            _shopBackAction = null;
             CreateArcaneActionButton(
                 _screenRoot,
                 "MENU",

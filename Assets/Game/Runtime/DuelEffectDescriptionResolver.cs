@@ -20,6 +20,10 @@ namespace ArcaneDuel.Game
             if (choice == null)
                 return string.Empty;
 
+            string contextualLabel = ContextualActionLabel(
+                choice,
+                database);
+
             if (TryResolve(
                     choice.DescriptionId,
                     database,
@@ -27,7 +31,9 @@ namespace ArcaneDuel.Game
                     out int effectNumber,
                     out _))
             {
-                string action = ActionLabel(choice.Label, effectNumber);
+                string action = ActionLabel(
+                    contextualLabel,
+                    effectNumber);
                 // Distinct effects can share a long prefix and diverge only
                 // near the end. A fixed cap would make legal Core candidates
                 // visually indistinguishable.
@@ -38,10 +44,56 @@ namespace ArcaneDuel.Game
                 database.TryGet(choice.CardCode, out CardRecord card) &&
                 !string.IsNullOrWhiteSpace(card.Name))
             {
-                return choice.Label + "\n" + CollapseWhitespace(card.Name);
+                return contextualLabel + "\n" +
+                       CollapseWhitespace(card.Name);
             }
 
-            return choice.Label ?? string.Empty;
+            return contextualLabel;
+        }
+
+        /// <summary>
+        /// Makes the three different uses of a Pendulum Monster explicit in
+        /// the action UI without changing the Core response.  The Core is
+        /// still the sole authority that decides which actions are legal.
+        /// </summary>
+        public static string ContextualActionLabel(
+            DuelChoice choice,
+            CardDatabase database)
+        {
+            string label = choice?.Label ?? string.Empty;
+            if (choice == null || choice.CardCode == 0 || database == null ||
+                !database.TryGet(choice.CardCode, out CardRecord card) ||
+                (card.Type & 0x01000000U) == 0U)
+            {
+                return label;
+            }
+
+            if (Contains(label, "Invocação especial") &&
+                (choice.Location & DuelLocation.SpellTrapZone) != 0)
+            {
+                return "Invocação-Pêndulo";
+            }
+
+            if (string.Equals(
+                    label,
+                    "Invocar",
+                    StringComparison.OrdinalIgnoreCase) &&
+                (choice.Location & DuelLocation.Hand) != 0)
+            {
+                return "Invocação-Normal";
+            }
+
+            if (choice.DescriptionId == 0 &&
+                string.Equals(
+                    label,
+                    "Ativar",
+                    StringComparison.OrdinalIgnoreCase) &&
+                (choice.Location & DuelLocation.Hand) != 0)
+            {
+                return "Ativar como Magia Pêndulo";
+            }
+
+            return label;
         }
 
         public static bool TryResolve(

@@ -118,6 +118,41 @@ namespace ArcaneDuel.Tests.EditMode
                 Is.EqualTo(new[] { prompt.Choices[0] }));
         }
 
+        [Test]
+        public void PendulumActionsExplainMonsterSpellAndPendulumUses()
+        {
+            const uint pendulumCard = 41546;
+            CardDatabase database = CardDatabase.LoadDefault();
+            DuelChoice normalSummon = LocatedChoice(
+                "Invocar",
+                pendulumCard,
+                (byte)DuelLocation.Hand);
+            DuelChoice activateScale = LocatedChoice(
+                "Ativar",
+                pendulumCard,
+                (byte)DuelLocation.Hand);
+            DuelChoice pendulumSummon = LocatedChoice(
+                "Invocação especial",
+                pendulumCard,
+                (byte)DuelLocation.SpellTrapZone);
+
+            Assert.That(
+                DuelEffectDescriptionResolver.ChoiceLabel(
+                    normalSummon,
+                    database),
+                Does.StartWith("Invocação-Normal"));
+            Assert.That(
+                DuelEffectDescriptionResolver.ChoiceLabel(
+                    activateScale,
+                    database),
+                Does.StartWith("Ativar como Magia Pêndulo"));
+            Assert.That(
+                DuelEffectDescriptionResolver.ChoiceLabel(
+                    pendulumSummon,
+                    database),
+                Does.StartWith("Invocação-Pêndulo"));
+        }
+
         private static DuelChoice DecodeEffectChoice(
             uint code,
             ulong descriptionId)
@@ -125,6 +160,19 @@ namespace ArcaneDuel.Tests.EditMode
             return DecodeEffectPrompt(code, descriptionId)
                 .Choices.First(choice =>
                     choice.Label.StartsWith("Ativar"));
+        }
+
+        private static DuelChoice LocatedChoice(
+            string label,
+            uint code,
+            byte location)
+        {
+            var choice = new DuelChoice();
+            SetProperty(choice, nameof(DuelChoice.Label), label);
+            SetProperty(choice, nameof(DuelChoice.CardCode), code);
+            SetProperty(choice, nameof(DuelChoice.HasLocation), true);
+            SetProperty(choice, nameof(DuelChoice.Location), location);
+            return choice;
         }
 
         private static DuelPrompt DecodeEffectPrompt(

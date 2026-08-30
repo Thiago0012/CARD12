@@ -299,8 +299,73 @@ namespace ArcaneDuel.Tests.EditMode
                     4400L + index,
                     "elite-" + index,
                     RogueliteNodeType.EliteDuel);
-                Assert.That(simple, Is.InRange(1, 5));
-                Assert.That(hard, Is.InRange(10, 25));
+                Assert.That(simple, Is.InRange(1, 7));
+                Assert.That(hard, Is.InRange(14, 36));
+            }
+        }
+
+        [Test]
+        public void StoryCurrencyBoost_VariesFromFortyToFortyFive_AndFloors()
+        {
+            var observedPercents = new HashSet<int>();
+            for (int index = 0; index < 128; index++)
+            {
+                string rewardId = "reward-" + index;
+                int percent = StoryRunRewardEconomy.ResolveBoostPercent(
+                    87123L, rewardId, "run-fragments");
+                int boosted = StoryRunRewardEconomy.Increase(
+                    7, 87123L, rewardId, "run-fragments");
+
+                observedPercents.Add(percent);
+                Assert.That(percent, Is.InRange(40, 45));
+                Assert.That(boosted, Is.EqualTo(7 * (100 + percent) / 100));
+            }
+
+            Assert.That(observedPercents.Count, Is.GreaterThan(1));
+        }
+
+        [Test]
+        public void PendingCombatReward_PreventsAnotherOpponentFromSpawning()
+        {
+            string directory = Path.Combine(
+                Path.GetTempPath(),
+                "arcane-story-pending-reward-tests-" +
+                Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try
+            {
+                var manager = new StoryRunManager(
+                    null,
+                    new StoryRunPersistence(Path.Combine(directory, "run.json")));
+                StoryStarterDeck starter = StoryStarterDeckService
+                    .BuildStarters().First();
+                manager.StartNew(531729L, starter.Main, starter.Extra,
+                    "test-profile", "Tester", "");
+
+                StoryMapNodeRecord combatNode = manager.CurrentMap.nodes.First(
+                    node => StoryRunManager.IsCombat(node.NodeType));
+                manager.Save.currentNodeId = combatNode.nodeId;
+                StoryRuntimeNode runtime = manager.RuntimeNode(combatNode.nodeId);
+                runtime.resolvedType = RogueliteNodeType.NormalDuel.ToString();
+                runtime.state = RogueliteNodeState.Current;
+                runtime.resolved = false;
+                manager.Save.pendingEncounter = null;
+                manager.Save.pendingReward = new StoryPendingReward
+                {
+                    rewardId = "post-duel-reward",
+                    sourceNodeId = combatNode.nodeId,
+                    cardIds = new List<string> { "test-card" }
+                };
+
+                Assert.That(manager.PrepareCurrentNode(), Is.Null);
+                Assert.That(manager.Save.pendingEncounter, Is.Null);
+                Assert.That(manager.Save.pendingReward.rewardId,
+                    Is.EqualTo("post-duel-reward"));
+            }
+            finally
+            {
+                if (Directory.Exists(directory))
+                    Directory.Delete(directory, true);
             }
         }
 

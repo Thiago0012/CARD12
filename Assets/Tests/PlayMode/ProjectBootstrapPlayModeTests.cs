@@ -329,6 +329,71 @@ namespace ArcaneDuel.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator ShopRestoresCatalogPositionAndPurchasedPackContext()
+        {
+            SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
+            yield return null;
+            yield return null;
+
+            MonoBehaviour frontend = Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Include)
+                .FirstOrDefault(candidate =>
+                    candidate.GetType().Name == "GameFrontendBootstrap");
+            Assert.That(frontend, Is.Not.Null);
+
+            const BindingFlags hidden =
+                BindingFlags.Instance | BindingFlags.NonPublic;
+            MethodInfo showShop = frontend.GetType().GetMethod(
+                "ShowEconomyShop",
+                hidden);
+            MethodInfo captureScroll = frontend.GetType().GetMethod(
+                "CaptureShopCatalogPosition",
+                hidden);
+            MethodInfo returnToPack = frontend.GetType().GetMethod(
+                "ReturnToPurchasedPack",
+                hidden);
+            Assert.That(showShop, Is.Not.Null);
+            Assert.That(captureScroll, Is.Not.Null);
+            Assert.That(returnToPack, Is.Not.Null);
+
+            showShop.Invoke(frontend, null);
+            yield return null;
+
+            MonoBehaviour shop = Object.FindObjectsByType<MonoBehaviour>(
+                    FindObjectsInactive.Include)
+                .FirstOrDefault(candidate =>
+                    candidate.GetType().FullName ==
+                    "ArcaneArena.Frontend.ShopSceneView");
+            Assert.That(shop, Is.Not.Null);
+            ScrollRect scroll = shop.GetType().GetProperty("CatalogScroll")
+                ?.GetValue(shop) as ScrollRect;
+            Assert.That(scroll, Is.Not.Null);
+            scroll.verticalNormalizedPosition = 0.37f;
+            captureScroll.Invoke(frontend, new object[] { null });
+
+            showShop.Invoke(frontend, null);
+            yield return null;
+            Assert.That(scroll.verticalNormalizedPosition,
+                Is.EqualTo(0.37f).Within(0.02f));
+
+            System.Type packCatalogType = frontend.GetType().Assembly.GetType(
+                "ArcaneArena.Frontend.ShopPackCatalog");
+            IEnumerable packs = packCatalogType?.GetProperty(
+                    "Packs",
+                    BindingFlags.Static | BindingFlags.Public)
+                ?.GetValue(null) as IEnumerable;
+            object firstPack = packs?.Cast<object>().FirstOrDefault();
+            string packId = firstPack?.GetType().GetProperty("PackId")
+                ?.GetValue(firstPack) as string;
+            Assert.That(packId, Is.Not.Null.And.Not.Empty);
+
+            returnToPack.Invoke(frontend, new object[] { packId });
+            yield return null;
+            Assert.That(GameObject.Find("Resumo do Pacote"), Is.Not.Null,
+                "Concluir a abertura deve retornar ao pacote comprado.");
+        }
+
+        [UnityTest]
         public IEnumerator ShopUsesTheNewBackgroundCardsAndCurrencyArtwork()
         {
             SceneManager.LoadScene(ProjectIdentity.MainMenuScene);
