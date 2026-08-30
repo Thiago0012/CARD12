@@ -60,6 +60,20 @@ namespace ArcaneArena.Frontend
             public long wins;
             public long losses;
             public long draws;
+            public int privateProfileSchemaVersion;
+            public long privateProfileRevisionUtcMilliseconds;
+            public int coinBalance;
+            public int ownedIconCount;
+            public int ownedArtworkCount;
+            public int ownedCardCopies;
+            public int uniqueCardCount;
+            public int deckCount;
+            public int unlockedDeckCount;
+            public int craftPointsN;
+            public int craftPointsR;
+            public int craftPointsSR;
+            public int craftPointsUR;
+            public string equippedArtworkId;
             public string buildVersion;
             public string platform;
         }
@@ -83,6 +97,19 @@ namespace ArcaneArena.Frontend
         private long _wins;
         private long _losses;
         private long _draws;
+        private int _coinBalance;
+        private int _ownedIconCount;
+        private int _ownedArtworkCount;
+        private int _ownedCardCopies;
+        private int _uniqueCardCount;
+        private int _deckCount;
+        private int _unlockedDeckCount;
+        private int _craftPointsN;
+        private int _craftPointsR;
+        private int _craftPointsSR;
+        private int _craftPointsUR;
+        private string _equippedArtworkId =
+            ProfileArtworkCatalog.DefaultArtworkId;
         private long _publicProfileRevisionUtcMilliseconds;
         private bool _publicProfileReadyForUpload;
         private bool _authenticationEventsSubscribed;
@@ -250,6 +277,18 @@ namespace ArcaneArena.Frontend
             long wins,
             long losses,
             long draws,
+            int coinBalance,
+            int ownedIconCount,
+            int ownedArtworkCount,
+            int ownedCardCopies,
+            int uniqueCardCount,
+            int deckCount,
+            int unlockedDeckCount,
+            int craftPointsN,
+            int craftPointsR,
+            int craftPointsSR,
+            int craftPointsUR,
+            string equippedArtworkId,
             long revisionUtcMilliseconds,
             bool readyForUpload)
         {
@@ -261,6 +300,19 @@ namespace ArcaneArena.Frontend
             _instance._wins = Math.Max(0, wins);
             _instance._losses = Math.Max(0, losses);
             _instance._draws = Math.Max(0, draws);
+            _instance._coinBalance = Math.Max(0, coinBalance);
+            _instance._ownedIconCount = Math.Max(0, ownedIconCount);
+            _instance._ownedArtworkCount = Math.Max(0, ownedArtworkCount);
+            _instance._ownedCardCopies = Math.Max(0, ownedCardCopies);
+            _instance._uniqueCardCount = Math.Max(0, uniqueCardCount);
+            _instance._deckCount = Math.Max(0, deckCount);
+            _instance._unlockedDeckCount = Math.Max(0, unlockedDeckCount);
+            _instance._craftPointsN = Math.Max(0, craftPointsN);
+            _instance._craftPointsR = Math.Max(0, craftPointsR);
+            _instance._craftPointsSR = Math.Max(0, craftPointsSR);
+            _instance._craftPointsUR = Math.Max(0, craftPointsUR);
+            _instance._equippedArtworkId = ProfileArtworkCatalog.ResolveId(
+                equippedArtworkId);
             _instance._publicProfileRevisionUtcMilliseconds = Math.Max(
                 0,
                 revisionUtcMilliseconds);
@@ -478,6 +530,24 @@ namespace ArcaneArena.Frontend
                     wins = _wins,
                     losses = _losses,
                     draws = _draws,
+                    privateProfileSchemaVersion =
+                        _publicProfileReadyForUpload ? 1 : 0,
+                    privateProfileRevisionUtcMilliseconds =
+                        _publicProfileReadyForUpload
+                            ? _publicProfileRevisionUtcMilliseconds
+                            : 0,
+                    coinBalance = _coinBalance,
+                    ownedIconCount = _ownedIconCount,
+                    ownedArtworkCount = _ownedArtworkCount,
+                    ownedCardCopies = _ownedCardCopies,
+                    uniqueCardCount = _uniqueCardCount,
+                    deckCount = _deckCount,
+                    unlockedDeckCount = _unlockedDeckCount,
+                    craftPointsN = _craftPointsN,
+                    craftPointsR = _craftPointsR,
+                    craftPointsSR = _craftPointsSR,
+                    craftPointsUR = _craftPointsUR,
+                    equippedArtworkId = _equippedArtworkId,
                     buildVersion = Application.version ?? string.Empty,
                     platform = Application.platform.ToString()
                 };
