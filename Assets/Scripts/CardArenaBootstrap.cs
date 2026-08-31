@@ -190,6 +190,7 @@ namespace ArcaneArena
 
         public bool IsPrimaryDuelInterface => primaryDuelInterface;
         public bool IsPresentationReady => presentationReady;
+        public bool IsDuelFinished => core?.IsFinished == true;
         public string InitializationFailure =>
             core?.InitializationFailure ?? string.Empty;
         public CardCatalog CardCatalog => cardCatalog;
@@ -426,6 +427,7 @@ namespace ArcaneArena
             RecoverStalledTurnFlowPresentation();
             UpdateCardPresentationAcceleration();
             UpdateOnlineInteractionWaitStatus();
+            RecoverStalledHandInteraction();
             ApplyResponsiveHandLayout(false);
             if (core == null || state == null) return;
             UpdateDeveloperMenuShortcut();
@@ -2345,6 +2347,38 @@ namespace ArcaneArena
                 card?.SetInteraction(!disabled);
             if (disabled)
                 ClearHandSelection();
+        }
+
+        private void RecoverStalledHandInteraction()
+        {
+            if (handInteractionGroup == null || core == null ||
+                handPlacementMode || InteractionLocked)
+                return;
+            if (handInteractionGroup.interactable &&
+                handInteractionGroup.blocksRaycasts)
+                return;
+
+            handInteractionGroup.interactable = true;
+            handInteractionGroup.blocksRaycasts = true;
+            handInteractionGroup.alpha = 1f;
+            foreach (CardView card in handViews)
+                card?.SetInteraction(true);
+            RefreshHandLegalGlows();
+            bool online = DuelOnlineSession.Instance
+                ?.IsOnlineDuelActive == true;
+            RuntimeDiagnosticRecorder.Record(
+                "F08",
+                "MultiplayerInput",
+                nameof(CardArenaBootstrap),
+                "A mão foi reativada após a liberação da trava de apresentação.",
+                RuntimeDiagnosticSeverity.Warning,
+                mode: !online
+                    ? "offline"
+                    : core.IsNetworkReplica
+                        ? "online-replica"
+                        : "online-host",
+                details: $"prompt={core.CurrentPrompt?.RequestId ?? 0}; " +
+                         $"message={core.CurrentPrompt?.Message}");
         }
 
         private void ScheduleAutomaticPromptChoice(

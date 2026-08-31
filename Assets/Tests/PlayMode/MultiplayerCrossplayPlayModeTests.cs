@@ -742,6 +742,22 @@ namespace ArcaneDuel.Tests.PlayMode
                 Is.EqualTo(playerTwoHand.Length),
                 "Player two must see every card in their local hand.");
 
+            CanvasGroup handInteraction = arena.GetType()
+                .GetField(
+                    "handInteractionGroup",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(arena) as CanvasGroup;
+            Assert.That(handInteraction, Is.Not.Null);
+            controller.SetPresentationDecisionLocked(true);
+            yield return null;
+            Assert.That(handInteraction.interactable, Is.False,
+                "A trava do transporte deve bloquear a mão enquanto a resposta é confirmada.");
+            controller.SetPresentationDecisionLocked(false);
+            yield return null;
+            Assert.That(handInteraction.interactable, Is.True,
+                "A confirmação do snapshot deve reativar imediatamente a mão do convidado.");
+            Assert.That(handInteraction.blocksRaycasts, Is.True);
+
             byte[] forwardedResponse = null;
             ulong forwardedRequestId = 0;
             Action<byte[], ulong> previousBridge =

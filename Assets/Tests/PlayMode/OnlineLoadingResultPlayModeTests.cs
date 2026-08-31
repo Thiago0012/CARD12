@@ -12,6 +12,51 @@ namespace ArcaneDuel.Tests.PlayMode
 {
     public sealed class OnlineLoadingResultPlayModeTests
     {
+        [Test]
+        public void RankMasterySpinFinishesInTheOfficialUprightOrientation()
+        {
+            Type rules = TypeByName(
+                "ArcaneArena.DuelRankMasteryPresentationRules");
+            FieldInfo duration = rules.GetField(
+                "SpinDuration",
+                BindingFlags.Public | BindingFlags.Static);
+            MethodInfo resolve = rules.GetMethod(
+                "ResolveSpinDegrees",
+                BindingFlags.Public | BindingFlags.Static);
+            float finalRotation = (float)resolve.Invoke(
+                null,
+                new object[] { (float)duration.GetRawConstantValue() });
+            Assert.That(
+                Mathf.Abs(Mathf.DeltaAngle(0f, finalRotation)),
+                Is.LessThan(0.01f),
+                "O emblema precisa terminar o giro na orientação original.");
+        }
+
+        [Test]
+        public void PromotionCinematicNormalizesLargeBadgesInsideTheCamera()
+        {
+            Type cinematic = TypeByName(
+                "ArcaneArena.Multiplayer.RankPromotionCinematic");
+            MethodInfo resolve = cinematic.GetMethod(
+                "ResolveBadgeScale",
+                BindingFlags.Public | BindingFlags.Static);
+            FieldInfo targetSize = cinematic.GetField(
+                "BadgeTargetWorldSize",
+                BindingFlags.Public | BindingFlags.Static);
+            Sprite badge = Resources.Load<Sprite>(
+                "Frontend/Ranked/Badges/Gold");
+            Assert.That(badge, Is.Not.Null);
+            float scale = (float)resolve.Invoke(null, new object[] { badge });
+            float largestSide = Mathf.Max(
+                badge.bounds.size.x,
+                badge.bounds.size.y);
+            Assert.That(scale, Is.LessThan(1f),
+                "As artes grandes não podem manter a escala fixa que cortava suas bordas.");
+            Assert.That(
+                largestSide * scale,
+                Is.EqualTo((float)targetSize.GetRawConstantValue()).Within(0.001f));
+        }
+
         [UnityTest]
         public IEnumerator LoadingCanvasBlocksTheWholeViewportWithUnscaledTime()
         {
@@ -157,6 +202,24 @@ namespace ArcaneDuel.Tests.PlayMode
                 Assert.That(fullscreen, Is.Not.Null);
                 Assert.That(fullscreen.anchorMin, Is.EqualTo(Vector2.zero));
                 Assert.That(fullscreen.anchorMax, Is.EqualTo(Vector2.one));
+                Assert.That(fullscreen.parent, Is.EqualTo(
+                    root.GetComponentInChildren<Canvas>(true).transform),
+                    "A promoção deve cobrir o Canvas 1920x1080 inteiro, não apenas o painel ranqueado.");
+                RectTransform cinematicViewport = FindDescendant(
+                    root.transform,
+                    "RankPromotionCinematicViewport") as RectTransform;
+                Assert.That(cinematicViewport, Is.Not.Null);
+                Assert.That(cinematicViewport.anchorMin,
+                    Is.EqualTo(Vector2.zero));
+                Assert.That(cinematicViewport.anchorMax,
+                    Is.EqualTo(Vector2.one));
+                Assert.That(cinematicViewport.offsetMin,
+                    Is.EqualTo(Vector2.zero));
+                Assert.That(cinematicViewport.offsetMax,
+                    Is.EqualTo(Vector2.zero));
+                Assert.That(cinematicViewport.GetComponent<Mask>(), Is.Null);
+                Assert.That(cinematicViewport.GetComponent<RectMask2D>(), Is.Null,
+                    "A cena do elo não pode ser recortada por uma máscara quadrada.");
 
                 skipButton.onClick.Invoke();
                 yield return null;

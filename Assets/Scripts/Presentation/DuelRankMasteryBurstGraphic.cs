@@ -58,6 +58,34 @@ namespace ArcaneArena.Presentation
                 animationTime * -48f,
                 WithAlpha(accent, bloom * (0.28f + (1f - wave) * 0.46f)));
 
+            // Raios longos usam a diagonal do Canvas e atravessam a tela.
+            // Assim a composição continua claramente fullscreen mesmo em
+            // 16:9, sem formar uma caixa quadrada visual ao redor do elo.
+            float screenRadius = Mathf.Sqrt(
+                bounds.width * bounds.width + bounds.height * bounds.height) *
+                0.54f;
+            const int screenRayCount = 16;
+            for (int index = 0; index < screenRayCount; index++)
+            {
+                float angle = (index / (float)screenRayCount * 360f +
+                               animationTime * (index % 2 == 0 ? 5f : -4f)) *
+                              Mathf.Deg2Rad;
+                Vector2 direction = new(Mathf.Cos(angle), Mathf.Sin(angle));
+                Vector2 tangent = new(-direction.y, direction.x);
+                float shimmer = 0.5f + 0.5f * Mathf.Sin(
+                    animationTime * 8f + index * 1.71f);
+                AddRay(
+                    vertexHelper,
+                    center + direction * radius * 0.18f,
+                    center + direction * screenRadius,
+                    tangent,
+                    Mathf.Max(0.75f, radius * (0.0025f + shimmer * 0.002f)),
+                    WithAlpha(
+                        index % 4 == 0 ? Color.white : accent,
+                        bloom * (1f - wave * 0.55f) *
+                        Mathf.Lerp(0.055f, 0.16f, shimmer)));
+            }
+
             const int sparkCount = 18;
             for (int index = 0; index < sparkCount; index++)
             {

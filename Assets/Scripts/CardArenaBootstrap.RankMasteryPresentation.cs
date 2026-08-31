@@ -1,5 +1,6 @@
 using System.Collections;
 using ArcaneArena.Frontend;
+using ArcaneArena.Multiplayer;
 using ArcaneArena.Presentation;
 using ArcaneDuel.Game.Competitive;
 using UnityEngine;
@@ -22,7 +23,10 @@ namespace ArcaneArena
         {
             float progress = Mathf.Clamp01(elapsed / SpinDuration);
             float eased = 1f - Mathf.Pow(1f - progress, 3f);
-            return -900f * eased;
+            // Três voltas completas: a animação continua rápida, mas termina
+            // exatamente na orientação oficial do emblema. -900° encerrava
+            // meia volta adiante e deixava o elo de cabeça para baixo.
+            return -1080f * eased;
         }
 
         public static float ResolveOpacity(float elapsed)
@@ -41,9 +45,13 @@ namespace ArcaneArena
     {
         private GameObject rankMasteryRoot;
         private Coroutine rankMasteryRoutine;
+        private int rankAnimationPreviewKeyPresses;
+        private float lastRankAnimationPreviewKeyTime = -100f;
+        private OnlineDuelResultPresenter rankAnimationPreviewPresenter;
 
         private void UpdateRankMasteryShortcut()
         {
+            UpdateRankAnimationPreviewShortcut();
             if (Mouse.current?.middleButton.wasPressedThisFrame != true ||
                 frame == null || localLifePanel == null ||
                 localDuelIdentity == null || core == null || core.IsFinished ||
@@ -53,6 +61,58 @@ namespace ArcaneArena
             }
 
             StartRankMasteryPresentation();
+        }
+
+        private void UpdateRankAnimationPreviewShortcut()
+        {
+            Keyboard keyboard = Keyboard.current;
+            bool online = DuelOnlineSession.Instance
+                ?.IsOnlineDuelActive == true;
+            if (keyboard == null || core == null || core.IsFinished || online)
+            {
+                rankAnimationPreviewKeyPresses = 0;
+                return;
+            }
+            if (keyboard.lKey.wasPressedThisFrame != true)
+                return;
+
+            float now = Time.unscaledTime;
+            if (now - lastRankAnimationPreviewKeyTime > 2f)
+                rankAnimationPreviewKeyPresses = 0;
+            lastRankAnimationPreviewKeyTime = now;
+            rankAnimationPreviewKeyPresses++;
+            if (rankAnimationPreviewKeyPresses < 5)
+                return;
+            rankAnimationPreviewKeyPresses = 0;
+
+            if (InteractionLocked)
+            {
+                SetStatus(
+                    "Aguarde a decisão atual terminar para visualizar os elos.",
+                    Muted);
+                return;
+            }
+            rankAnimationPreviewPresenter ??=
+                GetComponent<OnlineDuelResultPresenter>() ??
+                gameObject.AddComponent<OnlineDuelResultPresenter>();
+            if (rankAnimationPreviewPresenter
+                .IsDevelopmentPreviewPlaying)
+                return;
+
+            criticalInteractionLocked = true;
+            core.SetPresentationDecisionLocked(true);
+            rankAnimationPreviewPresenter.PlayDevelopmentRankShowcase(
+                CompleteRankAnimationPreview);
+        }
+
+        private void CompleteRankAnimationPreview()
+        {
+            criticalInteractionLocked = false;
+            core?.SetPresentationDecisionLocked(false);
+            ResetPromptPresentationIdentity();
+            observedPrompt = null;
+            if (presentationReady)
+                RefreshEverything(true);
         }
 
         private void StartRankMasteryPresentation()

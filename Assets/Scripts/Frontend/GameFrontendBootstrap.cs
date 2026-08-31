@@ -134,6 +134,9 @@ namespace ArcaneArena.Frontend
         private DeckRecord _selectedDeck;
         private DeckRecord _editingDeck;
         private bool _duelPresentationVisible;
+        private int _rankAnimationPreviewKeyPresses;
+        private float _lastRankAnimationPreviewKeyTime;
+        private OnlineDuelResultPresenter _rankAnimationPreviewPresenter;
         private bool _editorRefreshQueued;
         private bool _accountBootstrapPending;
         private string _catalogSearch = string.Empty;
@@ -725,6 +728,17 @@ namespace ArcaneArena.Frontend
         private void Update()
         {
             UpdateMissionCountdown();
+            UpdateRankAnimationPreviewShortcut();
+            if (_rankAnimationPreviewPresenter != null &&
+                _rankAnimationPreviewPresenter.IsDevelopmentPreviewPlaying)
+            {
+                if (Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+                {
+                    _rankAnimationPreviewPresenter
+                        .CancelDevelopmentRankShowcase();
+                }
+                return;
+            }
             if (Keyboard.current == null ||
                 !Keyboard.current.escapeKey.wasPressedThisFrame)
                 return;
@@ -866,6 +880,43 @@ namespace ArcaneArena.Frontend
                     break;
                 }
             }
+        }
+
+        private void UpdateRankAnimationPreviewShortcut()
+        {
+            Keyboard keyboard = Keyboard.current;
+            bool duelStillRunning = _duelPresentationVisible &&
+                                    _duelArena?.IsDuelFinished != true;
+            if (duelStillRunning || keyboard == null)
+            {
+                _rankAnimationPreviewKeyPresses = 0;
+                return;
+            }
+            if (keyboard.lKey.wasPressedThisFrame != true)
+                return;
+            GameObject selected = EventSystem.current
+                ?.currentSelectedGameObject;
+            if (selected != null &&
+                selected.GetComponentInParent<InputField>() != null)
+            {
+                _rankAnimationPreviewKeyPresses = 0;
+                return;
+            }
+
+            float now = Time.unscaledTime;
+            if (now - _lastRankAnimationPreviewKeyTime > 2f)
+                _rankAnimationPreviewKeyPresses = 0;
+            _lastRankAnimationPreviewKeyTime = now;
+            _rankAnimationPreviewKeyPresses++;
+            if (_rankAnimationPreviewKeyPresses < 5)
+                return;
+
+            _rankAnimationPreviewKeyPresses = 0;
+            _rankAnimationPreviewPresenter ??=
+                GetComponent<OnlineDuelResultPresenter>() ??
+                gameObject.AddComponent<OnlineDuelResultPresenter>();
+            _rankAnimationPreviewPresenter
+                .PlayDevelopmentRankShowcase();
         }
 
         private void BuildCanvas()

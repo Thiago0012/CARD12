@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using ArcaneArena.Frontend;
 using ArcaneArena.Presentation;
@@ -93,6 +94,10 @@ namespace ArcaneArena.Multiplayer
         private GameObject rankedRoot;
         private Button skipButton;
         private RankTransitionAnimator rankTransition;
+        private RankPromotionCinematic rankCinematic;
+        private GameObject rankPanel;
+        private Coroutine developmentPreviewRoutine;
+        private Action developmentPreviewCompleted;
         private GameObject summaryRoot;
         private Text summaryTitle;
         private readonly Text[] summaryStats = new Text[3];
@@ -105,6 +110,8 @@ namespace ArcaneArena.Multiplayer
         public bool IsVisible => canvas != null && canvas.gameObject.activeSelf;
         public bool ReturnButtonInteractable =>
             returnButton != null && returnButton.interactable;
+        public bool IsDevelopmentPreviewPlaying =>
+            developmentPreviewRoutine != null;
 
         public static bool CanPresentRankTransition(
             RankChangeReceipt receipt)
@@ -137,6 +144,7 @@ namespace ArcaneArena.Multiplayer
             DuelResultSummary summary,
             Action onReturn)
         {
+            CancelDevelopmentRankShowcase();
             EnsureView();
             rankedRoot.SetActive(false);
             skipButton.gameObject.SetActive(false);
@@ -189,6 +197,7 @@ namespace ArcaneArena.Multiplayer
             DuelResultSummary summary,
             Action onReturn)
         {
+            CancelDevelopmentRankShowcase();
             if (!CanPresentRankTransition(committedReceipt))
             {
                 ShowInternal(result, detail, summary, onReturn);
@@ -218,6 +227,7 @@ namespace ArcaneArena.Multiplayer
 
         public void Hide()
         {
+            CancelDevelopmentRankShowcase();
             returnAction = null;
             DuelResultAudioPlayer.StopPlayback();
             if (skipButton != null)
@@ -226,6 +236,65 @@ namespace ArcaneArena.Multiplayer
                 summaryRoot.SetActive(false);
             if (canvas != null)
                 canvas.gameObject.SetActive(false);
+        }
+
+        public void PlayDevelopmentRankShowcase(
+            Action onCompleted = null)
+        {
+            EnsureView();
+            if (developmentPreviewRoutine != null)
+                return;
+            developmentPreviewCompleted = onCompleted;
+            returnAction = null;
+            titleLabel.gameObject.SetActive(false);
+            detailLabel.gameObject.SetActive(false);
+            summaryRoot?.SetActive(false);
+            returnButton.gameObject.SetActive(false);
+            skipButton.gameObject.SetActive(false);
+            rankedRoot.SetActive(true);
+            rankPanel?.SetActive(false);
+            canvas.gameObject.SetActive(true);
+            ApplySafeArea();
+            developmentPreviewRoutine = StartCoroutine(
+                PlayDevelopmentRankShowcaseSequence());
+        }
+
+        public void CancelDevelopmentRankShowcase()
+        {
+            if (developmentPreviewRoutine == null)
+                return;
+            StopCoroutine(developmentPreviewRoutine);
+            developmentPreviewRoutine = null;
+            FinishDevelopmentRankShowcase();
+        }
+
+        private IEnumerator PlayDevelopmentRankShowcaseSequence()
+        {
+            for (int tierValue = (int)RankTier.Wood;
+                 tierValue < (int)RankTier.GrandMaster;
+                 tierValue++)
+            {
+                RankTier tier = (RankTier)tierValue;
+                RankTier next = (RankTier)(tierValue + 1);
+                yield return rankCinematic.Play(tier, next, true);
+            }
+            developmentPreviewRoutine = null;
+            FinishDevelopmentRankShowcase();
+        }
+
+        private void FinishDevelopmentRankShowcase()
+        {
+            rankCinematic?.Hide();
+            rankPanel?.SetActive(true);
+            rankedRoot?.SetActive(false);
+            skipButton?.gameObject.SetActive(false);
+            if (returnButton != null)
+                returnButton.gameObject.SetActive(true);
+            if (canvas != null)
+                canvas.gameObject.SetActive(false);
+            Action completed = developmentPreviewCompleted;
+            developmentPreviewCompleted = null;
+            completed?.Invoke();
         }
 
         private void Update()
@@ -311,7 +380,10 @@ namespace ArcaneArena.Multiplayer
             buttonText.text = "VOLTAR AO MENU";
             buttonText.color = Color.white;
             BuildSummaryView(safe.transform, font);
-            BuildRankedView(safe.transform, font);
+            BuildRankedView(
+                safe.transform,
+                canvasObject.transform,
+                font);
             canvasObject.SetActive(false);
         }
 
@@ -478,7 +550,10 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
-        private void BuildRankedView(Transform parent, Font font)
+        private void BuildRankedView(
+            Transform parent,
+            Transform fullscreenParent,
+            Font font)
         {
             rankedRoot = new GameObject(
                 "RankedResult",
@@ -495,6 +570,7 @@ namespace ArcaneArena.Multiplayer
                 Color.clear,
                 new Vector2(0.05f, 0.02f),
                 new Vector2(0.95f, 0.98f));
+            rankPanel = panel.gameObject;
             AddModernSurface(
                 panel,
                 "Superfície do Resultado Ranqueado",
@@ -649,7 +725,7 @@ namespace ArcaneArena.Multiplayer
             remaining.color = new Color(0.65f, 0.80f, 0.93f, 1f);
 
             Image cinematicBackdrop = CreateImage(
-                parent,
+                fullscreenParent,
                 "RankPromotionFullscreen",
                 new Color(0.001f, 0.004f, 0.012f, 0.97f),
                 Vector2.zero,
@@ -669,8 +745,8 @@ namespace ArcaneArena.Multiplayer
             burstObject.transform.SetParent(cinematicBackdrop.transform, false);
             Stretch(
                 burstObject.GetComponent<RectTransform>(),
-                new Vector2(0.12f, 0.02f),
-                new Vector2(0.88f, 0.98f));
+                Vector2.zero,
+                Vector2.one);
             DuelRankMasteryBurstGraphic cinematicBurst =
                 burstObject.GetComponent<DuelRankMasteryBurstGraphic>();
             cinematicBurst.raycastTarget = false;
@@ -678,13 +754,19 @@ namespace ArcaneArena.Multiplayer
             RawImage cinematicViewport = CreateRawImage(
                 cinematicBackdrop.transform,
                 "RankPromotionCinematicViewport",
-                new Vector2(0.255f, 0.055f),
-                new Vector2(0.745f, 0.945f));
-            AspectRatioFitter cinematicAspect =
-                cinematicViewport.gameObject.AddComponent<AspectRatioFitter>();
-            cinematicAspect.aspectMode =
-                AspectRatioFitter.AspectMode.FitInParent;
-            cinematicAspect.aspectRatio = 1f;
+                Vector2.zero,
+                Vector2.one);
+            RectTransform cinematicViewportRect =
+                cinematicViewport.rectTransform;
+            cinematicViewportRect.pivot = new Vector2(0.5f, 0.5f);
+            cinematicViewportRect.anchoredPosition = Vector2.zero;
+            cinematicViewportRect.offsetMin = Vector2.zero;
+            cinematicViewportRect.offsetMax = Vector2.zero;
+            // A cena 3D é renderizada sobre uma textura transparente 16:9.
+            // O RawImage precisa ocupar o Canvas inteiro: limitar a saída a
+            // um quadrado recortava justamente as pontas dos emblemas mais
+            // largos, embora a atmosfera atrás dele já fosse fullscreen.
+            cinematicViewport.uvRect = new Rect(0f, 0f, 1f, 1f);
             Text cinematicTitle = CreateText(
                 cinematicBackdrop.transform,
                 "RankPromotionTitle",
@@ -705,7 +787,7 @@ namespace ArcaneArena.Multiplayer
             cinematicSubtitle.color = Color.white;
 
             Image skipImage = CreateImage(
-                parent,
+                fullscreenParent,
                 "SkipRankAnimation",
                 Color.clear,
                 new Vector2(0.72f, 0.025f),
@@ -755,6 +837,7 @@ namespace ArcaneArena.Multiplayer
                 cinematicBurst,
                 cinematicTitle,
                 cinematicSubtitle);
+            rankCinematic = cinematic;
             rankTransition =
                 rankedRoot.AddComponent<RankTransitionAnimator>();
             rankTransition.Initialize(

@@ -1926,11 +1926,20 @@ namespace ArcaneDuel.Game
 
         public void SetPresentationDecisionLocked(bool locked)
         {
+            bool changed = presentationDecisionLocked != locked;
             presentationDecisionLocked = locked;
             if (locked && !networkReplica)
                 duelClockRunning = false;
             if (!locked)
                 nextAutoDecision = Time.unscaledTime + 0.12f;
+            if (changed)
+            {
+                // Network acknowledgements release this lock after applying
+                // the snapshot. Notify the authored arena again so its hand
+                // CanvasGroup is re-enabled immediately instead of remaining
+                // in the disabled state captured during ApplyNetworkState.
+                PresentationStateChanged?.Invoke();
+            }
         }
 
         public void PresentNetworkEvent(DuelEvent duelEvent)

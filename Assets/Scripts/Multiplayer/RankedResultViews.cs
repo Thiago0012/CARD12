@@ -528,11 +528,18 @@ namespace ArcaneArena.Multiplayer
     public sealed class RankPromotionCinematic : MonoBehaviour
     {
         private const int CinematicLayer = 5; // UI: isolado da câmera da arena.
+        public const int OutputWidth = 1920;
+        public const int OutputHeight = 1080;
+        public const float BadgeTargetWorldSize = 3.55f;
 
         private sealed class BadgeModel
         {
             public Transform root;
+            public Transform badgeAssemblyRoot;
             public SpriteRenderer badge;
+            public SpriteRenderer[] badgeFragments;
+            public Sprite[] runtimeFragmentSprites;
+            public Vector3[] badgeFragmentPositions;
             public Renderer[] body;
             public Vector3[] bodyPositions;
             public Quaternion[] bodyRotations;
@@ -712,22 +719,25 @@ namespace ArcaneArena.Multiplayer
             renderCamera.clearFlags = CameraClearFlags.SolidColor;
             renderCamera.backgroundColor = Color.clear;
             renderCamera.cullingMask = 1 << CinematicLayer;
-            renderCamera.fieldOfView = 31f;
+            renderCamera.fieldOfView = 34f;
+            renderCamera.aspect = OutputWidth / (float)OutputHeight;
             renderCamera.nearClipPlane = 0.05f;
             renderCamera.farClipPlane = 32f;
             renderCamera.allowHDR = false;
             renderCamera.allowMSAA = false;
-            renderCamera.transform.localPosition = new Vector3(0f, 0.04f, -7.35f);
+            renderCamera.transform.localPosition = new Vector3(0f, 0.04f, -9.15f);
             renderCamera.transform.localRotation = Quaternion.identity;
 
             renderTexture = new RenderTexture(
-                512,
-                512,
+                OutputWidth,
+                OutputHeight,
                 16,
                 RenderTextureFormat.ARGB32)
             {
                 name = "Rank Promotion Cinematic Target",
-                filterMode = FilterMode.Bilinear
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                antiAliasing = 1
             };
             renderTexture.Create();
             renderCamera.targetTexture = renderTexture;
@@ -840,22 +850,53 @@ namespace ArcaneArena.Multiplayer
                     renderers);
             }
 
+            GameObject badgeAssemblyObject = new GameObject(
+                "Montagem do emblema");
+            badgeAssemblyObject.transform.SetParent(root, false);
+            badgeAssemblyObject.transform.localPosition =
+                new Vector3(0f, 0f, -0.16f);
+            badgeAssemblyObject.layer = CinematicLayer;
+
             GameObject badgeObject = new GameObject(
                 "Emblema de elo",
                 typeof(SpriteRenderer));
-            badgeObject.transform.SetParent(root, false);
-            badgeObject.transform.localPosition = new Vector3(0f, 0f, -0.16f);
-            badgeObject.transform.localScale = Vector3.one * 1.55f;
+            badgeObject.transform.SetParent(
+                badgeAssemblyObject.transform,
+                false);
+            badgeObject.transform.localPosition = Vector3.zero;
+            badgeObject.transform.localScale = Vector3.one;
             badgeObject.layer = CinematicLayer;
             SpriteRenderer badge = badgeObject.GetComponent<SpriteRenderer>();
             badge.sortingOrder = 3;
             badge.color = Color.white;
 
+            const int fragmentCount = 9;
+            var badgeFragments = new SpriteRenderer[fragmentCount];
+            for (int index = 0; index < fragmentCount; index++)
+            {
+                GameObject fragmentObject = new GameObject(
+                    $"Fragmento visual do emblema {index + 1}",
+                    typeof(SpriteRenderer));
+                fragmentObject.transform.SetParent(
+                    badgeAssemblyObject.transform,
+                    false);
+                fragmentObject.layer = CinematicLayer;
+                SpriteRenderer fragment =
+                    fragmentObject.GetComponent<SpriteRenderer>();
+                fragment.sortingOrder = 4;
+                fragment.enabled = false;
+                badgeFragments[index] = fragment;
+            }
+
             Renderer[] body = renderers.ToArray();
             return new BadgeModel
             {
                 root = root,
+                badgeAssemblyRoot = badgeAssemblyObject.transform,
                 badge = badge,
+                badgeFragments = badgeFragments,
+                runtimeFragmentSprites = new Sprite[fragmentCount],
+                badgeFragmentPositions = new Vector3[fragmentCount],
                 body = body,
                 bodyPositions = body.Select(renderer =>
                     renderer.transform.localPosition).ToArray(),
@@ -928,7 +969,13 @@ namespace ArcaneArena.Multiplayer
                 return;
             model.root.gameObject.SetActive(true);
             if (model.badge != null)
-                model.badge.sprite = RankBadgeCatalog.Get(tier);
+            {
+                Sprite badge = RankBadgeCatalog.Get(tier);
+                model.badge.sprite = badge;
+                model.badgeAssemblyRoot.localScale = Vector3.one *
+                    ResolveBadgeScale(badge);
+                ConfigureBadgeFragments(model, badge);
+            }
             SetMaterialColor(model.metal, Color.Lerp(
                 new Color(0.06f, 0.10f, 0.16f, 1f), accent, 0.58f), false);
             SetMaterialColor(model.glow, Color.Lerp(Color.white, accent, 0.72f), true);
@@ -940,23 +987,25 @@ namespace ArcaneArena.Multiplayer
             if (EnsureViewportGroup())
                 viewportGroup.alpha = 0f;
             stage.localRotation = Quaternion.Euler(0f, 0f, 0f);
-            renderCamera.transform.localPosition = new Vector3(0f, 0.04f, -7.85f);
+            renderCamera.transform.localPosition = new Vector3(0f, 0.04f, -9.15f);
             outgoing.root.localPosition = Vector3.zero;
             outgoing.root.localRotation = Quaternion.identity;
             outgoing.root.localScale = Vector3.one;
             incoming.root.localPosition = new Vector3(
                 0f,
-                promotion ? -1.65f : 1.65f,
-                0.18f);
+                promotion ? -0.46f : 0.46f,
+                0.24f);
             incoming.root.localRotation = Quaternion.Euler(
-                promotion ? 24f : -24f,
-                promotion ? -145f : 145f,
-                0f);
-            incoming.root.localScale = Vector3.one * 0.24f;
+                promotion ? 12f : -12f,
+                promotion ? -118f : 118f,
+                promotion ? -7f : 7f);
+            incoming.root.localScale = Vector3.one * 0.38f;
             SetModelOpacity(outgoing, 1f);
             SetModelOpacity(incoming, 0f);
             RestoreModelPieces(outgoing);
             RestoreModelPieces(incoming);
+            HideBadgeFragments(outgoing);
+            PrepareBadgeFragments(incoming, promotion ? 1f : -1f);
             SetMaterialColor(fragmentMaterial, accent, true);
             foreach (Transform fragment in energyFragments)
                 fragment.gameObject.SetActive(true);
@@ -1012,36 +1061,46 @@ namespace ArcaneArena.Multiplayer
                 }
             }
             stage.localRotation = Quaternion.Euler(
-                cinematicArc * 7f,
-                Mathf.Lerp(-15f * direction, 12f * direction, handoff),
-                Mathf.Sin(time * Mathf.PI * 2f) * 4f);
+                cinematicArc * 4f,
+                Mathf.Lerp(-9f * direction, 7f * direction, handoff),
+                Mathf.Sin(time * Mathf.PI * 2f) * 2.5f);
             renderCamera.transform.localPosition = new Vector3(
                 0f,
                 0.04f,
-                Mathf.Lerp(-7.85f, -5.72f, cinematicArc));
+                Mathf.Lerp(-9.15f, -7.95f, cinematicArc));
 
             outgoing.root.localPosition = new Vector3(
                 0f,
-                Mathf.Lerp(0f, 1.86f * direction, handoff),
-                Mathf.Lerp(0f, 0.68f, handoff));
-            outgoing.root.localScale = Vector3.one * Mathf.Lerp(1f, 1.58f, handoff);
+                Mathf.Lerp(0f, 0.34f * direction, handoff),
+                Mathf.Lerp(0f, 0.46f, handoff));
+            outgoing.root.localScale = Vector3.one * Mathf.Lerp(1f, 0.78f, handoff);
             outgoing.root.localRotation = Quaternion.Euler(
-                7f * Mathf.Sin(time * Mathf.PI),
-                Mathf.Lerp(0f, -92f * direction, handoff),
-                0f);
+                5f * Mathf.Sin(time * Mathf.PI),
+                Mathf.Lerp(0f, -74f * direction, handoff),
+                Mathf.Lerp(0f, 8f * direction, handoff));
             SetModelOpacity(outgoing, 1f - handoff);
 
             incoming.root.localPosition = Vector3.Lerp(
-                new Vector3(0f, -1.65f * direction, 0.18f),
+                new Vector3(0f, -0.46f * direction, 0.24f),
                 Vector3.zero,
                 handoff);
-            incoming.root.localScale = Vector3.one * Mathf.Lerp(0.24f, 1f, handoff);
+            incoming.root.localScale = Vector3.one * Mathf.Lerp(0.38f, 1f, handoff);
             incoming.root.localRotation = Quaternion.Euler(
-                Mathf.Lerp(24f * direction, 0f, handoff),
-                Mathf.Lerp(-145f * direction, 0f, handoff),
-                0f);
+                Mathf.Lerp(12f * direction, 0f, handoff),
+                Mathf.Lerp(-118f * direction, 0f, handoff),
+                Mathf.Lerp(-7f * direction, 0f, handoff));
             SetModelOpacity(incoming, handoff);
             AssembleModelPieces(incoming, time, direction);
+            AssembleBadgeFragments(incoming, time, direction);
+            if (incoming.badge != null)
+            {
+                float badgeReveal = SmoothRange(time, 0.59f, 0.73f);
+                incoming.badge.color = new Color(
+                    1f,
+                    1f,
+                    1f,
+                    badgeReveal);
+            }
 
             if (keyLight != null)
                 keyLight.intensity = Mathf.Lerp(0.95f, 2.15f, cinematicArc);
@@ -1106,6 +1165,105 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
+        private static void PrepareBadgeFragments(
+            BadgeModel model,
+            float direction)
+        {
+            if (model?.badgeFragments == null ||
+                model.badgeFragmentPositions == null)
+                return;
+            for (int index = 0; index < model.badgeFragments.Length; index++)
+            {
+                SpriteRenderer fragment = model.badgeFragments[index];
+                if (fragment == null || fragment.sprite == null)
+                    continue;
+                float angle = (index / (float)model.badgeFragments.Length *
+                               Mathf.PI * 2f) + Mathf.PI * 0.5f;
+                Vector3 radial = new(
+                    Mathf.Cos(angle) * 1.65f,
+                    Mathf.Sin(angle) * 1.18f,
+                    -0.10f - (index % 3) * 0.08f);
+                fragment.transform.localPosition =
+                    model.badgeFragmentPositions[index] + radial;
+                fragment.transform.localRotation = Quaternion.Euler(
+                    direction * (32f + index * 9f),
+                    direction * (118f + index * 17f),
+                    direction * (index - 4) * 18f);
+                fragment.transform.localScale = Vector3.one * 0.22f;
+                fragment.color = Color.clear;
+                fragment.enabled = true;
+            }
+        }
+
+        private static void AssembleBadgeFragments(
+            BadgeModel model,
+            float time,
+            float direction)
+        {
+            if (model?.badgeFragments == null ||
+                model.badgeFragmentPositions == null)
+                return;
+            int count = model.badgeFragments.Length;
+            for (int index = 0; index < count; index++)
+            {
+                SpriteRenderer fragment = model.badgeFragments[index];
+                if (fragment == null || fragment.sprite == null)
+                    continue;
+                int column = index % 3;
+                int row = index / 3;
+                float distanceFromCenter = Mathf.Abs(column - 1) +
+                                           Mathf.Abs(row - 1);
+                float stagger = distanceFromCenter * 0.025f +
+                                index * 0.008f;
+                float assembly = SmoothRange(
+                    time,
+                    0.35f + stagger,
+                    0.58f + stagger);
+                float angle = (index / (float)count * Mathf.PI * 2f) +
+                              Mathf.PI * 0.5f;
+                Vector3 radial = new(
+                    Mathf.Cos(angle) * 1.65f,
+                    Mathf.Sin(angle) * 1.18f,
+                    -0.10f - (index % 3) * 0.08f);
+                Transform piece = fragment.transform;
+                piece.localPosition = Vector3.Lerp(
+                    model.badgeFragmentPositions[index] + radial,
+                    model.badgeFragmentPositions[index],
+                    assembly);
+                piece.localRotation = Quaternion.Slerp(
+                    Quaternion.Euler(
+                        direction * (32f + index * 9f),
+                        direction * (118f + index * 17f),
+                        direction * (index - 4) * 18f),
+                    Quaternion.identity,
+                    assembly);
+                piece.localScale = Vector3.one *
+                    Mathf.Lerp(0.22f, 1f, assembly);
+                float appearance = SmoothRange(
+                    time,
+                    0.31f + stagger,
+                    0.42f + stagger);
+                float merge = SmoothRange(time, 0.61f, 0.73f);
+                fragment.color = new Color(
+                    1f,
+                    1f,
+                    1f,
+                    appearance * (1f - merge));
+                fragment.enabled = merge < 0.995f;
+            }
+        }
+
+        private static void HideBadgeFragments(BadgeModel model)
+        {
+            if (model?.badgeFragments == null)
+                return;
+            foreach (SpriteRenderer fragment in model.badgeFragments)
+            {
+                if (fragment != null)
+                    fragment.enabled = false;
+            }
+        }
+
         private static void AssembleModelPieces(
             BadgeModel model,
             float time,
@@ -1129,9 +1287,9 @@ namespace ArcaneArena.Multiplayer
                 float angle = index / (float)Mathf.Max(1, count) *
                               Mathf.PI * 2f;
                 Vector3 radial = new(
-                    Mathf.Cos(angle) * 1.25f,
-                    Mathf.Sin(angle) * 1.25f,
-                    0.72f + (index % 3) * 0.20f);
+                    Mathf.Cos(angle) * 0.88f,
+                    Mathf.Sin(angle) * 0.88f,
+                    0.54f + (index % 3) * 0.14f);
                 Transform piece = renderer.transform;
                 piece.localPosition = Vector3.Lerp(
                     model.bodyPositions[index] + radial * direction,
@@ -1160,6 +1318,82 @@ namespace ArcaneArena.Multiplayer
             runtimeMaterials.Add(material);
             SetMaterialColor(material, color, emissive);
             return material;
+        }
+
+        public static float ResolveBadgeScale(Sprite badge)
+        {
+            if (badge == null)
+                return 1f;
+            Vector3 size = badge.bounds.size;
+            float largestSide = Mathf.Max(size.x, size.y);
+            return largestSide <= 0.0001f
+                ? 1f
+                : BadgeTargetWorldSize / largestSide;
+        }
+
+        private static void ConfigureBadgeFragments(
+            BadgeModel model,
+            Sprite badge)
+        {
+            if (model?.badgeFragments == null ||
+                model.runtimeFragmentSprites == null ||
+                model.badgeFragmentPositions == null)
+                return;
+
+            for (int index = 0; index < model.runtimeFragmentSprites.Length;
+                 index++)
+            {
+                if (model.runtimeFragmentSprites[index] != null)
+                    Destroy(model.runtimeFragmentSprites[index]);
+                model.runtimeFragmentSprites[index] = null;
+                if (index < model.badgeFragments.Length)
+                {
+                    model.badgeFragments[index].sprite = null;
+                    model.badgeFragments[index].enabled = false;
+                }
+            }
+            if (badge == null || badge.texture == null)
+                return;
+
+            const int columns = 3;
+            const int rows = 3;
+            Rect source = badge.rect;
+            float cellWidth = source.width / columns;
+            float cellHeight = source.height / rows;
+            float pixelsPerUnit = Mathf.Max(1f, badge.pixelsPerUnit);
+            for (int row = 0; row < rows; row++)
+            {
+                for (int column = 0; column < columns; column++)
+                {
+                    int index = row * columns + column;
+                    Rect fragmentRect = new(
+                        source.x + column * cellWidth,
+                        source.y + row * cellHeight,
+                        cellWidth,
+                        cellHeight);
+                    Sprite fragmentSprite = Sprite.Create(
+                        badge.texture,
+                        fragmentRect,
+                        new Vector2(0.5f, 0.5f),
+                        pixelsPerUnit,
+                        0,
+                        SpriteMeshType.FullRect);
+                    fragmentSprite.name =
+                        $"{badge.name} · fragmento {index + 1}";
+                    model.runtimeFragmentSprites[index] = fragmentSprite;
+                    SpriteRenderer fragment = model.badgeFragments[index];
+                    fragment.sprite = fragmentSprite;
+                    Vector2 centerOffset = fragmentRect.center - source.center;
+                    Vector3 position = new(
+                        centerOffset.x / pixelsPerUnit,
+                        centerOffset.y / pixelsPerUnit,
+                        -0.025f - index * 0.001f);
+                    model.badgeFragmentPositions[index] = position;
+                    fragment.transform.localPosition = position;
+                    fragment.transform.localRotation = Quaternion.identity;
+                    fragment.transform.localScale = Vector3.one;
+                }
+            }
         }
 
         private static void SetMaterialColor(
@@ -1211,8 +1445,21 @@ namespace ArcaneArena.Multiplayer
                     Destroy(material);
             }
             runtimeMaterials.Clear();
+            DestroyBadgeFragmentSprites(outgoing);
+            DestroyBadgeFragmentSprites(incoming);
             if (sceneRoot != null)
                 Destroy(sceneRoot);
+        }
+
+        private static void DestroyBadgeFragmentSprites(BadgeModel model)
+        {
+            if (model?.runtimeFragmentSprites == null)
+                return;
+            foreach (Sprite fragment in model.runtimeFragmentSprites)
+            {
+                if (fragment != null)
+                    Destroy(fragment);
+            }
         }
     }
 
