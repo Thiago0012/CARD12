@@ -728,6 +728,7 @@ namespace ArcaneArena.Frontend
         private void Update()
         {
             UpdateMissionCountdown();
+            UpdatePackRevealSwipe();
             UpdateRankAnimationPreviewShortcut();
             if (_rankAnimationPreviewPresenter != null &&
                 _rankAnimationPreviewPresenter.IsDevelopmentPreviewPlaying)
@@ -773,6 +774,18 @@ namespace ArcaneArena.Frontend
             {
                 Destroy(_deckDeleteModal);
                 _deckDeleteModal = null;
+                return;
+            }
+
+            if (_deckEditorUnsavedModal != null)
+            {
+                CloseDeckEditorUnsavedModal();
+                return;
+            }
+
+            if (_editingDeck != null && _editingDeckSource != null)
+            {
+                RequestCloseDeckEditor();
                 return;
             }
 
@@ -1908,7 +1921,7 @@ namespace ArcaneArena.Frontend
             MainMenuMusicController.SetDeckEditorMode(true);
             SetDuelPresentation(false);
             _selectedDeck = null;
-            _editingDeck = null;
+            ResetDeckEditingSession();
             ClearScreen();
             BuildDeckWorkshopGallery();
         }
@@ -2253,11 +2266,12 @@ namespace ArcaneArena.Frontend
 
             MainMenuMusicController.SetDeckEditorMode(true);
             SetDuelPresentation(false);
-            _editingDeck = deck;
+            BeginDeckEditingSession(deck);
+            deck = _editingDeck;
             ClearScreen();
             BuildSharedBackground("EDITOR DE DECK");
-            BuildHeader(deck.displayName, () => ShowDeckDetails(deck));
-            var deckIsSelected = _repository.IsSelected(deck);
+            BuildHeader(deck.displayName, RequestCloseDeckEditor);
+            var deckIsSelected = _repository.IsSelected(_editingDeckSource);
             var deckIsDuelLegal =
                 DeckRepository.TryValidateForDuel(
                     deck,
@@ -2277,11 +2291,18 @@ namespace ArcaneArena.Frontend
                     : Cyan,
                 () =>
                 {
+                    if (_editingDeckDirty)
+                    {
+                        SetEditorStatus(
+                            "Salve as alterações antes de selecionar este deck para o duelo.",
+                            Gold);
+                        return;
+                    }
+
                     if (_repository.TrySelectDeck(
-                            deck.deckId,
+                            _editingDeckSource.deckId,
                             out var rejection))
                     {
-                        ShowDeckEditor(deck);
                         SetEditorStatus(
                             "Deck selecionado para o próximo duelo.",
                             Lime);
@@ -2296,30 +2317,7 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.84f, 0.905f),
                 new Vector2(0.955f, 0.972f),
                 Lime,
-                () =>
-                {
-                    deck.RefreshFeaturedCards();
-                    _repository.Save();
-                    if (_editorStatus != null)
-                    {
-                        if (_repository.IsSelected(deck) &&
-                            !DeckRepository.TryValidateForDuel(
-                                deck,
-                                _catalog,
-                                out var rejection))
-                        {
-                            _editorStatus.text =
-                                $"Deck salvo, mas o duelo ficará bloqueado: {rejection}";
-                            _editorStatus.color = Danger;
-                        }
-                        else
-                        {
-                            _editorStatus.text =
-                                "Deck salvo localmente.";
-                            _editorStatus.color = Lime;
-                        }
-                    }
-                });
+                () => TrySaveDeckEditorChanges(true));
 
             BuildCraftWalletBar();
             Image detailsPanel = BuildDeckEditorDetailsPanel();
@@ -3173,7 +3171,7 @@ namespace ArcaneArena.Frontend
                 target.Add(cardId);
             }
             _editingDeck.RefreshFeaturedCards();
-            _repository.Save();
+            MarkDeckEditorDirty();
             SetEditorStatus(
                 $"{entry.DisplayName} foi adicionada ao " +
                 (targetExtraDeck ? "Deck Adicional." : "Deck Principal."),
@@ -3249,7 +3247,7 @@ namespace ArcaneArena.Frontend
                 removedCardId);
             source.RemoveAt(index);
             _editingDeck.RefreshFeaturedCards();
-            _repository.Save();
+            MarkDeckEditorDirty();
             SetEditorStatus(
                 $"{(removedEntry != null ? removedEntry.DisplayName : "Carta")} foi removida do deck.",
                 Lime);
@@ -5146,6 +5144,7 @@ namespace ArcaneArena.Frontend
             _missionsUiVisible = false;
             _missionCountdownText = null;
             _missionStatusText = null;
+            CancelPackRevealSwipe();
             CancelPackOpeningPresentation();
             StopMainMenuConnectionMonitor();
             _duelMenuOverlay = null;

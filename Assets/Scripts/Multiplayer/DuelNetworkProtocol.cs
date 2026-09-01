@@ -360,6 +360,81 @@ namespace ArcaneArena.Multiplayer
         }
 
         /// <summary>
+        /// Read-only projection used exclusively by authenticated room
+        /// spectators. Both hands and face-down cards are included, while no
+        /// Core prompt is ever serialized, so this view cannot submit a duel
+        /// decision or influence either player.
+        /// </summary>
+        public static DuelNetworkState CreateSpectatorState(
+            DuelPresentationState state,
+            byte perspective,
+            int sequence,
+            string status)
+        {
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (perspective > 1)
+                throw new ArgumentOutOfRangeException(nameof(perspective));
+
+            DuelPresentationSnapshot snapshot = state.CaptureSnapshot();
+            var networkState = new DuelNetworkState
+            {
+                sequence = sequence,
+                recipientSeat = perspective,
+                status = status ?? string.Empty,
+                snapshot = new DuelNetworkSnapshot
+                {
+                    players = new[]
+                    {
+                        CopyDuelist(
+                            snapshot.Players[perspective],
+                            true,
+                            perspective,
+                            perspective),
+                        CopyDuelist(
+                            snapshot.Players[1 - perspective],
+                            true,
+                            (byte)(1 - perspective),
+                            perspective)
+                    },
+                    turnNumber = snapshot.TurnNumber,
+                    turnPlayer = ToPerspective(
+                        snapshot.TurnPlayer,
+                        perspective),
+                    phase = snapshot.Phase,
+                    hasWinner = snapshot.Winner.HasValue,
+                    winner = snapshot.Winner.HasValue
+                        ? ToPerspective(snapshot.Winner.Value, perspective)
+                        : (byte)0,
+                    disabledFieldMask = ToPerspectiveFieldMask(
+                        snapshot.DisabledFieldMask,
+                        perspective),
+                    chainLinks = CopyChainLinks(
+                        snapshot.ChainLinks,
+                        perspective),
+                    playerHints = CopyPlayerHints(
+                        snapshot.PlayerHints,
+                        perspective),
+                    pendingSummon = CopySummon(
+                        snapshot.PendingSummon,
+                        perspective),
+                    lastSummon = CopySummon(
+                        snapshot.LastSummon,
+                        perspective)
+                },
+                prompt = null
+            };
+            HashSet<ulong> visibleRuntimeIds = VisibleRuntimeIds(
+                networkState.snapshot.players);
+            networkState.snapshot.cardMetadata = CopyCardMetadata(
+                snapshot.CardMetadata,
+                visibleRuntimeIds);
+            networkState.publicStateHash =
+                ComputePublicProjectionHash(networkState);
+            return networkState;
+        }
+
+        /// <summary>
         /// Deterministic hash of the exact privacy-filtered projection sent to
         /// one recipient. The legacy property name is retained for wire
         /// compatibility, but the hash also covers that recipient's private
@@ -1108,6 +1183,48 @@ namespace ArcaneArena.Multiplayer
                          (FaceDownAttack | FaceDownDefense)) != 0;
                     if (perspectiveSide != 0 && faceDown)
                         continue;
+                    if (!authoritativeController.TryGetCurrentCombatStats(
+                            authoritativeSide,
+                            (byte)DuelLocation.MonsterZone,
+                            (uint)sequence,
+                            out int attack,
+                            out int defense))
+                    {
+                        continue;
+                    }
+                    target.monsterAttack[sequence] = attack;
+                    target.monsterDefense[sequence] = defense;
+                }
+            }
+        }
+
+        public static void PopulateSpectatorCombatStats(
+            DuelNetworkState networkState,
+            DuelArenaController authoritativeController,
+            byte perspective)
+        {
+            if (networkState?.snapshot?.players == null ||
+                authoritativeController == null || perspective > 1)
+            {
+                return;
+            }
+
+            for (byte side = 0;
+                 side < networkState.snapshot.players.Length;
+                 side++)
+            {
+                DuelNetworkDuelist target =
+                    networkState.snapshot.players[side];
+                if (target == null)
+                    continue;
+                int count = target.monsterZones?.Length ?? 0;
+                target.monsterAttack = UnknownCombatStats(count);
+                target.monsterDefense = UnknownCombatStats(count);
+                for (int sequence = 0; sequence < count; sequence++)
+                {
+                    byte authoritativeSide = side == 0
+                        ? perspective
+                        : (byte)(1 - perspective);
                     if (!authoritativeController.TryGetCurrentCombatStats(
                             authoritativeSide,
                             (byte)DuelLocation.MonsterZone,

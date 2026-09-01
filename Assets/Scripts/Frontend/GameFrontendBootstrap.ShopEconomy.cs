@@ -140,6 +140,56 @@ namespace ArcaneArena.Frontend
             return true;
         }
 
+        public bool TryApplyOfflineDuelReward(
+            long damageDealt,
+            long damageReceived,
+            int turns,
+            int confirmedPlays,
+            bool winner,
+            bool draw,
+            out int coinsEarned,
+            out int balanceAfter,
+            out string rejection)
+        {
+            coinsEarned = 0;
+            balanceAfter = _repository?.CoinBalance ?? 0;
+            rejection = string.Empty;
+            if (_repository == null)
+            {
+                rejection = "O perfil local não está disponível para salvar a recompensa offline.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(ActiveDuelStatisticsId))
+            {
+                rejection = "O duelo offline não possui uma identificação válida.";
+                return false;
+            }
+
+            int calculatedCoins = OfflineDuelCoinReward.Calculate(
+                damageDealt,
+                damageReceived,
+                turns,
+                confirmedPlays,
+                winner,
+                draw);
+            bool applied = _repository.TryGrantOfflineDuelCoins(
+                "offline-reward:" + ActiveDuelStatisticsId + ":v1",
+                calculatedCoins,
+                damageDealt,
+                damageReceived,
+                turns,
+                winner,
+                draw,
+                out ShopTransactionRecord receipt,
+                out rejection);
+            if (receipt != null)
+            {
+                coinsEarned = Math.Max(0, receipt.coinDelta);
+                balanceAfter = Math.Max(0, receipt.balanceAfter);
+            }
+            return applied;
+        }
+
         private void InitializeCoinRewardAuthorization()
         {
             if (_repository == null)
@@ -190,7 +240,7 @@ namespace ArcaneArena.Frontend
             CreateText(
                 _screenRoot,
                 string.IsNullOrWhiteSpace(_shopFeedback)
-                    ? "Moedas são obtidas exclusivamente em duelos online PvP concluídos."
+                    ? "Ganhe moedas em duelos online e de 10 a 50 moedas por desempenho no modo offline."
                     : _shopFeedback,
                 15,
                 FontStyle.Bold,
@@ -279,7 +329,7 @@ namespace ArcaneArena.Frontend
             _shopSceneView.SetBalance(_repository?.CoinBalance ?? 0);
             _shopSceneView.SetFeedback(
                 string.IsNullOrWhiteSpace(_shopFeedback)
-                    ? "Moedas são obtidas exclusivamente em duelos online PvP concluídos."
+                    ? "Ganhe moedas em duelos online e de 10 a 50 moedas por desempenho no modo offline."
                     : _shopFeedback,
                 _shopFeedbackIsError ? Danger : Muted);
             _shopSceneView.ApplyProfessionalTheme();
@@ -571,6 +621,15 @@ namespace ArcaneArena.Frontend
                 $"{purchased}/{product.MaxPurchases}",
                 purchased >= product.MaxPurchases ? Danger : accent,
                 new Vector2(0.77f, 0.855f), new Vector2(0.94f, 0.955f));
+            if (product.IsOnSale)
+            {
+                CreateShopMicroBadge(
+                    tile.transform,
+                    $"{product.DiscountPercent}% OFF",
+                    Lime,
+                    new Vector2(0.53f, 0.855f),
+                    new Vector2(0.75f, 0.955f));
+            }
             CreateText(tile.transform, product.DisplayName, 20, FontStyle.Bold,
                 Color.white, new Vector2(0.05f, 0.67f),
                 new Vector2(0.95f, 0.86f), TextAnchor.MiddleLeft);
@@ -807,7 +866,10 @@ namespace ArcaneArena.Frontend
                 Color.clear);
             DecorateRuntimeShopSurface(summary, accent, true, 11f);
             CreateText(summary.transform,
-                "DECK ESTRUTURAL • " + product.ArchetypeLabel, 11,
+                "DECK ESTRUTURAL • " + product.ArchetypeLabel +
+                (product.IsOnSale
+                    ? $" • DE {product.OriginalPriceCoins} POR {product.PriceCoins} MOEDAS"
+                    : string.Empty), 11,
                 FontStyle.Bold, accent, new Vector2(0.025f, 0.67f),
                 new Vector2(0.42f, 0.94f), TextAnchor.MiddleLeft);
             CreateText(summary.transform, product.Description, 14,
@@ -1265,10 +1327,10 @@ namespace ArcaneArena.Frontend
                 _packOpeningStarted = opening.revealed != null &&
                     opening.revealed.Any(value => value);
             }
-
             ShopPackDefinition pack = ShopPackCatalog.Find(opening.packId);
             SetDuelPresentation(false);
             ClearScreen();
+            ResetPackRevealSwipe(opening);
             _shopBackAction = ReturnFromShopToMainMenu;
             BuildShopBackground("ABERTURA DE PACOTE");
             BuildProfessionalShopHeader(
@@ -1340,7 +1402,7 @@ namespace ArcaneArena.Frontend
                 ? CreatePackOpeningAnimationView(pack, opening)
                 : null;
             Text revealInstruction = CreateText(_screenRoot,
-                "REVELE AS CINCO CARTAS • O RESULTADO JÁ ESTÁ SALVO",
+                "CLIQUE PARA REVELAR • DESLIZE RÁPIDO NA VERTICAL PARA REVELAR TODAS",
                 14, FontStyle.Bold, Color.white, new Vector2(0.18f, 0.78f),
                 new Vector2(0.82f, 0.86f), TextAnchor.MiddleCenter);
             revealInstruction.gameObject.SetActive(!animateEntry);
@@ -1373,6 +1435,7 @@ namespace ArcaneArena.Frontend
                 card.gameObject.name = revealed
                     ? $"Carta Revelada {index + 1}"
                     : $"Carta Oculta {index + 1}";
+                RegisterPackRevealCard(index, card);
                 if (!revealed)
                 {
                     bool hasMysteryArtwork = artwork != null;
@@ -1388,7 +1451,9 @@ namespace ArcaneArena.Frontend
                     }
                     AddButtonBehaviour(card, () =>
                     {
-                        if (!_packRevealBusy && !_packOpeningSequenceActive)
+                        if (!_packRevealBusy &&
+                            !_packOpeningSequenceActive &&
+                            !IsPackRevealAllActive)
                             StartCoroutine(RevealPackCard(opening, capturedIndex, card));
                     });
                     if (animationView != null)

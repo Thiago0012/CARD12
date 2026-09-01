@@ -331,17 +331,36 @@ namespace ArcaneArena
             int storyCoins = storyResult && winner == 0
                 ? StoryRogueliteRuntime.CurrentDuelAccountCoinReward()
                 : 0;
-            DuelResultSummary summary = kind == OnlineDuelResultKind.Victory
-                ? DuelResultSummary.Capture(
-                    GameFrontendBootstrap.Instance,
-                    storyCoins > 0,
-                    storyCoins,
-                    -1,
+            int offlineCoins = 0;
+            int balanceAfter = -1;
+            if (!storyResult &&
+                GameFrontendBootstrap.Instance != null &&
+                !GameFrontendBootstrap.Instance.TryApplyOfflineDuelReward(
                     localDamageDealtInDuel,
                     localDamageReceivedInDuel,
                     state?.TurnNumber ?? 0,
-                    localConfirmedPlaysInDuel)
-                : null;
+                    localConfirmedPlaysInDuel,
+                    winner == 0,
+                    winner > 1,
+                    out offlineCoins,
+                    out balanceAfter,
+                    out string rewardRejection) &&
+                !string.IsNullOrWhiteSpace(rewardRejection))
+            {
+                Debug.LogWarning("[Offline reward] " + rewardRejection);
+            }
+            int awardedCoins = storyCoins > 0 ? storyCoins : offlineCoins;
+            if (awardedCoins > 0)
+                detail += $" Você recebeu {awardedCoins} moedas pelo desempenho.";
+            DuelResultSummary summary = DuelResultSummary.Capture(
+                GameFrontendBootstrap.Instance,
+                awardedCoins > 0,
+                awardedCoins,
+                balanceAfter,
+                localDamageDealtInDuel,
+                localDamageReceivedInDuel,
+                state?.TurnNumber ?? 0,
+                localConfirmedPlaysInDuel);
             StartCoroutine(PresentOfflineDuelResultAfterSlowMotion(
                 presenter,
                 kind,

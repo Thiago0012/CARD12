@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ArcaneDuel.Game;
+using UnityEngine;
 
 namespace ArcaneArena.Frontend
 {
@@ -34,6 +35,9 @@ namespace ArcaneArena.Frontend
         public string SourceUrl { get; }
         public int CaseTheme { get; }
         public int PriceCoins { get; }
+        public int OriginalPriceCoins { get; }
+        public int DiscountPercent { get; }
+        public bool IsOnSale => DiscountPercent > 0;
         public int MaxPurchases { get; }
         public IReadOnlyList<string> MainDeckCardIds { get; }
         public IReadOnlyList<string> ExtraDeckCardIds { get; }
@@ -51,7 +55,8 @@ namespace ArcaneArena.Frontend
             IEnumerable<string> extraDeckCardIds,
             int priceCoins = 425,
             int maxPurchases = 3,
-            IEnumerable<DeckShopPreview> previews = null)
+            IEnumerable<DeckShopPreview> previews = null,
+            int originalPriceCoins = 0)
         {
             ProductId = productId ?? string.Empty;
             DisplayName = displayName ?? string.Empty;
@@ -61,6 +66,16 @@ namespace ArcaneArena.Frontend
             SourceUrl = sourceUrl ?? string.Empty;
             CaseTheme = Math.Max(0, caseTheme);
             PriceCoins = Math.Max(1, priceCoins);
+            OriginalPriceCoins = Math.Max(
+                PriceCoins,
+                originalPriceCoins > 0 ? originalPriceCoins : PriceCoins);
+            DiscountPercent = OriginalPriceCoins > PriceCoins
+                ? Math.Max(
+                    1,
+                    (int)Math.Floor(
+                        (OriginalPriceCoins - PriceCoins) * 100d /
+                        OriginalPriceCoins))
+                : 0;
             MaxPurchases = Math.Max(1, maxPurchases);
             MainDeckCardIds = NormalizeCards(mainDeckCardIds);
             ExtraDeckCardIds = NormalizeCards(extraDeckCardIds);
@@ -165,6 +180,9 @@ namespace ArcaneArena.Frontend
             "shiranui-supremacy-699840";
         public const string MausoleumLockdownEdisonProductId =
             "mausoleum-lockdown-edison-724211";
+        public const int StructureDeckRegularPrice = 425;
+        public const int StarterDeckSalePrice =
+            StructureDeckRegularPrice / 2;
 
         private static readonly IReadOnlyList<DeckShopProduct>
             AvailableProducts = new[]
@@ -247,7 +265,39 @@ namespace ArcaneArena.Frontend
             }
             .Concat(CreateBatchJuly2026Products())
             .Concat(CreateBatchAugust2026Products())
+            .Concat(CreateStarterDeckSaleProducts())
             .ToArray();
+
+        private static IEnumerable<DeckShopProduct>
+            CreateStarterDeckSaleProducts()
+        {
+            StarterDeckCatalog catalog = Resources.Load<StarterDeckCatalog>(
+                "StarterDecks/StarterDeckCatalog");
+            if (catalog?.Decks == null)
+                return Array.Empty<DeckShopProduct>();
+
+            return catalog.Decks
+                .Where(definition => definition != null &&
+                    definition.IsPublishable &&
+                    definition.MainDeck.Count >= 40 &&
+                    definition.PreviewCardIds.Count == 3)
+                .Select((definition, index) => new DeckShopProduct(
+                    "starter-sale-" + definition.Id,
+                    definition.DisplayName,
+                    "DECK INICIAL • 50% OFF",
+                    "Deck inicial completo em oferta permanente na Loja de Decks Estruturais.",
+                    definition.PreviewCardIds[0],
+                    definition.Raw?.sourceUrl ?? string.Empty,
+                    index % 3,
+                    definition.MainDeck,
+                    definition.ExtraDeck,
+                    StarterDeckSalePrice,
+                    3,
+                    definition.PreviewCardIds.Select(cardId =>
+                        new DeckShopPreview(cardId, 0f, 0f, 1f, 1f)),
+                    StructureDeckRegularPrice))
+                .ToArray();
+        }
 
         private static readonly HashSet<string> LegacyOwnedCardIds =
             new HashSet<string>(

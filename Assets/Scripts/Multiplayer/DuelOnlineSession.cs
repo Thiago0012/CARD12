@@ -69,6 +69,8 @@ namespace ArcaneArena.Multiplayer
         private const string MatchRewardMessage = "arcane.duel.match-result.v8";
         private const string PresentationEventMessage =
             "arcane.duel.presentation-event.v4";
+        private const string SpectatorPerspectiveMessage =
+            "arcane.duel.spectator-perspective.v1";
         private const string WirePacketMessage = "arcane.duel.wire-packet.v4";
         private const int MaxWireBytes = DuelWireProtocol.MaximumPayloadBytes;
         private const int MaximumFastResponseBytes = 900;
@@ -127,7 +129,8 @@ namespace ArcaneArena.Multiplayer
         {
             None,
             Host,
-            Client
+            Client,
+            Spectator
         }
 
         private enum LogicalMessage : byte
@@ -150,7 +153,8 @@ namespace ArcaneArena.Multiplayer
             PreludeChoice = 15,
             PreludeResult = 16,
             PreludeStartChoice = 17,
-            PreludeStartDecision = 18
+            PreludeStartDecision = 18,
+            SpectatorPerspective = 19
         }
 
         [Serializable]
@@ -225,6 +229,14 @@ namespace ArcaneArena.Multiplayer
             public string p;
             public string v;
             public string c;
+            public string r;
+        }
+
+        [Serializable]
+        private sealed class SpectatorPerspectivePayload
+        {
+            public string protocolVersion;
+            public byte perspective;
         }
 
         [Serializable]
@@ -557,6 +569,14 @@ namespace ArcaneArena.Multiplayer
         private RankPlayerSnapshot remoteRankHandshake;
         private RankedMatchSnapshot sealedRankedMatch;
         private RankChangeReceipt localRankResultReceipt;
+        private readonly HashSet<ulong> spectatorClientIds = new();
+        private readonly HashSet<ulong> approvedSpectatorClientIds = new();
+        private readonly Dictionary<ulong, byte> spectatorPerspectives = new();
+        private ulong approvedDuelistClientId = ulong.MaxValue;
+        private ulong spectatorStateVersion;
+        private byte localSpectatorPerspective;
+        private Coroutine spectatorPerspectiveFadeRoutine;
+        private float spectatorPerspectiveFadeAlpha;
 
         public bool IsOnlineDuelActive =>
             role != SessionRole.None && networkManager != null &&
@@ -571,8 +591,14 @@ namespace ArcaneArena.Multiplayer
             sessionCoordinator.HasSession;
 
         public bool IsHost => role == SessionRole.Host;
+        public bool IsSpectator => role == SessionRole.Spectator;
+        public int SpectatorCount => IsHost
+            ? spectatorClientIds.Count
+            : Mathf.Clamp(sessionCoordinator.PlayerCount - 2, 0,
+                MultiplayerSessionCoordinator.MaximumSpectators);
         public CompetitivePolicy CompetitivePolicy => competitivePolicy;
-        public bool DeveloperCardsAllowed => IsOnlineDuelActive;
+        public bool DeveloperCardsAllowed =>
+            IsOnlineDuelActive && role != SessionRole.Spectator;
         public string CurrentMatchId => currentMatchId ?? string.Empty;
         public string Status => status;
         public string RoomCode => roomCode;
@@ -729,6 +755,42 @@ namespace ArcaneArena.Multiplayer
             joinCode = normalizedCode;
             status = "Entrando na sala privada do desafio...";
             BeginJoining();
+            return true;
+        }
+
+        public bool BeginFriendChallengeSpectating(
+            string code,
+            out string rejection)
+        {
+            rejection = string.Empty;
+            string normalizedCode = (code ?? string.Empty)
+                .Trim()
+                .ToUpperInvariant();
+            if (normalizedCode.Length < 6 || normalizedCode.Length > 12)
+            {
+                rejection = "O código da sala privada é inválido.";
+                return false;
+            }
+            if (connectionOperationInProgress || HasOnlineRoom)
+            {
+                rejection = "Já existe uma operação ou sessão online em andamento.";
+                return false;
+            }
+            if (networkManager != null && networkManager.ShutdownInProgress)
+            {
+                rejection = "A sessão anterior ainda está sendo encerrada.";
+                return false;
+            }
+
+            competitivePolicy = CompetitivePolicy.Unranked;
+            automaticRankedMatchmaking = false;
+            rankedRoomCreationPanel = false;
+            focusJoinCode = true;
+            requestJoinFocus = false;
+            showPanel = true;
+            joinCode = normalizedCode;
+            status = "Entrando na sala como espectador...";
+            BeginSpectating();
             return true;
         }
 
@@ -1229,7 +1291,8 @@ namespace ArcaneArena.Multiplayer
                     RequestResync("arena-attach-snapshot-apply-failed");
                     return;
                 }
-                SendStateAck(pendingReplicaState);
+                if (role == SessionRole.Client)
+                    SendStateAck(pendingReplicaState);
                 if (beginDuelApplied)
                 {
                     SetFlowState(OnlineMatchFlowState.InDuel);
@@ -1240,10 +1303,17 @@ namespace ArcaneArena.Multiplayer
             }
             if (matchStarted)
             {
-                SendClientReady(true, true);
-                nextClientArenaReadyRetryTime =
-                    Time.realtimeSinceStartup + ArenaReadyRetrySeconds;
-                status = "Arena pronta. Sincronizando o campo com o host...";
+                if (role == SessionRole.Client)
+                {
+                    SendClientReady(true, true);
+                    nextClientArenaReadyRetryTime =
+                        Time.realtimeSinceStartup + ArenaReadyRetrySeconds;
+                    status = "Arena pronta. Sincronizando o campo com o host...";
+                }
+                else
+                {
+                    status = "Modo espectador ativo. As decisões do duelo estão bloqueadas.";
+                }
                 loadingPresenter?.SetText(
                     "Sincronizando partida...",
                     "Validando o snapshot inicial do anfitrião.");
@@ -1656,6 +1726,69 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
+        private async void BeginSpectating()
+        {
+            if (connectionOperationInProgress)
+            {
+                status = "Uma conexão já está sendo preparada. Aguarde.";
+                return;
+            }
+            string normalizedCode = (joinCode ?? string.Empty)
+                .Trim()
+                .ToUpperInvariant();
+            if (normalizedCode.Length < 6 || normalizedCode.Length > 12)
+            {
+                status = "Informe o código da sala com 6 a 12 caracteres.";
+                return;
+            }
+
+            connectionOperationInProgress = true;
+            try
+            {
+                ResetMatchState(true);
+                ClearReconnectTicket();
+                roomCode = string.Empty;
+                disconnectReason = string.Empty;
+                localLoadout = null;
+                localRankHandshake = null;
+                localSpectatorPerspective = 0;
+                status = "Autenticando e reservando uma vaga de espectador...";
+                await InitializeServices();
+                role = SessionRole.Spectator;
+                ConfigureConnectionIdentity(true);
+                roomCode = normalizedCode;
+                handlersRegistered = false;
+                ISession session = await sessionCoordinator
+                    .JoinAsSpectatorByCodeAsync(
+                        normalizedCode,
+                        "ESPECTADOR",
+                        ProtocolVersion);
+                roomCode = session.Code;
+                relayRegion = "QoS automatico";
+                relayRegionDescription =
+                    "regiao Relay definida pelo anfitriao";
+                status = "Vaga de espectador confirmada. Aguardando o duelo iniciar...";
+                await sessionCoordinator.SetPlayerStateAsync(
+                    "spectating",
+                    true);
+                if (networkManager.IsConnectedClient)
+                {
+                    RegisterHandlers();
+                    RequestSpectatorHandshake();
+                }
+            }
+            catch (Exception exception)
+            {
+                ResetAfterFailedConnection(
+                    "Não foi possível assistir à sala: " +
+                    exception.GetBaseException().Message);
+            }
+            finally
+            {
+                connectionOperationInProgress = false;
+            }
+        }
+
         private async void BeginAutomaticRankedMatchmaking()
         {
             ClearTournamentDuelContext();
@@ -2030,13 +2163,14 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
-        private void ConfigureConnectionIdentity()
+        private void ConfigureConnectionIdentity(bool spectator = false)
         {
             var approval = new ApprovalPayload
             {
                 p = AuthenticationService.Instance.PlayerId ?? string.Empty,
                 v = ProtocolVersion,
-                c = MultiplayerSessionCoordinator.ComputeCompatibilityHash()
+                c = MultiplayerSessionCoordinator.ComputeCompatibilityHash(),
+                r = spectator ? "spectator" : "duelist"
             };
             byte[] payload = Encoding.UTF8.GetBytes(JsonUtility.ToJson(approval));
             if (payload.Length > 192)
@@ -2098,24 +2232,49 @@ namespace ArcaneArena.Multiplayer
                             ConnectionApprovalTimeoutSeconds));
                 }
 
+                bool wantsSpectator = string.Equals(
+                    approval?.r,
+                    "spectator",
+                    StringComparison.Ordinal);
+                int reservedSpectators = spectatorClientIds.Count +
+                    approvedSpectatorClientIds.Count;
                 bool capacityAvailable = networkManager != null &&
-                    networkManager.ConnectedClientsIds.Count < 2;
-                bool matchAvailable = !matchStarted || hostAwaitingReconnect;
+                    networkManager.ConnectedClientsIds.Count <
+                    MultiplayerSessionCoordinator.PrivateRoomCapacity;
+                bool roleCapacityAvailable = wantsSpectator
+                    ? reservedSpectators <
+                        MultiplayerSessionCoordinator.MaximumSpectators
+                    : (remoteClientId == ulong.MaxValue &&
+                       approvedDuelistClientId == ulong.MaxValue) ||
+                      hostAwaitingReconnect;
+                bool matchAvailable = wantsSpectator ||
+                    !matchStarted || hostAwaitingReconnect;
                 bool approved = sessionMember && capacityAvailable &&
-                    matchAvailable;
+                    roleCapacityAvailable && matchAvailable;
                 if (approved)
                 {
-                    // This value came from the NGO connection identity and
-                    // was just matched against an actual Lobby member.  Do
-                    // not derive developer privileges from the self-reported
-                    // deck/profile payload received later in Hello.
-                    remoteCanonicalPlayerId =
-                        (approval?.p ?? string.Empty).Trim();
+                    if (wantsSpectator)
+                    {
+                        approvedSpectatorClientIds.Add(
+                            request.ClientNetworkId);
+                    }
+                    else
+                    {
+                        approvedDuelistClientId = request.ClientNetworkId;
+                        // This value came from the NGO connection identity and
+                        // was just matched against an actual Lobby member.
+                        remoteCanonicalPlayerId =
+                            (approval?.p ?? string.Empty).Trim();
+                    }
                 }
                 string rejection = !sessionMember
                     ? "A presença do jogador não foi confirmada no Lobby."
                     : !capacityAvailable
                         ? "A sala já está cheia."
+                        : !roleCapacityAvailable
+                            ? wantsSpectator
+                                ? "A sala já possui 10 espectadores."
+                                : "As duas vagas de duelista já estão ocupadas."
                         : !matchAvailable
                             ? "A partida já foi iniciada."
                             : string.Empty;
@@ -2333,6 +2492,19 @@ namespace ArcaneArena.Multiplayer
                 // so registering it earlier used to make a mobile join abort
                 // before the deck handshake could begin.
                 RegisterHandlers();
+                if (approvedSpectatorClientIds.Remove(clientId))
+                {
+                    spectatorClientIds.Add(clientId);
+                    spectatorPerspectives[clientId] = 0;
+                    status = matchStarted
+                        ? "Espectador conectado. Sincronizando a transmissão..."
+                        : $"Espectador conectado ({spectatorClientIds.Count}/" +
+                          MultiplayerSessionCoordinator.MaximumSpectators + ").";
+                    if (matchStarted)
+                        SendSpectatorStart(clientId);
+                    return;
+                }
+                approvedDuelistClientId = ulong.MaxValue;
                 CancelRankedBotFallback();
                 rankedBotFallbackDeadline = 0f;
                 bool resumedMatch = hostAwaitingReconnect && matchStarted &&
@@ -2396,6 +2568,14 @@ namespace ArcaneArena.Multiplayer
                 {
                     StartClientDeckHandshake();
                 }
+            }
+            else if (role == SessionRole.Spectator &&
+                     clientId == networkManager.LocalClientId)
+            {
+                RegisterHandlers();
+                reconnecting = false;
+                status = "Conectado como espectador. Aguardando a transmissão do host...";
+                RequestSpectatorHandshake();
             }
         }
 
@@ -2556,6 +2736,23 @@ namespace ArcaneArena.Multiplayer
                 $"[MP] stage=peer-disconnected client={clientId} " +
                 $"role={role} scene={SceneManager.GetActiveScene().name} " +
                 $"reason={networkManager?.DisconnectReason ?? "none"}");
+            if (IsHost && spectatorClientIds.Remove(clientId))
+            {
+                spectatorPerspectives.Remove(clientId);
+                approvedSpectatorClientIds.Remove(clientId);
+                RemoveWireTransfersForPeer(clientId);
+                status = $"Espectador saiu da sala ({spectatorClientIds.Count}/" +
+                    MultiplayerSessionCoordinator.MaximumSpectators + ").";
+                return;
+            }
+            if (IsHost && approvedSpectatorClientIds.Remove(clientId))
+            {
+                spectatorPerspectives.Remove(clientId);
+                RemoveWireTransfersForPeer(clientId);
+                return;
+            }
+            if (IsHost && approvedDuelistClientId == clientId)
+                approvedDuelistClientId = ulong.MaxValue;
             if (networkManager == null ||
                 clientId != networkManager.LocalClientId &&
                 clientId != remoteClientId)
@@ -2619,6 +2816,16 @@ namespace ArcaneArena.Multiplayer
             }
 
             if (clientId == networkManager.LocalClientId &&
+                !networkManager.IsServer && role == SessionRole.Spectator)
+            {
+                replicaController?.SetPresentationDecisionLocked(true);
+                UnregisterHandlers();
+                status = "A transmissão do duelo foi encerrada pelo anfitrião.";
+                showPanel = true;
+                return;
+            }
+
+            if (clientId == networkManager.LocalClientId &&
                 !networkManager.IsServer && role == SessionRole.Client)
             {
                 replicaController?.SetPresentationDecisionLocked(true);
@@ -2629,6 +2836,28 @@ namespace ArcaneArena.Multiplayer
                     "Reconectando...",
                     "Restaurando a conexão com o anfitrião.");
                 StartClientReconnect();
+            }
+        }
+
+        private void RemoveWireTransfersForPeer(ulong clientId)
+        {
+            foreach (WireTransferKey key in outboundWireTransfers.Keys
+                         .Where(key => key.PeerId == clientId)
+                         .ToArray())
+            {
+                outboundWireTransfers.Remove(key);
+            }
+            foreach (WireTransferKey key in inboundWireTransfers.Keys
+                         .Where(key => key.PeerId == clientId)
+                         .ToArray())
+            {
+                inboundWireTransfers.Remove(key);
+            }
+            foreach (WireTransferKey key in completedWireTransfers.Keys
+                         .Where(key => key.PeerId == clientId)
+                         .ToArray())
+            {
+                completedWireTransfers.Remove(key);
             }
         }
 
@@ -3241,6 +3470,11 @@ namespace ArcaneArena.Multiplayer
                 StopCoroutine(clientPreludeStartChoiceRoutine);
                 clientPreludeStartChoiceRoutine = null;
             }
+            if (spectatorPerspectiveFadeRoutine != null)
+            {
+                StopCoroutine(spectatorPerspectiveFadeRoutine);
+                spectatorPerspectiveFadeRoutine = null;
+            }
             if (!result.tie && result.winnerSeat == 1)
             {
                 clientPreludeStartChoiceRoutine = StartCoroutine(
@@ -3404,7 +3638,8 @@ namespace ArcaneArena.Multiplayer
             ulong senderClientId,
             StartPayload start)
         {
-            if (role != SessionRole.Client ||
+            if (role != SessionRole.Client &&
+                role != SessionRole.Spectator ||
                 senderClientId != NetworkManager.ServerClientId ||
                 start == null)
             {
@@ -3416,6 +3651,29 @@ namespace ArcaneArena.Multiplayer
                 start.transitionEpoch == 0)
             {
                 RejectIncompatibleHost();
+                return;
+            }
+
+            if (role == SessionRole.Spectator)
+            {
+                currentMatchId = start.matchId ?? string.Empty;
+                currentTransitionEpoch = start.transitionEpoch;
+                matchStarted = true;
+                helloAccepted = true;
+                clientSynchronizing = true;
+                beginDuelReceived = start.duelAlreadyBegun;
+                beginDuelApplied = start.duelAlreadyBegun;
+                showPanel = false;
+                localSceneReady = SceneManager.GetActiveScene().name ==
+                    DuelArenaScene;
+                localSceneLoadRequested = localSceneReady;
+                SetFlowState(OnlineMatchFlowState.PreparingTransition);
+                loadingPresenter?.ShowDuelLoading(
+                    "ENTRANDO COMO ESPECTADOR",
+                    "Sincronizando os dois campos sem conceder autoridade de duelo.",
+                    localSceneReady ? 0.48f : 0.10f);
+                if (!localSceneReady)
+                    StartArenaTransitionAfterBlack();
                 return;
             }
 
@@ -3647,12 +3905,133 @@ namespace ArcaneArena.Multiplayer
 
         private void StartHostStartHandshake()
         {
-            if (!IsHost || !matchStarted || remoteClientId == ulong.MaxValue)
+            if (!IsHost || !matchStarted)
+                return;
+
+            foreach (ulong spectatorClientId in spectatorClientIds.ToArray())
+                SendSpectatorStart(spectatorClientId);
+
+            if (remoteClientId == ulong.MaxValue)
                 return;
 
             if (startRetry != null)
                 StopCoroutine(startRetry);
             startRetry = StartCoroutine(SendStartUntilClientArenaReady());
+        }
+
+        private void SendSpectatorStart(ulong spectatorClientId)
+        {
+            if (!IsHost || !matchStarted ||
+                !spectatorClientIds.Contains(spectatorClientId) ||
+                currentTransitionEpoch == 0)
+            {
+                return;
+            }
+
+            SendToClient(
+                spectatorClientId,
+                StartMessage,
+                new StartPayload
+                {
+                    protocolVersion = ProtocolVersion,
+                    compatibility = ProjectIdentity.MultiplayerCompatibility,
+                    matchId = currentMatchId,
+                    transitionEpoch = currentTransitionEpoch,
+                    duelAlreadyBegun = beginDuelApplied,
+                    rankedMatch = null,
+                    hostIdentity = localLoadout?.identity?.Copy()
+                },
+                NetworkDelivery.ReliableSequenced);
+            if (hostCoreStarted)
+                BroadcastSpectatorState(spectatorClientId);
+        }
+
+        private void RequestSpectatorPerspectiveSwitch()
+        {
+            if (role != SessionRole.Spectator ||
+                networkManager == null ||
+                !networkManager.IsConnectedClient ||
+                spectatorPerspectiveFadeRoutine != null)
+            {
+                return;
+            }
+
+            byte target = localSpectatorPerspective == 0
+                ? (byte)1
+                : (byte)0;
+            spectatorPerspectiveFadeRoutine = StartCoroutine(
+                AnimateSpectatorPerspectiveSwitch(target));
+        }
+
+        private void RequestSpectatorHandshake()
+        {
+            if (role != SessionRole.Spectator ||
+                networkManager == null ||
+                !networkManager.IsConnectedClient)
+            {
+                return;
+            }
+
+            SendToServer(
+                SpectatorPerspectiveMessage,
+                new SpectatorPerspectivePayload
+                {
+                    protocolVersion = ProtocolVersion,
+                    perspective = localSpectatorPerspective
+                },
+                NetworkDelivery.ReliableSequenced);
+        }
+
+        private IEnumerator AnimateSpectatorPerspectiveSwitch(byte target)
+        {
+            SendToServer(
+                SpectatorPerspectiveMessage,
+                new SpectatorPerspectivePayload
+                {
+                    protocolVersion = ProtocolVersion,
+                    perspective = target
+                },
+                NetworkDelivery.ReliableSequenced);
+
+            const float halfDuration = 0.13f;
+            float elapsed = 0f;
+            while (elapsed < halfDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                spectatorPerspectiveFadeAlpha = Mathf.Clamp01(
+                    elapsed / halfDuration);
+                yield return null;
+            }
+            localSpectatorPerspective = target;
+            elapsed = 0f;
+            while (elapsed < halfDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                spectatorPerspectiveFadeAlpha = 1f - Mathf.Clamp01(
+                    elapsed / halfDuration);
+                yield return null;
+            }
+            spectatorPerspectiveFadeAlpha = 0f;
+            spectatorPerspectiveFadeRoutine = null;
+        }
+
+        private void ProcessSpectatorPerspectiveMessage(
+            ulong senderClientId,
+            SpectatorPerspectivePayload payload)
+        {
+            if (!IsHost ||
+                !spectatorClientIds.Contains(senderClientId) ||
+                payload == null ||
+                payload.protocolVersion != ProtocolVersion ||
+                payload.perspective > 1)
+            {
+                return;
+            }
+
+            spectatorPerspectives[senderClientId] = payload.perspective;
+            if (matchStarted)
+                SendSpectatorStart(senderClientId);
+            BroadcastSpectatorState(senderClientId);
         }
 
         private IEnumerator SendStartUntilClientArenaReady()
@@ -3701,7 +4080,8 @@ namespace ArcaneArena.Multiplayer
         {
             ulong computedHash = DuelNetworkProtocol
                 .ComputePublicProjectionHash(networkState);
-            if (role != SessionRole.Client ||
+            if (role != SessionRole.Client &&
+                role != SessionRole.Spectator ||
                 senderClientId != NetworkManager.ServerClientId ||
                 networkState == null ||
                 !MatchIdsAreCompatible(currentMatchId, networkState.matchId) ||
@@ -3745,7 +4125,8 @@ namespace ArcaneArena.Multiplayer
             nextClientCommandId = Math.Max(
                 nextClientCommandId,
                 networkState.acknowledgedCommandId);
-            PersistReconnectTicket();
+            if (role == SessionRole.Client)
+                PersistReconnectTicket();
             pendingReplicaState = networkState;
             if (!beginDuelApplied)
             {
@@ -3768,7 +4149,8 @@ namespace ArcaneArena.Multiplayer
                 RequestResync("snapshot-apply-failed");
                 return;
             }
-            SendStateAck(networkState);
+            if (role == SessionRole.Client)
+                SendStateAck(networkState);
             if (beginDuelApplied &&
                 flowState != OnlineMatchFlowState.ResultScreen)
             {
@@ -3886,6 +4268,14 @@ namespace ArcaneArena.Multiplayer
                 BeginDuelMessage,
                 begin,
                 NetworkDelivery.ReliableSequenced);
+            foreach (ulong spectatorClientId in spectatorClientIds.ToArray())
+            {
+                SendToClient(
+                    spectatorClientId,
+                    BeginDuelMessage,
+                    begin,
+                    NetworkDelivery.ReliableSequenced);
+            }
             StartBeginDuelAtTick(begin);
             Debug.Log(
                 $"[MP] stage=begin-issued epoch={currentTransitionEpoch} " +
@@ -3896,20 +4286,24 @@ namespace ArcaneArena.Multiplayer
             ulong senderClientId,
             BeginDuelPayload begin)
         {
-            if (role != SessionRole.Client ||
+            if (role != SessionRole.Client &&
+                role != SessionRole.Spectator ||
                 senderClientId != NetworkManager.ServerClientId ||
                 begin == null || begin.protocolVersion != ProtocolVersion ||
                 begin.matchId != currentMatchId ||
                 begin.transitionEpoch != currentTransitionEpoch ||
                 begin.initialStateVersion == 0 ||
-                begin.initialStateVersion != lastReplicaStateVersion)
+                role == SessionRole.Client &&
+                begin.initialStateVersion != lastReplicaStateVersion ||
+                role == SessionRole.Spectator &&
+                lastReplicaStateVersion == 0)
             {
                 return;
             }
 
             if (beginDuelReceived)
             {
-                if (beginDuelApplied)
+                if (beginDuelApplied && role == SessionRole.Client)
                     SendClientReady(true, localSceneReady);
                 return;
             }
@@ -3950,7 +4344,8 @@ namespace ArcaneArena.Multiplayer
             clientSynchronizing = false;
             hostAwaitingStateAckUnlock = false;
             hostController?.SetPresentationDecisionLocked(false);
-            replicaController?.SetPresentationDecisionLocked(false);
+            replicaController?.SetPresentationDecisionLocked(
+                role == SessionRole.Spectator);
             CardArenaBootstrap openingArena = IsHost
                 ? hostController?.GetComponent<CardArenaBootstrap>()
                 : replicaController?.GetComponent<CardArenaBootstrap>();
@@ -3959,7 +4354,9 @@ namespace ArcaneArena.Multiplayer
             DuelOnlineBridge.CompleteOnlineArenaTransition();
             loadingPresenter?.SetProgress(1f);
             loadingPresenter?.Hide();
-            status = "Duelo online ativo. Os dois jogadores estão sincronizados.";
+            status = role == SessionRole.Spectator
+                ? "Modo espectador ativo. Nenhuma ação pode interferir no duelo."
+                : "Duelo online ativo. Os dois jogadores estão sincronizados.";
             if (IsHost)
             {
                 _ = sessionCoordinator.SetHostMatchStateAsync(
@@ -3967,7 +4364,7 @@ namespace ArcaneArena.Multiplayer
                     currentMatchId,
                     false);
             }
-            else
+            else if (role == SessionRole.Client)
             {
                 SendClientReady(true, localSceneReady);
             }
@@ -4144,7 +4541,8 @@ namespace ArcaneArena.Multiplayer
             ulong senderClientId,
             DuelNetworkPresentationEvent presentationEvent)
         {
-            if (role != SessionRole.Client ||
+            if (role != SessionRole.Client &&
+                role != SessionRole.Spectator ||
                 senderClientId != NetworkManager.ServerClientId ||
                 presentationEvent == null ||
                 !MatchIdsAreCompatible(
@@ -4281,18 +4679,41 @@ namespace ArcaneArena.Multiplayer
             tournamentMetricsCollector?.Capture(duelEvent);
             TrackAndFinalizeOnlineReward(duelEvent);
             if (duelEvent != null && IsHost && matchStarted &&
-                remoteClientId != ulong.MaxValue)
+                (remoteClientId != ulong.MaxValue ||
+                 spectatorClientIds.Count > 0))
             {
-                DuelNetworkPresentationEvent presentationEvent =
-                    DuelNetworkProtocol.CreatePresentationEvent(
-                        duelEvent,
-                        hostController?.PresentationState,
-                        1,
-                        ++nextPresentationEventSequence,
-                        nextStateSequence + 1,
-                        currentMatchId);
-                outgoingPresentationEvents.Enqueue(presentationEvent);
-                TrySendPendingPresentationEvents();
+                int eventSequence = ++nextPresentationEventSequence;
+                if (remoteClientId != ulong.MaxValue)
+                {
+                    DuelNetworkPresentationEvent presentationEvent =
+                        DuelNetworkProtocol.CreatePresentationEvent(
+                            duelEvent,
+                            hostController?.PresentationState,
+                            1,
+                            eventSequence,
+                            nextStateSequence + 1,
+                            currentMatchId);
+                    outgoingPresentationEvents.Enqueue(presentationEvent);
+                    TrySendPendingPresentationEvents();
+                }
+                foreach (ulong spectatorClientId in spectatorClientIds.ToArray())
+                {
+                    byte perspective = spectatorPerspectives.TryGetValue(
+                        spectatorClientId,
+                        out byte selectedPerspective)
+                        ? selectedPerspective
+                        : (byte)0;
+                    SendToClient(
+                        spectatorClientId,
+                        PresentationEventMessage,
+                        DuelNetworkProtocol.CreatePresentationEvent(
+                            duelEvent,
+                            hostController?.PresentationState,
+                            perspective,
+                            eventSequence,
+                            nextStateSequence + 1,
+                            currentMatchId));
+                }
             }
             if (!matchStarted || pendingStateBroadcast != null)
                 return;
@@ -4519,6 +4940,14 @@ namespace ArcaneArena.Multiplayer
                     result,
                     NetworkDelivery.ReliableSequenced);
             }
+            foreach (ulong spectatorClientId in spectatorClientIds.ToArray())
+            {
+                SendToClient(
+                    spectatorClientId,
+                    MatchRewardMessage,
+                    result,
+                    NetworkDelivery.ReliableSequenced);
+            }
             _ = sessionCoordinator.SetHostMatchStateAsync(
                 "finished",
                 currentMatchId,
@@ -4534,7 +4963,8 @@ namespace ArcaneArena.Multiplayer
             ulong senderClientId,
             MatchRewardPayload reward)
         {
-            if (role != SessionRole.Client ||
+            if (role != SessionRole.Client &&
+                role != SessionRole.Spectator ||
                 senderClientId != NetworkManager.ServerClientId ||
                 reward == null ||
                 reward.protocolVersion != ProtocolVersion ||
@@ -4543,6 +4973,21 @@ namespace ArcaneArena.Multiplayer
                 reward.resultSequence == 0 ||
                 reward.resultSequence <= lastAppliedResultSequence)
             {
+                return;
+            }
+
+            if (role == SessionRole.Spectator)
+            {
+                lastAuthoritativeResult = reward;
+                HandleAuthoritativeResult(
+                    reward,
+                    localSpectatorPerspective,
+                    "Duelo encerrado. Você acompanhou esta partida como espectador.",
+                    null,
+                    null,
+                    0,
+                    0,
+                    reward.completedRounds);
                 return;
             }
 
@@ -4745,7 +5190,9 @@ namespace ArcaneArena.Multiplayer
         private void BroadcastState()
         {
             if (!IsHost || hostController == null || !hostCoreStarted ||
-                remoteClientId == ulong.MaxValue || !matchStarted)
+                !matchStarted ||
+                remoteClientId == ulong.MaxValue &&
+                spectatorClientIds.Count == 0)
             {
                 return;
             }
@@ -4755,43 +5202,97 @@ namespace ArcaneArena.Multiplayer
                     "[Arcane Duel Online] O snapshot autoritativo do Core " +
                     "não pôde ser consultado nesta atualização.");
             }
-            DuelNetworkState state = DuelNetworkProtocol.CreateState(
+            int sequence = ++nextStateSequence;
+            if (remoteClientId != ulong.MaxValue)
+            {
+                DuelNetworkState state = DuelNetworkProtocol.CreateState(
+                    hostController.PresentationState,
+                    hostController.CurrentPrompt,
+                    1,
+                    sequence,
+                    status);
+                DuelNetworkProtocol.PopulateCombatStats(
+                    state,
+                    hostController,
+                    1);
+                state.hasDuelClock = hostController.HasDuelClock;
+                state.localDuelTimeRemaining =
+                    hostController.DuelTimeRemaining(1);
+                state.opponentDuelTimeRemaining =
+                    hostController.DuelTimeRemaining(0);
+                state.activeDuelClockPlayer =
+                    hostController.ActiveDuelClockPlayer == 1
+                        ? (byte)0
+                        : (byte)1;
+                state.isDuelClockRunning =
+                    hostController.IsDuelClockRunning;
+                state.matchId = currentMatchId;
+                ulong publicHash = DuelNetworkProtocol
+                    .ComputePublicProjectionHash(state);
+                if (authoritativeStateVersion == 0 ||
+                    publicHash != authoritativePublicStateHash)
+                {
+                    authoritativeStateVersion++;
+                    authoritativePublicStateHash = publicHash;
+                }
+                state.stateVersion = authoritativeStateVersion;
+                state.publicStateHash = authoritativePublicStateHash;
+                state.lastAcceptedClientSequence = lastAcceptedClientSequence;
+                state.acknowledgedCommandId = lastAcknowledgedCommandId;
+                state.acknowledgedResponseRequestId =
+                    lastAcknowledgedResponseRequestId;
+                SendToClient(remoteClientId, StateMessage, state);
+            }
+            foreach (ulong spectatorClientId in spectatorClientIds.ToArray())
+                BroadcastSpectatorState(spectatorClientId, sequence);
+        }
+
+        private void BroadcastSpectatorState(ulong spectatorClientId)
+        {
+            BroadcastSpectatorState(
+                spectatorClientId,
+                ++nextStateSequence);
+        }
+
+        private void BroadcastSpectatorState(
+            ulong spectatorClientId,
+            int sequence)
+        {
+            if (!IsHost || hostController == null || !hostCoreStarted ||
+                !matchStarted || !spectatorClientIds.Contains(spectatorClientId))
+            {
+                return;
+            }
+
+            byte perspective = spectatorPerspectives.TryGetValue(
+                spectatorClientId,
+                out byte selectedPerspective)
+                ? selectedPerspective
+                : (byte)0;
+            DuelNetworkState state = DuelNetworkProtocol.CreateSpectatorState(
                 hostController.PresentationState,
-                hostController.CurrentPrompt,
-                1,
-                ++nextStateSequence,
+                perspective,
+                sequence,
                 status);
-            DuelNetworkProtocol.PopulateCombatStats(
+            DuelNetworkProtocol.PopulateSpectatorCombatStats(
                 state,
                 hostController,
-                1);
+                perspective);
             state.hasDuelClock = hostController.HasDuelClock;
             state.localDuelTimeRemaining =
-                hostController.DuelTimeRemaining(1);
+                hostController.DuelTimeRemaining(perspective);
             state.opponentDuelTimeRemaining =
-                hostController.DuelTimeRemaining(0);
+                hostController.DuelTimeRemaining((byte)(1 - perspective));
             state.activeDuelClockPlayer =
-                hostController.ActiveDuelClockPlayer == 1
+                hostController.ActiveDuelClockPlayer == perspective
                     ? (byte)0
                     : (byte)1;
-            state.isDuelClockRunning =
-                hostController.IsDuelClockRunning;
+            state.isDuelClockRunning = hostController.IsDuelClockRunning;
             state.matchId = currentMatchId;
-            ulong publicHash = DuelNetworkProtocol
+            state.stateVersion = ++spectatorStateVersion;
+            state.publicStateHash = DuelNetworkProtocol
                 .ComputePublicProjectionHash(state);
-            if (authoritativeStateVersion == 0 ||
-                publicHash != authoritativePublicStateHash)
-            {
-                authoritativeStateVersion++;
-                authoritativePublicStateHash = publicHash;
-            }
-            state.stateVersion = authoritativeStateVersion;
-            state.publicStateHash = authoritativePublicStateHash;
-            state.lastAcceptedClientSequence = lastAcceptedClientSequence;
-            state.acknowledgedCommandId = lastAcknowledgedCommandId;
-            state.acknowledgedResponseRequestId =
-                lastAcknowledgedResponseRequestId;
-            SendToClient(remoteClientId, StateMessage, state);
+            SendToClient(spectatorClientId, StateMessage, state);
         }
 
         private void StartStateHeartbeat()
@@ -4804,7 +5305,8 @@ namespace ArcaneArena.Multiplayer
         private IEnumerator BroadcastStateHeartbeat()
         {
             while (IsHost && matchStarted && hostCoreStarted &&
-                   remoteClientId != ulong.MaxValue)
+                   (remoteClientId != ulong.MaxValue ||
+                    spectatorClientIds.Count > 0))
             {
                 yield return new WaitForSecondsRealtime(StateHeartbeatSeconds);
                 BroadcastState();
@@ -4819,6 +5321,15 @@ namespace ArcaneArena.Multiplayer
             if (!replicaController.ApplyNetworkState(state))
                 return false;
             DrainPresentationEvents();
+            if (role == SessionRole.Spectator)
+            {
+                clientSynchronizing = false;
+                replicaController.SetPresentationDecisionLocked(true);
+                status = localSpectatorPerspective == 0
+                    ? "ESPECTADOR • acompanhando o campo do Jogador 1"
+                    : "ESPECTADOR • acompanhando o campo do Jogador 2";
+                return true;
+            }
             bool hostAdvancedPrompt = state.prompt == null ||
                 state.prompt.requestId != pendingResponseRequestId;
             if (pendingResponseRequestId != 0 &&
@@ -5104,6 +5615,29 @@ namespace ArcaneArena.Multiplayer
         {
             if (replicaController == null)
                 return;
+            if (role == SessionRole.Spectator)
+            {
+                foreach (int sequence in pendingPresentationEvents.Keys
+                             .OrderBy(value => value)
+                             .ToArray())
+                {
+                    DuelNetworkPresentationEvent presentationEvent =
+                        pendingPresentationEvents[sequence];
+                    if (lastReplicaSequence <
+                        presentationEvent.requiredStateSequence)
+                    {
+                        continue;
+                    }
+                    pendingPresentationEvents.Remove(sequence);
+                    lastPresentationEventSequence = Math.Max(
+                        lastPresentationEventSequence,
+                        presentationEvent.eventSequence);
+                    replicaController.PresentNetworkEvent(
+                        DuelNetworkProtocol.ToPresentationEvent(
+                            presentationEvent));
+                }
+                return;
+            }
             while (pendingPresentationEvents.TryGetValue(
                        lastPresentationEventSequence + 1,
                        out DuelNetworkPresentationEvent presentationEvent))
@@ -6072,8 +6606,10 @@ namespace ArcaneArena.Multiplayer
         {
             if (IsHost)
                 return remoteClientId != ulong.MaxValue &&
-                       senderClientId == remoteClientId;
-            return role == SessionRole.Client &&
+                       senderClientId == remoteClientId ||
+                       spectatorClientIds.Contains(senderClientId);
+            return (role == SessionRole.Client ||
+                    role == SessionRole.Spectator) &&
                    senderClientId == NetworkManager.ServerClientId;
         }
 
@@ -6306,6 +6842,11 @@ namespace ArcaneArena.Multiplayer
                             senderClientId,
                             JsonUtility.FromJson<PreludeStartDecisionPayload>(json));
                         break;
+                    case LogicalMessage.SpectatorPerspective:
+                        ProcessSpectatorPerspectiveMessage(
+                            senderClientId,
+                            JsonUtility.FromJson<SpectatorPerspectivePayload>(json));
+                        break;
                     default:
                         throw new InvalidOperationException(
                             $"Mensagem logica v3 desconhecida: {logicalMessage}.");
@@ -6400,6 +6941,10 @@ namespace ArcaneArena.Multiplayer
                     logicalMessage = LogicalMessage.PreludeStartDecision;
                     kind = DuelWireKind.Control;
                     return true;
+                case SpectatorPerspectiveMessage:
+                    logicalMessage = LogicalMessage.SpectatorPerspective;
+                    kind = DuelWireKind.Control;
+                    return true;
                 default:
                     return false;
             }
@@ -6434,6 +6979,7 @@ namespace ArcaneArena.Multiplayer
                 case LogicalMessage.PreludeResult:
                 case LogicalMessage.PreludeStartChoice:
                 case LogicalMessage.PreludeStartDecision:
+                case LogicalMessage.SpectatorPerspective:
                     return kind == DuelWireKind.Control;
                 default:
                     return false;
@@ -6637,6 +7183,13 @@ namespace ArcaneArena.Multiplayer
             remoteDuelIdentity = null;
             remoteCanonicalPlayerId = string.Empty;
             remoteClientId = ulong.MaxValue;
+            approvedDuelistClientId = ulong.MaxValue;
+            spectatorClientIds.Clear();
+            approvedSpectatorClientIds.Clear();
+            spectatorPerspectives.Clear();
+            spectatorStateVersion = 0;
+            localSpectatorPerspective = 0;
+            spectatorPerspectiveFadeAlpha = 0f;
             currentMatchId = string.Empty;
             currentTransitionEpoch = 0;
             readinessBarrier.Reset();
@@ -6849,6 +7402,13 @@ namespace ArcaneArena.Multiplayer
                 showPanel = false;
             }
             DrawRewardResultOverlay();
+            if (role == SessionRole.Spectator &&
+                matchStarted &&
+                SceneManager.GetActiveScene().name == DuelArenaScene)
+            {
+                DrawSpectatorDuelControls();
+                DrawSpectatorPerspectiveFade();
+            }
             if (!showPanel)
                 return;
             EnsureLobbyStyles();
@@ -6929,6 +7489,47 @@ namespace ArcaneArena.Multiplayer
             GUI.backgroundColor = new Color(0.02f, 0.18f, 0.22f, 0.96f);
             GUI.Box(area, rewardResultMessage, style);
             GUI.backgroundColor = previousBackground;
+        }
+
+        private void DrawSpectatorDuelControls()
+        {
+            EnsureLobbyStyles();
+            const float width = 270f;
+            const float height = 52f;
+            var area = new Rect(
+                (Screen.width - width) * 0.5f,
+                Mathf.Max(18f, Screen.height * 0.035f),
+                width,
+                height);
+            Color previous = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.10f, 0.78f, 0.88f, 0.96f);
+            string nextPlayer = localSpectatorPerspective == 0
+                ? "JOGADOR 2"
+                : "JOGADOR 1";
+            if (GUI.Button(
+                    area,
+                    "ESPECTADOR • VER CAMPO DO " + nextPlayer,
+                    lobbyButtonStyle))
+            {
+                RequestSpectatorPerspectiveSwitch();
+            }
+            GUI.backgroundColor = previous;
+        }
+
+        private void DrawSpectatorPerspectiveFade()
+        {
+            if (spectatorPerspectiveFadeAlpha <= 0f)
+                return;
+            Color previous = GUI.color;
+            GUI.color = new Color(
+                0f,
+                0f,
+                0f,
+                Mathf.Clamp01(spectatorPerspectiveFadeAlpha));
+            GUI.DrawTexture(
+                new Rect(0f, 0f, Screen.width, Screen.height),
+                Texture2D.whiteTexture);
+            GUI.color = previous;
         }
 
         private static float CalculateLobbyScale(
@@ -7054,30 +7655,43 @@ namespace ArcaneArena.Multiplayer
                     }
                     GUI.backgroundColor = Color.Lerp(accent, Color.white, 0.14f);
                     if (GUI.Button(
-                            new Rect(464f, 254f, 138f, 42f),
+                            new Rect(324f, 254f, 128f, 42f),
                             "ENTRAR",
                             lobbyButtonStyle))
                     {
                         BeginJoining();
+                    }
+                    GUI.backgroundColor = new Color(0.20f, 0.72f, 0.82f, 1f);
+                    if (GUI.Button(
+                            new Rect(464f, 254f, 138f, 42f),
+                            "ASSISTIR",
+                            lobbyButtonStyle))
+                    {
+                        BeginSpectating();
                     }
                     GUI.enabled = true;
                 }
             }
 
             GUI.backgroundColor = Color.white;
-            GUI.Box(new Rect(margin, 264f, 412f, 92f),
+            GUI.Box(new Rect(margin, 264f, 166f, 92f),
+                GUIContent.none, lobbySectionStyle);
+            GUI.Box(new Rect(226f, 264f, 166f, 92f),
+                GUIContent.none, lobbySectionStyle);
+            GUI.Box(new Rect(410f, 264f, 192f, 92f),
                 GUIContent.none, lobbySectionStyle);
             int players = role == SessionRole.None
                 ? 0
-                : Mathf.Clamp(sessionCoordinator.PlayerCount, 1, 2);
+                : Mathf.Clamp(
+                    sessionCoordinator.PlayerCount - SpectatorCount,
+                    1,
+                    2);
             int confirmedDecks = localLoadout == null ? 0 : 1;
             if (IsHost ? remoteLoadout != null && clientDeckReady : helloAccepted)
                 confirmedDecks++;
-            string roleLabel = IsHost ? "ANFITRIAO / JOGADOR 1" :
-                role == SessionRole.Client ? "JOGADOR 2" : "DESCONECTADO";
-            GUI.Label(new Rect(54f, 274f, 380f, 22f),
-                $"JOGADORES • {players}/2    DECKS • {confirmedDecks}/2    {roleLabel}",
-                lobbySmallLabelStyle);
+            string roleLabel = IsHost ? "ANFITRIÃO" :
+                role == SessionRole.Client ? "JOGADOR 2" :
+                role == SessionRole.Spectator ? "ESPECTADOR" : "AGUARDANDO";
             string localDeck = localLoadout?.displayName ?? "AGUARDANDO";
             string playerOneDeck = IsHost
                 ? localDeck
@@ -7087,9 +7701,26 @@ namespace ArcaneArena.Multiplayer
             string playerTwoDeck = IsHost
                 ? remoteLoadout?.displayName ?? "AGUARDANDO"
                 : localDeck;
-            GUI.Label(new Rect(54f, 300f, 380f, 42f),
-                $"DECK JOGADOR 1  •  {playerOneDeck}\n" +
-                $"DECK JOGADOR 2  •  {playerTwoDeck}",
+            GUI.Label(new Rect(48f, 273f, 146f, 20f),
+                "JOGADOR 1", lobbySmallLabelStyle);
+            GUI.Label(new Rect(48f, 299f, 146f, 44f),
+                playerOneDeck,
+                lobbyDeckStyle);
+            GUI.Label(new Rect(205f, 292f, 22f, 28f),
+                "×", lobbyCodeStyle);
+            GUI.Label(new Rect(236f, 273f, 146f, 20f),
+                "JOGADOR 2", lobbySmallLabelStyle);
+            GUI.Label(new Rect(236f, 299f, 146f, 44f),
+                playerTwoDeck,
+                lobbyDeckStyle);
+            GUI.Label(new Rect(420f, 273f, 172f, 20f),
+                $"ESPECTADORES • {SpectatorCount}/" +
+                MultiplayerSessionCoordinator.MaximumSpectators,
+                lobbySmallLabelStyle);
+            GUI.Label(new Rect(420f, 299f, 172f, 44f),
+                role == SessionRole.Spectator
+                    ? "VOCÊ ESTÁ ASSISTINDO\nSEM AUTORIDADE DE DUELO"
+                    : $"{players}/2 DUELISTAS\n{confirmedDecks}/2 DECKS • {roleLabel}",
                 lobbyDeckStyle);
 
             bool canStartMatch = IsHost &&
@@ -7165,9 +7796,10 @@ namespace ArcaneArena.Multiplayer
                 int memberCount = Mathf.Clamp(
                     sessionCoordinator.PlayerCount,
                     1,
-                    2);
-                return $"SALA v12 • {memberCount:00}/02 no Lobby • Relay " +
-                    "será iniciado quando os dois jogadores estiverem prontos.";
+                    MultiplayerSessionCoordinator.PrivateRoomCapacity);
+                return $"SALA v14 • {memberCount:00}/" +
+                    $"{MultiplayerSessionCoordinator.PrivateRoomCapacity:00} no Lobby • " +
+                    "2 duelistas + até 10 espectadores.";
             }
 
             int roundTrip = RelayRoundTripTimeMs;

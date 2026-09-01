@@ -23,6 +23,8 @@ namespace ArcaneArena.Multiplayer
         internal const string PrivateDuelMode = "private-duel-1v1";
         internal const string RankedMatchmakingMode =
             "ranked-matchmaking-1v1";
+        internal const int MaximumSpectators = 10;
+        internal const int PrivateRoomCapacity = 2 + MaximumSpectators;
 
         private const string AppVersionKey = "appVersion";
         private const string ProtocolVersionKey = "protocolVersion";
@@ -64,14 +66,17 @@ namespace ArcaneArena.Multiplayer
             {
                 Type = SessionType,
                 Name = ProjectIdentity.ProductName + " Private 1v1",
-                MaxPlayers = 2,
+                MaxPlayers = PrivateRoomCapacity,
                 IsPrivate = true,
                 IsLocked = false,
                 SessionProperties = CreateSessionProperties(
                     protocolVersion,
                     PrivateDuelMode,
                     false),
-                PlayerProperties = CreatePlayerProperties(loadout, 0)
+                PlayerProperties = CreatePlayerProperties(
+                    loadout,
+                    0,
+                    "duelist")
             };
             // Do not start Relay while the room itself is being created.
             // WithRelayNetwork starts NGO as part of CreateSessionAsync. That
@@ -141,7 +146,10 @@ namespace ArcaneArena.Multiplayer
             var options = new JoinSessionOptions
             {
                 Type = SessionType,
-                PlayerProperties = CreatePlayerProperties(loadout, 1)
+                PlayerProperties = CreatePlayerProperties(
+                    loadout,
+                    1,
+                    "duelist")
             };
             options.WithNetworkOptions(new NetworkOptions
             {
@@ -158,6 +166,41 @@ namespace ArcaneArena.Multiplayer
             Bind(joined);
             ValidateCompatibility(protocolVersion, PrivateDuelMode);
             Debug.Log("[MP] stage=session-ready role=client members=" +
+                joined.PlayerCount);
+            return joined;
+        }
+
+        public async Task<ISession> JoinAsSpectatorByCodeAsync(
+            string code,
+            string displayName,
+            string protocolVersion)
+        {
+            await LeaveAsync();
+
+            var options = new JoinSessionOptions
+            {
+                Type = SessionType,
+                PlayerProperties = CreatePlayerProperties(
+                    new DuelDeckLoadout
+                    {
+                        playerDisplayName = displayName ?? "ESPECTADOR"
+                    },
+                    -1,
+                    "spectator")
+            };
+            options.WithNetworkOptions(new NetworkOptions
+            {
+                RelayProtocol = ActiveRelayProtocol
+            });
+
+            ISession joined = await ConnectWithLobbyEventRetryAsync(
+                () => MultiplayerService.Instance.JoinSessionByCodeAsync(
+                    code,
+                    options),
+                false);
+            Bind(joined);
+            ValidateCompatibility(protocolVersion, PrivateDuelMode);
+            Debug.Log("[MP] stage=session-ready role=spectator members=" +
                 joined.PlayerCount);
             return joined;
         }
@@ -181,7 +224,10 @@ namespace ArcaneArena.Multiplayer
                     true),
                 // Quick Join can either create or join. The definitive seat
                 // is written immediately after the service returns.
-                PlayerProperties = CreatePlayerProperties(loadout, -1)
+                PlayerProperties = CreatePlayerProperties(
+                    loadout,
+                    -1,
+                    "duelist")
             };
             options.WithRelayNetwork();
             options.WithNetworkOptions(new NetworkOptions
@@ -370,10 +416,25 @@ namespace ArcaneArena.Multiplayer
             host.SetProperty(StatusKey, PublicProperty(status));
             host.SetProperty(MatchIdKey,
                 MemberSessionProperty(matchId ?? string.Empty));
+            bool privateSpectatorsMayJoin = IsPrivateDuelSession() &&
+                !string.Equals(status, "finished", StringComparison.Ordinal);
+            bool effectiveJoinable = joinable || privateSpectatorsMayJoin;
             host.SetProperty(JoinableKey,
-                PublicProperty(joinable ? "true" : "false"));
-            host.IsLocked = !joinable;
+                PublicProperty(effectiveJoinable ? "true" : "false"));
+            host.IsLocked = !effectiveJoinable;
             await host.SavePropertiesAsync();
+        }
+
+        private bool IsPrivateDuelSession()
+        {
+            return currentSession?.Properties != null &&
+                currentSession.Properties.TryGetValue(
+                    ModeKey,
+                    out SessionProperty property) &&
+                string.Equals(
+                    property?.Value,
+                    PrivateDuelMode,
+                    StringComparison.Ordinal);
         }
 
         public Task LeaveAsync()
@@ -585,7 +646,10 @@ namespace ArcaneArena.Multiplayer
         }
 
         private static Dictionary<string, PlayerProperty>
-            CreatePlayerProperties(DuelDeckLoadout loadout, int seat)
+            CreatePlayerProperties(
+                DuelDeckLoadout loadout,
+                int seat,
+                string role)
         {
             return new Dictionary<string, PlayerProperty>
             {
@@ -597,6 +661,7 @@ namespace ArcaneArena.Multiplayer
                 ["ready"] = MemberPlayerProperty("false"),
                 ["platform"] = MemberPlayerProperty(Application.platform.ToString()),
                 ["seat"] = MemberPlayerProperty(seat.ToString()),
+                ["role"] = MemberPlayerProperty(role ?? "duelist"),
                 ["connectionState"] = MemberPlayerProperty("connecting")
             };
         }

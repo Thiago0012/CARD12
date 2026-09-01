@@ -38,8 +38,8 @@ namespace ArcaneArena.Multiplayer
             if (damageDealt >= damageReceived + 2000)
                 return "PRESSÃO OFENSIVA";
             if (damageReceived >= damageDealt + 2000)
-                return "RESISTÊNCIA DECISIVA";
-            return "VITÓRIA CONTROLADA";
+                return "RESISTÊNCIA EM CAMPO";
+            return "DESEMPENHO EQUILIBRADO";
         }
 
         public static DuelResultSummary Capture(
@@ -501,8 +501,7 @@ namespace ArcaneArena.Multiplayer
             OnlineDuelResultKind result,
             DuelResultSummary summary)
         {
-            bool visible = result == OnlineDuelResultKind.Victory &&
-                           summary != null && summaryRoot != null;
+            bool visible = summary != null && summaryRoot != null;
             summaryRoot?.SetActive(visible);
             if (!visible)
                 return;

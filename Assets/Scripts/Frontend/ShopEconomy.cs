@@ -41,6 +41,35 @@ namespace ArcaneArena.Frontend
         }
     }
 
+    public static class OfflineDuelCoinReward
+    {
+        public const int MinimumCoins = 10;
+        public const int MaximumCoins = 50;
+
+        public static int Calculate(
+            long damageDealt,
+            long damageReceived,
+            int turns,
+            int confirmedPlays,
+            bool winner,
+            bool draw)
+        {
+            int resultBase = winner ? 20 : draw ? 14 : MinimumCoins;
+            int offense = Mathf.FloorToInt(
+                Mathf.Clamp01(damageDealt / 8000f) * 18f);
+            int survival = Mathf.FloorToInt(
+                (1f - Mathf.Clamp01(damageReceived / 8000f)) * 7f);
+            int activity = Mathf.FloorToInt(
+                Mathf.Clamp01(confirmedPlays / 8f) * 5f);
+            int pacePenalty = Math.Max(0, Math.Max(0, turns) - 12) / 3;
+            return Math.Max(
+                MinimumCoins,
+                Math.Min(
+                    MaximumCoins,
+                    resultBase + offense + survival + activity - pacePenalty));
+        }
+    }
+
     public sealed class ShopPackDefinition
     {
         public string PackId { get; }
