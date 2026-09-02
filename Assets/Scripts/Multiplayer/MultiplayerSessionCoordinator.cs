@@ -12,6 +12,17 @@ using UnityEngine;
 
 namespace ArcaneArena.Multiplayer
 {
+    internal sealed class PrivateRoomMemberSnapshot
+    {
+        public string PlayerId { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string IconId { get; set; } = ProfileIconCatalog.DefaultIconId;
+        public string Role { get; set; } = "lobby";
+        public int Seat { get; set; } = -1;
+        public bool Ready { get; set; }
+        public bool IsHost { get; set; }
+    }
+
     /// <summary>
     /// Single facade for the Unity Multiplayer Services session lifecycle.
     /// Relay allocation, Lobby membership and NGO start/stop are deliberately
@@ -41,6 +52,8 @@ namespace ArcaneArena.Multiplayer
 
         private ISession currentSession;
         private Task leaveTask;
+        private IReadOnlyList<PrivateRoomMemberSnapshot> roomMembers =
+            Array.Empty<PrivateRoomMemberSnapshot>();
 
         public event Action<SessionError> NetworkStartFailed;
         public event Action HostChanged;
@@ -49,6 +62,10 @@ namespace ArcaneArena.Multiplayer
         public bool HasSession => currentSession != null && currentSession.IsMember;
         public bool IsHost => currentSession?.IsHost == true;
         public int PlayerCount => currentSession?.PlayerCount ?? 0;
+        public IReadOnlyList<PrivateRoomMemberSnapshot> RoomMembers =>
+            roomMembers;
+        public int DuelistCount => CountMembersWithRole("duelist");
+        public int SpectatorCount => CountMembersWithRole("spectator");
         public string Code => currentSession?.Code ?? string.Empty;
         public string SessionId => currentSession?.Id ?? string.Empty;
         public NetworkState NetworkState => currentSession?.Network?.State ??
@@ -96,6 +113,7 @@ namespace ArcaneArena.Multiplayer
                 () => MultiplayerService.Instance.CreateSessionAsync(options),
                 true);
             Bind(created);
+            await RefreshRoomMembersAsync();
             Debug.Log("[MP] stage=session-ready role=host members=1");
             return created;
         }
@@ -114,7 +132,8 @@ namespace ArcaneArena.Multiplayer
                 throw new InvalidOperationException(
                     "Apenas o anfitrião pode iniciar a conexão Relay da sala.");
             }
-            if (currentSession.PlayerCount < 2)
+            await RefreshRoomMembersAsync();
+            if (DuelistCount < 2)
             {
                 throw new InvalidOperationException(
                     "Aguardando o segundo jogador entrar na sala.");
@@ -165,7 +184,48 @@ namespace ArcaneArena.Multiplayer
                 false);
             Bind(joined);
             ValidateCompatibility(protocolVersion, PrivateDuelMode);
+            await RefreshRoomMembersAsync();
             Debug.Log("[MP] stage=session-ready role=client members=" +
+                joined.PlayerCount);
+            return joined;
+        }
+
+        public async Task<ISession> JoinLobbyByCodeAsync(
+            string code,
+            DuelIdentitySnapshot identity,
+            string protocolVersion)
+        {
+            await LeaveAsync();
+
+            identity ??= new DuelIdentitySnapshot
+            {
+                nickname = "DUELISTA",
+                equippedIconId = ProfileIconCatalog.DefaultIconId
+            };
+            var options = new JoinSessionOptions
+            {
+                Type = SessionType,
+                PlayerProperties = CreatePlayerProperties(
+                    new DuelDeckLoadout
+                    {
+                        playerDisplayName = identity.nickname,
+                        identity = identity.Copy()
+                    },
+                    -1,
+                    "lobby")
+            };
+
+            // A presença no Lobby não abre Relay/NGO. O membro escolhe uma
+            // vaga de duelista ou espectador antes de entrar na rede do duelo.
+            ISession joined = await ConnectWithLobbyEventRetryAsync(
+                () => MultiplayerService.Instance.JoinSessionByCodeAsync(
+                    code,
+                    options),
+                false);
+            Bind(joined);
+            ValidateCompatibility(protocolVersion, PrivateDuelMode);
+            await RefreshRoomMembersAsync();
+            Debug.Log("[MP] stage=session-ready role=lobby members=" +
                 joined.PlayerCount);
             return joined;
         }
@@ -173,6 +233,7 @@ namespace ArcaneArena.Multiplayer
         public async Task<ISession> JoinAsSpectatorByCodeAsync(
             string code,
             string displayName,
+            string iconId,
             string protocolVersion)
         {
             await LeaveAsync();
@@ -183,7 +244,13 @@ namespace ArcaneArena.Multiplayer
                 PlayerProperties = CreatePlayerProperties(
                     new DuelDeckLoadout
                     {
-                        playerDisplayName = displayName ?? "ESPECTADOR"
+                        playerDisplayName = displayName ?? "ESPECTADOR",
+                        identity = new DuelIdentitySnapshot
+                        {
+                            nickname = displayName ?? "ESPECTADOR",
+                            equippedIconId = ProfileIconCatalog.ResolveId(
+                                iconId)
+                        }
                     },
                     -1,
                     "spectator")
@@ -200,9 +267,72 @@ namespace ArcaneArena.Multiplayer
                 false);
             Bind(joined);
             ValidateCompatibility(protocolVersion, PrivateDuelMode);
+            await RefreshRoomMembersAsync();
             Debug.Log("[MP] stage=session-ready role=spectator members=" +
                 joined.PlayerCount);
             return joined;
+        }
+
+        public async Task RefreshRoomMembersAsync()
+        {
+            string sessionId = SessionId;
+            if (string.IsNullOrWhiteSpace(sessionId))
+            {
+                roomMembers = Array.Empty<PrivateRoomMemberSnapshot>();
+                return;
+            }
+
+            var lobby = await LobbyService.Instance.GetLobbyAsync(sessionId);
+            var snapshots = new List<PrivateRoomMemberSnapshot>();
+            if (lobby?.Players != null)
+            {
+                foreach (Unity.Services.Lobbies.Models.Player player in
+                         lobby.Players)
+                {
+                    if (player == null || string.IsNullOrWhiteSpace(player.Id))
+                        continue;
+                    string displayName = GetLobbyPlayerData(
+                        player,
+                        "displayName");
+                    snapshots.Add(new PrivateRoomMemberSnapshot
+                    {
+                        PlayerId = player.Id,
+                        DisplayName = string.IsNullOrWhiteSpace(displayName)
+                            ? "DUELISTA"
+                            : displayName,
+                        IconId = ProfileIconCatalog.ResolveId(
+                            GetLobbyPlayerData(player, "iconId")),
+                        Role = NormalizeRoomRole(
+                            GetLobbyPlayerData(player, "role")),
+                        Seat = int.TryParse(
+                            GetLobbyPlayerData(player, "seat"),
+                            out int seat)
+                                ? seat
+                                : -1,
+                        Ready = string.Equals(
+                            GetLobbyPlayerData(player, "ready"),
+                            "true",
+                            StringComparison.OrdinalIgnoreCase),
+                        IsHost = string.Equals(
+                            lobby.HostId,
+                            player.Id,
+                            StringComparison.Ordinal)
+                    });
+                }
+            }
+            snapshots.Sort((left, right) =>
+            {
+                int leftOrder = RoomRoleOrder(left.Role, left.Seat);
+                int rightOrder = RoomRoleOrder(right.Role, right.Seat);
+                int order = leftOrder.CompareTo(rightOrder);
+                return order != 0
+                    ? order
+                    : string.Compare(
+                        left.DisplayName,
+                        right.DisplayName,
+                        StringComparison.OrdinalIgnoreCase);
+            });
+            roomMembers = snapshots;
         }
 
         public async Task<ISession> MatchmakeRankedAsync(
@@ -655,6 +785,9 @@ namespace ArcaneArena.Multiplayer
             {
                 ["displayName"] = MemberPlayerProperty(
                     Limit(loadout?.playerDisplayName, 32)),
+                ["iconId"] = MemberPlayerProperty(
+                    ProfileIconCatalog.ResolveId(
+                        loadout?.identity?.equippedIconId)),
                 ["deckHash"] = MemberPlayerProperty(ComputeDeckHash(loadout)),
                 ["banlistId"] = MemberPlayerProperty(
                     loadout?.banlistId ?? string.Empty),
@@ -664,6 +797,52 @@ namespace ArcaneArena.Multiplayer
                 ["role"] = MemberPlayerProperty(role ?? "duelist"),
                 ["connectionState"] = MemberPlayerProperty("connecting")
             };
+        }
+
+        private int CountMembersWithRole(string expectedRole)
+        {
+            int count = 0;
+            foreach (PrivateRoomMemberSnapshot member in roomMembers)
+            {
+                if (string.Equals(
+                        member?.Role,
+                        expectedRole,
+                        StringComparison.Ordinal))
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        private static string NormalizeRoomRole(string value)
+        {
+            return string.Equals(value, "duelist", StringComparison.Ordinal)
+                ? "duelist"
+                : string.Equals(value, "spectator", StringComparison.Ordinal)
+                    ? "spectator"
+                    : "lobby";
+        }
+
+        private static int RoomRoleOrder(string role, int seat)
+        {
+            if (string.Equals(role, "duelist", StringComparison.Ordinal))
+                return Mathf.Clamp(seat, 0, 1);
+            if (string.Equals(role, "spectator", StringComparison.Ordinal))
+                return 10;
+            return 20;
+        }
+
+        private static string GetLobbyPlayerData(
+            Unity.Services.Lobbies.Models.Player player,
+            string key)
+        {
+            return player?.Data != null &&
+                   player.Data.TryGetValue(
+                       key,
+                       out Unity.Services.Lobbies.Models.PlayerDataObject value)
+                ? value?.Value ?? string.Empty
+                : string.Empty;
         }
 
         private void ValidateCompatibility(
@@ -718,12 +897,16 @@ namespace ArcaneArena.Multiplayer
         private void Unbind()
         {
             if (currentSession == null)
+            {
+                roomMembers = Array.Empty<PrivateRoomMemberSnapshot>();
                 return;
+            }
             currentSession.Deleted -= OnSessionTerminated;
             currentSession.RemovedFromSession -= OnSessionTerminated;
             currentSession.SessionHostChanged -= OnHostChanged;
             currentSession.Network.StartFailed -= OnNetworkStartFailed;
             currentSession.Network.StateChanged -= OnNetworkStateChanged;
+            roomMembers = Array.Empty<PrivateRoomMemberSnapshot>();
         }
 
         private void OnSessionTerminated()

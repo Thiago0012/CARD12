@@ -110,6 +110,7 @@ namespace ArcaneArena.Multiplayer
         private const float CommandRatePerSecond = 10f;
         private const float CommandBurstCapacity = 20f;
         private const float ResyncCooldownSeconds = 3f;
+        private const float LobbyMemberRefreshSeconds = 1.25f;
         private const string ReconnectSessionKey =
             "Arcane.Multiplayer.SessionId";
         private const string ReconnectRoomKey =
@@ -128,6 +129,7 @@ namespace ArcaneArena.Multiplayer
         private enum SessionRole
         {
             None,
+            Lobby,
             Host,
             Client,
             Spectator
@@ -577,6 +579,8 @@ namespace ArcaneArena.Multiplayer
         private byte localSpectatorPerspective;
         private Coroutine spectatorPerspectiveFadeRoutine;
         private float spectatorPerspectiveFadeAlpha;
+        private float nextLobbyMemberRefreshTime;
+        private bool lobbyMemberRefreshInProgress;
 
         public bool IsOnlineDuelActive =>
             role != SessionRole.None && networkManager != null &&
@@ -592,10 +596,10 @@ namespace ArcaneArena.Multiplayer
 
         public bool IsHost => role == SessionRole.Host;
         public bool IsSpectator => role == SessionRole.Spectator;
-        public int SpectatorCount => IsHost
-            ? spectatorClientIds.Count
-            : Mathf.Clamp(sessionCoordinator.PlayerCount - 2, 0,
-                MultiplayerSessionCoordinator.MaximumSpectators);
+        public int SpectatorCount => Mathf.Clamp(
+            sessionCoordinator.SpectatorCount,
+            0,
+            MultiplayerSessionCoordinator.MaximumSpectators);
         public CompetitivePolicy CompetitivePolicy => competitivePolicy;
         public bool DeveloperCardsAllowed =>
             IsOnlineDuelActive && role != SessionRole.Spectator;
@@ -1089,7 +1093,7 @@ namespace ArcaneArena.Multiplayer
             requestJoinFocus = join;
             status = HasOnlineRoom
                 ? status
-                : "Escolha um deck válido e conecte-se por Relay.";
+                : string.Empty;
         }
 
         public void StartRankedMatchmaking()
@@ -1637,6 +1641,84 @@ namespace ArcaneArena.Multiplayer
             }
         }
 
+        private bool CanChangePrivateRoomRole()
+        {
+            return HasOnlineRoom && !matchStarted &&
+                !automaticRankedMatchmaking &&
+                role != SessionRole.Host;
+        }
+
+        private async Task LeaveCurrentRoleForLobbySwitchAsync()
+        {
+            // Mark the client as a passive Lobby member before shutting NGO
+            // down so the disconnect callback cannot start reconnection.
+            role = SessionRole.Lobby;
+            UnregisterHandlers();
+            await sessionCoordinator.LeaveAsync();
+            await EnsureNetworkStoppedAfterLeaveAsync();
+        }
+
+        private async void BeginLobbyJoining()
+        {
+            if (connectionOperationInProgress)
+            {
+                status = "Uma conexão já está sendo preparada. Aguarde.";
+                return;
+            }
+            string normalizedCode = (joinCode ?? string.Empty)
+                .Trim()
+                .ToUpperInvariant();
+            if (normalizedCode.Length < 6 || normalizedCode.Length > 12)
+            {
+                status = "Informe o código da sala com 6 a 12 caracteres.";
+                return;
+            }
+            if (HasOnlineRoom)
+            {
+                status = "Você já está dentro de uma sala.";
+                return;
+            }
+            if (networkManager != null && networkManager.ShutdownInProgress)
+            {
+                status = "A sessão anterior ainda está sendo encerrada. Aguarde.";
+                return;
+            }
+
+            connectionOperationInProgress = true;
+            try
+            {
+                ResetMatchState(true);
+                ClearReconnectTicket();
+                roomCode = normalizedCode;
+                disconnectReason = string.Empty;
+                status = "Entrando na sala...";
+                await InitializeServices();
+                role = SessionRole.Lobby;
+                DuelIdentitySnapshot identity = CaptureLocalLobbyIdentity();
+                ISession session = await sessionCoordinator.JoinLobbyByCodeAsync(
+                    normalizedCode,
+                    identity,
+                    ProtocolVersion);
+                roomCode = session.Code;
+                relayRegion = string.Empty;
+                relayRegionDescription = string.Empty;
+                status = "Você entrou na sala. Escolha DUELAR ou ASSISTIR.";
+                await sessionCoordinator.SetPlayerStateAsync(
+                    "in-lobby",
+                    false);
+                await sessionCoordinator.RefreshRoomMembersAsync();
+                showPanel = true;
+            }
+            catch (Exception exception)
+            {
+                ResetAfterFailedConnection(DescribeJoinFailure(exception));
+            }
+            finally
+            {
+                connectionOperationInProgress = false;
+            }
+        }
+
         private async void BeginJoining()
         {
             bool tournamentLaunch = tournamentLaunchRequested;
@@ -1653,13 +1735,15 @@ namespace ArcaneArena.Multiplayer
                 status = error;
                 return;
             }
-            string normalizedCode = (joinCode ?? string.Empty).Trim().ToUpperInvariant();
+            bool changingLobbyRole = CanChangePrivateRoomRole();
+            string normalizedCode = (changingLobbyRole ? roomCode : joinCode ??
+                string.Empty).Trim().ToUpperInvariant();
             if (normalizedCode.Length < 6 || normalizedCode.Length > 12)
             {
                 status = "Informe o código da sala com 6 a 12 caracteres.";
                 return;
             }
-            if (HasOnlineRoom)
+            if (HasOnlineRoom && !changingLobbyRole)
             {
                 status = "Já existe uma sessão online em andamento.";
                 return;
@@ -1673,6 +1757,8 @@ namespace ArcaneArena.Multiplayer
             connectionOperationInProgress = true;
             try
             {
+                if (changingLobbyRole)
+                    await LeaveCurrentRoleForLobbySwitchAsync();
                 ResetMatchState(true);
                 ClearReconnectTicket();
                 roomCode = string.Empty;
@@ -1733,7 +1819,9 @@ namespace ArcaneArena.Multiplayer
                 status = "Uma conexão já está sendo preparada. Aguarde.";
                 return;
             }
-            string normalizedCode = (joinCode ?? string.Empty)
+            bool changingLobbyRole = CanChangePrivateRoomRole();
+            string normalizedCode = (changingLobbyRole ? roomCode : joinCode ??
+                string.Empty)
                 .Trim()
                 .ToUpperInvariant();
             if (normalizedCode.Length < 6 || normalizedCode.Length > 12)
@@ -1745,6 +1833,13 @@ namespace ArcaneArena.Multiplayer
             connectionOperationInProgress = true;
             try
             {
+                if (HasOnlineRoom && !changingLobbyRole)
+                {
+                    status = "Não é possível mudar de função durante o duelo.";
+                    return;
+                }
+                if (changingLobbyRole)
+                    await LeaveCurrentRoleForLobbySwitchAsync();
                 ResetMatchState(true);
                 ClearReconnectTicket();
                 roomCode = string.Empty;
@@ -1758,10 +1853,12 @@ namespace ArcaneArena.Multiplayer
                 ConfigureConnectionIdentity(true);
                 roomCode = normalizedCode;
                 handlersRegistered = false;
+                DuelIdentitySnapshot identity = CaptureLocalLobbyIdentity();
                 ISession session = await sessionCoordinator
                     .JoinAsSpectatorByCodeAsync(
                         normalizedCode,
-                        "ESPECTADOR",
+                        identity.nickname,
+                        identity.equippedIconId,
                         ProtocolVersion);
                 roomCode = session.Code;
                 relayRegion = "QoS automatico";
@@ -2092,7 +2189,7 @@ namespace ArcaneArena.Multiplayer
                 return;
             }
 
-            if (sessionCoordinator.PlayerCount < 2)
+            if (sessionCoordinator.DuelistCount < 2)
             {
                 // A new guest should receive the complete retry budget; a
                 // previous guest might have closed the app while connecting.
@@ -2118,7 +2215,8 @@ namespace ArcaneArena.Multiplayer
                 status = "Rival localizado. Abrindo a conexão segura Relay...";
                 Debug.Log(
                     "[MP] stage=private-relay-start members=" +
-                    sessionCoordinator.PlayerCount + " protocol=" +
+                    sessionCoordinator.PlayerCount + " duelists=" +
+                    sessionCoordinator.DuelistCount + " protocol=" +
                     sessionCoordinator.ActiveRelayProtocol);
                 await sessionCoordinator.StartPrivateRelayNetworkAsync();
 
@@ -5854,6 +5952,26 @@ namespace ArcaneArena.Multiplayer
             return true;
         }
 
+        private static DuelIdentitySnapshot CaptureLocalLobbyIdentity()
+        {
+            DuelIdentitySnapshot identity = GameFrontendBootstrap.Instance?
+                .CaptureLobbyIdentitySnapshot();
+            if (identity != null)
+                return identity.Copy();
+            return new DuelIdentitySnapshot
+            {
+                stablePlayerId = AuthenticationService.Instance.IsSignedIn
+                    ? AuthenticationService.Instance.PlayerId
+                    : string.Empty,
+                nickname = string.IsNullOrWhiteSpace(
+                    PlayerCloudSaveRuntime.LocalPlayerDisplayName)
+                        ? "DUELISTA"
+                        : PlayerCloudSaveRuntime.LocalPlayerDisplayName,
+                equippedIconId = ProfileIconCatalog.DefaultIconId,
+                cosmeticsCatalogVersion = ProfileIconCatalog.CatalogVersion
+            };
+        }
+
         private static CoinRewardEligibilitySnapshot
             CaptureLocalRewardEligibility()
         {
@@ -6353,6 +6471,7 @@ namespace ArcaneArena.Multiplayer
         private void Update()
         {
             float now = Time.realtimeSinceStartup;
+            MaintainLobbyMemberSnapshot(now);
             MaintainPrivateRelayNetworkStart(now);
             MaintainMessageHandlers();
             MaintainFlowTimeout(now);
@@ -6411,6 +6530,33 @@ namespace ArcaneArena.Multiplayer
                     pending,
                     now,
                     Math.Min(WirePacketsPerTransferPump, remainingBudget));
+            }
+        }
+
+        private async void MaintainLobbyMemberSnapshot(float now)
+        {
+            if (!HasOnlineRoom || matchStarted ||
+                lobbyMemberRefreshInProgress ||
+                now < nextLobbyMemberRefreshTime)
+            {
+                return;
+            }
+
+            lobbyMemberRefreshInProgress = true;
+            nextLobbyMemberRefreshTime = now + LobbyMemberRefreshSeconds;
+            try
+            {
+                await sessionCoordinator.RefreshRoomMembersAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[MP] stage=lobby-members-refresh result=" +
+                    exception.GetBaseException().GetType().Name);
+            }
+            finally
+            {
+                lobbyMemberRefreshInProgress = false;
             }
         }
 
@@ -7190,6 +7336,8 @@ namespace ArcaneArena.Multiplayer
             spectatorStateVersion = 0;
             localSpectatorPerspective = 0;
             spectatorPerspectiveFadeAlpha = 0f;
+            nextLobbyMemberRefreshTime = 0f;
+            lobbyMemberRefreshInProgress = false;
             currentMatchId = string.Empty;
             currentTransitionEpoch = 0;
             readinessBarrier.Reset();
@@ -7555,6 +7703,12 @@ namespace ArcaneArena.Multiplayer
                 competitivePolicy == CompetitivePolicy.Ranked &&
                 !automaticQueue;
             Color accent = GetLobbyVisualAccent();
+            if (competitivePolicy == CompetitivePolicy.Unranked &&
+                !automaticQueue)
+            {
+                DrawPrivateCasualRoomPanel(roomActive, accent);
+                return;
+            }
             string heading = automaticQueue
                 ? "ENCONTRAR RIVAL"
                 : competitivePolicy == CompetitivePolicy.Ranked
@@ -7780,6 +7934,290 @@ namespace ArcaneArena.Multiplayer
                 showPanel = false;
             }
             GUI.backgroundColor = Color.white;
+        }
+
+        private void DrawPrivateCasualRoomPanel(bool roomActive, Color accent)
+        {
+            const float margin = 38f;
+            const float contentWidth = 564f;
+
+            GUI.Label(new Rect(margin, 22f, contentWidth, 42f),
+                "MULTIPLAYER CASUAL", lobbyHeadingStyle);
+
+            if (!roomActive)
+            {
+                GUI.Label(new Rect(margin, 80f, 270f, 22f),
+                    "CÓDIGO DA SALA", lobbySmallLabelStyle);
+                if (requestJoinFocus)
+                {
+                    GUI.SetNextControlName("ArcaneJoinCode");
+                    requestJoinFocus = false;
+                }
+                bool canConnect = !connectionOperationInProgress &&
+                    (networkManager == null ||
+                     !networkManager.ShutdownInProgress);
+                GUI.enabled = canConnect;
+                joinCode = GUI.TextField(
+                    new Rect(margin, 106f, 390f, 46f),
+                    joinCode ?? string.Empty,
+                    lobbyInputStyle).Trim().ToUpperInvariant();
+                if (focusJoinCode)
+                    GUI.FocusControl("ArcaneJoinCode");
+
+                GUI.backgroundColor = accent;
+                if (GUI.Button(new Rect(442f, 106f, 160f, 46f),
+                        "CRIAR SALA", lobbyButtonStyle))
+                {
+                    BeginHosting();
+                }
+                GUI.backgroundColor = Color.Lerp(accent, Color.white, 0.12f);
+                if (GUI.Button(new Rect(margin, 170f, contentWidth, 48f),
+                        "ENTRAR NA SALA", lobbyButtonStyle))
+                {
+                    BeginLobbyJoining();
+                }
+                GUI.enabled = true;
+
+                GUI.Label(new Rect(margin, 238f, contentWidth, 52f),
+                    "Depois de entrar, escolha uma vaga para DUELAR ou " +
+                    "ASSISTIR.", lobbyDeckStyle);
+                DrawPrivateRoomStatus(new Rect(margin, 312f,
+                    contentWidth, 56f));
+                GUI.backgroundColor = new Color(0.28f, 0.38f, 0.48f, 1f);
+                if (GUI.Button(new Rect(398f, 420f, 204f, 36f),
+                        "FECHAR PAINEL", lobbyButtonStyle))
+                {
+                    showPanel = false;
+                }
+                GUI.backgroundColor = Color.white;
+                return;
+            }
+
+            string code = roomCode ?? string.Empty;
+            GUI.Label(new Rect(margin, 68f, 394f, 34f),
+                "CÓDIGO • " + (string.IsNullOrWhiteSpace(code) ? "—" : code),
+                lobbyCodeStyle);
+            GUI.backgroundColor = Color.Lerp(accent, Color.white, 0.08f);
+            if (GUI.Button(new Rect(466f, 68f, 136f, 34f),
+                    "COPIAR", lobbyButtonStyle))
+            {
+                GUIUtility.systemCopyBuffer = code;
+            }
+
+            int activeMembers = Mathf.Clamp(
+                sessionCoordinator.PlayerCount,
+                1,
+                MultiplayerSessionCoordinator.PrivateRoomCapacity);
+            GUI.Label(new Rect(margin, 105f, contentWidth, 24f),
+                $"PESSOAS ATIVAS • {activeMembers}/" +
+                MultiplayerSessionCoordinator.PrivateRoomCapacity +
+                $"     ESPECTADORES • {SpectatorCount}/" +
+                MultiplayerSessionCoordinator.MaximumSpectators,
+                lobbySmallLabelStyle);
+
+            PrivateRoomMemberSnapshot playerOne = FindRoomDuelist(0);
+            PrivateRoomMemberSnapshot playerTwo = FindRoomDuelist(1);
+            DrawPrivateRoomDuelistSlot(
+                new Rect(38f, 136f, 170f, 160f),
+                playerOne,
+                "JOGADOR 1");
+            GUI.Label(new Rect(210f, 194f, 24f, 40f),
+                "×", lobbyCodeStyle);
+            DrawPrivateRoomDuelistSlot(
+                new Rect(236f, 136f, 170f, 160f),
+                playerTwo,
+                "JOGADOR 2");
+            DrawPrivateRoomSpectators(
+                new Rect(432f, 136f, 170f, 160f));
+
+            bool mayChooseRole = !connectionOperationInProgress &&
+                !matchStarted && role != SessionRole.Host;
+            bool duelistSeatAvailable =
+                sessionCoordinator.DuelistCount < 2;
+            bool spectatorSeatAvailable =
+                SpectatorCount < MultiplayerSessionCoordinator.MaximumSpectators;
+            if (role == SessionRole.Lobby)
+            {
+                GUI.enabled = mayChooseRole && duelistSeatAvailable;
+                GUI.backgroundColor = accent;
+                if (GUI.Button(new Rect(margin, 310f, 270f, 42f),
+                        "DUELAR", lobbyButtonStyle))
+                {
+                    BeginJoining();
+                }
+                GUI.enabled = mayChooseRole && spectatorSeatAvailable;
+                GUI.backgroundColor = new Color(0.20f, 0.72f, 0.82f, 1f);
+                if (GUI.Button(new Rect(332f, 310f, 270f, 42f),
+                        "ASSISTIR", lobbyButtonStyle))
+                {
+                    BeginSpectating();
+                }
+                GUI.enabled = true;
+            }
+            else if (role == SessionRole.Client ||
+                     role == SessionRole.Spectator)
+            {
+                GUI.enabled = mayChooseRole &&
+                    (role == SessionRole.Client
+                        ? spectatorSeatAvailable
+                        : duelistSeatAvailable);
+                GUI.backgroundColor = role == SessionRole.Client
+                    ? new Color(0.20f, 0.72f, 0.82f, 1f)
+                    : accent;
+                string switchLabel = role == SessionRole.Client
+                    ? "MUDAR PARA ASSISTIR"
+                    : "MUDAR PARA DUELAR";
+                if (GUI.Button(new Rect(margin, 310f, contentWidth, 42f),
+                        switchLabel, lobbyButtonStyle))
+                {
+                    if (role == SessionRole.Client)
+                        BeginSpectating();
+                    else
+                        BeginJoining();
+                }
+                GUI.enabled = true;
+            }
+            else
+            {
+                GUI.Label(new Rect(margin, 310f, contentWidth, 42f),
+                    "ANFITRIÃO • VAGA DE DUELISTA", lobbyStatusStyle);
+            }
+
+            bool canStartMatch = IsHost && networkManager != null &&
+                networkManager.IsServer &&
+                remoteClientId != ulong.MaxValue &&
+                remoteLoadout != null && clientDeckReady && !matchStarted;
+            if (IsHost)
+            {
+                GUI.enabled = canStartMatch;
+                GUI.backgroundColor = canStartMatch
+                    ? accent
+                    : new Color(0.24f, 0.27f, 0.30f, 1f);
+                if (GUI.Button(new Rect(margin, 360f, contentWidth, 38f),
+                        canStartMatch
+                            ? "INICIAR DUELO ONLINE"
+                            : "AGUARDANDO O SEGUNDO DUELISTA",
+                        lobbyButtonStyle))
+                {
+                    BeginHostMatch();
+                }
+                GUI.enabled = true;
+            }
+            else
+            {
+                DrawPrivateRoomStatus(new Rect(margin, 358f,
+                    contentWidth, 42f));
+            }
+
+            GUI.backgroundColor = new Color(0.95f, 0.25f, 0.35f, 1f);
+            if (GUI.Button(new Rect(margin, 420f, 220f, 36f),
+                    "SAIR DA SALA", lobbyButtonStyle))
+            {
+                LeaveRoom();
+            }
+            GUI.backgroundColor = new Color(0.28f, 0.38f, 0.48f, 1f);
+            if (GUI.Button(new Rect(398f, 420f, 204f, 36f),
+                    "FECHAR PAINEL", lobbyButtonStyle))
+            {
+                showPanel = false;
+            }
+            GUI.backgroundColor = Color.white;
+        }
+
+        private void DrawPrivateRoomStatus(Rect area)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+                return;
+            GUI.Label(area, status, lobbyStatusStyle);
+        }
+
+        private PrivateRoomMemberSnapshot FindRoomDuelist(int seat)
+        {
+            foreach (PrivateRoomMemberSnapshot member in
+                     sessionCoordinator.RoomMembers)
+            {
+                if (member != null && member.Seat == seat &&
+                    string.Equals(
+                        member.Role,
+                        "duelist",
+                        StringComparison.Ordinal))
+                {
+                    return member;
+                }
+            }
+            return null;
+        }
+
+        private void DrawPrivateRoomDuelistSlot(
+            Rect area,
+            PrivateRoomMemberSnapshot member,
+            string emptyLabel)
+        {
+            GUI.Box(area, GUIContent.none, lobbySectionStyle);
+            GUI.Label(new Rect(area.x + 8f, area.y + 7f,
+                    area.width - 16f, 20f),
+                member == null ? emptyLabel : member.IsHost
+                    ? "ANFITRIÃO"
+                    : "DUELISTA",
+                lobbySmallLabelStyle);
+            if (member == null)
+            {
+                GUI.Label(new Rect(area.x + 12f, area.y + 56f,
+                        area.width - 24f, 56f),
+                    "VAGA LIVRE",
+                    lobbyDeckStyle);
+                return;
+            }
+
+            Texture2D icon = ProfileIconCatalog.LoadTexture(member.IconId);
+            if (icon != null)
+            {
+                GUI.DrawTexture(
+                    new Rect(area.center.x - 38f, area.y + 31f, 76f, 76f),
+                    icon,
+                    ScaleMode.ScaleToFit,
+                    true);
+            }
+            GUI.Label(new Rect(area.x + 8f, area.y + 111f,
+                    area.width - 16f, 38f),
+                member.DisplayName,
+                lobbyDeckStyle);
+        }
+
+        private void DrawPrivateRoomSpectators(Rect area)
+        {
+            GUI.Box(area, GUIContent.none, lobbySectionStyle);
+            GUI.Label(new Rect(area.x + 8f, area.y + 7f,
+                    area.width - 16f, 20f),
+                "MEMBROS NA SALA",
+                lobbySmallLabelStyle);
+            var names = new List<string>();
+            foreach (PrivateRoomMemberSnapshot member in
+                     sessionCoordinator.RoomMembers)
+            {
+                if (member == null || string.Equals(
+                        member.Role,
+                        "duelist",
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                names.Add(member.DisplayName +
+                    (string.Equals(
+                        member.Role,
+                        "spectator",
+                        StringComparison.Ordinal)
+                            ? " • ASSISTINDO"
+                            : " • ESCOLHENDO"));
+            }
+            string content = names.Count == 0
+                ? "AGUARDANDO MEMBROS"
+                : string.Join("\n", names.Take(4)) +
+                  (names.Count > 4 ? $"\n+{names.Count - 4}" : string.Empty);
+            GUI.Label(new Rect(area.x + 10f, area.y + 37f,
+                    area.width - 20f, area.height - 48f),
+                content,
+                lobbyDeckStyle);
         }
 
         private string GetRelayLobbyInfo()

@@ -10,6 +10,12 @@ namespace ArcaneArena.Frontend
             return _repository?.CaptureRankSnapshot();
         }
 
+        public DuelIdentitySnapshot CaptureLobbyIdentitySnapshot()
+        {
+            EnsureRankRepository();
+            return _repository?.CaptureDuelIdentitySnapshot();
+        }
+
         public RankPresentationModel GetRankPresentation()
         {
             EnsureRankRepository();
