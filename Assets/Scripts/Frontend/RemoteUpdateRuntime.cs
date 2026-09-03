@@ -8,6 +8,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using ArcaneArena.Cards;
 using ArcaneDuel.DuelEngine.Content;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -908,6 +909,7 @@ namespace ArcaneArena.Frontend
                     Path.Combine(container, "active.json"),
                     JsonUtility.ToJson(pointer, true));
                 YgoContentLocator.InvalidateCachedRoot();
+                CardPresentationText.InvalidateDatabaseCache();
             }
             catch
             {
@@ -972,6 +974,7 @@ namespace ArcaneArena.Frontend
                     JsonUtility.ToJson(pointer, true));
                 CleanupInactiveYgoPatchDirectories(patches, directories);
                 YgoContentLocator.InvalidateCachedRoot();
+                CardPresentationText.InvalidateDatabaseCache();
             }
             catch
             {
@@ -1170,6 +1173,7 @@ namespace ArcaneArena.Frontend
                         Path.Combine(container, "patches.json"),
                         JsonUtility.ToJson(pointer, true));
                     YgoContentLocator.InvalidateCachedRoot();
+                    CardPresentationText.InvalidateDatabaseCache();
                 }
                 CleanupInactiveYgoPatchDirectories(patches, directories);
             }
@@ -1231,6 +1235,7 @@ namespace ArcaneArena.Frontend
                 if (File.Exists(activePatches)) File.Delete(activePatches);
                 WriteTextAtomically(markerPath, identity);
                 YgoContentLocator.InvalidateCachedRoot();
+                CardPresentationText.InvalidateDatabaseCache();
             }
             catch (Exception exception)
             {

@@ -40,7 +40,7 @@ end
 function s.sptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 	if chkc then return false end
 	local g=Duel.GetMatchingGroup(s.spfilter,tp,LOCATION_GRAVE,0,nil,e,tp)
-	if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>=2 
+	if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>=2
 		and not Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT)
 		and aux.SelectUnselectGroup(g,e,tp,2,2,s.spchk,0) end
 	local sg=aux.SelectUnselectGroup(g,e,tp,2,2,s.spchk,1,tp,HINTMSG_SPSUMMON)
@@ -49,7 +49,7 @@ function s.sptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)
 end
 function s.spop(e,tp,eg,ep,ev,re,r,rp)
 	if Duel.IsPlayerAffectedByEffect(tp,CARD_BLUEEYES_SPIRIT) then return end
-	if Duel.GetLocationCount(tp,LOCATION_MZONE)<2 then return end	
+	if Duel.GetLocationCount(tp,LOCATION_MZONE)<2 then return end
 	local c=e:GetHandler()
 	local tg=Duel.GetTargetCards(e)
 	if #tg==2 and Duel.SpecialSummon(tg,0,tp,tp,false,false,POS_FACEUP)>0 then

@@ -94,7 +94,7 @@ function s.operation(e,tp,eg,ep,ev,re,r,rp)
 	for etc in aux.Next(g) do
 		etc:CreateEffectRelation(te)
 	end
-	if op then 
+	if op then
 		if tc:IsSetCard(SET_RANK_UP_MAGIC) then
 			op(e,tp,eg,ep,ev,re,r,rp)
 		else

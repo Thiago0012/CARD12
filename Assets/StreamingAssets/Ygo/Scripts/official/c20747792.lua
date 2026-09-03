@@ -51,7 +51,7 @@ function s.spfilter(c,e,tp)
 	return c:IsSetCard(SET_MAGICIAN_GIRL) and not c:IsCode(id) and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
 end
 function s.spcon1(e,tp,eg,ep,ev,re,r,rp)
-	return eg:IsContains(e:GetHandler()) and rp~=tp 
+	return eg:IsContains(e:GetHandler()) and rp~=tp
 end
 function s.spcon2(e,tp,eg,ep,ev,re,r,rp)
 	return eg:IsContains(e:GetHandler()) and Duel.GetAttacker():IsControler(1-tp)

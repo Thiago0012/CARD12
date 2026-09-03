@@ -64,7 +64,7 @@ function s.desop(e,tp,eg,ep,ev,re,r,rp)
 		Duel.Destroy(tc,REASON_EFFECT)
 	end
 end
-function s.cfilter(c,e,tp,ft) 
+function s.cfilter(c,e,tp,ft)
 	return c:IsMonster() and c:IsFaceup() and c:IsSetCard(SET_NINJA) and (c:IsAbleToHand() or (ft>0 and c:IsCanBeSpecialSummoned(e,0,tp,false,false,POS_FACEDOWN_DEFENSE)))
 end
 function s.thsptg(e,tp,eg,ep,ev,re,r,rp,chk,chkc)

@@ -41,10 +41,10 @@ function s.spcon(e,c)
 	if c==nil then return true end
 	local tp=c:GetControler()
 	local mg=Duel.GetMatchingGroup(s.cfilter,tp,LOCATION_MZONE,0,nil)
-	local gg=not Duel.IsPlayerAffectedByEffect(tp,CARD_SPIRIT_ELIMINATION) and Duel.GetMatchingGroup(s.cfilter,tp,LOCATION_GRAVE,0,nil) 
+	local gg=not Duel.IsPlayerAffectedByEffect(tp,CARD_SPIRIT_ELIMINATION) and Duel.GetMatchingGroup(s.cfilter,tp,LOCATION_GRAVE,0,nil)
 		or Group.CreateGroup()
 	local ft=Duel.GetLocationCount(tp,LOCATION_MZONE)
-	return (#mg>0 and (ft>0 or (mg:IsExists(s.mzfilter,1,nil) and ft>-1))) 
+	return (#mg>0 and (ft>0 or (mg:IsExists(s.mzfilter,1,nil) and ft>-1)))
 		or (#gg>0 and ft>0)
 end
 function s.spop(e,tp,eg,ep,ev,re,r,rp,c)

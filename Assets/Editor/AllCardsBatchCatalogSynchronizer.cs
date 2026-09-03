@@ -20,11 +20,35 @@ namespace ArcaneArena.Editor
             "Assets/Cards/CardCatalog.asset";
         private const string DefaultManifestPath =
             "Documentation/CardImports/AllCardsBatch001.json";
+        private const string Batch002ManifestPath =
+            "Documentation/CardImports/AllCardsBatch002.json";
+        private const string Batch003ManifestPath =
+            "Documentation/CardImports/AllCardsBatch003.json";
+        private const string Batch004ManifestPath =
+            "Documentation/CardImports/AllCardsBatch004.json";
 
         [MenuItem("Arcane Arena/Content/Sync AllCards Numeric Batch 001")]
         public static void SyncBatch001()
         {
             Sync(DefaultManifestPath);
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync AllCards Numeric Batch 002")]
+        public static void SyncBatch002()
+        {
+            Sync(Batch002ManifestPath);
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync AllCards Numeric Batch 003")]
+        public static void SyncBatch003()
+        {
+            Sync(Batch003ManifestPath);
+        }
+
+        [MenuItem("Arcane Arena/Content/Sync AllCards Numeric Batch 004")]
+        public static void SyncBatch004()
+        {
+            Sync(Batch004ManifestPath);
         }
 
         public static void SyncFromCommandLine()

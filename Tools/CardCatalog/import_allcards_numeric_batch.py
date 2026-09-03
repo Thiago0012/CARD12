@@ -473,6 +473,17 @@ def build_plan(args: argparse.Namespace) -> dict:
     cards_pt = load_api_cards(source / "metadata/cards-pt.json")
     en_by_id = {int(card["id"]): card for card in cards_en}
     pt_by_id = {int(card["id"]): card for card in cards_pt}
+    translation_by_code: dict[int, dict] = {}
+    if args.translation_overlay:
+        overlay_path = (project / args.translation_overlay).resolve()
+        overlay = json.loads(overlay_path.read_text(encoding="utf-8"))
+        if overlay.get("schemaVersion") != 1 or overlay.get("language") != "pt-BR":
+            raise ValueError("Translation overlay must use schemaVersion 1 and pt-BR")
+        if overlay.get("batchId") != args.batch_id:
+            raise ValueError("Translation overlay batchId does not match this import")
+        translation_by_code = {
+            int(card["code"]): card for card in overlay.get("cards", [])
+        }
     owner_by_image: dict[int, dict] = {}
     for card in cards_en:
         for image in card.get("card_images", []):
@@ -509,11 +520,12 @@ def build_plan(args: argparse.Namespace) -> dict:
                 "translationStatus": "missing",
             })
             continue
-        pt = pt_by_id.get(int(owner["id"]))
+        pt = translation_by_code.get(code) or pt_by_id.get(int(owner["id"]))
         rarity = rarities.get(normalize_name(owner.get("name", "")), 0)
         entry.update({
             "localizedName": str(pt.get("name", "")) if pt else str(owner.get("name", "")),
             "translationStatus": "pt-BR" if pt else "english_fallback",
+            "translationSource": str(pt.get("source", "official_archive_pt")) if pt else "english_fallback",
             "rarity": rarity,
             "rarityStatus": "master_duel" if rarity else "unavailable",
         })
@@ -572,7 +584,7 @@ def build_plan(args: argparse.Namespace) -> dict:
     for code in sorted(token_dependencies):
         record = database[code]
         owner = en_by_id.get(code) or owner_by_image.get(code)
-        pt = pt_by_id.get(int(owner["id"])) if owner else None
+        pt = (translation_by_code.get(code) or pt_by_id.get(int(owner["id"]))) if owner else None
         source_image = source / "images" / f"{code}.jpg"
         runtime_image = project / "Assets/StreamingAssets/Ygo/Art" / f"{code}.jpg"
         dependency = {
@@ -581,6 +593,7 @@ def build_plan(args: argparse.Namespace) -> dict:
             "englishName": str(owner.get("name", record["name"])) if owner else record["name"],
             "localizedName": str(pt.get("name", "")) if pt else record["name"],
             "translationStatus": "pt-BR" if pt else "english_fallback",
+            "translationSource": str(pt.get("source", "official_archive_pt")) if pt else "english_fallback",
             "cardType": int(record["type"]),
             "sourceImage": str(source_image),
             "imageAvailable": source_image.is_file() or runtime_image.is_file(),
@@ -602,6 +615,17 @@ def build_plan(args: argparse.Namespace) -> dict:
     if len(ready_entries) + len(deferred_entries) != args.count:
         raise AssertionError("Batch classification lost source entries")
 
+    published_visual_path = (
+        project / "Assets/StreamingAssets/Ygo/Visual/card-visuals.json"
+    )
+    published_visual_payload = json.loads(
+        published_visual_path.read_text(encoding="utf-8")
+    )
+    published_visual_codes = {
+        int(item["officialCode"])
+        for item in published_visual_payload.get("cards", [])
+    }
+
     art_operations: list[tuple[Path, Path, int, str]] = []
     art_conflicts: list[dict] = []
     for entry in ready_entries:
@@ -613,11 +637,16 @@ def build_plan(args: argparse.Namespace) -> dict:
             source_hash = sha256(source_art)
             entry["sourceSha256"] = source_hash
             if target.is_file() and source_hash != sha256(target):
-                art_conflicts.append({
-                    "code": code,
-                    "source": str(source_art),
-                    "target": str(target),
-                })
+                target_hash = sha256(target)
+                if code in published_visual_codes:
+                    entry["runtimeArtworkSha256"] = target_hash
+                    entry["artworkResolution"] = "preserved_published"
+                else:
+                    art_conflicts.append({
+                        "code": code,
+                        "source": str(source_art),
+                        "target": str(target),
+                    })
             elif not target.is_file():
                 art_operations.append((source_art, target, code, "selected"))
         elif not target.is_file():
@@ -639,11 +668,16 @@ def build_plan(args: argparse.Namespace) -> dict:
             source_hash = sha256(source_art)
             dependency["sourceSha256"] = source_hash
             if target.is_file() and source_hash != sha256(target):
-                art_conflicts.append({
-                    "code": code,
-                    "source": str(source_art),
-                    "target": str(target),
-                })
+                target_hash = sha256(target)
+                if code in published_visual_codes:
+                    dependency["runtimeArtworkSha256"] = target_hash
+                    dependency["artworkResolution"] = "preserved_published"
+                else:
+                    art_conflicts.append({
+                        "code": code,
+                        "source": str(source_art),
+                        "target": str(target),
+                    })
             elif not target.is_file():
                 art_operations.append((source_art, target, code, "dependency"))
         elif not target.is_file():
@@ -712,13 +746,13 @@ def build_plan(args: argparse.Namespace) -> dict:
     for entry in ready_entries:
         code = int(entry["imageId"])
         owner = en_by_id.get(code) or owner_by_image.get(code)
-        pt = pt_by_id.get(int(owner["id"])) if owner else None
+        pt = (translation_by_code.get(code) or pt_by_id.get(int(owner["id"]))) if owner else None
         record = database[code]
         localized_by_code[code] = {
             "code": code,
             "name": str(pt.get("name", "")) if pt else record["name"],
-            "description": str(pt.get("desc", "")) if pt else record["description"],
-            "strings": [],
+            "description": str(pt.get("description", pt.get("desc", ""))) if pt else record["description"],
+            "strings": list(pt.get("strings", [])) if pt else [],
         }
         if pt:
             english_fallbacks.discard(code)
@@ -727,13 +761,13 @@ def build_plan(args: argparse.Namespace) -> dict:
     for dependency in dependencies:
         code = int(dependency["officialCode"])
         owner = en_by_id.get(code) or owner_by_image.get(code)
-        pt = pt_by_id.get(int(owner["id"])) if owner else None
+        pt = (translation_by_code.get(code) or pt_by_id.get(int(owner["id"]))) if owner else None
         record = database[code]
         localized_by_code.setdefault(code, {
             "code": code,
             "name": str(pt.get("name", "")) if pt else record["name"],
-            "description": str(pt.get("desc", "")) if pt else record["description"],
-            "strings": [],
+            "description": str(pt.get("description", pt.get("desc", ""))) if pt else record["description"],
+            "strings": list(pt.get("strings", [])) if pt else [],
         })
         if not pt:
             english_fallbacks.add(code)
@@ -935,7 +969,7 @@ def report(plan: dict, applied: bool) -> str:
     summary = manifest["summary"]
     deferred = plan["deferredEntries"]
     lines = [
-        "# Importação numérica allcards — lote 001", "",
+        "# Importação numérica allcards — " + manifest["batchId"], "",
         f"Gerado em UTC: `{utc_now()}`.", "",
         "## Intervalo", "",
         f"- Posição inicial: {manifest['startIndex']}.",
@@ -967,8 +1001,10 @@ def report(plan: dict, applied: bool) -> str:
         lines.append("Nenhuma.")
     lines.extend([
         "", "## Escopo econômico", "",
-        "Nenhum pack, deck estrutural ou produto de loja é gerado por este lote. "
-        "As raridades oficiais disponíveis alimentam apenas catálogo, coleção e crafting.", "",
+        "Este importador não modifica pacotes, decks estruturais ou produtos já "
+        "publicados. A geração econômica incremental, quando solicitada, é registrada "
+        "em um relatório de pacotes separado. As raridades oficiais disponíveis "
+        "alimentam catálogo, coleção e crafting.", "",
         "## Origem e continuidade", "",
         "O manifesto JSON é a fonte permanente da seleção. A continuação não depende "
         "de as imagens processadas permanecerem no diretório de download.", "",
@@ -996,14 +1032,20 @@ def validate_compilation(plan: dict, install: bool) -> tuple[int, int]:
             "--output", str(output),
             "--minimum-count", str(len(plan["coreRows"])),
             "--localization", str(localization),
+            "--custom-cards", str(project / "Documentation/CustomCards.json"),
         ]
         process = subprocess.run(
             command,
             cwd=project,
-            check=True,
+            check=False,
             capture_output=True,
             text=True,
         )
+        if process.returncode != 0:
+            raise RuntimeError(
+                "Card compiler failed with exit code "
+                f"{process.returncode}:\n{process.stdout}\n{process.stderr}"
+            )
         if "ARCANE_CARD_DB_OK" not in process.stdout:
             raise RuntimeError("Card compiler did not report success")
         cards = output / "cards.bin"
@@ -1057,7 +1099,7 @@ def apply_plan(plan: dict) -> None:
         (json.dumps(plan["manifest"], ensure_ascii=False, indent=2) + "\n")
         .encode("utf-8"),
     )
-    report_path = project / "Documentation/CardImports/AllCardsBatch001.md"
+    report_path = plan["manifestPath"].with_suffix(".md")
     atomic_write(report_path, report(plan, True).encode("utf-8"))
 
 
@@ -1072,6 +1114,11 @@ def main() -> None:
         "--manifest",
         type=Path,
         default=Path("Documentation/CardImports/AllCardsBatch001.json"),
+    )
+    parser.add_argument(
+        "--translation-overlay",
+        type=Path,
+        help="Optional schemaVersion 1 pt-BR overlay generated for this batch.",
     )
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()

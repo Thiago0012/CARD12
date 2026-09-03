@@ -1,4 +1,6 @@
 using System;
+using ArcaneDuel.DuelEngine.Data;
+using UnityEngine;
 
 namespace ArcaneArena.Cards
 {
@@ -33,11 +35,44 @@ namespace ArcaneArena.Cards
             " once ", " when ", " during ", " cannot "
         };
 
+        private static readonly object DatabaseSync = new object();
+        private static CardDatabase portugueseDatabase;
+        private static bool databaseLoadAttempted;
+
+        public static string NamePtBr(
+            string officialCardId,
+            string fallback)
+        {
+            return TryResolvePortugueseCard(
+                    officialCardId,
+                    out CardRecord localized) &&
+                   !string.IsNullOrWhiteSpace(localized.Name)
+                ? localized.Name.Trim()
+                : fallback ?? string.Empty;
+        }
+
         public static string EffectPtBr(
             CardCatalogEntry entry,
             string emptyMessage = "Esta carta não possui texto de efeito.")
         {
+            if (entry != null && TryResolvePortugueseCard(
+                    entry.OfficialCardId,
+                    out CardRecord localized) &&
+                !string.IsNullOrWhiteSpace(localized.Description))
+            {
+                return ExplainPendulumSections(
+                    LocalizeKnownHeadings(localized.Description.Trim()));
+            }
             return EffectPtBr(entry?.EffectText, emptyMessage);
+        }
+
+        public static void InvalidateDatabaseCache()
+        {
+            lock (DatabaseSync)
+            {
+                portugueseDatabase = null;
+                databaseLoadAttempted = false;
+            }
         }
 
         public static string EffectPtBr(
@@ -111,6 +146,38 @@ namespace ArcaneArena.Cards
                     return true;
             }
             return false;
+        }
+
+        private static bool TryResolvePortugueseCard(
+            string officialCardId,
+            out CardRecord localized)
+        {
+            localized = null;
+            if (!uint.TryParse(officialCardId, out uint code) || code == 0)
+                return false;
+
+            lock (DatabaseSync)
+            {
+                if (!databaseLoadAttempted)
+                {
+                    databaseLoadAttempted = true;
+                    try
+                    {
+                        portugueseDatabase = CardDatabase.LoadDefault();
+                    }
+                    catch (Exception exception)
+                    {
+                        portugueseDatabase = null;
+                        Debug.LogWarning(
+                            "Não foi possível carregar a localização " +
+                            "portuguesa das cartas: " +
+                            exception.GetBaseException().Message);
+                    }
+                }
+                return portugueseDatabase != null &&
+                    portugueseDatabase.TryGet(code, out localized) &&
+                    localized != null;
+            }
         }
     }
 }

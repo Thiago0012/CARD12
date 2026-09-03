@@ -846,7 +846,11 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.945f, 0.715f), new Vector2(205f, 295f),
                 new Vector2(18f, 18f), 7);
             foreach (string cardId in pack.CardIds)
-                CreateShopCardTile(content, cardId, "NO PACOTE");
+                CreateShopCardTile(
+                    content,
+                    cardId,
+                    "NO PACOTE",
+                    () => ShowPackDetails(pack));
         }
 
         private void ShowStructureDeckDetails(DeckShopProduct product)
@@ -894,15 +898,24 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.945f, 0.715f), new Vector2(205f, 295f),
                 new Vector2(18f, 18f), 7);
             foreach (string cardId in product.MainDeckCardIds)
-                CreateShopCardTile(content, cardId, "PRINCIPAL");
+                CreateShopCardTile(
+                    content,
+                    cardId,
+                    "PRINCIPAL",
+                    () => ShowStructureDeckDetails(product));
             foreach (string cardId in product.ExtraDeckCardIds)
-                CreateShopCardTile(content, cardId, "ADICIONAL");
+                CreateShopCardTile(
+                    content,
+                    cardId,
+                    "ADICIONAL",
+                    () => ShowStructureDeckDetails(product));
         }
 
         private void CreateShopCardTile(
             Transform parent,
             string cardId,
-            string section)
+            string section,
+            Action returnAction = null)
         {
             CardCatalogEntry entry = DeckRepository.ResolveCard(_catalog, cardId);
             Color rarityAccent = entry != null &&
@@ -928,7 +941,9 @@ namespace ArcaneArena.Frontend
                 new Vector2(0.95f, 0.125f), TextAnchor.MiddleCenter);
             cardName.resizeTextMinSize = 8;
             AddButtonBehaviour(artwork,
-                () => ShowShopCardDetails(cardId, _shopBackAction));
+                () => ShowShopCardDetails(
+                    cardId,
+                    returnAction ?? _shopBackAction));
         }
 
         private static Image CreateShopFeatureChip(
@@ -1020,7 +1035,66 @@ namespace ArcaneArena.Frontend
                     new Vector2(1f, -1f));
                 effectScroll.scrollSensitivity = 56f;
                 effectScroll.verticalNormalizedPosition = 1f;
+                StyleShopCardEffectScrollbar(effectScroll);
             }
+        }
+
+        private static void StyleShopCardEffectScrollbar(ScrollRect scroll)
+        {
+            if (scroll == null || scroll.verticalScrollbar == null)
+                return;
+
+            Scrollbar scrollbar = scroll.verticalScrollbar;
+            RectTransform track = scrollbar.transform as RectTransform;
+            if (track != null)
+            {
+                // Mantém a barra encostada à direita e com a mesma proporção
+                // vertical usada pela referência do detalhe de carta.
+                track.anchorMin = new Vector2(0.955f, 0.02f);
+                track.anchorMax = new Vector2(0.985f, 0.98f);
+                track.offsetMin = Vector2.zero;
+                track.offsetMax = Vector2.zero;
+                track.localScale = Vector3.one;
+            }
+
+            Image trackImage = scrollbar.GetComponent<Image>();
+            if (trackImage != null)
+            {
+                trackImage.color = new Color(0.93f, 0.95f, 0.91f, 1f);
+            }
+
+            RectTransform handle = scrollbar.handleRect;
+            if (handle != null)
+            {
+                handle.anchorMin = new Vector2(0.14f, handle.anchorMin.y);
+                handle.anchorMax = new Vector2(0.86f, handle.anchorMax.y);
+                handle.offsetMin = Vector2.zero;
+                handle.offsetMax = Vector2.zero;
+                handle.localScale = Vector3.one;
+            }
+
+            Graphic handleGraphic = handle != null
+                ? handle.GetComponent<Graphic>()
+                : null;
+            if (handleGraphic != null)
+            {
+                handleGraphic.color = new Color(0.48f, 0.68f, 0.92f, 1f);
+                scrollbar.targetGraphic = handleGraphic;
+            }
+
+            ColorBlock colors = scrollbar.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(0.94f, 0.98f, 1f, 1f);
+            colors.pressedColor = new Color(0.80f, 0.90f, 1f, 1f);
+            colors.selectedColor = Color.white;
+            colors.disabledColor = new Color(0.72f, 0.78f, 0.84f, 0.65f);
+            colors.colorMultiplier = 1f;
+            colors.fadeDuration = 0.1f;
+            scrollbar.colors = colors;
+            scrollbar.navigation = new Navigation
+            {
+                mode = Navigation.Mode.None
+            };
         }
 
         private void BuildShopCardMetadata(

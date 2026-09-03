@@ -4038,10 +4038,9 @@ namespace ArcaneArena
             if (detailEffect != null)
             {
                 string description =
-                    legacy != null &&
-                    !string.IsNullOrWhiteSpace(legacy.EffectText)
-                        ? legacy.EffectText
-                        : card.Description;
+                    !string.IsNullOrWhiteSpace(card.Description)
+                        ? card.Description
+                        : legacy?.EffectText;
                 detailEffect.text = CardPresentationText.EffectPtBr(
                     description,
                     "Descrição não disponível.");

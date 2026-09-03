@@ -69,7 +69,9 @@ namespace ArcaneArena.Cards
         public Sprite AuthoredArtwork => artwork;
         public bool HasAuthoredArtwork => artwork != null;
         public bool HasArtwork => artwork != null || runtimeArtworkAvailable;
-        public string DisplayName => displayName;
+        public string DisplayName => CardPresentationText.NamePtBr(
+            officialCardId,
+            displayName);
         public string EnglishName => englishName;
         public CardArtVariant RarityVariant => rarityVariant;
         public CardRarity Rarity => rarity;

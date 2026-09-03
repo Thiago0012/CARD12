@@ -1,4 +1,4 @@
---青眼の混沌龍 
+--青眼の混沌龍
 --Blue-Eyes Chaos Dragon
 local s,id=GetID()
 function s.initial_effect(c)

@@ -89,16 +89,10 @@ namespace ArcaneArena.Editor.AutoPacks
                     entry.IsReadyForGameplay && entry.IsCollectible;
                 bool eligible = entry.OfficiallyRegistered &&
                     entry.IsReadyForGameplay && coreExists && !token &&
-                    !excludedPath && entry.HasAuthoredArtwork;
+                    !excludedPath && entry.HasArtwork;
 
                 string state = eligible ? "eligible" : "excluded";
                 if (entry.OfficiallyRegistered && entry.IsReadyForGameplay &&
-                    coreExists && !token && !excludedPath &&
-                    entry.HasArtwork && !entry.HasAuthoredArtwork)
-                {
-                    state = "excluded-streaming-art";
-                }
-                else if (entry.OfficiallyRegistered && entry.IsReadyForGameplay &&
                     coreExists && !token && !excludedPath && !entry.HasArtwork)
                 {
                     snapshot.DeferredCardIds.Add(cardId);

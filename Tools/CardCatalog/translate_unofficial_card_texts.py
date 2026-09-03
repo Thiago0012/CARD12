@@ -13,8 +13,12 @@ import json
 import re
 from pathlib import Path
 
-import ctranslate2
-import sentencepiece as spm
+try:
+    import ctranslate2
+    import sentencepiece as spm
+except ImportError:  # Helpers are also reused by the dependency-free batch tool.
+    ctranslate2 = None
+    spm = None
 
 
 ENGLISH_WORDS = (
@@ -309,7 +313,46 @@ def restore_names(value: str, protected: dict[str, str]) -> str:
 
 
 def normalize_terms(value: str) -> str:
+    value, protected_names = protect_names(value)
     replacements = (
+        (r"\bQuick-Play Spell\b", "Magia Rápida"),
+        (r"\bQuick-Play Card de Magia\b", "Card de Magia Rápida"),
+        (r"\bContinuous Spell\b", "Magia Contínua"),
+        (r"\bContinuous Trap\b", "Armadilha Contínua"),
+        (r"\bField Spell\b", "Magia de Campo"),
+        (r"\bEquip Spells\b", "Magias de Equipamento"),
+        (r"\bEquip Spell\b", "Magia de Equipamento"),
+        (r"\bCard Equip\b", "Card de Equipamento"),
+        (r"\bCards Equip\b", "Cards de Equipamento"),
+        (r"\bMagia Equip\b", "Magia de Equipamento"),
+        (r"\bSpell & Trap Zone\b", "Zona de Magias & Armadilhas"),
+        (r"\bMonster Zone\b", "Zona de Monstros"),
+        (r"\bSpells?/Traps?\b", "Magias/Armadilhas"),
+        (r"\bEffect Monsters\b", "Monstros de Efeito"),
+        (r"\bEffect Monster\b", "Monstro de Efeito"),
+        (r"\bMonster Cards\b", "Cards de Monstro"),
+        (r"\bMonster Card\b", "Card de Monstro"),
+        (r"\bSpell effect\b", "efeito de Magia"),
+        (r"\bXyz Summon\b|\bSummon Xyz\b", "Invocação-Xyz"),
+        (r"\bSynchro Summon\b|\bSummon Synchro\b", "Invocação-Sincro"),
+        (r"\bLink Summon\b|\bSummon Link\b", "Invocação-Link"),
+        (r"\bFusion Summon\b|\bSummon Fusion\b", "Invocação-Fusão"),
+        (r"\bRank\b", "Classe"),
+        (r"\bLevel\b", "Nível"),
+        (r"\bSpellcaster\b", "Mago"),
+        (r"\bMonster\b", "Monstro"),
+        (r"\bSpell\b", "Magia"),
+        (r"\bTrap\b", "Armadilha"),
+        (r"\bWIND\b", "VENTO"),
+        (r"\bDARK\b", "TREVAS"),
+        (r"\bEARTH\b", "TERRA"),
+        (r"\bBeast\b", "Besta"),
+        (r"\bFiend\b", "Demônio"),
+        (r"\bFairy\b", "Fada"),
+        (r"\bIllusion\b", "Ilusão"),
+        (r"\bSummon Especial\b", "Invocar por Invocação-Especial"),
+        (r"\besta carta Set\b", "este card Baixado"),
+        (r"\bInvocação-Normal/Set\b", "Invocação-Normal/Baixar"),
         (r"\bnon[- ]Tuner\b", "não-Regulador"),
         (r"\bTuner\b", "Regulador"),
         (r"\bSpecial Summoned\b", "Invocado por Invocação-Especial"),
@@ -367,7 +410,7 @@ def normalize_terms(value: str) -> str:
         (r"Invocação Especial", "Invocação-Especial"),
         (r"Invocação Normal", "Invocação-Normal"),
         (r"Invocação Pêndulo", "Invocação-Pêndulo"),
-        (r"Invocad([oa]s?) Especiais?", r"Invocad\1 por Invocação-Especial"),
+        (r"Invocad([oa]s?) Especia(?:l|is)", r"Invocad\1 por Invocação-Especial"),
         (r"Especialmente Invocad([oa]s?)", r"Invocad\1 por Invocação-Especial"),
         (r"Especial Invocad([oa]s?)", r"Invocad\1 por Invocação-Especial"),
         (r"Invocar Especial", "Invocar por Invocação-Especial"),
@@ -393,13 +436,14 @@ def normalize_terms(value: str) -> str:
         value = re.sub(pattern, replacement, value, flags=re.IGNORECASE)
     value = re.sub(r"[ \t]+", " ", value)
     value = re.sub(r" *\n *", "\n", value)
-    return value.strip()
+    return restore_names(value.strip(), protected_names)
 
 
 def translate_sentences(
     descriptions: dict[int, str],
     processor: spm.SentencePieceProcessor,
     translator: ctranslate2.Translator,
+    force: bool = False,
 ) -> dict[int, str]:
     work: list[tuple[int, int, dict[str, str], str]] = []
     card_parts: dict[int, list[str]] = {}
@@ -418,7 +462,7 @@ def translate_sentences(
                     continue
                 index = len(parts)
                 parts.append(sentence.strip())
-                if needs_translation(sentence):
+                if force or needs_translation(sentence):
                     protected_text, protected = protect_names(sentence.strip())
                     work.append((code, index, protected, protected_text))
         card_parts[code] = parts
@@ -487,6 +531,11 @@ def main() -> None:
     parser.add_argument("--manual", required=True, type=Path)
     parser.add_argument("--model", required=True, type=Path)
     args = parser.parse_args()
+
+    if ctranslate2 is None or spm is None:
+        raise RuntimeError(
+            "ctranslate2 and sentencepiece are required for the local model path"
+        )
 
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
     manual = json.loads(args.manual.read_text(encoding="utf-8"))

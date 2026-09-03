@@ -36,14 +36,31 @@ def main() -> None:
     root = args.project_root.resolve()
     manifest = json.loads((root / args.manifest).read_text(encoding="utf-8"))
     entries = manifest["entries"]
-    require(len(entries) == 2500, "Manifest must retain exactly 2500 source positions")
-    require([item["position"] for item in entries] == list(range(1, 2501)), "Positions are not contiguous")
-    require(int(entries[0]["imageId"]) == 483, "First image ID changed")
-    require(int(entries[-1]["imageId"]) == 16909657, "Last image ID changed")
+    requested = int(manifest["requestedImageCount"])
+    start = int(manifest["startIndex"])
+    require(len(entries) == requested,
+            "Manifest source position count differs from requestedImageCount")
+    require(
+        [item["position"] for item in entries] ==
+        list(range(start, start + requested)),
+        "Positions are not contiguous",
+    )
+    require(int(entries[0]["imageId"]) == int(manifest["firstImageId"]),
+            "First image ID changed")
+    require(int(entries[-1]["imageId"]) == int(manifest["lastImageId"]),
+            "Last image ID changed")
     eligible = [item for item in entries if item.get("catalogEligible")]
     deferred = [item for item in entries if not item.get("catalogEligible")]
-    require(len(eligible) == 2480, "Expected 2480 installed source images")
-    require(len(deferred) == 20, "Expected 20 deferred source images")
+    summary = manifest.get("summary", {})
+    expected_eligible = int(summary.get("ready", 0)) + int(
+        summary.get("runtimeTokens", 0))
+    expected_deferred = int(summary.get("deferred", 0))
+    require(len(eligible) == expected_eligible,
+            "Installed source image count differs from the manifest summary")
+    require(len(deferred) == expected_deferred,
+            "Deferred source image count differs from the manifest summary")
+    require(len(eligible) + len(deferred) == requested,
+            "Eligible and deferred entries do not cover the complete batch")
     require(all(item.get("sourceSha256") for item in entries), "Manifest source hashes are incomplete")
 
     art_root = root / "Assets/StreamingAssets/Ygo/Art"
@@ -51,7 +68,10 @@ def main() -> None:
         code = int(item["imageId"])
         target = art_root / f"{code}.jpg"
         require(target.is_file(), f"Runtime artwork is missing for {code:08d}")
-        require(sha256(target) == item["sourceSha256"], f"Artwork hash mismatch for {code:08d}")
+        expected_runtime_hash = item.get(
+            "runtimeArtworkSha256", item["sourceSha256"])
+        require(sha256(target) == expected_runtime_hash,
+                f"Artwork hash mismatch for {code:08d}")
 
     visual_payload = json.loads(
         (root / "Assets/StreamingAssets/Ygo/Visual/card-visuals.json").read_text(encoding="utf-8")

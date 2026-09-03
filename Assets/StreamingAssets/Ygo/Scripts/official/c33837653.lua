@@ -39,7 +39,7 @@ function s.initial_effect(c)
 	c:RegisterEffect(e4)
 end
 function s.cfilter(c)
-	return c:IsFaceup() and c:IsAttribute(ATTRIBUTE_EARTH) 
+	return c:IsFaceup() and c:IsAttribute(ATTRIBUTE_EARTH)
 end
 function s.ntcon(e,c,minc)
 	if c==nil then return true end
