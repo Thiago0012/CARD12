@@ -163,6 +163,7 @@ namespace ArcaneArena
         private RectTransform zoneBrowserViewport;
         private RectTransform zoneBrowserContent;
         private Text zoneBrowserTitle;
+        private Text zoneBrowserTypeSummary;
         private uint inspectedCode;
         private DuelZone3D inspectedZone;
         private DuelPrompt observedPrompt;
@@ -4857,6 +4858,21 @@ namespace ArcaneArena
                 new Vector2(0.96f, 0.97f),
                 TextAnchor.MiddleCenter);
 
+            zoneBrowserTypeSummary = CreateText(
+                zoneBrowserTray.transform,
+                string.Empty,
+                12,
+                FontStyle.Bold,
+                Muted,
+                new Vector2(0.035f, 0.825f),
+                new Vector2(0.965f, 0.882f),
+                TextAnchor.MiddleCenter);
+            zoneBrowserTypeSummary.raycastTarget = false;
+            zoneBrowserTypeSummary.resizeTextForBestFit = true;
+            zoneBrowserTypeSummary.resizeTextMinSize = 9;
+            zoneBrowserTypeSummary.resizeTextMaxSize = 12;
+            zoneBrowserTypeSummary.gameObject.SetActive(false);
+
             GameObject viewportObject = CreatePanel(
                 zoneBrowserTray.transform,
                 "Área de rolagem",
@@ -4989,7 +5005,22 @@ namespace ArcaneArena
                 ? legalCardCount > 0
                     ? $"DECK ADICIONAL · {legalCardCount} INVOCÁVEL(IS) AGORA"
                     : $"DECK ADICIONAL · {entries.Count} CARTA(S) · SOMENTE CONSULTA"
-                : $"{PileLabel(zone).ToUpperInvariant()} · {entries.Count} CARTA(S)";
+                : browsingPublicPile
+                    ? $"{(zone.Kind == DuelZoneKind.Graveyard ? "CEMITÉRIO" : "BANIMENTO")} · {entries.Count} CARTA(S)"
+                    : $"{PileLabel(zone).ToUpperInvariant()} · {entries.Count} CARTA(S)";
+            RectTransform titleRect = zoneBrowserTitle.rectTransform;
+            titleRect.anchorMin = new Vector2(0.04f, browsingPublicPile ? 0.887f : 0.83f);
+            zoneBrowserTypeSummary.gameObject.SetActive(browsingPublicPile);
+            if (browsingPublicPile)
+            {
+                // Use sanitized browser identities, never private network data.
+                // This is descriptive only: do not reorder Core sequences or
+                // substitute these counts for the Core's legal effect choices.
+                zoneBrowserTypeSummary.text = PublicPileTypeSummary.FromVisibleCodes(
+                    database,
+                    entries.Select(entry => entry.HasHiddenIdentity ? 0U : entry.Code))
+                    .ToDisplayText();
+            }
 
             Text cancelLabel = zoneBrowserCancel != null
                 ? zoneBrowserCancel.GetComponentInChildren<Text>(true)

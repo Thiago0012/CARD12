@@ -110,7 +110,7 @@ namespace ArcaneArena.Multiplayer
         private const float CommandRatePerSecond = 10f;
         private const float CommandBurstCapacity = 20f;
         private const float ResyncCooldownSeconds = 3f;
-        private const float LobbyMemberRefreshSeconds = 1.25f;
+        private const float LobbyMemberRefreshSeconds = 5f;
         private const string ReconnectSessionKey =
             "Arcane.Multiplayer.SessionId";
         private const string ReconnectRoomKey =
@@ -1617,8 +1617,6 @@ namespace ArcaneArena.Multiplayer
                 relayRegion = "QoS automatico";
                 relayRegionDescription =
                     "melhor regiao escolhida automaticamente";
-                await sessionCoordinator.SetPlayerStateAsync("connected", true);
-
                 status = $"Sala criada na região Relay {GetRelayRegionLabel()}. " +
                     "Compartilhe o código; a conexão inicia quando o rival entrar.";
                 showPanel = activeTournamentContext == null;
@@ -1632,8 +1630,7 @@ namespace ArcaneArena.Multiplayer
                     "Host room creation failed.",
                     mode: "online-host",
                     exception: exception);
-                ResetAfterFailedConnection(
-                    $"Não foi possível criar a sala: {exception.GetBaseException().Message}");
+                ResetAfterFailedConnection(DescribeCreateFailure(exception));
             }
             finally
             {
@@ -1703,9 +1700,6 @@ namespace ArcaneArena.Multiplayer
                 relayRegion = string.Empty;
                 relayRegionDescription = string.Empty;
                 status = "Você entrou na sala. Escolha DUELAR ou ASSISTIR.";
-                await sessionCoordinator.SetPlayerStateAsync(
-                    "in-lobby",
-                    false);
                 await sessionCoordinator.RefreshRoomMembersAsync();
                 showPanel = true;
             }
@@ -1787,7 +1781,6 @@ namespace ArcaneArena.Multiplayer
                 relayRegionDescription =
                     "regiao Relay definida pelo anfitriao";
                 status = "Sala confirmada. Aguardando o anfitrião abrir a conexão Relay...";
-                await sessionCoordinator.SetPlayerStateAsync("connected", false);
                 if (networkManager.IsConnectedClient)
                 {
                     RegisterHandlers();
@@ -1865,9 +1858,6 @@ namespace ArcaneArena.Multiplayer
                 relayRegionDescription =
                     "regiao Relay definida pelo anfitriao";
                 status = "Vaga de espectador confirmada. Aguardando o duelo iniciar...";
-                await sessionCoordinator.SetPlayerStateAsync(
-                    "spectating",
-                    true);
                 if (networkManager.IsConnectedClient)
                 {
                     RegisterHandlers();
@@ -1876,9 +1866,7 @@ namespace ArcaneArena.Multiplayer
             }
             catch (Exception exception)
             {
-                ResetAfterFailedConnection(
-                    "Não foi possível assistir à sala: " +
-                    exception.GetBaseException().Message);
+                ResetAfterFailedConnection(DescribeJoinFailure(exception));
             }
             finally
             {
@@ -7531,6 +7519,12 @@ namespace ArcaneArena.Multiplayer
         {
             string detail = exception?.GetBaseException().Message ??
                 "falha desconhecida";
+            if (MultiplayerSessionCoordinator.IsRateLimited(exception))
+            {
+                return "O serviço online recebeu muitas solicitações em pouco " +
+                    "tempo. As tentativas automáticas terminaram; aguarde " +
+                    "alguns segundos e tente entrar novamente.";
+            }
             if (detail.IndexOf("404", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 detail.IndexOf("not found", StringComparison.OrdinalIgnoreCase) >= 0)
             {
@@ -7540,6 +7534,19 @@ namespace ArcaneArena.Multiplayer
                     ProjectIdentity.ProductName + ".";
             }
             return $"Não foi possível entrar na sala: {detail}";
+        }
+
+        private static string DescribeCreateFailure(Exception exception)
+        {
+            if (MultiplayerSessionCoordinator.IsRateLimited(exception))
+            {
+                return "O serviço online recebeu muitas solicitações em pouco " +
+                    "tempo. As tentativas automáticas terminaram; aguarde " +
+                    "alguns segundos e tente criar a sala novamente.";
+            }
+            string detail = exception?.GetBaseException().Message ??
+                "falha desconhecida";
+            return $"Não foi possível criar a sala: {detail}";
         }
 
         private void OnGUI()

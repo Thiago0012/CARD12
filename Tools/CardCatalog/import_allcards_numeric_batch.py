@@ -473,6 +473,16 @@ def build_plan(args: argparse.Namespace) -> dict:
     cards_pt = load_api_cards(source / "metadata/cards-pt.json")
     en_by_id = {int(card["id"]): card for card in cards_en}
     pt_by_id = {int(card["id"]): card for card in cards_pt}
+    manual_path = project / "Documentation/CardTextPtBrManual.json"
+    manual_payload = (
+        json.loads(manual_path.read_text(encoding="utf-8"))
+        if manual_path.is_file()
+        else {"cards": []}
+    )
+    manual_by_id = {
+        int(card["code"]): {**card, "source": "curated_manual"}
+        for card in manual_payload.get("cards", [])
+    }
     translation_by_code: dict[int, dict] = {}
     if args.translation_overlay:
         overlay_path = (project / args.translation_overlay).resolve()
@@ -484,6 +494,16 @@ def build_plan(args: argparse.Namespace) -> dict:
         translation_by_code = {
             int(card["code"]): card for card in overlay.get("cards", [])
         }
+
+    def localized_card(code: int, owner: dict | None) -> dict | None:
+        owner_code = int(owner["id"]) if owner else 0
+        return (
+            translation_by_code.get(code)
+            or manual_by_id.get(code)
+            or manual_by_id.get(owner_code)
+            or pt_by_id.get(owner_code)
+        )
+
     owner_by_image: dict[int, dict] = {}
     for card in cards_en:
         for image in card.get("card_images", []):
@@ -520,7 +540,7 @@ def build_plan(args: argparse.Namespace) -> dict:
                 "translationStatus": "missing",
             })
             continue
-        pt = translation_by_code.get(code) or pt_by_id.get(int(owner["id"]))
+        pt = localized_card(code, owner)
         rarity = rarities.get(normalize_name(owner.get("name", "")), 0)
         entry.update({
             "localizedName": str(pt.get("name", "")) if pt else str(owner.get("name", "")),
@@ -584,7 +604,7 @@ def build_plan(args: argparse.Namespace) -> dict:
     for code in sorted(token_dependencies):
         record = database[code]
         owner = en_by_id.get(code) or owner_by_image.get(code)
-        pt = (translation_by_code.get(code) or pt_by_id.get(int(owner["id"]))) if owner else None
+        pt = localized_card(code, owner)
         source_image = source / "images" / f"{code}.jpg"
         runtime_image = project / "Assets/StreamingAssets/Ygo/Art" / f"{code}.jpg"
         dependency = {
@@ -746,7 +766,7 @@ def build_plan(args: argparse.Namespace) -> dict:
     for entry in ready_entries:
         code = int(entry["imageId"])
         owner = en_by_id.get(code) or owner_by_image.get(code)
-        pt = (translation_by_code.get(code) or pt_by_id.get(int(owner["id"]))) if owner else None
+        pt = localized_card(code, owner)
         record = database[code]
         localized_by_code[code] = {
             "code": code,
@@ -761,15 +781,17 @@ def build_plan(args: argparse.Namespace) -> dict:
     for dependency in dependencies:
         code = int(dependency["officialCode"])
         owner = en_by_id.get(code) or owner_by_image.get(code)
-        pt = (translation_by_code.get(code) or pt_by_id.get(int(owner["id"]))) if owner else None
+        pt = localized_card(code, owner)
         record = database[code]
-        localized_by_code.setdefault(code, {
+        localized_by_code[code] = {
             "code": code,
             "name": str(pt.get("name", "")) if pt else record["name"],
             "description": str(pt.get("description", pt.get("desc", ""))) if pt else record["description"],
             "strings": list(pt.get("strings", [])) if pt else [],
-        })
-        if not pt:
+        }
+        if pt:
+            english_fallbacks.discard(code)
+        else:
             english_fallbacks.add(code)
     localization["generatedUtc"] = utc_now()
     localization["cards"] = [
@@ -900,7 +922,7 @@ def build_plan(args: argparse.Namespace) -> dict:
             art_operations.append((source_art, target, code, "reconciliation"))
         elif sha256(source_art) != sha256(target):
             raise ValueError(f"Artwork conflict while reconciling {code}")
-        pt = pt_by_id.get(int(owner["id"])) if owner else None
+        pt = localized_card(code, owner)
         resolution = script_resolution(
             project,
             code,

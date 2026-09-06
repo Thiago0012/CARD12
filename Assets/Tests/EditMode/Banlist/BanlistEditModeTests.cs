@@ -161,6 +161,62 @@ namespace ArcaneDuel.Tests.EditMode
         }
 
         [Test]
+        public void B09_BadgeGeometry_StaysInsideLetterboxedArtwork()
+        {
+            var container = new Vector2(500f, 662f);
+            var cardSprite = new Vector2(421f, 614f);
+
+            bool calculated = BanlistBadgeGeometry.TryCalculateAnchors(
+                container,
+                cardSprite,
+                true,
+                out Vector2 min,
+                out Vector2 max);
+
+            float visibleWidth =
+                (cardSprite.x / cardSprite.y) /
+                (container.x / container.y);
+            float visibleLeft = (1f - visibleWidth) * 0.5f;
+            float visibleRight = 1f - visibleLeft;
+            Assert.That(calculated, Is.True);
+            Assert.That(min.x, Is.GreaterThanOrEqualTo(visibleLeft));
+            Assert.That(max.x, Is.LessThanOrEqualTo(visibleRight));
+            Assert.That(max.y, Is.LessThanOrEqualTo(1f));
+            Assert.That(
+                (max.x - min.x) * container.x,
+                Is.EqualTo((max.y - min.y) * container.y).Within(0.001f));
+        }
+
+        [Test]
+        public void B10_BadgeGeometry_UsesInsideTopLeftCornerAtCardAspect()
+        {
+            var cardSize = new Vector2(421f, 614f);
+
+            bool calculated = BanlistBadgeGeometry.TryCalculateAnchors(
+                cardSize,
+                cardSize,
+                true,
+                out Vector2 min,
+                out Vector2 max);
+
+            Assert.That(calculated, Is.True);
+            Assert.That(min.x,
+                Is.EqualTo(BanlistBadgeGeometry.LeftInsetFraction)
+                    .Within(0.0001f));
+            Assert.That(max.x,
+                Is.EqualTo(
+                    BanlistBadgeGeometry.LeftInsetFraction +
+                    BanlistBadgeGeometry.WidthFraction)
+                    .Within(0.0001f));
+            Assert.That(max.y,
+                Is.EqualTo(1f - BanlistBadgeGeometry.TopInsetFraction)
+                    .Within(0.0001f));
+            Assert.That(
+                (max.x - min.x) * cardSize.x,
+                Is.EqualTo((max.y - min.y) * cardSize.y).Within(0.001f));
+        }
+
+        [Test]
         public void ManifestHash_IsStableAcrossSectionReordering()
         {
             string first = DeckManifestHasher.ComputeSha256(

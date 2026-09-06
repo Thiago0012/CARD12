@@ -39,6 +39,11 @@ namespace ArcaneArena.Frontend
                     34.86965f,
                     45.6319f);
             }
+            else
+            {
+                badge.gameObject.AddComponent<CardRestrictionBadgeLayout>()
+                    .Initialize(cardRoot.GetComponent<Image>());
+            }
             int maximum = BanlistService.Active.MaximumCopies(cardId);
             badge.gameObject.AddComponent<CardRestrictionBadgeTooltip>()
                 .Initialize(maximum);

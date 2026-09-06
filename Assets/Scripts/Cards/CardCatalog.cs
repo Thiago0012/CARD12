@@ -497,6 +497,7 @@ namespace ArcaneArena.Cards
             public Texture2D Texture;
             public Sprite Sprite;
             public long Access;
+            public int PinCount;
         }
 
         private static readonly Dictionary<uint, CacheEntry> Entries = new();
@@ -580,6 +581,40 @@ namespace ArcaneArena.Cards
             return sprite;
         }
 
+        /// <summary>
+        /// Keeps a runtime artwork alive while a persistent presentation is
+        /// using it. Loading screens survive scene changes and may remain on
+        /// screen while hundreds of deck/catalog sprites are requested; an
+        /// ordinary LRU entry could otherwise be destroyed underneath an
+        /// Image component and Unity would render a plain white rectangle.
+        /// </summary>
+        public static Sprite Acquire(string officialCardId)
+        {
+            Sprite sprite = Load(officialCardId);
+            if (sprite == null || !TryCode(officialCardId, out uint code) ||
+                !Entries.TryGetValue(code, out CacheEntry entry) ||
+                entry == null)
+            {
+                return sprite;
+            }
+            entry.PinCount++;
+            entry.Access = ++accessSequence;
+            return sprite;
+        }
+
+        public static void Release(string officialCardId)
+        {
+            if (!TryCode(officialCardId, out uint code) ||
+                !Entries.TryGetValue(code, out CacheEntry entry) ||
+                entry == null)
+            {
+                return;
+            }
+            entry.PinCount = Math.Max(0, entry.PinCount - 1);
+            entry.Access = ++accessSequence;
+            Trim();
+        }
+
         private static bool TryCode(string value, out uint code)
         {
             return uint.TryParse(value, out code) && code != 0;
@@ -593,6 +628,8 @@ namespace ArcaneArena.Cards
                 CacheEntry oldest = null;
                 foreach (KeyValuePair<uint, CacheEntry> pair in Entries)
                 {
+                    if (pair.Value == null || pair.Value.PinCount > 0)
+                        continue;
                     if (oldest == null || pair.Value.Access < oldest.Access)
                     {
                         oldestCode = pair.Key;

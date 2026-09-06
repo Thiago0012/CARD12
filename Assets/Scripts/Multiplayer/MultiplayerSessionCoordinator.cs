@@ -49,9 +49,15 @@ namespace ArcaneArena.Multiplayer
         private const string MatchIdKey = "matchId";
         private const string HostEpochKey = "hostEpoch";
         private const string CompatibilityKey = "compatibility";
+        private const int LobbyConnectionAttempts = 5;
+        private const int LobbyMembershipRecoveryAttempts = 3;
+        private const int RoomMemberRefreshMinimumMilliseconds = 5000;
 
         private ISession currentSession;
         private Task leaveTask;
+        private Task roomMemberRefreshTask;
+        private DateTime nextRoomMemberRefreshUtc = DateTime.MinValue;
+        private int roomMemberRefreshFailures;
         private IReadOnlyList<PrivateRoomMemberSnapshot> roomMembers =
             Array.Empty<PrivateRoomMemberSnapshot>();
 
@@ -93,7 +99,9 @@ namespace ArcaneArena.Multiplayer
                 PlayerProperties = CreatePlayerProperties(
                     loadout,
                     0,
-                    "duelist")
+                    "duelist",
+                    "connected",
+                    true)
             };
             // Do not start Relay while the room itself is being created.
             // WithRelayNetwork starts NGO as part of CreateSessionAsync. That
@@ -168,7 +176,9 @@ namespace ArcaneArena.Multiplayer
                 PlayerProperties = CreatePlayerProperties(
                     loadout,
                     1,
-                    "duelist")
+                    "duelist",
+                    "connected",
+                    false)
             };
             options.WithNetworkOptions(new NetworkOptions
             {
@@ -212,7 +222,9 @@ namespace ArcaneArena.Multiplayer
                         identity = identity.Copy()
                     },
                     -1,
-                    "lobby")
+                    "lobby",
+                    "in-lobby",
+                    false)
             };
 
             // A presença no Lobby não abre Relay/NGO. O membro escolhe uma
@@ -253,7 +265,9 @@ namespace ArcaneArena.Multiplayer
                         }
                     },
                     -1,
-                    "spectator")
+                    "spectator",
+                    "spectating",
+                    true)
             };
             options.WithNetworkOptions(new NetworkOptions
             {
@@ -273,66 +287,112 @@ namespace ArcaneArena.Multiplayer
             return joined;
         }
 
-        public async Task RefreshRoomMembersAsync()
+        public Task RefreshRoomMembersAsync()
         {
+            if (roomMemberRefreshTask != null)
+                return roomMemberRefreshTask;
             string sessionId = SessionId;
             if (string.IsNullOrWhiteSpace(sessionId))
             {
                 roomMembers = Array.Empty<PrivateRoomMemberSnapshot>();
-                return;
+                return Task.CompletedTask;
+            }
+            if (roomMembers.Count > 0 &&
+                DateTime.UtcNow < nextRoomMemberRefreshUtc)
+            {
+                return Task.CompletedTask;
             }
 
-            var lobby = await LobbyService.Instance.GetLobbyAsync(sessionId);
-            var snapshots = new List<PrivateRoomMemberSnapshot>();
-            if (lobby?.Players != null)
+            roomMemberRefreshTask = RefreshRoomMembersCoreAsync(sessionId);
+            return roomMemberRefreshTask;
+        }
+
+        private async Task RefreshRoomMembersCoreAsync(string sessionId)
+        {
+            try
             {
-                foreach (Unity.Services.Lobbies.Models.Player player in
-                         lobby.Players)
+                var lobby = await LobbyService.Instance.GetLobbyAsync(sessionId);
+                if (!string.Equals(sessionId, SessionId,
+                        StringComparison.Ordinal))
                 {
-                    if (player == null || string.IsNullOrWhiteSpace(player.Id))
-                        continue;
-                    string displayName = GetLobbyPlayerData(
-                        player,
-                        "displayName");
-                    snapshots.Add(new PrivateRoomMemberSnapshot
-                    {
-                        PlayerId = player.Id,
-                        DisplayName = string.IsNullOrWhiteSpace(displayName)
-                            ? "DUELISTA"
-                            : displayName,
-                        IconId = ProfileIconCatalog.ResolveId(
-                            GetLobbyPlayerData(player, "iconId")),
-                        Role = NormalizeRoomRole(
-                            GetLobbyPlayerData(player, "role")),
-                        Seat = int.TryParse(
-                            GetLobbyPlayerData(player, "seat"),
-                            out int seat)
-                                ? seat
-                                : -1,
-                        Ready = string.Equals(
-                            GetLobbyPlayerData(player, "ready"),
-                            "true",
-                            StringComparison.OrdinalIgnoreCase),
-                        IsHost = string.Equals(
-                            lobby.HostId,
-                            player.Id,
-                            StringComparison.Ordinal)
-                    });
+                    return;
                 }
+                var snapshots = new List<PrivateRoomMemberSnapshot>();
+                if (lobby?.Players != null)
+                {
+                    foreach (Unity.Services.Lobbies.Models.Player player in
+                             lobby.Players)
+                    {
+                        if (player == null ||
+                            string.IsNullOrWhiteSpace(player.Id))
+                        {
+                            continue;
+                        }
+                        string displayName = GetLobbyPlayerData(
+                            player,
+                            "displayName");
+                        snapshots.Add(new PrivateRoomMemberSnapshot
+                        {
+                            PlayerId = player.Id,
+                            DisplayName = string.IsNullOrWhiteSpace(displayName)
+                                ? "DUELISTA"
+                                : displayName,
+                            IconId = ProfileIconCatalog.ResolveId(
+                                GetLobbyPlayerData(player, "iconId")),
+                            Role = NormalizeRoomRole(
+                                GetLobbyPlayerData(player, "role")),
+                            Seat = int.TryParse(
+                                GetLobbyPlayerData(player, "seat"),
+                                out int seat)
+                                    ? seat
+                                    : -1,
+                            Ready = string.Equals(
+                                GetLobbyPlayerData(player, "ready"),
+                                "true",
+                                StringComparison.OrdinalIgnoreCase),
+                            IsHost = string.Equals(
+                                lobby.HostId,
+                                player.Id,
+                                StringComparison.Ordinal)
+                        });
+                    }
+                }
+                snapshots.Sort((left, right) =>
+                {
+                    int leftOrder = RoomRoleOrder(left.Role, left.Seat);
+                    int rightOrder = RoomRoleOrder(right.Role, right.Seat);
+                    int order = leftOrder.CompareTo(rightOrder);
+                    return order != 0
+                        ? order
+                        : string.Compare(
+                            left.DisplayName,
+                            right.DisplayName,
+                            StringComparison.OrdinalIgnoreCase);
+                });
+                roomMembers = snapshots;
+                roomMemberRefreshFailures = 0;
+                nextRoomMemberRefreshUtc = DateTime.UtcNow.AddMilliseconds(
+                    RoomMemberRefreshMinimumMilliseconds);
             }
-            snapshots.Sort((left, right) =>
+            catch (Exception exception)
             {
-                int leftOrder = RoomRoleOrder(left.Role, left.Seat);
-                int rightOrder = RoomRoleOrder(right.Role, right.Seat);
-                int order = leftOrder.CompareTo(rightOrder);
-                return order != 0
-                    ? order
-                    : string.Compare(
-                        left.DisplayName,
-                        right.DisplayName,
-                        StringComparison.OrdinalIgnoreCase);
-            });
-            roomMembers = snapshots;
+                roomMemberRefreshFailures++;
+                int delay = IsRateLimited(exception)
+                    ? LobbyRetryDelayMilliseconds(roomMemberRefreshFailures)
+                    : RoomMemberRefreshMinimumMilliseconds;
+                nextRoomMemberRefreshUtc = DateTime.UtcNow.AddMilliseconds(delay);
+                Debug.LogWarning(
+                    "[MP] stage=lobby-members-refresh result=" +
+                    exception.GetBaseException().GetType().Name +
+                    " retryMs=" + delay);
+                // This read only feeds the room UI. A temporary HTTP failure
+                // must never invalidate a Session that already owns a valid
+                // server-side membership.
+            }
+            finally
+            {
+                roomMemberRefreshTask = null;
+            }
         }
 
         public async Task<ISession> MatchmakeRankedAsync(
@@ -531,7 +591,19 @@ namespace ArcaneArena.Multiplayer
             currentSession.CurrentPlayer.SetProperty(
                 "ready",
                 MemberPlayerProperty(ready ? "true" : "false"));
-            await currentSession.SaveCurrentPlayerDataAsync();
+            try
+            {
+                await currentSession.SaveCurrentPlayerDataAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[MP] stage=player-presence-save result=" +
+                    exception.GetBaseException().GetType().Name);
+                // Presence labels are auxiliary. The join/create operation
+                // has already succeeded and must not be undone by a rate
+                // limit on this follow-up write.
+            }
         }
 
         public async Task SetHostMatchStateAsync(
@@ -658,47 +730,149 @@ namespace ArcaneArena.Multiplayer
         {
             HashSet<string> membershipsBefore =
                 await JoinedSessionIdsOrEmptyAsync();
-            for (int attempt = 0; attempt < 2; attempt++)
+            Exception lastFailure = null;
+            for (int attempt = 0; attempt < LobbyConnectionAttempts; attempt++)
             {
                 try
                 {
                     return await connect();
                 }
                 catch (Exception exception)
-                    when (IsLobbyEventConnectionFailure(exception))
+                    when (IsLobbyEventConnectionFailure(exception) ||
+                          IsRateLimited(exception))
                 {
+                    lastFailure = exception;
+                    // A joining player owns no Lobby heartbeat, so a
+                    // server-confirmed membership can safely be recovered.
+                    // A newly created host handler has already scheduled its
+                    // heartbeat before Lobby Events connect; reconnecting it
+                    // would leave an orphan heartbeat alive. Hosts therefore
+                    // use the cleanup + paced recreate path below.
+                    TSession recovered = createdByLocalPlayer == false
+                        ? await TryRecoverNewLobbyMembershipAsync<TSession>(
+                            membershipsBefore)
+                        : null;
+                    if (recovered != null)
+                        return recovered;
+                    if (attempt + 1 >= LobbyConnectionAttempts)
+                    {
+                        await CleanupNewLobbyMembershipsAsync(
+                            membershipsBefore,
+                            createdByLocalPlayer);
+                        throw;
+                    }
+                    int delay = LobbyRetryDelayMilliseconds(attempt + 1);
+                    Debug.LogWarning(
+                        "[MP] stage=lobby-connect-retry attempt=" +
+                        (attempt + 2) + " reason=" +
+                        (IsRateLimited(exception) ? "rate-limit" :
+                            "lobby-events") + " delayMs=" + delay);
                     await CleanupNewLobbyMembershipsAsync(
                         membershipsBefore,
                         createdByLocalPlayer);
-                    if (attempt > 0)
-                        throw;
-                    Debug.LogWarning(
-                        "[MP] stage=lobby-events-retry reason=23000");
-                    await Task.Delay(700);
+                    await Task.Delay(delay);
                     membershipsBefore = await JoinedSessionIdsOrEmptyAsync();
                 }
             }
-            throw new InvalidOperationException(
+            throw lastFailure ?? new InvalidOperationException(
                 "A conexão com os eventos do Lobby não foi concluída.");
+        }
+
+        private static async Task<TSession>
+            TryRecoverNewLobbyMembershipAsync<TSession>(
+                HashSet<string> membershipsBefore)
+            where TSession : class, ISession
+        {
+            HashSet<string> current = await JoinedSessionIdsOrEmptyAsync();
+            foreach (string sessionId in current)
+            {
+                if (string.IsNullOrWhiteSpace(sessionId) ||
+                    membershipsBefore.Contains(sessionId))
+                {
+                    continue;
+                }
+                for (int attempt = 0;
+                     attempt < LobbyMembershipRecoveryAttempts;
+                     attempt++)
+                {
+                    if (attempt > 0)
+                    {
+                        await Task.Delay(
+                            LobbyRetryDelayMilliseconds(attempt));
+                    }
+                    try
+                    {
+                        ISession reconnected = await MultiplayerService.Instance
+                            .ReconnectToSessionAsync(
+                                sessionId,
+                                new ReconnectSessionOptions
+                                {
+                                    Type = SessionType
+                                });
+                        if (reconnected is TSession typed)
+                        {
+                            Debug.Log(
+                                "[MP] stage=lobby-membership-recovered " +
+                                "attempt=" + (attempt + 1));
+                            return typed;
+                        }
+                        if (reconnected?.IsHost == true &&
+                            reconnected.AsHost() is TSession host)
+                        {
+                            Debug.Log(
+                                "[MP] stage=lobby-membership-recovered " +
+                                "role=host attempt=" + (attempt + 1));
+                            return host;
+                        }
+                    }
+                    catch (Exception recoveryFailure)
+                    {
+                        bool transient =
+                            IsLobbyEventConnectionFailure(recoveryFailure) ||
+                            IsRateLimited(recoveryFailure);
+                        Debug.LogWarning(
+                            "[MP] stage=lobby-membership-recovery attempt=" +
+                            (attempt + 1) + " result=" +
+                            (IsRateLimited(recoveryFailure)
+                                ? "rate-limit"
+                                : IsLobbyEventConnectionFailure(recoveryFailure)
+                                    ? "lobby-events"
+                                    : recoveryFailure.GetBaseException()
+                                        .GetType().Name));
+                        if (!transient)
+                            break;
+                    }
+                }
+            }
+            return null;
         }
 
         private static async Task<HashSet<string>> JoinedSessionIdsOrEmptyAsync()
         {
-            try
+            for (int attempt = 0; attempt < 3; attempt++)
             {
-                List<string> ids = await MultiplayerService.Instance
-                    .GetJoinedSessionIdsAsync();
-                return new HashSet<string>(
-                    ids ?? new List<string>(),
-                    StringComparer.Ordinal);
+                try
+                {
+                    List<string> ids = await MultiplayerService.Instance
+                        .GetJoinedSessionIdsAsync();
+                    return new HashSet<string>(
+                        ids ?? new List<string>(),
+                        StringComparer.Ordinal);
+                }
+                catch (Exception exception)
+                {
+                    if (!IsRateLimited(exception) || attempt >= 2)
+                    {
+                        Debug.LogWarning(
+                            "[MP] stage=lobby-memberships-read result=" +
+                            exception.GetBaseException().Message);
+                        break;
+                    }
+                    await Task.Delay(
+                        LobbyRetryDelayMilliseconds(attempt + 1));
+                }
             }
-            catch (Exception exception)
-            {
-                Debug.LogWarning(
-                    "[MP] stage=lobby-memberships-read result=" +
-                    exception.GetBaseException().Message);
-                return new HashSet<string>(StringComparer.Ordinal);
-            }
+            return new HashSet<string>(StringComparer.Ordinal);
         }
 
         private static async Task CleanupNewLobbyMembershipsAsync(
@@ -775,11 +949,45 @@ namespace ArcaneArena.Multiplayer
             return false;
         }
 
+        internal static bool IsRateLimited(Exception exception)
+        {
+            for (Exception current = exception;
+                 current != null;
+                 current = current.InnerException)
+            {
+                if (current is SessionException sessionException &&
+                    sessionException.Error == SessionError.RateLimitExceeded)
+                {
+                    return true;
+                }
+                string message = current.Message ?? string.Empty;
+                if (message.IndexOf("429", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    message.IndexOf(
+                        "too many requests",
+                        StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    message.IndexOf(
+                        "rate limit",
+                        StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        internal static int LobbyRetryDelayMilliseconds(int attempt)
+        {
+            int exponent = Mathf.Clamp(attempt - 1, 0, 3);
+            return Math.Min(12000, 2000 * (1 << exponent));
+        }
+
         private static Dictionary<string, PlayerProperty>
             CreatePlayerProperties(
                 DuelDeckLoadout loadout,
                 int seat,
-                string role)
+                string role,
+                string connectionState = "connecting",
+                bool ready = false)
         {
             return new Dictionary<string, PlayerProperty>
             {
@@ -791,11 +999,12 @@ namespace ArcaneArena.Multiplayer
                 ["deckHash"] = MemberPlayerProperty(ComputeDeckHash(loadout)),
                 ["banlistId"] = MemberPlayerProperty(
                     loadout?.banlistId ?? string.Empty),
-                ["ready"] = MemberPlayerProperty("false"),
+                ["ready"] = MemberPlayerProperty(ready ? "true" : "false"),
                 ["platform"] = MemberPlayerProperty(Application.platform.ToString()),
                 ["seat"] = MemberPlayerProperty(seat.ToString()),
                 ["role"] = MemberPlayerProperty(role ?? "duelist"),
-                ["connectionState"] = MemberPlayerProperty("connecting")
+                ["connectionState"] = MemberPlayerProperty(
+                    connectionState ?? "connecting")
             };
         }
 
@@ -899,6 +1108,7 @@ namespace ArcaneArena.Multiplayer
             if (currentSession == null)
             {
                 roomMembers = Array.Empty<PrivateRoomMemberSnapshot>();
+                nextRoomMemberRefreshUtc = DateTime.MinValue;
                 return;
             }
             currentSession.Deleted -= OnSessionTerminated;
@@ -907,6 +1117,7 @@ namespace ArcaneArena.Multiplayer
             currentSession.Network.StartFailed -= OnNetworkStartFailed;
             currentSession.Network.StateChanged -= OnNetworkStateChanged;
             roomMembers = Array.Empty<PrivateRoomMemberSnapshot>();
+            nextRoomMemberRefreshUtc = DateTime.MinValue;
         }
 
         private void OnSessionTerminated()

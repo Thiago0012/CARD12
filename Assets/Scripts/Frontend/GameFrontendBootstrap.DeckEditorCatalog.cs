@@ -173,6 +173,9 @@ namespace ArcaneArena.Frontend
                 banlistBadge.gameObject.AddComponent<
                     CardRestrictionBadgeTooltip>();
             banlistTooltip.Initialize(0);
+            banlistBadge.gameObject.AddComponent<
+                    CardRestrictionBadgeLayout>()
+                .Initialize(artwork);
             banlistBadge.gameObject.SetActive(false);
 
             Image rarityBadge = CreateRarityBadge(

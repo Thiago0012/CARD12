@@ -17532,6 +17532,12 @@
       "strings": []
     },
     {
+      "code": 36629636,
+      "name": "Ficha de Penugem Branca",
+      "description": "Este card pode ser usado como uma \"Ficha de Penugem Branca\".\n\n* Se for usado como outra Ficha, aplique o Tipo/Atributo/Nível/ATK/DEF dessa Ficha.",
+      "strings": []
+    },
+    {
       "code": 37552929,
       "name": "Donzela da Lua do Milênio",
       "description": "Se esta carta batalhar com um monstro, nenhum deles poderá ser destruído nessa batalha. Você só pode usar cada um dos seguintes efeitos de \"Donzela da Lua Milênio\" uma vez por turno. Se este card estiver na sua mão: você pode colocá-lo na sua Zona de Magias e Armadilhas como um Magia Contínuo com a face para cima. Se seu oponente ativar um card ou efeito, enquanto este card for uma Magia Contínua (exceto durante a Etapa de Dano): você pode Invocar este card por Invocação-Especial e, se isso acontecer, pelo resto deste turno, seu oponente não pode escolher monstros Ilusão ou Mago de Nível 5 ou mais que você controla com efeitos de card.",
@@ -17541,6 +17547,30 @@
       "code": 37613663,
       "name": "Milênio Ankh",
       "description": "Mostre 5 Cards de Monstro \"O Proibido\" da sua mão, Deck e/ou campo com a face para cima e, em seguida, Invoque por Invocação-Especial 1 \"O Imparável Exodia Encarnado\" do seu Deck Adicional e, em seguida, embaralhe os Cards de Monstro com a face para cima que você controla no Deck, exceto os Cards de Monstro \"Exodia\" cujos Níveis originais sejam 10 ou mais, e os Cards de Monstro \"Millennium\", além disso, você não pode Invocar pelo resto deste turno. Após a ativação, embaralhe este card no Deck em vez de enviá-lo para o Cemitério.",
+      "strings": []
+    },
+    {
+      "code": 37654624,
+      "name": "Ficha de Besta Mecânica",
+      "description": "Invocada por Invocação-Especial pelo efeito de \"Hideout in the Sky, Coulomb\".",
+      "strings": []
+    },
+    {
+      "code": 38030233,
+      "name": "Ficha de Espírito Tenyi",
+      "description": "Invocada por Invocação-Especial pelo efeito de \"Espírito Tenyi - Sahasrara\". Quando Invocada, o ATK desta Ficha se torna igual ao ATK original do monstro alvo.",
+      "strings": []
+    },
+    {
+      "code": 38041941,
+      "name": "Ficha de Semente",
+      "description": "Invocada pelo efeito de \"Semente de Chamas\". Esta Ficha não pode ser oferecida como Tributo para uma Invocação-Tributo.",
+      "strings": []
+    },
+    {
+      "code": 38053382,
+      "name": "Ficha de Generaidor",
+      "description": "Invocada por Invocação-Especial pelo efeito de \"Estágio do Chefe Generaidor\". Destrua esta Ficha durante a Fase Final.",
       "strings": []
     },
     {

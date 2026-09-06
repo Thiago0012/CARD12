@@ -75,6 +75,7 @@ namespace ArcaneArena.Multiplayer
         private readonly List<Color> floatingCardBaseColors = new();
         private readonly List<float> lightStreakAngles = new();
         private readonly List<Sprite> cachedCardArtwork = new();
+        private readonly List<string> pinnedCardArtworkIds = new();
         private readonly List<Image> burstRings = new();
         private readonly List<Image> perimeterGlows = new();
         private readonly List<float> perimeterGlowPhases = new();
@@ -130,6 +131,11 @@ namespace ArcaneArena.Multiplayer
 
         public bool IsVisible => canvas != null && canvas.gameObject.activeSelf;
         public bool IsOpaque => IsVisible && group != null && group.alpha >= 0.995f;
+
+        private void OnDestroy()
+        {
+            ReleaseFloatingCardArtwork();
+        }
 
         public void ConfigureMinimumVisible(float seconds)
         {
@@ -1989,7 +1995,7 @@ namespace ArcaneArena.Multiplayer
             // card sprites do not necessarily do so. Rebuild this small visual
             // sample on every transition instead of retaining destroyed Sprite
             // references, which Unity renders as plain white rectangles.
-            cachedCardArtwork.Clear();
+            ReleaseFloatingCardArtwork();
             CardCatalog[] catalogs =
                 Resources.FindObjectsOfTypeAll<CardCatalog>();
             foreach (CardCatalog catalog in catalogs)
@@ -2013,7 +2019,18 @@ namespace ArcaneArena.Multiplayer
                          cachedCardArtwork.Count < 48;
                          index += stride)
                     {
-                        Sprite artwork = candidates[index + offset].Artwork;
+                        CardCatalogEntry candidate = candidates[index + offset];
+                        Sprite artwork = candidate.AuthoredArtwork;
+                        if (artwork == null)
+                        {
+                            artwork = RuntimeCardArtworkCache.Acquire(
+                                candidate.OfficialCardId);
+                            if (artwork != null)
+                            {
+                                pinnedCardArtworkIds.Add(
+                                    candidate.OfficialCardId);
+                            }
+                        }
                         if (artwork != null && artwork.texture != null &&
                             !cachedCardArtwork.Contains(artwork))
                         {
@@ -2068,6 +2085,14 @@ namespace ArcaneArena.Multiplayer
                     trailImage.color = trailColor;
                 }
             }
+        }
+
+        private void ReleaseFloatingCardArtwork()
+        {
+            foreach (string officialCardId in pinnedCardArtworkIds)
+                RuntimeCardArtworkCache.Release(officialCardId);
+            pinnedCardArtworkIds.Clear();
+            cachedCardArtwork.Clear();
         }
 
         private void RestartFloatingCardBurst()

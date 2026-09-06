@@ -1,3 +1,4 @@
+using ArcaneDuel.Game;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -82,6 +83,90 @@ namespace ArcaneArena.Frontend
             if (tooltip != null)
                 Destroy(tooltip);
             tooltip = null;
+        }
+    }
+
+    /// <summary>
+    /// Keeps a restriction badge attached to the visible card artwork when
+    /// the parent Image uses preserveAspect and is letterboxed by its layout.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class CardRestrictionBadgeLayout : MonoBehaviour
+    {
+        private Image cardArtwork;
+        private RectTransform badgeRect;
+        private Vector2 lastContainerSize = new(float.NaN, float.NaN);
+        private Vector2 lastSpriteSize = new(float.NaN, float.NaN);
+        private bool lastPreserveAspect;
+
+        public void Initialize(Image artwork)
+        {
+            cardArtwork = artwork;
+            badgeRect = transform as RectTransform;
+            ApplyLayout(true);
+        }
+
+        private void Awake()
+        {
+            badgeRect = transform as RectTransform;
+            cardArtwork ??= transform.parent != null
+                ? transform.parent.GetComponent<Image>()
+                : null;
+        }
+
+        private void OnEnable()
+        {
+            ApplyLayout(true);
+        }
+
+        private void LateUpdate()
+        {
+            ApplyLayout(false);
+        }
+
+        private void ApplyLayout(bool force)
+        {
+            if (cardArtwork == null || badgeRect == null)
+                return;
+
+            Vector2 containerSize = cardArtwork.rectTransform.rect.size;
+            Vector2 spriteSize = cardArtwork.sprite != null
+                ? cardArtwork.sprite.rect.size
+                : containerSize;
+            bool preserveAspect = cardArtwork.preserveAspect;
+            if (!force &&
+                Approximately(containerSize, lastContainerSize) &&
+                Approximately(spriteSize, lastSpriteSize) &&
+                preserveAspect == lastPreserveAspect)
+            {
+                return;
+            }
+
+            if (!BanlistBadgeGeometry.TryCalculateAnchors(
+                    containerSize,
+                    spriteSize,
+                    preserveAspect,
+                    out Vector2 min,
+                    out Vector2 max))
+            {
+                return;
+            }
+
+            badgeRect.anchorMin = min;
+            badgeRect.anchorMax = max;
+            badgeRect.offsetMin = Vector2.zero;
+            badgeRect.offsetMax = Vector2.zero;
+            badgeRect.pivot = new Vector2(0.5f, 0.5f);
+            badgeRect.localScale = Vector3.one;
+            lastContainerSize = containerSize;
+            lastSpriteSize = spriteSize;
+            lastPreserveAspect = preserveAspect;
+        }
+
+        private static bool Approximately(Vector2 left, Vector2 right)
+        {
+            return Mathf.Approximately(left.x, right.x) &&
+                   Mathf.Approximately(left.y, right.y);
         }
     }
 }

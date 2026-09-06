@@ -13,6 +13,49 @@ namespace ArcaneDuel.Tests.PlayMode
     public sealed class OnlineLoadingResultPlayModeTests
     {
         [Test]
+        public void LatestImportedArtworkCanBePinnedForTheLoadingScreen()
+        {
+            const string latestCardId = "39680372";
+            Type cache = TypeByName(
+                "ArcaneArena.Cards.RuntimeCardArtworkCache");
+            MethodInfo acquire = cache.GetMethod(
+                "Acquire",
+                BindingFlags.Public | BindingFlags.Static);
+            MethodInfo release = cache.GetMethod(
+                "Release",
+                BindingFlags.Public | BindingFlags.Static);
+            FieldInfo entries = cache.GetField(
+                "Entries",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.That(acquire, Is.Not.Null);
+            Assert.That(release, Is.Not.Null);
+            Assert.That(entries, Is.Not.Null);
+
+            var dictionary = (System.Collections.IDictionary)entries.GetValue(null);
+            uint code = uint.Parse(latestCardId);
+            object existing = dictionary[code];
+            int pinsBefore = existing == null
+                ? 0
+                : (int)existing.GetType().GetField(
+                    "PinCount",
+                    BindingFlags.Public | BindingFlags.Instance).GetValue(existing);
+
+            Sprite artwork = (Sprite)acquire.Invoke(
+                null,
+                new object[] { latestCardId });
+            Assert.That(artwork, Is.Not.Null);
+            Assert.That(artwork.texture, Is.Not.Null);
+            object pinned = dictionary[code];
+            FieldInfo pinCount = pinned.GetType().GetField(
+                "PinCount",
+                BindingFlags.Public | BindingFlags.Instance);
+            Assert.That((int)pinCount.GetValue(pinned), Is.EqualTo(pinsBefore + 1));
+
+            release.Invoke(null, new object[] { latestCardId });
+            Assert.That((int)pinCount.GetValue(pinned), Is.EqualTo(pinsBefore));
+        }
+
+        [Test]
         public void RankMasterySpinFinishesInTheOfficialUprightOrientation()
         {
             Type rules = TypeByName(

@@ -216,6 +216,30 @@ BATCH_CORRECTIONS = {
         'só pode usar cada efeito de "Ars Magna of Infinity and Finity" uma vez '
         'por turno.'
     ),
+    37442336: (
+        '1 Monstro Sincro Regulador + 2+ Monstros Sincro não-Reguladores\n'
+        'Deve primeiro ser Invocado por Invocação-Sincro com as matérias acima. '
+        'Uma vez por turno: você pode escolher cards com a face para cima no '
+        'campo, até o número de monstros usados como Matéria Sincro para este '
+        'card +1; negue seus efeitos. A ativação deste efeito e seu efeito não '
+        'podem ser negados. (Efeito Rápido): você pode banir este card Invocado '
+        'por Invocação-Sincro; Invoque por Invocação-Especial 1 Monstro Sincro '
+        'Dragão do seu Deck Adicional que exija 2+ Monstros Sincro '
+        'não-Reguladores como matéria. (Isso é considerado uma '
+        'Invocação-Sincro.)'
+    ),
+    38643567: (
+        'Escolha 1 monstro "Inzektor" com a face para cima que você controla; '
+        'equipe este card ao alvo. Ele ganha 500 de ATK/DEF. Quando exatamente '
+        '1 monstro "Inzektor" que você controla for escolhido como alvo por um '
+        'efeito de card (exceto durante a Etapa de Dano): você pode enviar este '
+        'Card de Equipamento para o Cemitério; negue o efeito.'
+    ),
+    39440937: (
+        'Mude todos os Monstros Sincro com a face para cima no campo para a '
+        'Posição de Defesa. Durante a Fase Final, devolva todos os Monstros '
+        'Sincro com a face para cima no campo para o Deck Adicional.'
+    ),
 }
 
 
