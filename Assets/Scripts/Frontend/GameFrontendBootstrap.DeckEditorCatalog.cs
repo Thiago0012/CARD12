@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -36,6 +37,13 @@ namespace ArcaneArena.Frontend
             public int DataIndex = -1;
         }
 
+        private sealed class CatalogArtworkRequest
+        {
+            public CatalogVirtualCell Cell;
+            public int DataIndex;
+            public string CardId;
+        }
+
         private readonly List<CardCatalogEntry> _catalogFilteredEntries = new();
         private readonly List<CatalogVirtualCell> _catalogVirtualCells = new();
         private readonly HashSet<CardRarity> _catalogRarityFilters = new();
@@ -47,6 +55,10 @@ namespace ArcaneArena.Frontend
             new(StringComparer.Ordinal);
         private readonly HashSet<string> _catalogNewCardIds =
             new(StringComparer.Ordinal);
+        private readonly Queue<CatalogArtworkRequest>
+            _catalogArtworkRequests = new();
+        private readonly HashSet<string> _catalogArtworkRequestsPending =
+            new(StringComparer.Ordinal);
         private HashSet<string> _catalogRelatedCardIds;
         private ScrollRect _catalogScroll;
         private Image _catalogAdvancedFilterButton;
@@ -56,6 +68,7 @@ namespace ArcaneArena.Frontend
         private bool _catalogCraftableOnly;
         private int _catalogFirstVirtualRow = -1;
         private bool _deckEditorNewMarkersWereShown;
+        private Coroutine _catalogArtworkLoader;
 
         private void ConfigureVirtualCatalog()
         {
@@ -412,9 +425,18 @@ namespace ArcaneArena.Frontend
             _catalogFirstVirtualRow = firstRow;
 
             int firstIndex = firstRow * CatalogVirtualColumns;
+            float viewportHeight = _catalogDropZone != null
+                ? Mathf.Max(pitchY, _catalogDropZone.rect.height)
+                : pitchY * 8f;
+            int visibleRows = Mathf.Max(
+                1,
+                Mathf.CeilToInt(viewportHeight / pitchY) + 1);
+            int bufferedCellCount = Mathf.Min(
+                CatalogVirtualPoolSize,
+                (visibleRows + 6) * CatalogVirtualColumns);
             int lastIndex = Mathf.Min(
                 _catalogFilteredEntries.Count,
-                firstIndex + CatalogVirtualPoolSize);
+                firstIndex + bufferedCellCount);
             foreach (CatalogVirtualCell cell in _catalogVirtualCells)
             {
                 if (cell.DataIndex < firstIndex || cell.DataIndex >= lastIndex)
@@ -466,7 +488,11 @@ namespace ArcaneArena.Frontend
         {
             CardCatalogEntry entry = _catalogFilteredEntries[dataIndex];
             string cardId = DeckRepository.StableCardId(entry);
-            Sprite artwork = entry.Artwork;
+            Sprite artwork = entry.AuthoredArtwork;
+            if (artwork == null)
+            {
+                RuntimeCardArtworkCache.TryGetLoaded(cardId, out artwork);
+            }
             int ownedCopies = CatalogOwnedCopies(entry, cardId);
 
             cell.DataIndex = dataIndex;
@@ -487,6 +513,95 @@ namespace ArcaneArena.Frontend
             cell.NewBadge?.SetVisible(_catalogNewCardIds.Contains(cardId));
             BindVirtualCatalogBanlist(cell, cardId);
             BindVirtualCatalogRarity(cell, entry);
+            if (artwork == null && entry.HasArtwork)
+                QueueVirtualCatalogArtwork(cell, dataIndex, cardId);
+        }
+
+        private void QueueVirtualCatalogArtwork(
+            CatalogVirtualCell cell,
+            int dataIndex,
+            string cardId)
+        {
+            if (cell == null || string.IsNullOrWhiteSpace(cardId) ||
+                !_catalogArtworkRequestsPending.Add(cardId))
+            {
+                return;
+            }
+
+            _catalogArtworkRequests.Enqueue(new CatalogArtworkRequest
+            {
+                Cell = cell,
+                DataIndex = dataIndex,
+                CardId = cardId
+            });
+            if (_catalogArtworkLoader == null && isActiveAndEnabled)
+            {
+                _catalogArtworkLoader = StartCoroutine(
+                    ProcessVirtualCatalogArtworkRequests());
+            }
+        }
+
+        private IEnumerator ProcessVirtualCatalogArtworkRequests()
+        {
+            while (_catalogArtworkRequests.Count > 0)
+            {
+                CatalogArtworkRequest request =
+                    _catalogArtworkRequests.Dequeue();
+                _catalogArtworkRequestsPending.Remove(request.CardId);
+                if (!IsCurrentVirtualCatalogArtworkRequest(request))
+                    continue;
+
+                Sprite artwork = null;
+                if (!RuntimeCardArtworkCache.TryGetLoaded(
+                        request.CardId,
+                        out artwork))
+                {
+                    yield return RuntimeCardArtworkCache.LoadAsync(
+                        request.CardId,
+                        loaded => artwork = loaded);
+                }
+
+                if (artwork != null &&
+                    IsCurrentVirtualCatalogArtworkRequest(request))
+                {
+                    request.Cell.Artwork.sprite = artwork;
+                    request.Cell.Artwork.color = Color.white;
+                    string cardId = request.CardId;
+                    int ownedCopies = CatalogOwnedCopies(
+                        _catalogFilteredEntries[request.DataIndex],
+                        cardId);
+                    request.Cell.Drag.Setup(
+                        this,
+                        cardId,
+                        artwork,
+                        ownedCopies > 0);
+                }
+
+                // Keep decode work distributed over frames even when the
+                // platform serves local files immediately from its cache.
+                yield return null;
+            }
+
+            _catalogArtworkLoader = null;
+        }
+
+        private bool IsCurrentVirtualCatalogArtworkRequest(
+            CatalogArtworkRequest request)
+        {
+            if (request?.Cell?.Root == null ||
+                request.Cell.DataIndex != request.DataIndex ||
+                request.DataIndex < 0 ||
+                request.DataIndex >= _catalogFilteredEntries.Count)
+            {
+                return false;
+            }
+
+            string currentId = DeckRepository.StableCardId(
+                _catalogFilteredEntries[request.DataIndex]);
+            return string.Equals(
+                currentId,
+                request.CardId,
+                StringComparison.Ordinal);
         }
 
         private int CatalogOwnedCopies(
@@ -1135,6 +1250,11 @@ namespace ArcaneArena.Frontend
 
         private void ReleaseVirtualCatalogView()
         {
+            if (_catalogArtworkLoader != null)
+                StopCoroutine(_catalogArtworkLoader);
+            _catalogArtworkLoader = null;
+            _catalogArtworkRequests.Clear();
+            _catalogArtworkRequestsPending.Clear();
             _catalogScroll = null;
             _catalogAdvancedFilterButton = null;
             _deckEditorRelatedCardsButton = null;

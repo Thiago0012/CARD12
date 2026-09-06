@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using ArcaneDuel.DuelEngine.Content;
 using ArcaneDuel.DuelEngine.Data;
 using UnityEngine;
@@ -579,6 +581,109 @@ namespace ArcaneArena.Cards
             };
             Trim();
             return sprite;
+        }
+
+        /// <summary>
+        /// Loads an artwork without blocking the frame on disk I/O. This is
+        /// intended for rapidly recycled views such as the deck editor: the
+        /// synchronous <see cref="Load"/> remains available to isolated
+        /// presentations that need the sprite immediately.
+        /// </summary>
+        public static IEnumerator LoadAsync(
+            string officialCardId,
+            Action<Sprite> completed)
+        {
+            if (!TryCode(officialCardId, out uint code))
+            {
+                completed?.Invoke(null);
+                yield break;
+            }
+            if (TryGetLoaded(officialCardId, out Sprite loaded))
+            {
+                completed?.Invoke(loaded);
+                yield break;
+            }
+
+            string path;
+            try
+            {
+                path = YgoContentLocator.Resolve(
+                    "Art",
+                    code.ToString() + ".jpg");
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"Arte runtime {code:00000000} indisponível: " +
+                    exception.GetBaseException().Message);
+                completed?.Invoke(null);
+                yield break;
+            }
+            if (!File.Exists(path))
+            {
+                completed?.Invoke(null);
+                yield break;
+            }
+
+            Task<byte[]> readTask = Task.Run(() => File.ReadAllBytes(path));
+            // Always return control for at least one frame. Even a warm file
+            // system cache must not turn a recycled catalog row back into a
+            // synchronous load spike.
+            do
+            {
+                yield return null;
+            } while (!readTask.IsCompleted);
+
+            if (readTask.IsCanceled || readTask.IsFaulted)
+            {
+                Debug.LogWarning(
+                    $"Arte runtime {code:00000000} não carregada: " +
+                    (readTask.Exception?.GetBaseException().Message ??
+                     "leitura cancelada"));
+                completed?.Invoke(null);
+                yield break;
+            }
+
+            var texture = new Texture2D(
+                2,
+                2,
+                TextureFormat.RGBA32,
+                false)
+            {
+                name = code.ToString("00000000"),
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            if (!ImageConversion.LoadImage(texture, readTask.Result, true))
+            {
+                Destroy(texture);
+                completed?.Invoke(null);
+                yield break;
+            }
+
+            // Another view may have completed the same request first.
+            // Reuse that cache entry and discard this duplicate texture.
+            if (TryGetLoaded(officialCardId, out loaded))
+            {
+                Destroy(texture);
+                completed?.Invoke(loaded);
+                yield break;
+            }
+
+            var sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            sprite.name = code.ToString("00000000");
+            Entries[code] = new CacheEntry
+            {
+                Texture = texture,
+                Sprite = sprite,
+                Access = ++accessSequence
+            };
+            Trim();
+            completed?.Invoke(sprite);
         }
 
         /// <summary>

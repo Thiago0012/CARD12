@@ -299,16 +299,6 @@ namespace ArcaneArena.Frontend
                 .ToArray();
         }
 
-        private static readonly HashSet<string> LegacyOwnedCardIds =
-            new HashSet<string>(
-                new[]
-                {
-                    "89631139", "71413901", "97077563", "46986414",
-                    "97268402", "44095762", "83764719", "05318639",
-                    "55144522", "26202165", "82732705", "73628505"
-                },
-                StringComparer.Ordinal);
-
         private static readonly HashSet<string> ProductCardIds =
             new HashSet<string>(
                 AvailableProducts.SelectMany(product =>
@@ -355,8 +345,7 @@ namespace ArcaneArena.Frontend
                 .OrderBy(id => id, StringComparer.Ordinal)
                 .ToArray();
         public static int InitiallyLockedCardCount =>
-            ProductCardIds.Count(id =>
-                !LegacyOwnedCardIds.Contains(id));
+            ProductCardIds.Count;
 
         public static DeckShopProduct Find(string productId)
         {
@@ -377,8 +366,7 @@ namespace ArcaneArena.Frontend
                     cardId);
             bool belongsToPack = ShopPackCatalog.Packs.Any(pack =>
                 pack.CardIds.Contains(normalized, StringComparer.Ordinal));
-            return (ProductCardIds.Contains(normalized) || belongsToPack) &&
-                   !LegacyOwnedCardIds.Contains(normalized);
+            return ProductCardIds.Contains(normalized) || belongsToPack;
         }
 
         public static int OwnedCopies(
@@ -416,8 +404,6 @@ namespace ArcaneArena.Frontend
                 FrontendCardIdentity.NormalizeOfficialId(cardId);
             explicitQuantity = Math.Max(0, explicitQuantity);
 
-            if (!IsLockedShopCard(normalized))
-                return Math.Max(3, explicitQuantity);
             if (state?.unlockedDeckProductIds == null)
                 return explicitQuantity;
 

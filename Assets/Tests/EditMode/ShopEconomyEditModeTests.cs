@@ -7,6 +7,7 @@ using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace ArcaneDuel.Tests.EditMode
 {
@@ -29,6 +30,132 @@ namespace ArcaneDuel.Tests.EditMode
             {
                 DeleteSave(path);
             }
+        }
+
+        [Test]
+        public void NewProfileDoesNotOwnCardsBeforeAcquiringThem()
+        {
+            string path = TemporarySave("new-profile-empty-inventory");
+            try
+            {
+                UnityEngine.Object catalog =
+                    AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                        "Assets/Cards/CardCatalog.asset");
+                object repository = CreateRepository(path, catalog);
+                MethodInfo ownedCardQuantity = repository.GetType().GetMethod(
+                    "OwnedCardQuantity",
+                    BindingFlags.Public | BindingFlags.Instance);
+
+                Assert.That(ownedCardQuantity, Is.Not.Null);
+                Assert.That(
+                    (int)ownedCardQuantity.Invoke(
+                        repository,
+                        new object[] { "89631139" }),
+                    Is.Zero,
+                    "Dragão Branco de Olhos Azuis não pode nascer com três " +
+                    "cópias implícitas em uma conta nova.");
+                Assert.That(
+                    Values(Field(
+                        repository.GetType().GetProperty("State")
+                            .GetValue(repository),
+                        "cardQuantities")),
+                    Is.Empty);
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
+        [Test]
+        public void PersistedAcquiredCopiesRemainOwned()
+        {
+            string path = TemporarySave("persisted-owned-copies");
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(
+                    path,
+                    "{\"schemaVersion\":14," +
+                    "\"coinBalance\":200,\"decks\":[]," +
+                    "\"unlockedDeckProductIds\":[]," +
+                    "\"cardQuantities\":[{" +
+                    "\"cardId\":\"89631139\",\"quantity\":2}]}");
+                UnityEngine.Object catalog =
+                    AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                        "Assets/Cards/CardCatalog.asset");
+                object repository = CreateRepository(path, catalog);
+
+                int owned = (int)repository.GetType()
+                    .GetMethod("OwnedCardQuantity")
+                    .Invoke(repository, new object[] { "89631139" });
+
+                Assert.That(owned, Is.EqualTo(2),
+                    "A correção deve remover apenas cópias implícitas, sem " +
+                    "apagar cartas realmente registradas no inventário.");
+            }
+            finally
+            {
+                DeleteSave(path);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator RuntimeArtworkLoadingYieldsAndReturnsNewCardSprite()
+        {
+            UnityEngine.Object catalog =
+                AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
+                    "Assets/Cards/CardCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+            Type cacheType = FindType(
+                "ArcaneArena.Cards.RuntimeCardArtworkCache");
+            MethodInfo tryGetLoaded = cacheType.GetMethod(
+                "TryGetLoaded",
+                BindingFlags.Static | BindingFlags.Public |
+                BindingFlags.NonPublic);
+            MethodInfo loadAsync = cacheType.GetMethod(
+                "LoadAsync",
+                BindingFlags.Static | BindingFlags.Public |
+                BindingFlags.NonPublic);
+            Assert.That(tryGetLoaded, Is.Not.Null);
+            Assert.That(loadAsync, Is.Not.Null);
+
+            string cardId = null;
+            foreach (object entry in Values(Property(catalog, "Entries")))
+            {
+                if (entry == null ||
+                    !(bool)Property(entry, "HasArtwork") ||
+                    (bool)Property(entry, "HasAuthoredArtwork"))
+                {
+                    continue;
+                }
+
+                string candidate = Property(entry, "OfficialCardId") as string;
+                object[] loadedArguments = { candidate, null };
+                if (!(bool)tryGetLoaded.Invoke(null, loadedArguments))
+                {
+                    cardId = candidate;
+                    break;
+                }
+            }
+            Assert.That(cardId, Is.Not.Null.And.Not.Empty,
+                "O catálogo deve conter ao menos uma arte runtime ainda não " +
+                "carregada para validar o caminho assíncrono.");
+
+            Sprite loadedSprite = null;
+            var callback = new Action<Sprite>(sprite => loadedSprite = sprite);
+            var routine = (IEnumerator)loadAsync.Invoke(
+                null,
+                new object[] { cardId, callback });
+
+            Assert.That(routine.MoveNext(), Is.True,
+                "A leitura da arte deve ceder o frame antes de concluir.");
+            yield return routine.Current;
+            while (routine.MoveNext())
+                yield return routine.Current;
+
+            Assert.That(loadedSprite, Is.Not.Null,
+                "A arte runtime assíncrona precisa terminar com um sprite.");
         }
 
         [Test]
